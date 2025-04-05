@@ -1,0 +1,58 @@
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+type Strategy = {
+  id: number;
+  name: string;
+  return: string;
+  returnValue: number;
+  active: boolean;
+};
+
+const strategies: Strategy[] = [
+  { id: 1, name: "RSI Strategy", return: "+12.5%", returnValue: 12.5, active: true },
+  { id: 2, name: "Moving Average Crossover", return: "+8.2%", returnValue: 8.2, active: true },
+  { id: 3, name: "Bollinger Bands", return: "+5.7%", returnValue: 5.7, active: true },
+  { id: 4, name: "Ichimoku Cloud", return: "+9.8%", returnValue: 9.8, active: true },
+];
+
+export function StrategyList() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Top Strategies</CardTitle>
+        <p className="text-sm text-muted-foreground">Your best performing strategies based on return.</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="divide-y">
+          {strategies.map((strategy) => (
+            <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
+              <div>
+                <div className="flex items-center">
+                  <p className="font-medium">{strategy.name}</p>
+                  {strategy.active && (
+                    <Badge variant="outline" className="ml-2 bg-muted">
+                      Active
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-positive">{strategy.return} return</p>
+              </div>
+              <Button variant="ghost" size="icon">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="p-6 pt-0">
+          <Button variant="outline" className="w-full">
+            View All Strategies
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

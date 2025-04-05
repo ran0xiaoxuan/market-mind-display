@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 
 const EditStrategy = () => {
   const navigate = useNavigate();
@@ -38,6 +40,21 @@ const EditStrategy = () => {
   const [timeframe, setTimeframe] = useState("Daily");
   const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
   const [isActive, setIsActive] = useState(true);
+  
+  // Form definition
+  const form = useForm({
+    defaultValues: {
+      strategyName: "Moving Average Crossover",
+      description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
+      market: "Stocks",
+      timeframe: "Daily",
+      targetAsset: "AAPL - Apple Inc.",
+      isActive: true,
+      fastPeriod: "20",
+      slowPeriod: "50",
+      signalPeriod: "9"
+    }
+  });
   
   // Parameters
   const [fastPeriod, setFastPeriod] = useState("20");
@@ -152,88 +169,90 @@ const EditStrategy = () => {
             <h2 className="text-xl font-semibold mb-1">Basic Information</h2>
             <p className="text-sm text-muted-foreground mb-4">Edit the basic details of your strategy</p>
             
-            <div className="space-y-4">
-              <div>
-                <FormLabel htmlFor="name">Strategy Name</FormLabel>
-                <Input 
-                  id="name" 
-                  value={strategyName} 
-                  onChange={(e) => setStrategyName(e.target.value)} 
-                  className="mt-1"
-                />
-              </div>
-              
-              <div>
-                <FormLabel htmlFor="description">Description</FormLabel>
-                <Textarea 
-                  id="description" 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  className="mt-1 resize-none"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form {...form}>
+              <div className="space-y-4">
                 <div>
-                  <FormLabel htmlFor="market">Market</FormLabel>
-                  <Select value={market} onValueChange={setMarket}>
-                    <SelectTrigger id="market" className="mt-1">
-                      <SelectValue placeholder="Select Market" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Stocks">Stocks</SelectItem>
-                      <SelectItem value="Forex">Forex</SelectItem>
-                      <SelectItem value="Crypto">Crypto</SelectItem>
-                      <SelectItem value="Futures">Futures</SelectItem>
-                      <SelectItem value="Options">Options</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="name">Strategy Name</Label>
+                  <Input 
+                    id="name" 
+                    value={strategyName} 
+                    onChange={(e) => setStrategyName(e.target.value)} 
+                    className="mt-1"
+                  />
                 </div>
                 
                 <div>
-                  <FormLabel htmlFor="timeframe">Timeframe</FormLabel>
-                  <Select value={timeframe} onValueChange={setTimeframe}>
-                    <SelectTrigger id="timeframe" className="mt-1">
-                      <SelectValue placeholder="Select Timeframe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1m">1 Minute</SelectItem>
-                      <SelectItem value="5m">5 Minutes</SelectItem>
-                      <SelectItem value="15m">15 Minutes</SelectItem>
-                      <SelectItem value="30m">30 Minutes</SelectItem>
-                      <SelectItem value="1h">1 Hour</SelectItem>
-                      <SelectItem value="4h">4 Hours</SelectItem>
-                      <SelectItem value="Daily">Daily</SelectItem>
-                      <SelectItem value="Weekly">Weekly</SelectItem>
-                      <SelectItem value="Monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    value={description} 
+                    onChange={(e) => setDescription(e.target.value)} 
+                    className="mt-1 resize-none"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="market">Market</Label>
+                    <Select value={market} onValueChange={setMarket}>
+                      <SelectTrigger id="market" className="mt-1">
+                        <SelectValue placeholder="Select Market" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Stocks">Stocks</SelectItem>
+                        <SelectItem value="Forex">Forex</SelectItem>
+                        <SelectItem value="Crypto">Crypto</SelectItem>
+                        <SelectItem value="Futures">Futures</SelectItem>
+                        <SelectItem value="Options">Options</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="timeframe">Timeframe</Label>
+                    <Select value={timeframe} onValueChange={setTimeframe}>
+                      <SelectTrigger id="timeframe" className="mt-1">
+                        <SelectValue placeholder="Select Timeframe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1m">1 Minute</SelectItem>
+                        <SelectItem value="5m">5 Minutes</SelectItem>
+                        <SelectItem value="15m">15 Minutes</SelectItem>
+                        <SelectItem value="30m">30 Minutes</SelectItem>
+                        <SelectItem value="1h">1 Hour</SelectItem>
+                        <SelectItem value="4h">4 Hours</SelectItem>
+                        <SelectItem value="Daily">Daily</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="asset">Target Asset</Label>
+                  <Input 
+                    id="asset" 
+                    value={targetAsset} 
+                    onChange={(e) => setTargetAsset(e.target.value)} 
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label>Strategy Status</Label>
+                  <div className="flex items-center mt-1">
+                    <Badge variant="outline" className={isActive ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100"}>
+                      {isActive ? "Active" : "Inactive"}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground ml-2">
+                      This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
+                    </p>
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <FormLabel htmlFor="asset">Target Asset</FormLabel>
-                <Input 
-                  id="asset" 
-                  value={targetAsset} 
-                  onChange={(e) => setTargetAsset(e.target.value)} 
-                  className="mt-1"
-                />
-              </div>
-              
-              <div>
-                <FormLabel>Strategy Status</FormLabel>
-                <div className="flex items-center mt-1">
-                  <Badge variant="outline" className={isActive ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100"}>
-                    {isActive ? "Active" : "Inactive"}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground ml-2">
-                    This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
-                  </p>
-                </div>
-              </div>
-            </div>
+            </Form>
           </Card>
           
           {/* Tabs for Parameters and Rules */}
@@ -248,40 +267,42 @@ const EditStrategy = () => {
                 <h2 className="text-xl font-semibold mb-1">Strategy Parameters</h2>
                 <p className="text-sm text-muted-foreground mb-4">Configure the parameters for this strategy</p>
                 
-                <div className="space-y-4">
-                  <div>
-                    <FormLabel htmlFor="fast-period">Fast Period</FormLabel>
-                    <Input 
-                      id="fast-period" 
-                      type="number" 
-                      value={fastPeriod} 
-                      onChange={(e) => setFastPeriod(e.target.value)} 
-                      className="mt-1"
-                    />
+                <Form {...form}>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="fast-period">Fast Period</Label>
+                      <Input 
+                        id="fast-period" 
+                        type="number" 
+                        value={fastPeriod} 
+                        onChange={(e) => setFastPeriod(e.target.value)} 
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="slow-period">Slow Period</Label>
+                      <Input 
+                        id="slow-period" 
+                        type="number" 
+                        value={slowPeriod} 
+                        onChange={(e) => setSlowPeriod(e.target.value)} 
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="signal-period">Signal Period</Label>
+                      <Input 
+                        id="signal-period" 
+                        type="number" 
+                        value={signalPeriod} 
+                        onChange={(e) => setSignalPeriod(e.target.value)} 
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
-                  
-                  <div>
-                    <FormLabel htmlFor="slow-period">Slow Period</FormLabel>
-                    <Input 
-                      id="slow-period" 
-                      type="number" 
-                      value={slowPeriod} 
-                      onChange={(e) => setSlowPeriod(e.target.value)} 
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <FormLabel htmlFor="signal-period">Signal Period</FormLabel>
-                    <Input 
-                      id="signal-period" 
-                      type="number" 
-                      value={signalPeriod} 
-                      onChange={(e) => setSignalPeriod(e.target.value)} 
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
+                </Form>
               </Card>
             </TabsContent>
             
@@ -310,7 +331,7 @@ const EditStrategy = () => {
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
                         <div>
-                          <FormLabel>Indicator</FormLabel>
+                          <Label>Indicator</Label>
                           <Select 
                             value={rule.indicator} 
                             onValueChange={(value) => updateEntryRule(rule.id, "indicator", value)}
@@ -328,7 +349,7 @@ const EditStrategy = () => {
                         </div>
                         
                         <div>
-                          <FormLabel>Condition</FormLabel>
+                          <Label>Condition</Label>
                           <Select 
                             value={rule.condition} 
                             onValueChange={(value) => updateEntryRule(rule.id, "condition", value)}
@@ -346,7 +367,7 @@ const EditStrategy = () => {
                         </div>
                         
                         <div>
-                          <FormLabel>Value</FormLabel>
+                          <Label>Value</Label>
                           <Select 
                             value={rule.value} 
                             onValueChange={(value) => updateEntryRule(rule.id, "value", value)}
@@ -366,7 +387,7 @@ const EditStrategy = () => {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <FormLabel>Parameters Period</FormLabel>
+                          <Label>Parameters Period</Label>
                           <Input 
                             type="number"
                             value={rule.indicatorPeriod}
@@ -375,7 +396,7 @@ const EditStrategy = () => {
                         </div>
                         
                         <div>
-                          <FormLabel>Value Parameters Period</FormLabel>
+                          <Label>Value Parameters Period</Label>
                           <Input 
                             type="number"
                             value={rule.valuePeriod}
@@ -415,7 +436,7 @@ const EditStrategy = () => {
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
                         <div>
-                          <FormLabel>Indicator</FormLabel>
+                          <Label>Indicator</Label>
                           <Select 
                             value={rule.indicator} 
                             onValueChange={(value) => updateExitRule(rule.id, "indicator", value)}
@@ -433,7 +454,7 @@ const EditStrategy = () => {
                         </div>
                         
                         <div>
-                          <FormLabel>Condition</FormLabel>
+                          <Label>Condition</Label>
                           <Select 
                             value={rule.condition} 
                             onValueChange={(value) => updateExitRule(rule.id, "condition", value)}
@@ -451,7 +472,7 @@ const EditStrategy = () => {
                         </div>
                         
                         <div>
-                          <FormLabel>Value</FormLabel>
+                          <Label>Value</Label>
                           <Select 
                             value={rule.value} 
                             onValueChange={(value) => updateExitRule(rule.id, "value", value)}
@@ -471,7 +492,7 @@ const EditStrategy = () => {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <FormLabel>Parameters Period</FormLabel>
+                          <Label>Parameters Period</Label>
                           <Input 
                             type="number"
                             value={rule.indicatorPeriod}
@@ -480,7 +501,7 @@ const EditStrategy = () => {
                         </div>
                         
                         <div>
-                          <FormLabel>Value Parameters Period</FormLabel>
+                          <Label>Value Parameters Period</Label>
                           <Input 
                             type="number"
                             value={rule.valuePeriod}

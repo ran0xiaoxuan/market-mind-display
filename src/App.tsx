@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Strategies from "./pages/Strategies";
 import StrategyDetail from "./pages/StrategyDetail";
+import EditStrategy from "./pages/EditStrategy";
 import Backtest from "./pages/Backtest";
 import Analytics from "./pages/Analytics";
 import AIStrategy from "./pages/AIStrategy";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/strategy/:strategyId" element={<StrategyDetail />} />
+          <Route path="/strategy/:strategyId/edit" element={<EditStrategy />} />
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/ai-strategy" element={<AIStrategy />} />

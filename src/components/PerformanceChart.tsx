@@ -123,6 +123,7 @@ const drawdownData = [{
   date: "Dec",
   drawdown: 0
 }];
+
 export function PerformanceChart({
   type
 }: PerformanceChartProps) {
@@ -165,7 +166,7 @@ export function PerformanceChart({
                 }
                 return null;
               }} />
-                <Area type="monotone" dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} />
+                <Area type="monotone" dataKey="value" stroke="#26A69A" fill="#CCECE6" fillOpacity={0.3} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -188,7 +189,6 @@ export function PerformanceChart({
               }) => {
                 if (active && payload && payload.length) {
                   const value = payload[0].value;
-                  // Fix: Type checking before comparing with a number
                   const isPositive = typeof value === 'number' ? value > 0 : false;
                   return <div className="rounded-lg border bg-background p-2 shadow-sm">
                           <div className="grid gap-2">
@@ -203,7 +203,6 @@ export function PerformanceChart({
                 }
                 return null;
               }} />
-                {/* Fix: Use a basic Bar with default fill and then use Cell components for individual coloring */}
                 <Bar dataKey="return" fill="#8884d8">
                   {returnsData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.return >= 0 ? "#10b981" : "#ef4444"} />)}
                 </Bar>

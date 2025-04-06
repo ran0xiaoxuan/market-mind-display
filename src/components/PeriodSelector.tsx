@@ -10,6 +10,7 @@ import { Calendar, ChevronDown, Filter, RotateCw } from "lucide-react";
 type PeriodSelectorProps = {
   period: string;
   onPeriodChange: (period: string) => void;
+  onRefresh?: () => void;
 };
 
 const periods = [
@@ -21,7 +22,7 @@ const periods = [
   "Custom"
 ];
 
-export function PeriodSelector({ period, onPeriodChange }: PeriodSelectorProps) {
+export function PeriodSelector({ period, onPeriodChange, onRefresh }: PeriodSelectorProps) {
   return (
     <div className="flex items-center gap-2">
       <Popover>
@@ -52,7 +53,7 @@ export function PeriodSelector({ period, onPeriodChange }: PeriodSelectorProps) 
         <Filter className="h-4 w-4" />
       </Button>
       
-      <Button variant="outline" size="icon">
+      <Button variant="outline" size="icon" onClick={onRefresh}>
         <RotateCw className="h-4 w-4" />
       </Button>
       

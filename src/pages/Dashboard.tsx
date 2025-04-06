@@ -1,12 +1,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
+import { PeriodSelector } from "@/components/PeriodSelector";
 import { useState } from "react";
 
 type TimeRange = "7d" | "30d" | "all";
@@ -14,6 +15,71 @@ type TimeRange = "7d" | "30d" | "all";
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [activeTab, setActiveTab] = useState<"equity" | "returns" | "drawdown">("equity");
+  const [period, setPeriod] = useState<string>("Last Week");
+
+  const handleTimeRangeChange = (range: TimeRange) => {
+    setTimeRange(range);
+    // Update period selector based on time range
+    if (range === "7d") {
+      setPeriod("Last Week");
+    } else if (range === "30d") {
+      setPeriod("Last Month");
+    } else {
+      setPeriod("All Time");
+    }
+  };
+
+  const handlePeriodChange = (newPeriod: string) => {
+    setPeriod(newPeriod);
+    // Update time range based on period
+    if (newPeriod === "Last Week") {
+      setTimeRange("7d");
+    } else if (newPeriod === "Last Month") {
+      setTimeRange("30d");
+    } else if (newPeriod === "Last Quarter" || newPeriod === "Last Year" || newPeriod === "Year to Date" || newPeriod === "Custom") {
+      setTimeRange("all");
+    }
+  };
+
+  // Get metrics data based on time range
+  const getMetricCardData = (timeRange: TimeRange) => {
+    if (timeRange === "7d") {
+      return {
+        strategiesCount: "12",
+        strategiesChange: { value: "+0", positive: false },
+        activeStrategies: "8",
+        activeChange: { value: "+0", positive: false },
+        totalReturn: "+3.5%",
+        returnChange: { value: "+1.2%", positive: true },
+        sharpeRatio: "1.4",
+        sharpeChange: { value: "+0.1", positive: true },
+      };
+    } else if (timeRange === "30d") {
+      return {
+        strategiesCount: "12",
+        strategiesChange: { value: "+1", positive: true },
+        activeStrategies: "8",
+        activeChange: { value: "+1", positive: true },
+        totalReturn: "+12.5%",
+        returnChange: { value: "+1.8%", positive: true },
+        sharpeRatio: "1.6",
+        sharpeChange: { value: "+0.2", positive: true },
+      };
+    } else {
+      return {
+        strategiesCount: "12",
+        strategiesChange: { value: "+2", positive: true },
+        activeStrategies: "8",
+        activeChange: { value: "+1", positive: true },
+        totalReturn: "+50.0%",
+        returnChange: { value: "+2.3%", positive: true },
+        sharpeRatio: "1.8",
+        sharpeChange: { value: "+0.2", positive: true },
+      };
+    }
+  };
+
+  const metrics = getMetricCardData(timeRange);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -24,19 +90,19 @@ const Dashboard = () => {
           <div className="flex items-center gap-2">
             <Button 
               variant={timeRange === "7d" ? "default" : "outline"} 
-              onClick={() => setTimeRange("7d")}
+              onClick={() => handleTimeRangeChange("7d")}
             >
               Last 7 Days
             </Button>
             <Button 
               variant={timeRange === "30d" ? "default" : "outline"} 
-              onClick={() => setTimeRange("30d")}
+              onClick={() => handleTimeRangeChange("30d")}
             >
               Last 30 Days
             </Button>
             <Button 
               variant={timeRange === "all" ? "default" : "outline"} 
-              onClick={() => setTimeRange("all")}
+              onClick={() => handleTimeRangeChange("all")}
             >
               All Time
             </Button>
@@ -46,24 +112,24 @@ const Dashboard = () => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Total Strategies"
-            value="12"
-            change={{ value: "+2", positive: true }}
+            value={metrics.strategiesCount}
+            change={metrics.strategiesChange}
           />
           <MetricCard
             title="Active Strategies"
-            value="8"
-            change={{ value: "+1", positive: true }}
+            value={metrics.activeStrategies}
+            change={metrics.activeChange}
           />
           <MetricCard
             title="Total Return"
-            value="+12.5%"
-            change={{ value: "+2.3%", positive: true }}
+            value={metrics.totalReturn}
+            change={metrics.returnChange}
             direction="up"
           />
           <MetricCard
             title="Sharpe Ratio"
-            value="1.8"
-            change={{ value: "+0.2", positive: true }}
+            value={metrics.sharpeRatio}
+            change={metrics.sharpeChange}
             direction="up"
           />
         </div>
@@ -71,9 +137,16 @@ const Dashboard = () => {
         <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-8">
           <div className="space-y-6 md:col-span-2 lg:col-span-5">
             <Card>
-              <div className="p-6">
-                <h2 className="text-xl font-bold">Performance Overview</h2>
-                <p className="text-sm text-muted-foreground">View the performance of all your strategies over time.</p>
+              <div className="p-6 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">Performance Overview</h2>
+                  <p className="text-sm text-muted-foreground">View the performance of all your strategies over time.</p>
+                </div>
+                <PeriodSelector 
+                  period={period}
+                  onPeriodChange={handlePeriodChange}
+                  onRefresh={() => console.log("Refreshing data...")}
+                />
               </div>
 
               <Tabs
@@ -82,22 +155,29 @@ const Dashboard = () => {
                 onValueChange={(value) => setActiveTab(value as "equity" | "returns" | "drawdown")}
                 className="w-full"
               >
+                <div className="px-6">
+                  <TabsList className="grid w-full max-w-[400px] grid-cols-3">
+                    <TabsTrigger value="equity">Equity Curve</TabsTrigger>
+                    <TabsTrigger value="returns">Returns</TabsTrigger>
+                    <TabsTrigger value="drawdown">Drawdown</TabsTrigger>
+                  </TabsList>
+                </div>
                 <TabsContent value="equity" className="m-0">
-                  <PerformanceChart type="equity" />
+                  <PerformanceChart type="equity" timeRange={timeRange} />
                   <div className="p-6">
-                    <PerformanceMetrics type="equity" />
+                    <PerformanceMetrics type="equity" timeRange={timeRange} />
                   </div>
                 </TabsContent>
                 <TabsContent value="returns" className="m-0">
-                  <PerformanceChart type="returns" />
+                  <PerformanceChart type="returns" timeRange={timeRange} />
                   <div className="p-6">
-                    <PerformanceMetrics type="returns" />
+                    <PerformanceMetrics type="returns" timeRange={timeRange} />
                   </div>
                 </TabsContent>
                 <TabsContent value="drawdown" className="m-0">
-                  <PerformanceChart type="drawdown" />
+                  <PerformanceChart type="drawdown" timeRange={timeRange} />
                   <div className="p-6">
-                    <PerformanceMetrics type="drawdown" />
+                    <PerformanceMetrics type="drawdown" timeRange={timeRange} />
                   </div>
                 </TabsContent>
               </Tabs>

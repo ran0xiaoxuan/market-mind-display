@@ -13,6 +13,9 @@ import Backtest from "./pages/Backtest";
 import Analytics from "./pages/Analytics";
 import AIStrategy from "./pages/AIStrategy";
 import Settings from "./pages/Settings";
+import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import { ThemeProvider } from "./components/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Auth Routes */}
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            
+            {/* App Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/strategy/:strategyId" element={<StrategyDetail />} />

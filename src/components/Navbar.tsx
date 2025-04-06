@@ -2,6 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
+import { Button } from "./ui/button";
 
 const navItems = [
   { name: "StratAlge", href: "/", className: "font-bold" },
@@ -14,6 +15,9 @@ const navItems = [
 
 export function Navbar() {
   const location = useLocation();
+  
+  // We'll implement this properly when we have real auth
+  const isAuthenticated = true;
   
   return (
     <nav className="border-b">
@@ -33,7 +37,23 @@ export function Navbar() {
             </Link>
           ))}
         </div>
-        <UserMenu />
+        
+        {isAuthenticated ? (
+          <UserMenu />
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link to="/auth/login">
+              <Button variant="ghost" size="sm">
+                Log in
+              </Button>
+            </Link>
+            <Link to="/auth/signup">
+              <Button size="sm">
+                Sign up
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </nav>
   );

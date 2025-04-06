@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
@@ -10,11 +11,19 @@ import { useTheme } from "./ThemeProvider";
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
   
   const handleClose = () => setOpen(false);
   
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+  
+  const handleLogout = () => {
+    // Handle logout logic here
+    console.log("Logging out...");
+    handleClose();
+    navigate("/auth/login");
   };
 
   return (
@@ -59,7 +68,11 @@ export function UserMenu() {
             )}
           </Button>
           
-          <Button variant="ghost" className="w-full justify-start px-4 py-2 h-auto text-red-500 hover:text-red-500 hover:bg-red-50">
+          <Button 
+            variant="ghost" 
+            onClick={handleLogout}
+            className="w-full justify-start px-4 py-2 h-auto text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Log out
           </Button>

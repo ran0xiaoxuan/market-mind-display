@@ -14,7 +14,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Legend
+  Legend,
+  Cell
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -167,13 +168,15 @@ export function PerformanceChart({ type }: PerformanceChartProps) {
                     return null;
                   }}
                 />
-                <Bar
-                  dataKey="return"
-                  fill={(data) => {
-                    // Fix: Create a fill property that returns a string instead of a function
-                    return data.return >= 0 ? "#10b981" : "#ef4444";
-                  }}
-                />
+                {/* Fix: Use a basic Bar with default fill and then use Cell components for individual coloring */}
+                <Bar dataKey="return" fill="#8884d8">
+                  {returnsData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={entry.return >= 0 ? "#10b981" : "#ef4444"}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

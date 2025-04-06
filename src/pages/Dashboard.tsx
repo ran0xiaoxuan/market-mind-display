@@ -1,20 +1,17 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
-import { PeriodSelector } from "@/components/PeriodSelector";
 import { useState } from "react";
 
 type TimeRange = "7d" | "30d" | "all";
 
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
-  const [activeTab, setActiveTab] = useState<"equity" | "returns" | "drawdown">("equity");
   const [period, setPeriod] = useState<string>("Last Week");
 
   const handleTimeRangeChange = (range: TimeRange) => {
@@ -26,18 +23,6 @@ const Dashboard = () => {
       setPeriod("Last Month");
     } else {
       setPeriod("All Time");
-    }
-  };
-
-  const handlePeriodChange = (newPeriod: string) => {
-    setPeriod(newPeriod);
-    // Update time range based on period
-    if (newPeriod === "Last Week") {
-      setTimeRange("7d");
-    } else if (newPeriod === "Last Month") {
-      setTimeRange("30d");
-    } else if (newPeriod === "Last Quarter" || newPeriod === "Last Year" || newPeriod === "Year to Date" || newPeriod === "Custom") {
-      setTimeRange("all");
     }
   };
 
@@ -137,50 +122,15 @@ const Dashboard = () => {
         <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-8">
           <div className="space-y-6 md:col-span-2 lg:col-span-5">
             <Card>
-              <div className="p-6 flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-bold">Performance Overview</h2>
-                  <p className="text-sm text-muted-foreground">View the performance of all your strategies over time.</p>
-                </div>
-                <PeriodSelector 
-                  period={period}
-                  onPeriodChange={handlePeriodChange}
-                  onRefresh={() => console.log("Refreshing data...")}
-                />
+              <div className="p-6">
+                <h2 className="text-xl font-bold">Performance Overview</h2>
+                <p className="text-sm text-muted-foreground">View the performance of all your strategies over time.</p>
               </div>
 
-              <Tabs
-                defaultValue="equity"
-                value={activeTab}
-                onValueChange={(value) => setActiveTab(value as "equity" | "returns" | "drawdown")}
-                className="w-full"
-              >
-                <div className="px-6">
-                  <TabsList className="grid w-full max-w-[400px] grid-cols-3">
-                    <TabsTrigger value="equity">Equity Curve</TabsTrigger>
-                    <TabsTrigger value="returns">Returns</TabsTrigger>
-                    <TabsTrigger value="drawdown">Drawdown</TabsTrigger>
-                  </TabsList>
-                </div>
-                <TabsContent value="equity" className="m-0">
-                  <PerformanceChart type="equity" timeRange={timeRange} />
-                  <div className="p-6">
-                    <PerformanceMetrics type="equity" timeRange={timeRange} />
-                  </div>
-                </TabsContent>
-                <TabsContent value="returns" className="m-0">
-                  <PerformanceChart type="returns" timeRange={timeRange} />
-                  <div className="p-6">
-                    <PerformanceMetrics type="returns" timeRange={timeRange} />
-                  </div>
-                </TabsContent>
-                <TabsContent value="drawdown" className="m-0">
-                  <PerformanceChart type="drawdown" timeRange={timeRange} />
-                  <div className="p-6">
-                    <PerformanceMetrics type="drawdown" timeRange={timeRange} />
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <PerformanceChart type="equity" timeRange={timeRange} />
+              <div className="p-6">
+                <PerformanceMetrics type="equity" timeRange={timeRange} />
+              </div>
             </Card>
           </div>
           <div className="md:col-span-1 lg:col-span-3">

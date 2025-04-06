@@ -39,7 +39,7 @@ export function StrategyList() {
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-positive">{strategy.return} return</p>
+                <p className="text-sm text-positive">{strategy.return}</p>
               </div>
               <Button variant="ghost" size="icon">
                 <ChevronRight className="h-4 w-4" />

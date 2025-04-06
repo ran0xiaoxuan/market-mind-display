@@ -82,13 +82,10 @@ const Strategies = () => {
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
             <h1 className="text-3xl font-bold">Trading Strategies</h1>
-            <p className="text-muted-foreground mt-1">
-              Create, manage, and backtest your algorithmic trading strategies.
-            </p>
           </div>
           
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
-            <div className="w-full sm:w-1/2">
+          <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
+            <div className="w-full sm:w-2/3">
               <Input 
                 placeholder="Search strategies..." 
                 value={searchTerm}
@@ -96,16 +93,16 @@ const Strategies = () => {
                 className="w-full"
               />
             </div>
-            <div className="w-full sm:w-1/4">
+            <div className="w-full sm:w-1/4 lg:w-1/5">
               <Select
                 value={statusFilter}
                 onValueChange={setStatusFilter}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>

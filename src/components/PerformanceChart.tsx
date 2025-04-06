@@ -147,7 +147,8 @@ export function PerformanceChart({ type }: PerformanceChartProps) {
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const value = payload[0].value;
-                      const isPositive = value > 0;
+                      // Fix: Type checking before comparing with a number
+                      const isPositive = typeof value === 'number' ? value > 0 : false;
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm">
                           <div className="grid gap-2">
@@ -156,7 +157,7 @@ export function PerformanceChart({ type }: PerformanceChartProps) {
                                 className={`h-2 w-2 rounded ${isPositive ? "bg-green-500" : "bg-red-500"}`} 
                               />
                               <span className={`font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
-                                {value > 0 ? "+" : ""}{value}%
+                                {typeof value === 'number' && value > 0 ? "+" : ""}{value}%
                               </span>
                             </div>
                           </div>
@@ -168,7 +169,10 @@ export function PerformanceChart({ type }: PerformanceChartProps) {
                 />
                 <Bar
                   dataKey="return"
-                  fill={(data) => (data.return >= 0 ? "#10b981" : "#ef4444")}
+                  fill={(data) => {
+                    // Fix: Create a fill property that returns a string instead of a function
+                    return data.return >= 0 ? "#10b981" : "#ef4444";
+                  }}
                 />
               </BarChart>
             </ResponsiveContainer>

@@ -69,8 +69,7 @@ const Dashboard = () => {
         </div>
 
         <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-4">
-          {/* Changed from md:col-span-2 lg:col-span-3 to md:col-span-2 lg:col-span-2 */}
-          <div className="space-y-6 md:col-span-2 lg:col-span-2">
+          <div className="space-y-6 md:col-span-2 lg:col-span-3">
             <Card>
               <div className="p-6">
                 <h2 className="text-xl font-bold">Performance Overview</h2>
@@ -104,8 +103,7 @@ const Dashboard = () => {
               </Tabs>
             </Card>
           </div>
-          {/* Changed from md:col-span-1 to md:col-span-1 lg:col-span-2 */}
-          <div className="md:col-span-1 lg:col-span-2">
+          <div className="md:col-span-1">
             <StrategyList />
           </div>
         </div>

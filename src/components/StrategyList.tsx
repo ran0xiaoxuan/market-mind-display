@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 type Strategy = {
   id: number;
   name: string;
-  return: string;
-  returnValue: number;
+  return?: string;
+  returnValue?: number;
   active: boolean;
 };
 
 const strategies: Strategy[] = [
-  { id: 1, name: "RSI Strategy", return: "+12.5%", returnValue: 12.5, active: true },
-  { id: 2, name: "Moving Average Crossover", return: "+8.2%", returnValue: 8.2, active: true },
-  { id: 3, name: "Bollinger Bands", return: "+5.7%", returnValue: 5.7, active: true },
-  { id: 4, name: "Ichimoku Cloud", return: "+9.8%", returnValue: 9.8, active: true },
+  { id: 1, name: "RSI Strategy", active: true },
+  { id: 2, name: "Moving Average Crossover", active: true },
+  { id: 3, name: "Bollinger Bands", active: true },
+  { id: 4, name: "Ichimoku Cloud", active: true },
 ];
 
 export function StrategyList() {
@@ -24,7 +24,7 @@ export function StrategyList() {
     <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-xl">Top Strategies</CardTitle>
-        <p className="text-sm text-muted-foreground">Your best performing strategies based on return.</p>
+        <p className="text-sm text-muted-foreground">Your best performing strategies.</p>
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <div className="divide-y">
@@ -39,7 +39,6 @@ export function StrategyList() {
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-positive">{strategy.return}</p>
               </div>
               <Button variant="ghost" size="icon">
                 <ChevronRight className="h-4 w-4" />

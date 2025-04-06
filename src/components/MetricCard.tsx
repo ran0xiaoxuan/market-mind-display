@@ -17,31 +17,13 @@ export function MetricCard({ title, value, change, direction, showChart = true }
   const isPositive = change?.positive || direction === "up";
 
   return (
-    <div className="rounded-md border bg-card p-6 shadow-sm">
+    <div className="rounded-md border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
       </div>
-      <div className="mt-2 flex items-baseline">
-        <h2 className="text-3xl font-bold">{value}</h2>
-        {change && (
-          <p
-            className={cn(
-              "ml-2 text-sm",
-              isPositive ? "text-positive" : "text-negative"
-            )}
-          >
-            <span className="flex items-center">
-              {isPositive ? (
-                <ChevronUp className="mr-1 h-4 w-4" />
-              ) : (
-                <ChevronDown className="mr-1 h-4 w-4" />
-              )}
-              {change.value}
-            </span>
-          </p>
-        )}
+      <div className="mt-2">
+        <h2 className="text-2xl font-bold">{value}</h2>
       </div>
-      {change && <p className="mt-1 text-xs text-muted-foreground">from last month</p>}
     </div>
   );
 }

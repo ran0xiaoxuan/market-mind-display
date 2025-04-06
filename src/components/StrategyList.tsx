@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,12 +21,12 @@ const strategies: Strategy[] = [
 
 export function StrategyList() {
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-xl">Top Strategies</CardTitle>
         <p className="text-sm text-muted-foreground">Your best performing strategies based on return.</p>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 flex-1">
         <div className="divide-y">
           {strategies.map((strategy) => (
             <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
@@ -47,12 +47,12 @@ export function StrategyList() {
             </div>
           ))}
         </div>
-        <div className="p-6 pt-0">
-          <Button variant="outline" className="w-full">
-            View All Strategies
-          </Button>
-        </div>
       </CardContent>
+      <CardFooter className="pt-2 pb-6">
+        <Button variant="outline" className="w-full">
+          View All Strategies
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

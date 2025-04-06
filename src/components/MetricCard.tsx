@@ -1,5 +1,5 @@
 
-import { ChevronUp, ChevronDown, BarChart3, ArrowRight } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MetricCardProps = {
@@ -20,15 +20,6 @@ export function MetricCard({ title, value, change, direction, showChart = true }
     <div className="rounded-md border bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        {showChart && (
-          <div className="h-4 w-4">
-            {direction === "up" || direction === "down" ? (
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        )}
       </div>
       <div className="mt-2 flex items-baseline">
         <h2 className="text-3xl font-bold">{value}</h2>

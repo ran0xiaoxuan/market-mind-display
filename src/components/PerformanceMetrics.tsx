@@ -89,19 +89,29 @@ export function PerformanceMetrics({ type, timeRange }: PerformanceMetricsProps)
   if (type === "equity") {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {equityMetrics.map((metric) => (
-          <div key={metric.label}>
-            <p className="text-sm text-muted-foreground">{metric.label}</p>
-            <p className={`text-lg font-medium ${metric.positive ? "text-positive" : metric.negative ? "text-negative" : ""}`}>
-              {metric.value}
-            </p>
-            {metric.percentValue && (
-              <p className="text-xs text-muted-foreground">
-                {metric.percentValue}
+        {equityMetrics.map((metric) => {
+          // Determine if the value is positive or negative based on the first character
+          const isPositive = metric.value.startsWith("+");
+          const isNegative = metric.value.startsWith("-");
+          
+          return (
+            <div key={metric.label}>
+              <p className="text-sm text-muted-foreground">{metric.label}</p>
+              <p className={`text-lg font-medium ${
+                metric.label === "Total Growth" 
+                  ? isPositive ? "text-positive" : isNegative ? "text-negative" : ""
+                  : metric.negative ? "text-negative" : ""
+              }`}>
+                {metric.value}
               </p>
-            )}
-          </div>
-        ))}
+              {metric.percentValue && (
+                <p className="text-xs text-muted-foreground">
+                  {metric.percentValue}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }

@@ -70,12 +70,15 @@ export function PerformanceChart({
               payload
             }) => {
               if (active && payload && payload.length) {
+                const value = payload[0].value as number;
+                const isPositive = value >= 0;
+                
                 return <div className="rounded-lg border bg-background p-2 shadow-sm">
                   <div className="grid gap-2">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded bg-primary" />
-                      <span className="font-medium">
-                        {payload[0].value.toLocaleString()}%
+                      <span className={`font-medium ${isPositive ? "text-positive" : "text-negative"}`}>
+                        {value.toLocaleString()}%
                       </span>
                     </div>
                   </div>

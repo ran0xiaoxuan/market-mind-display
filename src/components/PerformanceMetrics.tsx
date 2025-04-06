@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 
 type PerformanceMetricsProps = {
@@ -6,10 +5,10 @@ type PerformanceMetricsProps = {
 };
 
 const equityMetrics = [
-  { label: "Starting Value", value: "$10,000" },
-  { label: "Current Value", value: "$15,000", positive: true, percentChange: "+50.0%" },
-  { label: "Total Growth", value: "+50.0%" },
-  { label: "Annualized", value: "+24.8%" },
+  { label: "Total Growth", value: "+50.0%", positive: true },
+  { label: "Max Drawdown", value: "-8.3%", negative: true },
+  { label: "Total Trades", value: "25" },
+  { label: "Profitable Trades", value: "17", percentValue: "68%" },
 ];
 
 const returnsMetrics = [
@@ -32,9 +31,14 @@ export function PerformanceMetrics({ type }: PerformanceMetricsProps) {
         {equityMetrics.map((metric) => (
           <div key={metric.label}>
             <p className="text-sm text-muted-foreground">{metric.label}</p>
-            <p className={`text-lg font-medium ${metric.value.startsWith("+") ? "text-positive" : ""}`}>
+            <p className={`text-lg font-medium ${metric.positive ? "text-positive" : metric.negative ? "text-negative" : ""}`}>
               {metric.value}
             </p>
+            {metric.percentValue && (
+              <p className="text-xs text-muted-foreground">
+                {metric.percentValue}
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -76,7 +80,6 @@ export function PerformanceMetrics({ type }: PerformanceMetricsProps) {
     );
   }
 
-  // Drawdown metrics
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {drawdownMetrics.map((metric) => (

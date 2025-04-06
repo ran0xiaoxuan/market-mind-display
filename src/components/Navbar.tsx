@@ -1,6 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { UserMenu } from "./UserMenu";
 
 const navItems = [
   { name: "StratAlge", href: "/", className: "font-bold" },
@@ -14,7 +15,7 @@ const navItems = [
 export function Navbar() {
   return (
     <nav className="border-b">
-      <div className="flex h-16 items-center px-4">
+      <div className="flex h-16 items-center px-4 justify-between">
         <div className="flex gap-6 md:gap-10">
           {navItems.map((item, index) => (
             <Link
@@ -30,6 +31,7 @@ export function Navbar() {
             </Link>
           ))}
         </div>
+        <UserMenu />
       </div>
     </nav>
   );

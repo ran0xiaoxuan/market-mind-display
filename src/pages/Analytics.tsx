@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import { StrategyComparisonTable } from "@/components/StrategyComparisonTable";
 import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
 import { PeriodSelector } from "@/components/PeriodSelector";
-import { Export } from "lucide-react";
+import { FileDown } from "lucide-react";
 
 const mainTabs = [
   "Performance",

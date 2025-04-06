@@ -68,8 +68,8 @@ const Dashboard = () => {
           />
         </div>
 
-        <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-4">
-          <div className="space-y-6 md:col-span-2 lg:col-span-3">
+        <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-8">
+          <div className="space-y-6 md:col-span-2 lg:col-span-5">
             <Card>
               <div className="p-6">
                 <h2 className="text-xl font-bold">Performance Overview</h2>
@@ -103,7 +103,7 @@ const Dashboard = () => {
               </Tabs>
             </Card>
           </div>
-          <div className="md:col-span-1">
+          <div className="md:col-span-1 lg:col-span-3">
             <StrategyList />
           </div>
         </div>

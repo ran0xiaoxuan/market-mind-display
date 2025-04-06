@@ -12,6 +12,7 @@ import EditStrategy from "./pages/EditStrategy";
 import Backtest from "./pages/Backtest";
 import Analytics from "./pages/Analytics";
 import AIStrategy from "./pages/AIStrategy";
+import Settings from "./pages/Settings";
 import { ThemeProvider } from "./components/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/backtest" element={<Backtest />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/ai-strategy" element={<AIStrategy />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

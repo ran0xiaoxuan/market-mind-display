@@ -1,5 +1,5 @@
 
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 
@@ -13,6 +13,8 @@ const navItems = [
 ];
 
 export function Navbar() {
+  const location = useLocation();
+  
   return (
     <nav className="border-b">
       <div className="flex h-16 items-center px-4 justify-between">
@@ -24,7 +26,7 @@ export function Navbar() {
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
                 item.className,
-                index === 1 ? "text-primary" : "text-foreground"
+                location.pathname === item.href && index !== 0 ? "text-primary" : "text-foreground"
               )}
             >
               {item.name}

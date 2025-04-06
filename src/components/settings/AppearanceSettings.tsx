@@ -1,0 +1,119 @@
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/components/ThemeProvider";
+import { Sun, Moon, Check } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
+export function AppearanceSettings() {
+  const { theme, setTheme } = useTheme();
+  const [showVolume, setShowVolume] = useState(true);
+  const [showGridLines, setShowGridLines] = useState(true);
+
+  return (
+    <div className="space-y-12">
+      <div>
+        <h2 className="text-xl font-medium mb-2">Theme</h2>
+        <p className="text-sm text-muted-foreground mb-6">Customize the appearance of the application</p>
+        
+        <div>
+          <p className="text-sm font-medium mb-2">Color Theme</p>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setTheme("light")}
+              className={`flex flex-col items-center justify-center h-32 rounded-md border transition-colors ${
+                theme === "light" 
+                  ? "border-primary ring-2 ring-primary ring-offset-2" 
+                  : "border-input hover:bg-accent"
+              }`}
+            >
+              <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <Sun className="size-5" />
+              </div>
+              <p className="font-medium">Light</p>
+              {theme === "light" && (
+                <div className="absolute top-2 right-2">
+                  <Check className="size-4 text-primary" />
+                </div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setTheme("dark")}
+              className={`flex flex-col items-center justify-center h-32 rounded-md border transition-colors ${
+                theme === "dark" 
+                  ? "border-primary ring-2 ring-primary ring-offset-2" 
+                  : "border-input hover:bg-accent"
+              }`}
+            >
+              <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <Moon className="size-5" />
+              </div>
+              <p className="font-medium">Dark</p>
+              {theme === "dark" && (
+                <div className="absolute top-2 right-2">
+                  <Check className="size-4 text-primary" />
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h2 className="text-xl font-medium mb-2">Chart Preferences</h2>
+        <p className="text-sm text-muted-foreground mb-6">Customize how charts are displayed</p>
+        
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="chart-type" className="block text-sm font-medium mb-2">Default Chart Type</label>
+            <Select defaultValue="candlestick">
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select chart type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="candlestick">Candlestick</SelectItem>
+                <SelectItem value="line">Line</SelectItem>
+                <SelectItem value="bar">Bar</SelectItem>
+                <SelectItem value="area">Area</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="show-volume" 
+              checked={showVolume}
+              onCheckedChange={(checked) => setShowVolume(checked as boolean)}
+            />
+            <div>
+              <label htmlFor="show-volume" className="text-sm font-medium cursor-pointer">Show Volume</label>
+              <p className="text-sm text-muted-foreground">Display volume bars on charts</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="show-grid" 
+              checked={showGridLines}
+              onCheckedChange={(checked) => setShowGridLines(checked as boolean)}
+            />
+            <div>
+              <label htmlFor="show-grid" className="text-sm font-medium cursor-pointer">Show Grid Lines</label>
+              <p className="text-sm text-muted-foreground">Display grid lines on charts</p>
+            </div>
+          </div>
+          
+          <Button className="mt-4">Save Preferences</Button>
+        </div>
+      </div>
+    </div>
+  );
+}

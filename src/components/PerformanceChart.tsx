@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Cell } from "recharts";
@@ -7,43 +8,43 @@ type PerformanceChartProps = {
   type?: ChartType;
 };
 
-// Sample data for the equity curve
+// Sample data for the equity curve - converting to percentages
 const equityData = [{
   date: "Jan",
-  value: 10000
+  value: 0
 }, {
   date: "Feb",
-  value: 10650
+  value: 6.5
 }, {
   date: "Mar",
-  value: 11200
+  value: 12
 }, {
   date: "Apr",
-  value: 10850
+  value: 8.5
 }, {
   date: "May",
-  value: 11500
+  value: 15
 }, {
   date: "Jun",
-  value: 12200
+  value: 22
 }, {
   date: "Jul",
-  value: 12800
+  value: 28
 }, {
   date: "Aug",
-  value: 13400
+  value: 34
 }, {
   date: "Sep",
-  value: 12900
+  value: 29
 }, {
   date: "Oct",
-  value: 13700
+  value: 37
 }, {
   date: "Nov",
-  value: 14200
+  value: 42
 }, {
   date: "Dec",
-  value: 15000
+  value: 50
 }];
 
 // Sample data for monthly returns
@@ -147,7 +148,7 @@ export function PerformanceChart({
             }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
-                <YAxis />
+                <YAxis tickFormatter={(value) => `${value}%`} />
                 <Tooltip content={({
                 active,
                 payload
@@ -158,7 +159,7 @@ export function PerformanceChart({
                             <div className="flex items-center gap-2">
                               <div className="h-2 w-2 rounded bg-primary" />
                               <span className="font-medium">
-                                ${payload[0].value.toLocaleString()}
+                                {payload[0].value.toLocaleString()}%
                               </span>
                             </div>
                           </div>

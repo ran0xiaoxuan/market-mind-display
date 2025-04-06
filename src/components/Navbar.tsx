@@ -3,9 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 import { Button } from "./ui/button";
+import { Logo } from "./Logo";
 
 const navItems = [
-  { name: "StratAlge", href: "/", className: "font-bold" },
   { name: "Dashboard", href: "/" },
   { name: "Strategies", href: "/strategies" },
   { name: "Backtest", href: "/backtest" },
@@ -23,14 +23,15 @@ export function Navbar() {
     <nav className="border-b">
       <div className="flex h-16 items-center px-4 justify-between">
         <div className="flex gap-6 md:gap-10">
-          {navItems.map((item, index) => (
+          <Logo />
+          
+          {navItems.map((item) => (
             <Link
               key={item.name}
               to={item.href}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
-                item.className,
-                location.pathname === item.href && index !== 0 ? "text-primary" : "text-foreground"
+                location.pathname === item.href ? "text-primary" : "text-foreground"
               )}
             >
               {item.name}

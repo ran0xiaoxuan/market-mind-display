@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { Box } from "lucide-react";
+import { Logo } from "./Logo";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -12,10 +12,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="p-4 border-b">
-        <Link to="/" className="flex items-center gap-2">
-          <Box className="h-5 w-5" />
-          <span className="font-bold">StratAlge</span>
-        </Link>
+        <Logo />
       </header>
       
       <main className="flex-1 flex items-center justify-center p-4">

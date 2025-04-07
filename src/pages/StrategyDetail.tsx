@@ -108,9 +108,6 @@ const StrategyDetail = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl md:text-3xl font-bold">{strategy.name}</h1>
-                <Badge variant="outline" className={isActive ? "bg-muted" : "bg-muted text-muted-foreground"}>
-                  {isActive ? "Active" : "Inactive"}
-                </Badge>
               </div>
               
               <div className="flex gap-2">
@@ -139,7 +136,7 @@ const StrategyDetail = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="p-4">
+            <Card className="p-6">
               <div>
                 <h3 className="text-sm text-muted-foreground">Total Return</h3>
                 <p className="text-2xl font-semibold text-green-500">{strategy.performance}</p>
@@ -173,7 +170,7 @@ const StrategyDetail = () => {
             <TabsContent value="overview" className="pt-6">
               <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-2">Strategy Information</h2>
-                <p className="text-sm text-muted-foreground mb-4">Basic information about this strategy</p>
+                <p className="text-muted-foreground mb-4">{strategy.description}</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
                   <div>

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const EditStrategy = () => {
   const navigate = useNavigate();
@@ -95,6 +96,14 @@ const EditStrategy = () => {
       description: "Your strategy has been successfully updated.",
     });
     navigate(-1);
+  };
+  
+  const handleStatusChange = (checked: boolean) => {
+    setIsActive(checked);
+    toast({
+      title: checked ? "Strategy activated" : "Strategy deactivated",
+      description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`,
+    });
   };
   
   const addEntryRule = () => {
@@ -242,14 +251,20 @@ const EditStrategy = () => {
                 
                 <div>
                   <Label>Strategy Status</Label>
-                  <div className="flex items-center mt-1">
-                    <Badge variant="outline" className={isActive ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100"}>
+                  <div className="flex items-center gap-4 mt-1">
+                    <Badge variant="outline" className={isActive ? "bg-green-100 text-green-800 border-green-300" : "bg-red-100 text-red-800 border-red-300"}>
                       {isActive ? "Active" : "Inactive"}
                     </Badge>
-                    <p className="text-sm text-muted-foreground ml-2">
-                      This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
+                      <Label htmlFor="strategy-status" className="text-sm text-muted-foreground cursor-pointer">
+                        {isActive ? "Disable Strategy" : "Enable Strategy"}
+                      </Label>
+                    </div>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
+                  </p>
                 </div>
               </div>
             </Form>

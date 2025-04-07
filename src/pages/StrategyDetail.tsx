@@ -7,16 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Copy, PlayIcon, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
-const StrategyDetail = () => {
-  const {
-    strategyId
-  } = useParams<{
-    strategyId: string;
-  }>();
-  const [activeTab, setActiveTab] = useState("overview");
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
-  // Placeholder data based on the strategy name from the URL
-  // In a real app, you'd fetch this data from an API
+const StrategyDetail = () => {
+  const { strategyId } = useParams<{ strategyId: string }>();
+  const [activeTab, setActiveTab] = useState("overview");
+  const { toast } = useToast();
+  
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
     description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
@@ -87,11 +85,21 @@ const StrategyDetail = () => {
       avgLoss: "-$175.20"
     }
   };
+  
+  const [isActive, setIsActive] = useState(strategy.status === "active");
+  
+  const handleStatusChange = (checked: boolean) => {
+    setIsActive(checked);
+    toast({
+      title: `Strategy ${checked ? 'activated' : 'deactivated'}`,
+      description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`,
+    });
+  };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header section */}
           <div className="mb-6">
             <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -100,8 +108,8 @@ const StrategyDetail = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl md:text-3xl font-bold">{strategy.name}</h1>
-                <Badge variant="outline" className={strategy.status === "active" ? "bg-muted" : "bg-muted text-muted-foreground"}>
-                  Active
+                <Badge variant="outline" className={isActive ? "bg-muted" : "bg-muted text-muted-foreground"}>
+                  {isActive ? "Active" : "Inactive"}
                 </Badge>
               </div>
               
@@ -130,7 +138,6 @@ const StrategyDetail = () => {
             </p>
           </div>
           
-          {/* Performance summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="p-4">
               <div>
@@ -155,7 +162,6 @@ const StrategyDetail = () => {
             </Card>
           </div>
           
-          {/* Navigation tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -192,12 +198,21 @@ const StrategyDetail = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                      <p className="font-medium">Active</p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${isActive ? "bg-green-500" : "bg-red-500"}`}></div>
+                        <p className="font-medium">{isActive ? "Active" : "Inactive"}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
+                        <p className="text-sm text-muted-foreground">
+                          {isActive ? "Disable Strategy" : "Enable Strategy"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">This strategy is currently active and will generate trading signals.</p>
-                    <p className="text-xs text-muted-foreground mt-1">Note: Status can only be changed from the strategy settings page.</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -240,8 +255,6 @@ const StrategyDetail = () => {
                       </div>
                     </div>
                   </TabsContent>
-                  
-                  {/* Other tab content would be similar */}
                 </Tabs>
               </Card>
             </TabsContent>
@@ -314,8 +327,6 @@ const StrategyDetail = () => {
                       </div>
                     </div>
                   </TabsContent>
-                  
-                  {/* Other tab content would be similar */}
                 </Tabs>
               </Card>
             </TabsContent>
@@ -325,7 +336,6 @@ const StrategyDetail = () => {
                 <h2 className="text-xl font-semibold mb-2">Strategy Rules</h2>
                 <p className="text-sm text-muted-foreground mb-6">Trading rules and conditions</p>
                 
-                {/* Simplified rules section for now */}
                 <div className="space-y-8">
                   <div>
                     <h3 className="text-lg font-medium mb-4">Entry Rules</h3>

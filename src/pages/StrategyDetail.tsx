@@ -129,34 +129,6 @@ const StrategyDetail = () => {
                 </Button>
               </div>
             </div>
-            
-            <p className="text-muted-foreground mt-1">
-              {strategy.description}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="p-6">
-              <div>
-                <h3 className="text-sm text-muted-foreground">Total Return</h3>
-                <p className="text-2xl font-semibold text-green-500">{strategy.performance}</p>
-                <p className="text-xs text-muted-foreground">Annualized: <span className="text-green-500">{strategy.annualized}</span></p>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div>
-                <h3 className="text-sm text-muted-foreground">Sharpe Ratio</h3>
-                <p className="text-2xl font-semibold">{strategy.sharpeRatio}</p>
-                <p className="text-xs text-muted-foreground">Max Drawdown: <span className="text-red-500">{strategy.maxDrawdown}</span></p>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div>
-                <h3 className="text-sm text-muted-foreground">Win Rate</h3>
-                <p className="text-2xl font-semibold">{strategy.winRate}</p>
-                <p className="text-xs text-muted-foreground">Profit Factor: {strategy.profitFactor}</p>
-              </div>
-            </Card>
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

@@ -81,7 +81,7 @@ const marketAssets = {
 const EditStrategy = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("parameters");
+  const [activeTab, setActiveTab] = useState("trading-rules");
   
   // Form state
   const [strategyName, setStrategyName] = useState("Moving Average Crossover");
@@ -99,17 +99,9 @@ const EditStrategy = () => {
       market: "Stocks",
       timeframe: "Daily",
       targetAsset: "AAPL - Apple Inc.",
-      isActive: true,
-      fastPeriod: "20",
-      slowPeriod: "50",
-      signalPeriod: "9"
+      isActive: true
     }
   });
-  
-  // Parameters
-  const [fastPeriod, setFastPeriod] = useState("20");
-  const [slowPeriod, setSlowPeriod] = useState("50");
-  const [signalPeriod, setSignalPeriod] = useState("9");
   
   // Entry & exit rules
   const [entryRules, setEntryRules] = useState([
@@ -336,56 +328,11 @@ const EditStrategy = () => {
             </Form>
           </Card>
           
-          {/* Tabs for Parameters and Rules */}
+          {/* Tabs for Trading Rules only now */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="parameters">Parameters</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="trading-rules">Trading Rules</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="parameters" className="mt-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-1">Strategy Parameters</h2>
-                <p className="text-sm text-muted-foreground mb-4">Configure the parameters for this strategy</p>
-                
-                <Form {...form}>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="fast-period">Fast Period</Label>
-                      <Input 
-                        id="fast-period" 
-                        type="number" 
-                        value={fastPeriod} 
-                        onChange={(e) => setFastPeriod(e.target.value)} 
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="slow-period">Slow Period</Label>
-                      <Input 
-                        id="slow-period" 
-                        type="number" 
-                        value={slowPeriod} 
-                        onChange={(e) => setSlowPeriod(e.target.value)} 
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="signal-period">Signal Period</Label>
-                      <Input 
-                        id="signal-period" 
-                        type="number" 
-                        value={signalPeriod} 
-                        onChange={(e) => setSignalPeriod(e.target.value)} 
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </Form>
-              </Card>
-            </TabsContent>
             
             <TabsContent value="trading-rules" className="mt-6">
               <Card className="p-6">

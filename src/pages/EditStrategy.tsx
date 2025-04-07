@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/Navbar";
@@ -28,6 +28,55 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+
+// Market-specific asset options
+const marketAssets = {
+  Stocks: [
+    "AAPL - Apple Inc.",
+    "MSFT - Microsoft Corporation",
+    "GOOGL - Alphabet Inc.",
+    "AMZN - Amazon.com Inc.",
+    "META - Meta Platforms Inc.",
+    "TSLA - Tesla Inc.",
+    "NVDA - NVIDIA Corporation",
+    "JPM - JPMorgan Chase & Co."
+  ],
+  Forex: [
+    "EUR/USD - Euro / US Dollar",
+    "GBP/USD - British Pound / US Dollar",
+    "USD/JPY - US Dollar / Japanese Yen",
+    "USD/CHF - US Dollar / Swiss Franc",
+    "USD/CAD - US Dollar / Canadian Dollar",
+    "AUD/USD - Australian Dollar / US Dollar",
+    "NZD/USD - New Zealand Dollar / US Dollar"
+  ],
+  Crypto: [
+    "BTC/USD - Bitcoin / US Dollar",
+    "ETH/USD - Ethereum / US Dollar",
+    "XRP/USD - Ripple / US Dollar",
+    "SOL/USD - Solana / US Dollar",
+    "ADA/USD - Cardano / US Dollar",
+    "DOT/USD - Polkadot / US Dollar",
+    "LINK/USD - Chainlink / US Dollar"
+  ],
+  Futures: [
+    "ES - S&P 500 E-mini",
+    "NQ - Nasdaq 100 E-mini",
+    "CL - Crude Oil",
+    "GC - Gold",
+    "SI - Silver",
+    "ZC - Corn",
+    "ZW - Wheat"
+  ],
+  Options: [
+    "SPY - S&P 500 ETF Options",
+    "QQQ - Nasdaq 100 ETF Options",
+    "IWM - Russell 2000 ETF Options",
+    "GLD - Gold ETF Options",
+    "SLV - Silver ETF Options",
+    "USO - Oil ETF Options"
+  ]
+};
 
 const EditStrategy = () => {
   const navigate = useNavigate();
@@ -84,6 +133,14 @@ const EditStrategy = () => {
       valuePeriod: "50",
     }
   ]);
+
+  // Update target asset when market changes
+  useEffect(() => {
+    // Set the first asset from the selected market as default
+    if (marketAssets[market] && marketAssets[market].length > 0) {
+      setTargetAsset(marketAssets[market][0]);
+    }
+  }, [market]);
 
   // Handlers
   const handleCancel = () => {
@@ -241,12 +298,21 @@ const EditStrategy = () => {
                 
                 <div>
                   <Label htmlFor="asset">Target Asset</Label>
-                  <Input 
-                    id="asset" 
+                  <Select 
                     value={targetAsset} 
-                    onChange={(e) => setTargetAsset(e.target.value)} 
-                    className="mt-1"
-                  />
+                    onValueChange={setTargetAsset}
+                  >
+                    <SelectTrigger id="asset" className="mt-1">
+                      <SelectValue placeholder="Select Target Asset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {marketAssets[market]?.map((asset) => (
+                        <SelectItem key={asset} value={asset}>
+                          {asset}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>

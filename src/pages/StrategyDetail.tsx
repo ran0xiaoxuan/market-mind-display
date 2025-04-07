@@ -7,9 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Copy, PlayIcon, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
-
 const StrategyDetail = () => {
-  const { strategyId } = useParams<{ strategyId: string }>();
+  const {
+    strategyId
+  } = useParams<{
+    strategyId: string;
+  }>();
   const [activeTab, setActiveTab] = useState("overview");
 
   // Placeholder data based on the strategy name from the URL
@@ -32,14 +35,43 @@ const StrategyDetail = () => {
     startingValue: "$10,000",
     currentValue: "$15,000",
     totalGrowth: "+50.0%",
-    trades: [
-      { date: "2023-12-01", type: "Buy", price: "$150.25", shares: 10, profitLoss: "-" },
-      { date: "2023-12-15", type: "Sell", price: "$158.50", shares: 10, profitLoss: "+5.5%" },
-      { date: "2024-01-10", type: "Buy", price: "$155.75", shares: 12, profitLoss: "-" },
-      { date: "2024-01-25", type: "Sell", price: "$162.25", shares: 12, profitLoss: "+4.2%" },
-      { date: "2024-02-05", type: "Buy", price: "$160.50", shares: 15, profitLoss: "-" },
-      { date: "2024-02-20", type: "Sell", price: "$168.75", shares: 15, profitLoss: "+5.1%" }
-    ],
+    trades: [{
+      date: "2023-12-01",
+      type: "Buy",
+      price: "$150.25",
+      shares: 10,
+      profitLoss: "-"
+    }, {
+      date: "2023-12-15",
+      type: "Sell",
+      price: "$158.50",
+      shares: 10,
+      profitLoss: "+5.5%"
+    }, {
+      date: "2024-01-10",
+      type: "Buy",
+      price: "$155.75",
+      shares: 12,
+      profitLoss: "-"
+    }, {
+      date: "2024-01-25",
+      type: "Sell",
+      price: "$162.25",
+      shares: 12,
+      profitLoss: "+4.2%"
+    }, {
+      date: "2024-02-05",
+      type: "Buy",
+      price: "$160.50",
+      shares: 15,
+      profitLoss: "-"
+    }, {
+      date: "2024-02-20",
+      type: "Sell",
+      price: "$168.75",
+      shares: 15,
+      profitLoss: "+5.1%"
+    }],
     performanceMetrics: {
       totalReturn: "17.00%",
       annualizedReturn: "34.00%",
@@ -55,9 +87,7 @@ const StrategyDetail = () => {
       avgLoss: "-$175.20"
     }
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -88,7 +118,7 @@ const StrategyDetail = () => {
                   <Edit className="h-4 w-4" />
                   Edit
                 </Button>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 bg-red-600 hover:bg-red-500 text-slate-50">
                   <Trash2 className="h-4 w-4" />
                   Delete
                 </Button>
@@ -331,8 +361,7 @@ const StrategyDetail = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {strategy.trades.map((trade, index) => (
-                        <TableRow key={index}>
+                      {strategy.trades.map((trade, index) => <TableRow key={index}>
                           <TableCell>{trade.date}</TableCell>
                           <TableCell className={trade.type === "Buy" ? "text-green-500" : "text-red-500"}>
                             {trade.type}
@@ -342,8 +371,7 @@ const StrategyDetail = () => {
                           <TableCell className={trade.profitLoss.startsWith("+") ? "text-green-500" : ""}>
                             {trade.profitLoss}
                           </TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
                   </Table>
                 </div>
@@ -356,8 +384,6 @@ const StrategyDetail = () => {
           </Tabs>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default StrategyDetail;

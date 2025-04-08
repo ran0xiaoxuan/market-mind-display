@@ -31,14 +31,41 @@ const AIStrategy = () => {
   ];
   
   const popularCryptocurrencies = [
-    { symbol: "BTC", name: "Bitcoin" },
-    { symbol: "ETH", name: "Ethereum" },
-    { symbol: "SOL", name: "Solana" },
-    { symbol: "ADA", name: "Cardano" },
-    { symbol: "DOT", name: "Polkadot" },
-    { symbol: "XRP", name: "Ripple" },
-    { symbol: "DOGE", name: "Dogecoin" },
-    { symbol: "LINK", name: "Chainlink" }
+    { symbol: "BTC/USDT", name: "Bitcoin/USDT" },
+    { symbol: "ETH/USDT", name: "Ethereum/USDT" },
+    { symbol: "SOL/USDT", name: "Solana/USDT" },
+    { symbol: "ADA/USDT", name: "Cardano/USDT" },
+    { symbol: "DOT/USDT", name: "Polkadot/USDT" },
+    { symbol: "XRP/USDT", name: "Ripple/USDT" },
+    { symbol: "DOGE/USDT", name: "Dogecoin/USDT" },
+    { symbol: "LINK/USDT", name: "Chainlink/USDT" }
+  ];
+
+  // Additional options for stocks and cryptocurrencies
+  const additionalStocks = [
+    { symbol: "NFLX", name: "Netflix" },
+    { symbol: "DIS", name: "Disney" },
+    { symbol: "INTC", name: "Intel" },
+    { symbol: "AMD", name: "AMD" },
+    { symbol: "BA", name: "Boeing" },
+    { symbol: "KO", name: "Coca-Cola" },
+    { symbol: "PEP", name: "PepsiCo" },
+    { symbol: "WMT", name: "Walmart" },
+    { symbol: "T", name: "AT&T" },
+    { symbol: "VZ", name: "Verizon" }
+  ];
+
+  const additionalCryptocurrencies = [
+    { symbol: "BNB/USDT", name: "Binance Coin/USDT" },
+    { symbol: "XLM/USDT", name: "Stellar/USDT" },
+    { symbol: "LTC/USDT", name: "Litecoin/USDT" },
+    { symbol: "BCH/USDT", name: "Bitcoin Cash/USDT" },
+    { symbol: "MATIC/USDT", name: "Polygon/USDT" },
+    { symbol: "AVAX/USDT", name: "Avalanche/USDT" },
+    { symbol: "ATOM/USDT", name: "Cosmos/USDT" },
+    { symbol: "UNI/USDT", name: "Uniswap/USDT" },
+    { symbol: "AAVE/USDT", name: "Aave/USDT" },
+    { symbol: "ALGO/USDT", name: "Algorand/USDT" }
   ];
 
   const handleAssetSelect = (symbol: string) => {
@@ -88,15 +115,26 @@ const AIStrategy = () => {
           
           <div className="mb-6">
             <label htmlFor="search-asset" className="block text-sm font-medium mb-2">
-              {assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency"}
+              {assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency pair"}
             </label>
             <Input 
               id="search-asset" 
-              placeholder={assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency"} 
+              placeholder={assetType === "stocks" ? "Search for a stock (e.g., AAPL)" : "Search for a cryptocurrency pair (e.g., BTC/USDT)"}
               value={selectedAsset}
               onChange={(e) => setSelectedAsset(e.target.value)}
               className="w-full"
+              list="asset-options"
             />
+            <datalist id="asset-options">
+              {assetType === "stocks" 
+                ? [...popularStocks, ...additionalStocks].map((stock) => (
+                    <option key={stock.symbol} value={stock.symbol}>{stock.name} ({stock.symbol})</option>
+                  ))
+                : [...popularCryptocurrencies, ...additionalCryptocurrencies].map((crypto) => (
+                    <option key={crypto.symbol} value={crypto.symbol}>{crypto.name}</option>
+                  ))
+              }
+            </datalist>
           </div>
           
           {assetType === "stocks" ? (

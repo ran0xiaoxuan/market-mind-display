@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -14,7 +13,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import { ArrowLeft, Save, X, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/Badge";
 import {
@@ -29,7 +28,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-// Market-specific asset options
 const marketAssets = {
   Stocks: [
     "AAPL - Apple Inc.",
@@ -83,7 +81,6 @@ const EditStrategy = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trading-rules");
   
-  // Form state
   const [strategyName, setStrategyName] = useState("Moving Average Crossover");
   const [description, setDescription] = useState("A strategy that generates signals based on when a faster moving average crosses a slower moving average.");
   const [market, setMarket] = useState("Stocks");
@@ -91,7 +88,6 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
   const [isActive, setIsActive] = useState(true);
   
-  // Form definition
   const form = useForm({
     defaultValues: {
       strategyName: "Moving Average Crossover",
@@ -103,7 +99,6 @@ const EditStrategy = () => {
     }
   });
   
-  // Entry & exit rules
   const [entryRules, setEntryRules] = useState([
     {
       id: 1,
@@ -126,15 +121,12 @@ const EditStrategy = () => {
     }
   ]);
 
-  // Update target asset when market changes
   useEffect(() => {
-    // Set the first asset from the selected market as default
     if (marketAssets[market] && marketAssets[market].length > 0) {
       setTargetAsset(marketAssets[market][0]);
     }
   }, [market]);
 
-  // Handlers
   const handleCancel = () => {
     navigate(-1);
   };
@@ -202,7 +194,6 @@ const EditStrategy = () => {
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
-          {/* Header section */}
           <div className="flex items-center mb-6">
             <Link to="/strategies" className="text-sm flex items-center text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -212,7 +203,6 @@ const EditStrategy = () => {
           
           <p className="text-muted-foreground mb-6">Modify your trading strategy settings</p>
           
-          {/* Action Buttons */}
           <div className="flex justify-end mb-6 gap-2">
             <Button variant="outline" onClick={handleCancel} className="gap-2">
               <X className="h-4 w-4" /> Cancel
@@ -222,7 +212,6 @@ const EditStrategy = () => {
             </Button>
           </div>
           
-          {/* Basic Information */}
           <Card className="p-6 mb-6">
             <h2 className="text-xl font-semibold mb-1">Basic Information</h2>
             <p className="text-sm text-muted-foreground mb-4">Edit the basic details of your strategy</p>
@@ -328,235 +317,224 @@ const EditStrategy = () => {
             </Form>
           </Card>
           
-          {/* Tabs for Trading Rules only now */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="grid w-full grid-cols-1">
-              <TabsTrigger value="trading-rules">Trading Rules</TabsTrigger>
-            </TabsList>
+          <Card className="p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
+            <p className="text-sm text-muted-foreground mb-4">Define the entry and exit conditions for your strategy</p>
             
-            <TabsContent value="trading-rules" className="mt-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
-                <p className="text-sm text-muted-foreground mb-4">Define the entry and exit conditions for your strategy</p>
-                
-                {/* Entry Rules */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
+              
+              {entryRules.map((rule) => (
+                <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="font-medium">Inequality {rule.id}</div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEntryRule(rule.id)}
+                      disabled={entryRules.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                   
-                  {entryRules.map((rule) => (
-                    <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="font-medium">Inequality {rule.id}</div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeEntryRule(rule.id)}
-                          disabled={entryRules.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                        <div>
-                          <Label>Indicator</Label>
-                          <Select 
-                            value={rule.indicator} 
-                            onValueChange={(value) => updateEntryRule(rule.id, "indicator", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="SMA">SMA</SelectItem>
-                              <SelectItem value="EMA">EMA</SelectItem>
-                              <SelectItem value="RSI">RSI</SelectItem>
-                              <SelectItem value="MACD">MACD</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label>Condition</Label>
-                          <Select 
-                            value={rule.condition} 
-                            onValueChange={(value) => updateEntryRule(rule.id, "condition", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Crosses Above">Crosses Above</SelectItem>
-                              <SelectItem value="Crosses Below">Crosses Below</SelectItem>
-                              <SelectItem value="Greater Than">Greater Than</SelectItem>
-                              <SelectItem value="Less Than">Less Than</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label>Value</Label>
-                          <Select 
-                            value={rule.value} 
-                            onValueChange={(value) => updateEntryRule(rule.id, "value", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="SMA">SMA</SelectItem>
-                              <SelectItem value="EMA">EMA</SelectItem>
-                              <SelectItem value="Price">Price</SelectItem>
-                              <SelectItem value="Level">Level</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Parameters Period</Label>
-                          <Input 
-                            type="number"
-                            value={rule.indicatorPeriod}
-                            onChange={(e) => updateEntryRule(rule.id, "indicatorPeriod", e.target.value)}
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label>Value Parameters Period</Label>
-                          <Input 
-                            type="number"
-                            value={rule.valuePeriod}
-                            onChange={(e) => updateEntryRule(rule.id, "valuePeriod", e.target.value)}
-                          />
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                    <div>
+                      <Label>Indicator</Label>
+                      <Select 
+                        value={rule.indicator} 
+                        onValueChange={(value) => updateEntryRule(rule.id, "indicator", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SMA">SMA</SelectItem>
+                          <SelectItem value="EMA">EMA</SelectItem>
+                          <SelectItem value="RSI">RSI</SelectItem>
+                          <SelectItem value="MACD">MACD</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-2" 
-                    onClick={addEntryRule}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Add Inequality
-                  </Button>
-                </div>
-                
-                {/* Exit Rules */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
-                  
-                  {exitRules.map((rule) => (
-                    <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="font-medium">Inequality {rule.id}</div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeExitRule(rule.id)}
-                          disabled={exitRules.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                        <div>
-                          <Label>Indicator</Label>
-                          <Select 
-                            value={rule.indicator} 
-                            onValueChange={(value) => updateExitRule(rule.id, "indicator", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="SMA">SMA</SelectItem>
-                              <SelectItem value="EMA">EMA</SelectItem>
-                              <SelectItem value="RSI">RSI</SelectItem>
-                              <SelectItem value="MACD">MACD</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label>Condition</Label>
-                          <Select 
-                            value={rule.condition} 
-                            onValueChange={(value) => updateExitRule(rule.id, "condition", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Crosses Above">Crosses Above</SelectItem>
-                              <SelectItem value="Crosses Below">Crosses Below</SelectItem>
-                              <SelectItem value="Greater Than">Greater Than</SelectItem>
-                              <SelectItem value="Less Than">Less Than</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label>Value</Label>
-                          <Select 
-                            value={rule.value} 
-                            onValueChange={(value) => updateExitRule(rule.id, "value", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="SMA">SMA</SelectItem>
-                              <SelectItem value="EMA">EMA</SelectItem>
-                              <SelectItem value="Price">Price</SelectItem>
-                              <SelectItem value="Level">Level</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Parameters Period</Label>
-                          <Input 
-                            type="number"
-                            value={rule.indicatorPeriod}
-                            onChange={(e) => updateExitRule(rule.id, "indicatorPeriod", e.target.value)}
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label>Value Parameters Period</Label>
-                          <Input 
-                            type="number"
-                            value={rule.valuePeriod}
-                            onChange={(e) => updateExitRule(rule.id, "valuePeriod", e.target.value)}
-                          />
-                        </div>
-                      </div>
+                    
+                    <div>
+                      <Label>Condition</Label>
+                      <Select 
+                        value={rule.condition} 
+                        onValueChange={(value) => updateEntryRule(rule.id, "condition", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Crosses Above">Crosses Above</SelectItem>
+                          <SelectItem value="Crosses Below">Crosses Below</SelectItem>
+                          <SelectItem value="Greater Than">Greater Than</SelectItem>
+                          <SelectItem value="Less Than">Less Than</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
+                    
+                    <div>
+                      <Label>Value</Label>
+                      <Select 
+                        value={rule.value} 
+                        onValueChange={(value) => updateEntryRule(rule.id, "value", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SMA">SMA</SelectItem>
+                          <SelectItem value="EMA">EMA</SelectItem>
+                          <SelectItem value="Price">Price</SelectItem>
+                          <SelectItem value="Level">Level</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-2" 
-                    onClick={addExitRule}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Add Inequality
-                  </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Parameters Period</Label>
+                      <Input 
+                        type="number"
+                        value={rule.indicatorPeriod}
+                        onChange={(e) => updateEntryRule(rule.id, "indicatorPeriod", e.target.value)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Value Parameters Period</Label>
+                      <Input 
+                        type="number"
+                        value={rule.valuePeriod}
+                        onChange={(e) => updateEntryRule(rule.id, "valuePeriod", e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="flex justify-end">
-                  <Button className="gap-2">
-                    <Save className="h-4 w-4" /> Save Rules
-                  </Button>
+              ))}
+              
+              <Button 
+                variant="outline" 
+                className="w-full mt-2" 
+                onClick={addEntryRule}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Inequality
+              </Button>
+            </div>
+            
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
+              
+              {exitRules.map((rule) => (
+                <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="font-medium">Inequality {rule.id}</div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeExitRule(rule.id)}
+                      disabled={exitRules.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                    <div>
+                      <Label>Indicator</Label>
+                      <Select 
+                        value={rule.indicator} 
+                        onValueChange={(value) => updateExitRule(rule.id, "indicator", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SMA">SMA</SelectItem>
+                          <SelectItem value="EMA">EMA</SelectItem>
+                          <SelectItem value="RSI">RSI</SelectItem>
+                          <SelectItem value="MACD">MACD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label>Condition</Label>
+                      <Select 
+                        value={rule.condition} 
+                        onValueChange={(value) => updateExitRule(rule.id, "condition", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Crosses Above">Crosses Above</SelectItem>
+                          <SelectItem value="Crosses Below">Crosses Below</SelectItem>
+                          <SelectItem value="Greater Than">Greater Than</SelectItem>
+                          <SelectItem value="Less Than">Less Than</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label>Value</Label>
+                      <Select 
+                        value={rule.value} 
+                        onValueChange={(value) => updateExitRule(rule.id, "value", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SMA">SMA</SelectItem>
+                          <SelectItem value="EMA">EMA</SelectItem>
+                          <SelectItem value="Price">Price</SelectItem>
+                          <SelectItem value="Level">Level</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Parameters Period</Label>
+                      <Input 
+                        type="number"
+                        value={rule.indicatorPeriod}
+                        onChange={(e) => updateExitRule(rule.id, "indicatorPeriod", e.target.value)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Value Parameters Period</Label>
+                      <Input 
+                        type="number"
+                        value={rule.valuePeriod}
+                        onChange={(e) => updateExitRule(rule.id, "valuePeriod", e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              ))}
+              
+              <Button 
+                variant="outline" 
+                className="w-full mt-2" 
+                onClick={addExitRule}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Inequality
+              </Button>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button className="gap-2">
+                <Save className="h-4 w-4" /> Save Rules
+              </Button>
+            </div>
+          </Card>
         </div>
       </main>
     </div>

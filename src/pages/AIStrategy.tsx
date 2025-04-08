@@ -1,3 +1,4 @@
+
 import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +16,8 @@ const AIStrategy = () => {
   const [assetType, setAssetType] = useState<"stocks" | "cryptocurrency">("stocks");
   const [riskLevel, setRiskLevel] = useState(50);
   const [timeHorizon, setTimeHorizon] = useState<"short" | "medium" | "long">("medium");
+  const [selectedAsset, setSelectedAsset] = useState<string>("");
+  const [strategyType, setStrategyType] = useState<string>("");
   
   const popularStocks = [
     { symbol: "AAPL", name: "Apple" },
@@ -38,6 +41,14 @@ const AIStrategy = () => {
     { symbol: "LINK", name: "Chainlink" }
   ];
 
+  const handleAssetSelect = (symbol: string) => {
+    setSelectedAsset(symbol);
+  };
+
+  const handleStrategyTypeSelect = (type: string) => {
+    setStrategyType(type);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -56,14 +67,20 @@ const AIStrategy = () => {
             <Button 
               variant={assetType === "stocks" ? "default" : "outline"} 
               className="justify-center h-12"
-              onClick={() => setAssetType("stocks")}
+              onClick={() => {
+                setAssetType("stocks");
+                setSelectedAsset(""); // Clear selection when changing asset type
+              }}
             >
               Stocks
             </Button>
             <Button 
               variant={assetType === "cryptocurrency" ? "default" : "outline"} 
               className="justify-center h-12"
-              onClick={() => setAssetType("cryptocurrency")}
+              onClick={() => {
+                setAssetType("cryptocurrency");
+                setSelectedAsset(""); // Clear selection when changing asset type
+              }}
             >
               Cryptocurrency
             </Button>
@@ -76,6 +93,8 @@ const AIStrategy = () => {
             <Input 
               id="search-asset" 
               placeholder={assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency"} 
+              value={selectedAsset}
+              onChange={(e) => setSelectedAsset(e.target.value)}
               className="w-full"
             />
           </div>
@@ -85,7 +104,12 @@ const AIStrategy = () => {
               <p className="text-sm font-medium mb-2">Popular Stocks</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {popularStocks.map((stock) => (
-                  <Button key={stock.symbol} variant="outline" className="justify-center">
+                  <Button 
+                    key={stock.symbol} 
+                    variant={selectedAsset === stock.symbol ? "default" : "outline"} 
+                    className="justify-center"
+                    onClick={() => handleAssetSelect(stock.symbol)}
+                  >
                     {stock.symbol}
                   </Button>
                 ))}
@@ -96,7 +120,12 @@ const AIStrategy = () => {
               <p className="text-sm font-medium mb-2">Popular Cryptocurrencies</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {popularCryptocurrencies.map((crypto) => (
-                  <Button key={crypto.symbol} variant="outline" className="justify-center">
+                  <Button 
+                    key={crypto.symbol} 
+                    variant={selectedAsset === crypto.symbol ? "default" : "outline"} 
+                    className="justify-center"
+                    onClick={() => handleAssetSelect(crypto.symbol)}
+                  >
                     {crypto.symbol}
                   </Button>
                 ))}
@@ -159,16 +188,32 @@ const AIStrategy = () => {
 
           <div className="mb-6">
             <h3 className="text-md font-medium mb-3">Strategy Type</h3>
-            <Select>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a strategy type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single">Single-indicator Strategy</SelectItem>
-                <SelectItem value="double">Double-indicator Strategy</SelectItem>
-                <SelectItem value="multi">Multi-indicator Strategy</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              placeholder="Select a strategy type below"
+              value={strategyType}
+              onChange={(e) => setStrategyType(e.target.value)}
+              className="mb-4"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Card 
+                className={`p-4 cursor-pointer hover:bg-accent ${strategyType === "Single-indicator Strategy" ? "border-primary" : ""}`}
+                onClick={() => handleStrategyTypeSelect("Single-indicator Strategy")}
+              >
+                <h4 className="font-medium text-center">Single-indicator Strategy</h4>
+              </Card>
+              <Card 
+                className={`p-4 cursor-pointer hover:bg-accent ${strategyType === "Double-indicator Strategy" ? "border-primary" : ""}`}
+                onClick={() => handleStrategyTypeSelect("Double-indicator Strategy")}
+              >
+                <h4 className="font-medium text-center">Double-indicator Strategy</h4>
+              </Card>
+              <Card 
+                className={`p-4 cursor-pointer hover:bg-accent ${strategyType === "Multi-indicator Strategy" ? "border-primary" : ""}`}
+                onClick={() => handleStrategyTypeSelect("Multi-indicator Strategy")}
+              >
+                <h4 className="font-medium text-center">Multi-indicator Strategy</h4>
+              </Card>
+            </div>
           </div>
         </Card>
         

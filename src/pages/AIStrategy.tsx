@@ -1,4 +1,3 @@
-
 import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,7 +40,6 @@ const AIStrategy = () => {
     { symbol: "LINK/USDT", name: "Chainlink/USDT" }
   ];
 
-  // Additional options for stocks and cryptocurrencies
   const additionalStocks = [
     { symbol: "NFLX", name: "Netflix" },
     { symbol: "DIS", name: "Disney" },
@@ -85,7 +83,6 @@ const AIStrategy = () => {
           <p className="text-muted-foreground">Select your asset type and describe your ideal trading strategy</p>
         </div>
 
-        {/* Asset Type Selection */}
         <Card className="p-6 mb-10 border">
           <h2 className="text-xl font-semibold mb-2">Select Asset Type</h2>
           <p className="text-sm text-muted-foreground mb-4">Choose the type of asset you want to trade</p>
@@ -113,28 +110,31 @@ const AIStrategy = () => {
             </Button>
           </div>
           
-          <div className="mb-6">
+          <div className="mb-6 relative">
             <label htmlFor="search-asset" className="block text-sm font-medium mb-2">
               {assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency pair"}
             </label>
-            <Input 
-              id="search-asset" 
-              placeholder={assetType === "stocks" ? "Search for a stock (e.g., AAPL)" : "Search for a cryptocurrency pair (e.g., BTC/USDT)"}
-              value={selectedAsset}
-              onChange={(e) => setSelectedAsset(e.target.value)}
-              className="w-full"
-              list="asset-options"
-            />
-            <datalist id="asset-options">
-              {assetType === "stocks" 
-                ? [...popularStocks, ...additionalStocks].map((stock) => (
-                    <option key={stock.symbol} value={stock.symbol}>{stock.name} ({stock.symbol})</option>
-                  ))
-                : [...popularCryptocurrencies, ...additionalCryptocurrencies].map((crypto) => (
-                    <option key={crypto.symbol} value={crypto.symbol}>{crypto.name}</option>
-                  ))
-              }
-            </datalist>
+            <div className="relative">
+              <Input 
+                id="search-asset" 
+                placeholder={assetType === "stocks" ? "Search for a stock (e.g., AAPL)" : "Search for a cryptocurrency pair (e.g., BTC/USDT)"}
+                value={selectedAsset}
+                onChange={(e) => setSelectedAsset(e.target.value)}
+                className="w-full"
+                list="asset-options"
+                autoComplete="off"
+              />
+              <datalist id="asset-options" className="absolute left-0 w-full z-10">
+                {assetType === "stocks" 
+                  ? [...popularStocks, ...additionalStocks].map((stock) => (
+                      <option key={stock.symbol} value={stock.symbol}>{stock.name} ({stock.symbol})</option>
+                    ))
+                  : [...popularCryptocurrencies, ...additionalCryptocurrencies].map((crypto) => (
+                      <option key={crypto.symbol} value={crypto.symbol}>{crypto.name}</option>
+                    ))
+                }
+              </datalist>
+            </div>
           </div>
           
           {assetType === "stocks" ? (
@@ -172,7 +172,6 @@ const AIStrategy = () => {
           )}
         </Card>
 
-        {/* Strategy Parameters */}
         <Card className="p-6 mb-10 border">
           <h2 className="text-xl font-semibold mb-2">Strategy Parameters</h2>
           <p className="text-sm text-muted-foreground mb-6">Define your strategy preferences</p>
@@ -255,7 +254,6 @@ const AIStrategy = () => {
           </div>
         </Card>
         
-        {/* Strategy Description */}
         <Card className="p-6 mb-10 border">
           <h2 className="text-xl font-semibold mb-2">Describe Your Ideal Strategy</h2>
           <p className="text-sm text-muted-foreground mb-4">Tell us about your trading goals and any specific requirements</p>

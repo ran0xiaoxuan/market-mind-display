@@ -49,7 +49,7 @@ const AIStrategy = () => {
         </div>
 
         {/* Asset Type Selection */}
-        <section className="mb-10">
+        <Card className="p-6 mb-10 border">
           <h2 className="text-xl font-semibold mb-2">Select Asset Type</h2>
           <p className="text-sm text-muted-foreground mb-4">Choose the type of asset you want to trade</p>
           
@@ -104,10 +104,10 @@ const AIStrategy = () => {
               </div>
             </div>
           )}
-        </section>
+        </Card>
 
         {/* Strategy Parameters */}
-        <section className="mb-10">
+        <Card className="p-6 mb-10 border">
           <h2 className="text-xl font-semibold mb-2">Strategy Parameters</h2>
           <p className="text-sm text-muted-foreground mb-6">Define your strategy preferences</p>
           
@@ -137,7 +137,7 @@ const AIStrategy = () => {
               >
                 <Timer className="h-6 w-6 mb-2" />
                 <span className="font-medium">Short-term</span>
-                <span className="text-xs text-muted-foreground">Days to weeks</span>
+                <span className="text-xs text-muted-foreground">Several times a day</span>
               </Card>
               <Card 
                 className={`p-4 cursor-pointer flex flex-col items-center ${timeHorizon === "medium" ? "border-primary" : ""}`}
@@ -145,7 +145,7 @@ const AIStrategy = () => {
               >
                 <Clock className="h-6 w-6 mb-2" />
                 <span className="font-medium">Medium-term</span>
-                <span className="text-xs text-muted-foreground">Weeks to months</span>
+                <span className="text-xs text-muted-foreground">Several times a week</span>
               </Card>
               <Card 
                 className={`p-4 cursor-pointer flex flex-col items-center ${timeHorizon === "long" ? "border-primary" : ""}`}
@@ -153,7 +153,7 @@ const AIStrategy = () => {
               >
                 <TrendingUp className="h-6 w-6 mb-2" />
                 <span className="font-medium">Long-term</span>
-                <span className="text-xs text-muted-foreground">Months to years</span>
+                <span className="text-xs text-muted-foreground">Several times a month</span>
               </Card>
             </div>
           </div>
@@ -162,20 +162,21 @@ const AIStrategy = () => {
             <h3 className="text-md font-medium mb-3">Strategy Type</h3>
             <Select>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Technical Analysis" />
+                <SelectValue placeholder="Select a strategy type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="technical">Technical Analysis</SelectItem>
-                <SelectItem value="fundamental">Fundamental Analysis</SelectItem>
-                <SelectItem value="sentiment">Sentiment Analysis</SelectItem>
-                <SelectItem value="mixed">Mixed Approach</SelectItem>
+                <SelectItem value="moving_averages">Moving Averages</SelectItem>
+                <SelectItem value="rsi_macd">RSI & MACD</SelectItem>
+                <SelectItem value="bollinger">Bollinger Bands</SelectItem>
+                <SelectItem value="breakouts">Support & Resistance Breakouts</SelectItem>
+                <SelectItem value="volume">Volume-Based Indicators</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </section>
+        </Card>
         
         {/* Strategy Description */}
-        <section className="mb-10">
+        <Card className="p-6 mb-10 border">
           <h2 className="text-xl font-semibold mb-2">Describe Your Ideal Strategy</h2>
           <p className="text-sm text-muted-foreground mb-4">Tell us about your trading goals and any specific requirements</p>
           
@@ -183,15 +184,11 @@ const AIStrategy = () => {
             placeholder="Describe your ideal trading strategy. For example: I want a strategy that identifies oversold conditions and buys the dip with strict stop losses."
             className="min-h-[120px]"
           />
-        </section>
+        </Card>
 
         <div className="flex justify-end">
-          <Button className="gap-2">
+          <Button className="w-full">
             Generate Strategy
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-            </span>
           </Button>
         </div>
       </main>

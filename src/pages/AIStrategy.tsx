@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Hourglass, Timer, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 const AIStrategy = () => {
@@ -135,7 +135,7 @@ const AIStrategy = () => {
                 className={`p-4 cursor-pointer flex flex-col items-center ${timeHorizon === "short" ? "border-primary" : ""}`}
                 onClick={() => setTimeHorizon("short")}
               >
-                <Clock className="h-6 w-6 mb-2" />
+                <Timer className="h-6 w-6 mb-2" />
                 <span className="font-medium">Short-term</span>
                 <span className="text-xs text-muted-foreground">Days to weeks</span>
               </Card>
@@ -143,7 +143,7 @@ const AIStrategy = () => {
                 className={`p-4 cursor-pointer flex flex-col items-center ${timeHorizon === "medium" ? "border-primary" : ""}`}
                 onClick={() => setTimeHorizon("medium")}
               >
-                <Calendar className="h-6 w-6 mb-2" />
+                <Clock className="h-6 w-6 mb-2" />
                 <span className="font-medium">Medium-term</span>
                 <span className="text-xs text-muted-foreground">Weeks to months</span>
               </Card>
@@ -151,7 +151,7 @@ const AIStrategy = () => {
                 className={`p-4 cursor-pointer flex flex-col items-center ${timeHorizon === "long" ? "border-primary" : ""}`}
                 onClick={() => setTimeHorizon("long")}
               >
-                <Calendar className="h-6 w-6 mb-2" />
+                <TrendingUp className="h-6 w-6 mb-2" />
                 <span className="font-medium">Long-term</span>
                 <span className="text-xs text-muted-foreground">Months to years</span>
               </Card>

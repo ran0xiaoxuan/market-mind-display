@@ -1,4 +1,3 @@
-
 import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -165,11 +164,9 @@ const AIStrategy = () => {
                 <SelectValue placeholder="Select a strategy type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="moving_averages">Moving Averages</SelectItem>
-                <SelectItem value="rsi_macd">RSI & MACD</SelectItem>
-                <SelectItem value="bollinger">Bollinger Bands</SelectItem>
-                <SelectItem value="breakouts">Support & Resistance Breakouts</SelectItem>
-                <SelectItem value="volume">Volume-Based Indicators</SelectItem>
+                <SelectItem value="single">Single-indicator Strategy</SelectItem>
+                <SelectItem value="double">Double-indicator Strategy</SelectItem>
+                <SelectItem value="multi">Multi-indicator Strategy</SelectItem>
               </SelectContent>
             </Select>
           </div>

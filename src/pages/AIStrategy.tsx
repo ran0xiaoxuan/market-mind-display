@@ -1,3 +1,4 @@
+
 import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +16,7 @@ const AIStrategy = () => {
   const [assetType, setAssetType] = useState<"stocks" | "cryptocurrency">("stocks");
   const [riskLevel, setRiskLevel] = useState(50);
   const [timeHorizon, setTimeHorizon] = useState<"short" | "medium" | "long">("medium");
+  const [strategyType, setStrategyType] = useState<string>("");
   
   const popularStocks = [
     { symbol: "AAPL", name: "Apple" },
@@ -37,6 +39,16 @@ const AIStrategy = () => {
     { symbol: "DOGE", name: "Dogecoin" },
     { symbol: "LINK", name: "Chainlink" }
   ];
+
+  const strategyTypes = [
+    { id: "single", label: "Single-indicator Strategy" },
+    { id: "double", label: "Double-indicator Strategy" },
+    { id: "multi", label: "Multi-indicator Strategy" }
+  ];
+
+  const handleStrategyTypeSelect = (strategyLabel: string) => {
+    setStrategyType(strategyLabel);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,16 +171,24 @@ const AIStrategy = () => {
 
           <div className="mb-6">
             <h3 className="text-md font-medium mb-3">Strategy Type</h3>
-            <Select>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a strategy type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single">Single-indicator Strategy</SelectItem>
-                <SelectItem value="double">Double-indicator Strategy</SelectItem>
-                <SelectItem value="multi">Multi-indicator Strategy</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input 
+              id="strategy-type"
+              value={strategyType}
+              onChange={(e) => setStrategyType(e.target.value)}
+              placeholder="Select a strategy type below" 
+              className="w-full mb-4"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {strategyTypes.map((strategy) => (
+                <Card
+                  key={strategy.id}
+                  className={`p-4 cursor-pointer flex flex-col items-center ${strategyType === strategy.label ? "border-primary" : ""}`}
+                  onClick={() => handleStrategyTypeSelect(strategy.label)}
+                >
+                  <span className="font-medium">{strategy.label}</span>
+                </Card>
+              ))}
+            </div>
           </div>
         </Card>
         

@@ -27,6 +27,17 @@ const AIStrategy = () => {
     { symbol: "NVDA", name: "NVIDIA" },
     { symbol: "JPM", name: "JPMorgan Chase" }
   ];
+  
+  const popularCryptocurrencies = [
+    { symbol: "BTC", name: "Bitcoin" },
+    { symbol: "ETH", name: "Ethereum" },
+    { symbol: "SOL", name: "Solana" },
+    { symbol: "ADA", name: "Cardano" },
+    { symbol: "DOT", name: "Polkadot" },
+    { symbol: "XRP", name: "Ripple" },
+    { symbol: "DOGE", name: "Dogecoin" },
+    { symbol: "LINK", name: "Chainlink" }
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,21 +71,34 @@ const AIStrategy = () => {
           </div>
           
           <div className="mb-6">
-            <label htmlFor="search-asset" className="block text-sm font-medium mb-2">Search for a stock</label>
+            <label htmlFor="search-asset" className="block text-sm font-medium mb-2">
+              {assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency"}
+            </label>
             <Input 
               id="search-asset" 
-              placeholder="Search for a stock" 
+              placeholder={assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency"} 
               className="w-full"
             />
           </div>
           
-          {assetType === "stocks" && (
+          {assetType === "stocks" ? (
             <div>
               <p className="text-sm font-medium mb-2">Popular Stocks</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {popularStocks.map((stock) => (
                   <Button key={stock.symbol} variant="outline" className="justify-center">
                     {stock.symbol}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm font-medium mb-2">Popular Cryptocurrencies</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {popularCryptocurrencies.map((crypto) => (
+                  <Button key={crypto.symbol} variant="outline" className="justify-center">
+                    {crypto.symbol}
                   </Button>
                 ))}
               </div>

@@ -2,7 +2,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface Asset {
   symbol: string;
@@ -22,6 +32,8 @@ export const AssetTypeSelector = ({
   onAssetTypeChange,
   onAssetSelect,
 }: AssetTypeSelectorProps) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const popularStocks = [
     { symbol: "AAPL", name: "Apple" },
     { symbol: "MSFT", name: "Microsoft" },
@@ -70,6 +82,12 @@ export const AssetTypeSelector = ({
     { symbol: "ALGO/USDT", name: "Algorand/USDT" }
   ];
 
+  const currentAssets = assetType === "stocks" 
+    ? [...popularStocks, ...additionalStocks] 
+    : [...popularCryptocurrencies, ...additionalCryptocurrencies];
+  
+  const popularAssets = assetType === "stocks" ? popularStocks : popularCryptocurrencies;
+
   return (
     <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Select Asset Type</h2>
@@ -93,65 +111,49 @@ export const AssetTypeSelector = ({
       </div>
       
       <div className="mb-6 relative">
-        <label htmlFor="search-asset" className="block text-sm font-medium mb-2">
-          {assetType === "stocks" ? "Search for a stock" : "Search for a cryptocurrency pair"}
+        <label htmlFor="asset-select" className="block text-sm font-medium mb-2">
+          {assetType === "stocks" ? "Select a stock" : "Select a cryptocurrency pair"}
         </label>
+
         <div className="relative">
-          <Input 
-            id="search-asset" 
-            placeholder={assetType === "stocks" ? "Search for a stock (e.g., AAPL)" : "Search for a cryptocurrency pair (e.g., BTC/USDT)"}
-            value={selectedAsset}
-            onChange={(e) => onAssetSelect(e.target.value)}
-            className="w-full"
-            list="asset-options"
-            autoComplete="off"
-          />
-          <datalist id="asset-options" className="absolute left-0 w-full z-10">
-            {assetType === "stocks" 
-              ? [...popularStocks, ...additionalStocks].map((stock) => (
-                  <option key={stock.symbol} value={stock.symbol}>{stock.name} ({stock.symbol})</option>
-                ))
-              : [...popularCryptocurrencies, ...additionalCryptocurrencies].map((crypto) => (
-                  <option key={crypto.symbol} value={crypto.symbol}>{crypto.name}</option>
-                ))
-            }
-          </datalist>
+          <Select onValueChange={onAssetSelect} value={selectedAsset || undefined}>
+            <SelectTrigger className="w-full" id="asset-select">
+              <SelectValue placeholder={assetType === "stocks" 
+                ? "Select a stock to trade" 
+                : "Select a cryptocurrency pair to trade"} 
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>{assetType === "stocks" ? "Stocks" : "Cryptocurrency Pairs"}</SelectLabel>
+                {currentAssets.map((asset) => (
+                  <SelectItem key={asset.symbol} value={asset.symbol}>
+                    {asset.name} ({asset.symbol})
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
-      {assetType === "stocks" ? (
-        <div>
-          <p className="text-sm font-medium mb-2">Popular Stocks</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {popularStocks.map((stock) => (
-              <Button 
-                key={stock.symbol} 
-                variant={selectedAsset === stock.symbol ? "default" : "outline"} 
-                className="justify-center"
-                onClick={() => onAssetSelect(stock.symbol)}
-              >
-                {stock.symbol}
-              </Button>
-            ))}
-          </div>
+      <div>
+        <p className="text-sm font-medium mb-2">
+          {assetType === "stocks" ? "Popular Stocks" : "Popular Cryptocurrencies"}
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {popularAssets.map((asset) => (
+            <Button 
+              key={asset.symbol} 
+              variant={selectedAsset === asset.symbol ? "default" : "outline"} 
+              className="justify-center"
+              onClick={() => onAssetSelect(asset.symbol)}
+            >
+              {asset.symbol}
+            </Button>
+          ))}
         </div>
-      ) : (
-        <div>
-          <p className="text-sm font-medium mb-2">Popular Cryptocurrencies</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {popularCryptocurrencies.map((crypto) => (
-              <Button 
-                key={crypto.symbol} 
-                variant={selectedAsset === crypto.symbol ? "default" : "outline"} 
-                className="justify-center"
-                onClick={() => onAssetSelect(crypto.symbol)}
-              >
-                {crypto.symbol}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
     </Card>
   );
 };

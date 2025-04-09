@@ -354,10 +354,6 @@ const StrategyDetail = () => {
                     </TableBody>
                   </Table>
                 </div>
-                
-                <div className="mt-6">
-                  <Button variant="outline">Export Trade History</Button>
-                </div>
               </Card>
             </TabsContent>
           </Tabs>

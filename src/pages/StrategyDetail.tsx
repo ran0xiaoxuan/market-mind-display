@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -38,37 +39,43 @@ const StrategyDetail = () => {
       type: "Buy",
       price: "$150.25",
       shares: 10,
-      profitLoss: "-"
+      profitLoss: "-",
+      profitLossAmount: "-"
     }, {
       date: "2023-12-15",
       type: "Sell",
       price: "$158.50",
       shares: 10,
-      profitLoss: "+5.5%"
+      profitLoss: "+5.5%",
+      profitLossAmount: "+$82.50"
     }, {
       date: "2024-01-10",
       type: "Buy",
       price: "$155.75",
       shares: 12,
-      profitLoss: "-"
+      profitLoss: "-",
+      profitLossAmount: "-"
     }, {
       date: "2024-01-25",
       type: "Sell",
       price: "$162.25",
       shares: 12,
-      profitLoss: "+4.2%"
+      profitLoss: "+4.2%",
+      profitLossAmount: "+$78.00"
     }, {
       date: "2024-02-05",
       type: "Buy",
       price: "$160.50",
       shares: 15,
-      profitLoss: "-"
+      profitLoss: "-",
+      profitLossAmount: "-"
     }, {
       date: "2024-02-20",
       type: "Sell",
       price: "$168.75",
       shares: 15,
-      profitLoss: "+5.1%"
+      profitLoss: "+5.1%",
+      profitLossAmount: "+$123.75"
     }],
     performanceMetrics: {
       totalReturn: "17.00%",
@@ -348,7 +355,14 @@ const StrategyDetail = () => {
                           <TableCell>{trade.price}</TableCell>
                           <TableCell>{trade.shares}</TableCell>
                           <TableCell className={trade.profitLoss.startsWith("+") ? "text-green-500" : ""}>
-                            {trade.profitLoss}
+                            {trade.profitLoss !== "-" ? (
+                              <div>
+                                <span className="font-medium">{trade.profitLoss}</span>
+                                <span className="block text-sm text-muted-foreground">{trade.profitLossAmount}</span>
+                              </div>
+                            ) : (
+                              "-"
+                            )}
                           </TableCell>
                         </TableRow>)}
                     </TableBody>

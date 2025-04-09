@@ -4,11 +4,12 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, AlertTriangle, Target, DollarSign, Maximize } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { StrategyParameters } from "@/components/strategy/StrategyParameters";
 
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
@@ -33,6 +34,15 @@ const StrategyDetail = () => {
     startingValue: "$10,000",
     currentValue: "$15,000",
     totalGrowth: "+50.0%",
+    riskManagement: {
+      stopLoss: "5%",
+      takeProfit: "10%",
+      singleBuyVolume: "$1,000",
+      maxBuyVolume: "$10,000"
+    },
+    riskLevel: 50,
+    timeHorizon: "medium" as "short" | "medium" | "long",
+    strategyType: "Single-indicator Strategy",
     trades: [{
       date: "2023-12-01",
       type: "Buy",
@@ -102,6 +112,18 @@ const StrategyDetail = () => {
     });
   };
 
+  const handleRiskLevelChange = (value: number) => {
+    // This would update the strategy risk level in a real app
+  };
+
+  const handleTimeHorizonChange = (value: "short" | "medium" | "long") => {
+    // This would update the strategy time horizon in a real app
+  };
+
+  const handleStrategyTypeChange = (value: string) => {
+    // This would update the strategy type in a real app
+  };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -146,6 +168,19 @@ const StrategyDetail = () => {
             </TabsList>
             
             <TabsContent value="overview" className="pt-6">
+              <StrategyParameters 
+                riskLevel={strategy.riskLevel}
+                timeHorizon={strategy.timeHorizon}
+                strategyType={strategy.strategyType}
+                stopLoss={parseInt(strategy.riskManagement.stopLoss)}
+                takeProfit={parseInt(strategy.riskManagement.takeProfit)}
+                singleBuyVolume={parseInt(strategy.riskManagement.singleBuyVolume.replace('$', '').replace(',', ''))}
+                maxBuyVolume={parseInt(strategy.riskManagement.maxBuyVolume.replace('$', '').replace(',', ''))}
+                onRiskLevelChange={handleRiskLevelChange}
+                onTimeHorizonChange={handleTimeHorizonChange}
+                onStrategyTypeChange={handleStrategyTypeChange}
+              />
+              
               <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-2">Strategy Information</h2>
                 <p className="text-muted-foreground mb-4">{strategy.description}</p>
@@ -188,6 +223,49 @@ const StrategyDetail = () => {
                     <p className="text-xs text-muted-foreground mt-1">
                       This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
                     </p>
+                  </div>
+                </div>
+              </Card>
+              
+              <Card className="p-6 mt-6">
+                <h2 className="text-xl font-semibold mb-2">Risk Management</h2>
+                <p className="text-sm text-muted-foreground mb-4">Position sizing and risk control parameters</p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="p-4 border rounded-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      <h3 className="font-medium">Stop Loss</h3>
+                    </div>
+                    <p className="text-xl font-semibold text-red-500">{strategy.riskManagement.stopLoss}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Maximum allowed loss</p>
+                  </div>
+                  
+                  <div className="p-4 border rounded-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-5 w-5 text-green-500" />
+                      <h3 className="font-medium">Take Profit</h3>
+                    </div>
+                    <p className="text-xl font-semibold text-green-500">{strategy.riskManagement.takeProfit}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Profit target</p>
+                  </div>
+                  
+                  <div className="p-4 border rounded-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-5 w-5 text-blue-500" />
+                      <h3 className="font-medium">Single Buy</h3>
+                    </div>
+                    <p className="text-xl font-semibold">{strategy.riskManagement.singleBuyVolume}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Per position</p>
+                  </div>
+                  
+                  <div className="p-4 border rounded-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Maximize className="h-5 w-5 text-purple-500" />
+                      <h3 className="font-medium">Max Buy</h3>
+                    </div>
+                    <p className="text-xl font-semibold">{strategy.riskManagement.maxBuyVolume}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total allocation</p>
                   </div>
                 </div>
               </Card>

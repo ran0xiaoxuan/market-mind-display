@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -354,11 +353,11 @@ const StrategyDetail = () => {
                           </TableCell>
                           <TableCell>{trade.price}</TableCell>
                           <TableCell>{trade.shares}</TableCell>
-                          <TableCell className={trade.profitLoss.startsWith("+") ? "text-green-500" : ""}>
+                          <TableCell>
                             {trade.profitLoss !== "-" ? (
-                              <div>
-                                <span className="font-medium">{trade.profitLoss}</span>
-                                <span className="block text-sm text-muted-foreground">{trade.profitLossAmount}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-green-500">{trade.profitLoss}</span>
+                                <span className="text-green-500">{trade.profitLossAmount}</span>
                               </div>
                             ) : (
                               "-"

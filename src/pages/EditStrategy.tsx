@@ -27,7 +27,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { StrategyParameters } from "@/components/strategy/StrategyParameters";
 
 const marketAssets = {
   Stocks: [
@@ -88,14 +87,6 @@ const EditStrategy = () => {
   const [timeframe, setTimeframe] = useState("Daily");
   const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
   const [isActive, setIsActive] = useState(true);
-  
-  const [riskLevel, setRiskLevel] = useState(50);
-  const [timeHorizon, setTimeHorizon] = useState<"short" | "medium" | "long">("medium");
-  const [strategyType, setStrategyType] = useState("Single-indicator Strategy");
-  const [stopLoss, setStopLoss] = useState(5);
-  const [takeProfit, setTakeProfit] = useState(10);
-  const [singleBuyVolume, setSingleBuyVolume] = useState(1000);
-  const [maxBuyVolume, setMaxBuyVolume] = useState(10000);
   
   const form = useForm({
     defaultValues: {
@@ -220,23 +211,6 @@ const EditStrategy = () => {
               <Save className="h-4 w-4" /> Save Changes
             </Button>
           </div>
-          
-          <StrategyParameters
-            riskLevel={riskLevel}
-            timeHorizon={timeHorizon}
-            strategyType={strategyType}
-            stopLoss={stopLoss}
-            takeProfit={takeProfit}
-            singleBuyVolume={singleBuyVolume}
-            maxBuyVolume={maxBuyVolume}
-            onRiskLevelChange={setRiskLevel}
-            onTimeHorizonChange={setTimeHorizon}
-            onStrategyTypeChange={setStrategyType}
-            onStopLossChange={setStopLoss}
-            onTakeProfitChange={setTakeProfit}
-            onSingleBuyVolumeChange={setSingleBuyVolume}
-            onMaxBuyVolumeChange={setMaxBuyVolume}
-          />
           
           <Card className="p-6 mb-6">
             <h2 className="text-xl font-semibold mb-1">Basic Information</h2>

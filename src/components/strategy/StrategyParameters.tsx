@@ -2,41 +2,24 @@
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Timer, Clock, TrendingUp, AlertTriangle, Target, DollarSign, Maximize } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { Timer, Clock, TrendingUp } from "lucide-react";
 
 interface StrategyParametersProps {
   riskLevel: number;
   timeHorizon: "short" | "medium" | "long";
   strategyType: string;
-  stopLoss?: number;
-  takeProfit?: number;
-  singleBuyVolume?: number;
-  maxBuyVolume?: number;
   onRiskLevelChange: (value: number) => void;
   onTimeHorizonChange: (value: "short" | "medium" | "long") => void;
   onStrategyTypeChange: (value: string) => void;
-  onStopLossChange?: (value: number) => void;
-  onTakeProfitChange?: (value: number) => void;
-  onSingleBuyVolumeChange?: (value: number) => void;
-  onMaxBuyVolumeChange?: (value: number) => void;
 }
 
 export const StrategyParameters = ({
   riskLevel,
   timeHorizon,
   strategyType,
-  stopLoss = 5,
-  takeProfit = 10,
-  singleBuyVolume = 1000,
-  maxBuyVolume = 10000,
   onRiskLevelChange,
   onTimeHorizonChange,
   onStrategyTypeChange,
-  onStopLossChange,
-  onTakeProfitChange,
-  onSingleBuyVolumeChange,
-  onMaxBuyVolumeChange,
 }: StrategyParametersProps) => {
   return (
     <Card className="p-6 mb-10 border">
@@ -117,93 +100,6 @@ export const StrategyParameters = ({
           >
             <h4 className="font-medium text-center">Multi-indicator Strategy</h4>
           </Card>
-        </div>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="text-md font-medium mb-5">Risk Management</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <Label htmlFor="stop-loss" className="font-medium">Stop Loss (%)</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="stop-loss"
-                  type="number"
-                  value={stopLoss}
-                  min={0}
-                  max={100}
-                  onChange={(e) => onStopLossChange && onStopLossChange(Number(e.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Exit position when losses reach this percentage</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-green-500" />
-                <Label htmlFor="take-profit" className="font-medium">Take Profit (%)</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="take-profit"
-                  type="number"
-                  value={takeProfit}
-                  min={0}
-                  max={1000}
-                  onChange={(e) => onTakeProfitChange && onTakeProfitChange(Number(e.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Exit position when profits reach this percentage</p>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-500" />
-                <Label htmlFor="single-buy" className="font-medium">Single Buy Volume ($)</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="single-buy"
-                  type="number"
-                  value={singleBuyVolume}
-                  min={0}
-                  onChange={(e) => onSingleBuyVolumeChange && onSingleBuyVolumeChange(Number(e.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm text-muted-foreground">$</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Amount to invest for each buy signal</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Maximize className="h-4 w-4 text-purple-500" />
-                <Label htmlFor="max-buy" className="font-medium">Max Buy Volume ($)</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="max-buy"
-                  type="number"
-                  value={maxBuyVolume}
-                  min={0}
-                  onChange={(e) => onMaxBuyVolumeChange && onMaxBuyVolumeChange(Number(e.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm text-muted-foreground">$</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Maximum total investment for this strategy</p>
-            </div>
-          </div>
         </div>
       </div>
     </Card>

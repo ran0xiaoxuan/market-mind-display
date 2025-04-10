@@ -179,17 +179,11 @@ const StrategyDetail = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${isActive ? "bg-green-500" : "bg-red-500"}`}></div>
-                        <p className="font-medium">{isActive ? "Active" : "Inactive"}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
-                        <p className="text-sm text-muted-foreground">
-                          {isActive ? "Disable Strategy" : "Enable Strategy"}
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
+                      <p className="text-sm text-muted-foreground">
+                        {isActive ? "Disable Strategy" : "Enable Strategy"}
+                      </p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.

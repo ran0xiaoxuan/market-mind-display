@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, Shield } from "lucide-react";
+import { ArrowLeft, Copy, PlayIcon, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
@@ -34,7 +33,6 @@ const StrategyDetail = () => {
     startingValue: "$10,000",
     currentValue: "$15,000",
     totalGrowth: "+50.0%",
-    // Add risk management data
     riskManagement: {
       stopLoss: "5",
       takeProfit: "15",
@@ -200,10 +198,8 @@ const StrategyDetail = () => {
                 </div>
               </Card>
               
-              {/* New Risk Management Card */}
               <Card className="p-6 mt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-5 w-5 text-primary" />
+                <div className="mb-2">
                   <h2 className="text-xl font-semibold">Risk Management</h2>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">

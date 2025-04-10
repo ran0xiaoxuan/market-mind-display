@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, Shield } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
@@ -33,6 +34,13 @@ const StrategyDetail = () => {
     startingValue: "$10,000",
     currentValue: "$15,000",
     totalGrowth: "+50.0%",
+    // Add risk management data
+    riskManagement: {
+      stopLoss: "5",
+      takeProfit: "15",
+      singleBuyVolume: "1000",
+      maxBuyVolume: "5000"
+    },
     trades: [{
       date: "2023-12-01",
       type: "Buy",
@@ -188,6 +196,45 @@ const StrategyDetail = () => {
                     <p className="text-xs text-muted-foreground mt-1">
                       This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
                     </p>
+                  </div>
+                </div>
+              </Card>
+              
+              {/* New Risk Management Card */}
+              <Card className="p-6 mt-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-semibold">Risk Management</h2>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Parameters to control risk exposure and trading volume
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Stop Loss</p>
+                      <p className="font-medium text-red-500">{strategy.riskManagement.stopLoss}%</p>
+                      <p className="text-xs text-muted-foreground">Maximum loss before automatically selling</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Take Profit</p>
+                      <p className="font-medium text-green-500">{strategy.riskManagement.takeProfit}%</p>
+                      <p className="text-xs text-muted-foreground">Target profit for automatic selling</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Single Buy Volume</p>
+                      <p className="font-medium">${strategy.riskManagement.singleBuyVolume}</p>
+                      <p className="text-xs text-muted-foreground">Maximum amount for a single purchase</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Max Buy Volume</p>
+                      <p className="font-medium">${strategy.riskManagement.maxBuyVolume}</p>
+                      <p className="text-xs text-muted-foreground">Maximum total investment amount</p>
+                    </div>
                   </div>
                 </div>
               </Card>

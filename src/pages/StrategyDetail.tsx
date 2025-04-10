@@ -211,12 +211,10 @@ const StrategyDetail = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Stop Loss</p>
                       <p className="font-medium text-red-500">{strategy.riskManagement.stopLoss}%</p>
-                      <p className="text-xs text-muted-foreground">Maximum loss before automatically selling</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Take Profit</p>
                       <p className="font-medium text-green-500">{strategy.riskManagement.takeProfit}%</p>
-                      <p className="text-xs text-muted-foreground">Target profit for automatic selling</p>
                     </div>
                   </div>
                   
@@ -224,12 +222,10 @@ const StrategyDetail = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Single Buy Volume</p>
                       <p className="font-medium">${strategy.riskManagement.singleBuyVolume}</p>
-                      <p className="text-xs text-muted-foreground">Maximum amount for a single purchase</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Max Buy Volume</p>
                       <p className="font-medium">${strategy.riskManagement.maxBuyVolume}</p>
-                      <p className="text-xs text-muted-foreground">Maximum total investment amount</p>
                     </div>
                   </div>
                 </div>

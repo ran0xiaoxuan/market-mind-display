@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -88,6 +89,12 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
   const [isActive, setIsActive] = useState(true);
   
+  // Risk Management state
+  const [stopLoss, setStopLoss] = useState("5");
+  const [takeProfit, setTakeProfit] = useState("15");
+  const [singleBuyVolume, setSingleBuyVolume] = useState("1000");
+  const [maxBuyVolume, setMaxBuyVolume] = useState("5000");
+  
   const form = useForm({
     defaultValues: {
       strategyName: "Moving Average Crossover",
@@ -95,7 +102,12 @@ const EditStrategy = () => {
       market: "Stocks",
       timeframe: "Daily",
       targetAsset: "AAPL - Apple Inc.",
-      isActive: true
+      isActive: true,
+      // Add risk management defaults
+      stopLoss: "5",
+      takeProfit: "15",
+      singleBuyVolume: "1000",
+      maxBuyVolume: "5000"
     }
   });
   
@@ -315,6 +327,66 @@ const EditStrategy = () => {
                 </div>
               </div>
             </Form>
+          </Card>
+          
+          {/* New Risk Management Section */}
+          <Card className="p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-1">Risk Management</h2>
+            <p className="text-sm text-muted-foreground mb-4">Define your risk parameters and investment limits</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="stopLoss">Stop Loss (%)</Label>
+                <Input 
+                  id="stopLoss" 
+                  type="number" 
+                  min="0" 
+                  step="0.1" 
+                  value={stopLoss} 
+                  onChange={(e) => setStopLoss(e.target.value)}
+                  className="mt-1" 
+                />
+              </div>
+              <div>
+                <Label htmlFor="takeProfit">Take Profit (%)</Label>
+                <Input 
+                  id="takeProfit" 
+                  type="number" 
+                  min="0" 
+                  step="0.1" 
+                  value={takeProfit} 
+                  onChange={(e) => setTakeProfit(e.target.value)}
+                  className="mt-1" 
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <div>
+                <Label htmlFor="singleBuyVolume">Single Buy Volume ($)</Label>
+                <Input 
+                  id="singleBuyVolume" 
+                  type="number" 
+                  min="0" 
+                  step="100" 
+                  value={singleBuyVolume} 
+                  onChange={(e) => setSingleBuyVolume(e.target.value)}
+                  className="mt-1" 
+                />
+              </div>
+              <div>
+                <Label htmlFor="maxBuyVolume">Max Buy Volume ($)</Label>
+                <Input 
+                  id="maxBuyVolume" 
+                  type="number" 
+                  min="0" 
+                  step="100" 
+                  value={maxBuyVolume} 
+                  onChange={(e) => setMaxBuyVolume(e.target.value)}
+                  className="mt-1" 
+                />
+              </div>
+            </div>
           </Card>
           
           <Card className="p-6 mb-6">

@@ -248,7 +248,7 @@ const StrategyDetail = () => {
             <TabsContent value="performance" className="pt-6">
               <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-2">Performance Metrics</h2>
-                <p className="text-sm text-muted-foreground mb-4">Detailed performance analysis</p>
+                <p className="text-sm text-muted-foreground mb-4">Detailed performance analysis (Only trades that generated trading signals are included)</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>

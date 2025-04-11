@@ -18,8 +18,8 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
   const strategySlug = name.toLowerCase().replace(/ /g, "-");
   
   return (
-    <Card className="overflow-hidden">
-      <div className="p-6">
+    <Card className="overflow-hidden relative flex flex-col h-full">
+      <div className="p-6 pb-16"> {/* Add bottom padding to make room for the fixed link */}
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-lg">{name}</h3>
           {status === "active" ? (
@@ -31,7 +31,8 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
         
         <p className="text-sm text-muted-foreground mb-4">{description}</p>
         
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        {/* Fixed position info grid */}
+        <div className="absolute bottom-14 left-6 right-6 grid grid-cols-2 gap-2">
           <div>
             <p className="text-sm text-muted-foreground">Last Updated</p>
             <p className="text-sm font-medium">{days} days ago</p>
@@ -42,7 +43,11 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
           </div>
         </div>
         
-        <Link to={`/strategy/${strategySlug}`} className="text-sm inline-flex items-center hover:underline">
+        {/* Fixed position link at the bottom */}
+        <Link 
+          to={`/strategy/${strategySlug}`} 
+          className="text-sm inline-flex items-center hover:underline absolute bottom-6 left-6"
+        >
           View Details <ArrowRight className="ml-1 h-3 w-3" />
         </Link>
       </div>

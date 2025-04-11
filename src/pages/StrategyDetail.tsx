@@ -410,14 +410,6 @@ const StrategyDetail = () => {
                     </div>
                   ))}
                 </div>
-                
-                <div className="flex justify-end">
-                  <Button variant="outline" className="gap-2" asChild>
-                    <Link to={`/strategy/${strategyId}/edit`}>
-                      <Edit className="h-4 w-4 mr-1" /> Edit Rules
-                    </Link>
-                  </Button>
-                </div>
               </Card>
             </TabsContent>
             

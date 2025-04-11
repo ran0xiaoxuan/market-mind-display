@@ -29,7 +29,7 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
           )}
         </div>
         
-        <p className="text-sm text-muted-foreground mb-4">{description}</p>
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 overflow-hidden text-ellipsis">{description}</p>
         
         {/* Fixed position info grid */}
         <div className="absolute bottom-14 left-6 right-6 grid grid-cols-2 gap-2">

@@ -17,6 +17,8 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import { ThemeProvider } from "./components/ThemeProvider";
+import EditHistory from "./pages/EditHistory";
+import BacktestHistory from "./pages/BacktestHistory";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/strategy/:strategyId" element={<StrategyDetail />} />
             <Route path="/strategy/:strategyId/edit" element={<EditStrategy />} />
+            <Route path="/strategy/:strategyId/history" element={<EditHistory />} />
+            <Route path="/strategy/:strategyId/backtests" element={<BacktestHistory />} />
             <Route path="/backtest" element={<Backtest />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/ai-strategy" element={<AIStrategy />} />

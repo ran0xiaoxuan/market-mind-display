@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, Plus, History, LineChart } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 const StrategyDetail = () => {
   const {
     strategyId
@@ -22,6 +23,7 @@ const StrategyDetail = () => {
   const {
     toast
   } = useToast();
+
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
     description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
@@ -120,6 +122,7 @@ const StrategyDetail = () => {
       valuePeriod: "50"
     }]
   };
+
   const [isActive, setIsActive] = useState(strategy.status === "active");
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
@@ -128,6 +131,7 @@ const StrategyDetail = () => {
       description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -142,7 +146,7 @@ const StrategyDetail = () => {
                 <h1 className="text-2xl md:text-3xl font-bold">{strategy.name}</h1>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap md:flex-nowrap">
                 <Button variant="outline" className="gap-2">
                   <Copy className="h-4 w-4" />
                   Copy Strategy
@@ -151,15 +155,32 @@ const StrategyDetail = () => {
                   <PlayIcon className="h-4 w-4" />
                   Run Backtest
                 </Button>
-                <Button variant="outline" className="gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
+                <Link to={`/strategy/${strategyId}/edit`}>
+                  <Button variant="outline" className="gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </Link>
                 <Button variant="outline" className="gap-2 bg-red-600 hover:bg-red-500 text-slate-50">
                   <Trash2 className="h-4 w-4" />
                   Delete
                 </Button>
               </div>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <Link to={`/strategy/${strategyId}/history`}>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <History className="h-4 w-4" />
+                  Edit History
+                </Button>
+              </Link>
+              <Link to={`/strategy/${strategyId}/backtests`}>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <LineChart className="h-4 w-4" />
+                  Backtest History
+                </Button>
+              </Link>
             </div>
           </div>
           
@@ -445,4 +466,5 @@ const StrategyDetail = () => {
       </main>
     </div>;
 };
+
 export default StrategyDetail;

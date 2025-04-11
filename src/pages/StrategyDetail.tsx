@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -147,6 +148,18 @@ const StrategyDetail = () => {
               </div>
               
               <div className="flex gap-2 flex-wrap md:flex-nowrap">
+                <Link to={`/strategy/${strategyId}/history`}>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <History className="h-4 w-4" />
+                    Edit History
+                  </Button>
+                </Link>
+                <Link to={`/strategy/${strategyId}/backtests`}>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <LineChart className="h-4 w-4" />
+                    Backtest History
+                  </Button>
+                </Link>
                 <Button variant="outline" className="gap-2">
                   <Copy className="h-4 w-4" />
                   Copy Strategy
@@ -168,20 +181,7 @@ const StrategyDetail = () => {
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <Link to={`/strategy/${strategyId}/history`}>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <History className="h-4 w-4" />
-                  Edit History
-                </Button>
-              </Link>
-              <Link to={`/strategy/${strategyId}/backtests`}>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <LineChart className="h-4 w-4" />
-                  Backtest History
-                </Button>
-              </Link>
-            </div>
+            {/* Remove the buttons from here since they're now in the button group above */}
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

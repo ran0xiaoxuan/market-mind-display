@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -180,6 +181,21 @@ const StrategyDetail = () => {
                     </Button>
                   </ToggleGroupItem>
                   
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 flex items-center"
+                    onClick={() => {
+                      toast({
+                        title: "Strategy copied",
+                        description: "A copy of this strategy has been created"
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">Copy</span>
+                  </Button>
+                  
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm" className="h-9">
@@ -200,15 +216,6 @@ const StrategyDetail = () => {
                           Backtest History
                         </DropdownMenuItem>
                       </Link>
-                      <DropdownMenuItem onClick={() => {
-                        toast({
-                          title: "Strategy copied",
-                          description: "A copy of this strategy has been created"
-                        });
-                      }}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Strategy
-                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
                         toast({

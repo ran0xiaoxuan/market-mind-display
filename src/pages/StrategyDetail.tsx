@@ -181,10 +181,13 @@ const StrategyDetail = () => {
                     <p className="text-sm text-muted-foreground">Status</p>
                     <div className="flex items-center gap-2">
                       <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
+                      <p className="text-sm text-muted-foreground">
+                        {isActive ? "Disable Strategy" : "Enable Strategy"}
                       </p>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
+                    </p>
                   </div>
                 </div>
               </Card>

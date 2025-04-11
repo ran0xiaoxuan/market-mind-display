@@ -11,19 +11,17 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 const StrategyDetail = () => {
-  const { strategyId } = useParams<{ strategyId: string }>();
+  const {
+    strategyId
+  } = useParams<{
+    strategyId: string;
+  }>();
   const [activeTab, setActiveTab] = useState("overview");
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
     description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
@@ -111,7 +109,7 @@ const StrategyDetail = () => {
       condition: "Crosses Above",
       value: "SMA",
       indicatorPeriod: "20",
-      valuePeriod: "50",
+      valuePeriod: "50"
     }],
     exitRules: [{
       id: 1,
@@ -119,20 +117,17 @@ const StrategyDetail = () => {
       condition: "Crosses Below",
       value: "SMA",
       indicatorPeriod: "20",
-      valuePeriod: "50",
+      valuePeriod: "50"
     }]
   };
-  
   const [isActive, setIsActive] = useState(strategy.status === "active");
-  
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
       title: `Strategy ${checked ? 'activated' : 'deactivated'}`,
-      description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`,
+      description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -248,7 +243,7 @@ const StrategyDetail = () => {
             <TabsContent value="performance" className="pt-6">
               <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-2">Performance Metrics</h2>
-                <p className="text-sm text-muted-foreground mb-4">Detailed performance analysis (Only trades that generated trading signals are included)</p>
+                <p className="text-sm text-muted-foreground mb-4">Detailed performance analysis (Only trades that generated trading signals are included.)</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -312,8 +307,7 @@ const StrategyDetail = () => {
                 <div className="mb-8">
                   <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
                   
-                  {strategy.entryRules.map((rule) => (
-                    <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
+                  {strategy.entryRules.map(rule => <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
                       <div className="flex justify-between items-center mb-2">
                         <div className="font-medium">Inequality {rule.id}</div>
                       </div>
@@ -356,15 +350,13 @@ const StrategyDetail = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
                 
                 <div className="mb-6">
                   <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
                   
-                  {strategy.exitRules.map((rule) => (
-                    <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
+                  {strategy.exitRules.map(rule => <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
                       <div className="flex justify-between items-center mb-2">
                         <div className="font-medium">Inequality {rule.id}</div>
                       </div>
@@ -407,8 +399,7 @@ const StrategyDetail = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </Card>
             </TabsContent>
@@ -438,14 +429,10 @@ const StrategyDetail = () => {
                           <TableCell>{trade.price}</TableCell>
                           <TableCell>{trade.shares}</TableCell>
                           <TableCell>
-                            {trade.profitLoss !== "-" ? (
-                              <div className="flex items-center gap-2">
+                            {trade.profitLoss !== "-" ? <div className="flex items-center gap-2">
                                 <span className="font-medium text-green-500">{trade.profitLoss}</span>
                                 <span className="text-green-500">{trade.profitLossAmount}</span>
-                              </div>
-                            ) : (
-                              "-"
-                            )}
+                              </div> : "-"}
                           </TableCell>
                         </TableRow>)}
                     </TableBody>

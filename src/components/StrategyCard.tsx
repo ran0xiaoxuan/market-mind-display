@@ -19,7 +19,7 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
   
   return (
     <Card className="overflow-hidden relative flex flex-col h-full">
-      <div className="p-6 pb-16"> {/* Add bottom padding to make room for the fixed link */}
+      <div className="p-8 pb-20"> {/* Increased padding from p-6 pb-16 to p-8 pb-20 */}
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-lg">{name}</h3>
           {status === "active" ? (

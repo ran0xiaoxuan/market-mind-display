@@ -26,16 +26,16 @@ export function StrategyCard({
           {status === "active" ? <Badge variant="outline" className="bg-muted">Active</Badge> : <Badge variant="outline" className="bg-muted text-muted-foreground">Inactive</Badge>}
         </div>
         
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 overflow-hidden text-ellipsis">{description}</p>
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 overflow-hidden text-ellipsis my-[20px]">{description}</p>
         
         {/* Fixed position info grid */}
         <div className="absolute bottom-14 left-8 right-8 grid grid-cols-2 gap-2">
           <div>
-            <p className="text-sm text-muted-foreground">Last Updated</p>
+            <p className="text-muted-foreground text-xs py-0 my-0">Last Updated</p>
             <p className="text-sm font-medium">{days} days ago</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Target Asset</p>
+            <p className="text-muted-foreground text-xs">Target Asset</p>
             <p className="text-sm font-medium">{asset}</p>
           </div>
         </div>

@@ -1,11 +1,27 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, Plus, History, LineChart } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Copy, 
+  PlayIcon, 
+  Edit, 
+  Trash2, 
+  History, 
+  LineChart,
+  MoreHorizontal
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
@@ -13,17 +29,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Toggle, toggleVariants } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const StrategyDetail = () => {
-  const {
-    strategyId
-  } = useParams<{
-    strategyId: string;
-  }>();
+  const { strategyId } = useParams<{ strategyId: string; }>();
   const [activeTab, setActiveTab] = useState("overview");
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
@@ -147,41 +160,72 @@ const StrategyDetail = () => {
                 <h1 className="text-2xl md:text-3xl font-bold">{strategy.name}</h1>
               </div>
               
-              <div className="flex gap-2 flex-wrap md:flex-nowrap">
-                <Link to={`/strategy/${strategyId}/history`}>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <History className="h-4 w-4" />
-                    Edit History
-                  </Button>
-                </Link>
-                <Link to={`/strategy/${strategyId}/backtests`}>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <LineChart className="h-4 w-4" />
-                    Backtest History
-                  </Button>
-                </Link>
-                <Button variant="outline" className="gap-2">
-                  <Copy className="h-4 w-4" />
-                  Copy Strategy
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <PlayIcon className="h-4 w-4" />
-                  Run Backtest
-                </Button>
-                <Link to={`/strategy/${strategyId}/edit`}>
-                  <Button variant="outline" className="gap-2">
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
-                </Link>
-                <Button variant="outline" className="gap-2 bg-red-600 hover:bg-red-500 text-slate-50">
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
+              <div className="flex items-center gap-2">
+                <ToggleGroup type="single" defaultValue="overview">
+                  <Link to={`/strategy/${strategyId}/edit`}>
+                    <ToggleGroupItem value="edit" aria-label="Edit Strategy">
+                      <Edit className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Edit</span>
+                    </ToggleGroupItem>
+                  </Link>
+                  
+                  <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
+                    <Button variant="outline" className="h-9 px-2.5" onClick={() => {
+                      toast({
+                        title: "Backtest started",
+                        description: "Running backtest for this strategy..."
+                      });
+                    }}>
+                      <PlayIcon className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Backtest</span>
+                    </Button>
+                  </ToggleGroupItem>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Strategy Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <Link to={`/strategy/${strategyId}/history`}>
+                        <DropdownMenuItem>
+                          <History className="h-4 w-4 mr-2" />
+                          Edit History
+                        </DropdownMenuItem>
+                      </Link>
+                      <Link to={`/strategy/${strategyId}/backtests`}>
+                        <DropdownMenuItem>
+                          <LineChart className="h-4 w-4 mr-2" />
+                          Backtest History
+                        </DropdownMenuItem>
+                      </Link>
+                      <DropdownMenuItem onClick={() => {
+                        toast({
+                          title: "Strategy copied",
+                          description: "A copy of this strategy has been created"
+                        });
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Strategy
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
+                        toast({
+                          title: "Delete strategy?",
+                          description: "This action cannot be undone."
+                        });
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Strategy
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </ToggleGroup>
               </div>
             </div>
-
-            {/* Remove the buttons from here since they're now in the button group above */}
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

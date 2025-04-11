@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -181,6 +180,9 @@ const StrategyDetail = () => {
                     <p className="text-sm text-muted-foreground">Status</p>
                     <div className="flex items-center gap-2">
                       <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -238,6 +240,7 @@ const StrategyDetail = () => {
                   <TabsContent value="summary" className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
+                        <h3 className="text-lg font-medium mb-3">Performance Metrics</h3>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm">Total Return</span>
@@ -263,6 +266,7 @@ const StrategyDetail = () => {
                       </div>
                       
                       <div>
+                        <h3 className="text-lg font-medium mb-3">Trade Statistics</h3>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm">Total Trades</span>

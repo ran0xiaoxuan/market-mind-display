@@ -18,7 +18,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -188,7 +187,6 @@ const StrategyDetail = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Strategy Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <Link to={`/strategy/${strategyId}/history`}>
                         <DropdownMenuItem>

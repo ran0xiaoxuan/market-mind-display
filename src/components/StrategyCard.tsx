@@ -26,7 +26,7 @@ export function StrategyCard({
           {status === "active" ? <Badge variant="outline" className="bg-muted">Active</Badge> : <Badge variant="outline" className="bg-muted text-muted-foreground">Inactive</Badge>}
         </div>
         
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 overflow-hidden text-ellipsis my-[15px]">{description}</p>
+        <p className="text-muted-foreground mb-4 line-clamp-2 overflow-hidden text-ellipsis my-[15px] text-base">{description}</p>
         
         {/* Fixed position info grid */}
         <div className="absolute bottom-14 left-8 right-8 grid grid-cols-2 gap-2 my-0">

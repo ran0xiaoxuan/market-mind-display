@@ -4,11 +4,20 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
@@ -95,7 +104,23 @@ const StrategyDetail = () => {
       losingTrades: 8,
       avgProfit: "$320.45",
       avgLoss: "-$175.20"
-    }
+    },
+    entryRules: [{
+      id: 1,
+      indicator: "SMA",
+      condition: "Crosses Above",
+      value: "SMA",
+      indicatorPeriod: "20",
+      valuePeriod: "50",
+    }],
+    exitRules: [{
+      id: 1,
+      indicator: "SMA",
+      condition: "Crosses Below",
+      value: "SMA",
+      indicatorPeriod: "20",
+      valuePeriod: "50",
+    }]
   };
   
   const [isActive, setIsActive] = useState(strategy.status === "active");
@@ -147,6 +172,7 @@ const StrategyDetail = () => {
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="rules">Rules</TabsTrigger>
               <TabsTrigger value="trades">Trades</TabsTrigger>
             </TabsList>
             
@@ -217,8 +243,6 @@ const StrategyDetail = () => {
                   </div>
                 </div>
               </Card>
-              
-              
             </TabsContent>
             
             <TabsContent value="performance" className="pt-6">
@@ -276,6 +300,123 @@ const StrategyDetail = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="rules" className="pt-6">
+              <Card className="p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
+                <p className="text-sm text-muted-foreground mb-4">Entry and exit conditions for this strategy</p>
+                
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
+                  
+                  {strategy.entryRules.map((rule) => (
+                    <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="font-medium">Inequality {rule.id}</div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                        <div>
+                          <Label>Indicator</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.indicator}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Condition</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.condition}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Value</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.value}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Parameters Period</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.indicatorPeriod}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Value Parameters Period</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.valuePeriod}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
+                  
+                  {strategy.exitRules.map((rule) => (
+                    <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="font-medium">Inequality {rule.id}</div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                        <div>
+                          <Label>Indicator</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.indicator}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Condition</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.condition}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Value</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.value}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Parameters Period</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.indicatorPeriod}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Value Parameters Period</Label>
+                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
+                            {rule.valuePeriod}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button variant="outline" className="gap-2" asChild>
+                    <Link to={`/strategy/${strategyId}/edit`}>
+                      <Edit className="h-4 w-4 mr-1" /> Edit Rules
+                    </Link>
+                  </Button>
                 </div>
               </Card>
             </TabsContent>

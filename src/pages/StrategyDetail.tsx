@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -147,7 +148,6 @@ const StrategyDetail = () => {
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="performance">Performance</TabsTrigger>
-              <TabsTrigger value="rules">Rules</TabsTrigger>
               <TabsTrigger value="trades">Trades</TabsTrigger>
             </TabsList>
             
@@ -181,9 +181,6 @@ const StrategyDetail = () => {
                     <p className="text-sm text-muted-foreground">Status</p>
                     <div className="flex items-center gap-2">
                       <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -222,46 +219,7 @@ const StrategyDetail = () => {
                 </div>
               </Card>
               
-              <Card className="p-6 mt-6">
-                <h2 className="text-xl font-semibold mb-2">Performance Summary</h2>
-                <p className="text-sm text-muted-foreground mb-4">Key performance metrics for this strategy</p>
-                
-                <Tabs defaultValue="equity-curve" className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="equity-curve">Equity Curve</TabsTrigger>
-                    <TabsTrigger value="returns">Returns</TabsTrigger>
-                    <TabsTrigger value="drawdown">Drawdown</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="equity-curve" className="pt-4">
-                    <div className="h-[300px] flex flex-col items-center justify-center border border-dashed rounded-md">
-                      <p className="text-lg font-medium">Equity curve data not available</p>
-                      <p className="text-sm text-muted-foreground max-w-md text-center mt-2">
-                        This chart would display your portfolio value over time, showing the growth of your investments.
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Starting Value</p>
-                        <p className="font-medium">{strategy.startingValue}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current Value</p>
-                        <p className="font-medium text-green-500">{strategy.currentValue}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Growth</p>
-                        <p className="font-medium text-green-500">{strategy.totalGrowth}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Annualized</p>
-                        <p className="font-medium text-green-500">{strategy.annualized}</p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </Card>
+              
             </TabsContent>
             
             <TabsContent value="performance" className="pt-6">
@@ -280,7 +238,6 @@ const StrategyDetail = () => {
                   <TabsContent value="summary" className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <h3 className="text-lg font-medium mb-3">Performance Metrics</h3>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm">Total Return</span>
@@ -306,7 +263,6 @@ const StrategyDetail = () => {
                       </div>
                       
                       <div>
-                        <h3 className="text-lg font-medium mb-3">Trade Statistics</h3>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm">Total Trades</span>
@@ -333,29 +289,6 @@ const StrategyDetail = () => {
                     </div>
                   </TabsContent>
                 </Tabs>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="rules" className="pt-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-2">Strategy Rules</h2>
-                <p className="text-sm text-muted-foreground mb-6">Trading rules and conditions</p>
-                
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
-                    <div className="border rounded-md p-4">
-                      <p>SMA(20) crosses above SMA(50)</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
-                    <div className="border rounded-md p-4">
-                      <p>SMA(20) crosses below SMA(50)</p>
-                    </div>
-                  </div>
-                </div>
               </Card>
             </TabsContent>
             

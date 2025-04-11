@@ -32,7 +32,7 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2 overflow-hidden text-ellipsis">{description}</p>
         
         {/* Fixed position info grid */}
-        <div className="absolute bottom-14 left-6 right-6 grid grid-cols-2 gap-2">
+        <div className="absolute bottom-14 left-8 right-8 grid grid-cols-2 gap-2">
           <div>
             <p className="text-sm text-muted-foreground">Last Updated</p>
             <p className="text-sm font-medium">{days} days ago</p>
@@ -46,7 +46,7 @@ export function StrategyCard({ name, description, days, asset, status }: Strateg
         {/* Fixed position link at the bottom */}
         <Link 
           to={`/strategy/${strategySlug}`} 
-          className="text-sm inline-flex items-center hover:underline absolute bottom-6 left-6"
+          className="text-sm inline-flex items-center hover:underline absolute bottom-8 left-8"
         >
           View Details <ArrowRight className="ml-1 h-3 w-3" />
         </Link>

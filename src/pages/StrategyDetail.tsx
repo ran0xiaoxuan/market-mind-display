@@ -147,7 +147,6 @@ const StrategyDetail = () => {
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="performance">Performance</TabsTrigger>
-              <TabsTrigger value="rules">Rules</TabsTrigger>
               <TabsTrigger value="trades">Trades</TabsTrigger>
             </TabsList>
             
@@ -294,29 +293,6 @@ const StrategyDetail = () => {
                     </div>
                   </TabsContent>
                 </Tabs>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="rules" className="pt-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-2">Strategy Rules</h2>
-                <p className="text-sm text-muted-foreground mb-6">Trading rules and conditions</p>
-                
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
-                    <div className="border rounded-md p-4">
-                      <p>SMA(20) crosses above SMA(50)</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
-                    <div className="border rounded-md p-4">
-                      <p>SMA(20) crosses below SMA(50)</p>
-                    </div>
-                  </div>
-                </div>
               </Card>
             </TabsContent>
             

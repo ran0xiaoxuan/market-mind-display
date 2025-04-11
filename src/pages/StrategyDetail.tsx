@@ -222,7 +222,46 @@ const StrategyDetail = () => {
                 </div>
               </Card>
               
-              
+              <Card className="p-6 mt-6">
+                <h2 className="text-xl font-semibold mb-2">Performance Summary</h2>
+                <p className="text-sm text-muted-foreground mb-4">Key performance metrics for this strategy</p>
+                
+                <Tabs defaultValue="equity-curve" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="equity-curve">Equity Curve</TabsTrigger>
+                    <TabsTrigger value="returns">Returns</TabsTrigger>
+                    <TabsTrigger value="drawdown">Drawdown</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="equity-curve" className="pt-4">
+                    <div className="h-[300px] flex flex-col items-center justify-center border border-dashed rounded-md">
+                      <p className="text-lg font-medium">Equity curve data not available</p>
+                      <p className="text-sm text-muted-foreground max-w-md text-center mt-2">
+                        This chart would display your portfolio value over time, showing the growth of your investments.
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Starting Value</p>
+                        <p className="font-medium">{strategy.startingValue}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Current Value</p>
+                        <p className="font-medium text-green-500">{strategy.currentValue}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Growth</p>
+                        <p className="font-medium text-green-500">{strategy.totalGrowth}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Annualized</p>
+                        <p className="font-medium text-green-500">{strategy.annualized}</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </Card>
             </TabsContent>
             
             <TabsContent value="performance" className="pt-6">

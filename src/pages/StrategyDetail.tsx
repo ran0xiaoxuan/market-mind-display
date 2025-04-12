@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -13,8 +14,6 @@ import {
   History, 
   LineChart,
   MoreHorizontal,
-  AndIcon,
-  OrIcon,
   ChevronRight
 } from "lucide-react";
 import {
@@ -35,13 +34,13 @@ import { Separator } from "@/components/ui/separator";
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-const AndIcon = () => (
+const LogicalAndBadge = () => (
   <div className="rounded-md bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1">
     AND
   </div>
 );
 
-const OrIcon = () => (
+const LogicalOrBadge = () => (
   <div className="rounded-md bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1">
     OR
   </div>
@@ -524,7 +523,7 @@ const StrategyDetail = () => {
                     <div key={`entry-${ruleGroup.id}`} className="mb-6">
                       {groupIndex > 0 && (
                         <div className="flex justify-center my-3">
-                          <OrIcon />
+                          <LogicalOrBadge />
                         </div>
                       )}
                       
@@ -533,7 +532,7 @@ const StrategyDetail = () => {
                           <div key={`entry-${ruleGroup.id}-${inequality.id}`}>
                             {ineqIndex > 0 && (
                               <div className="flex justify-center my-3">
-                                <AndIcon />
+                                <LogicalAndBadge />
                               </div>
                             )}
                             {renderInequality(inequality)}
@@ -551,7 +550,7 @@ const StrategyDetail = () => {
                     <div key={`exit-${ruleGroup.id}`} className="mb-6">
                       {groupIndex > 0 && (
                         <div className="flex justify-center my-3">
-                          <OrIcon />
+                          <LogicalOrBadge />
                         </div>
                       )}
                       
@@ -560,7 +559,7 @@ const StrategyDetail = () => {
                           <div key={`exit-${ruleGroup.id}-${inequality.id}`}>
                             {ineqIndex > 0 && (
                               <div className="flex justify-center my-3">
-                                <AndIcon />
+                                <LogicalAndBadge />
                               </div>
                             )}
                             {renderInequality(inequality)}

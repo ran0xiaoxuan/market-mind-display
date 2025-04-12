@@ -17,9 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-
 type PriorityLevel = "high" | "medium" | "low";
-
 const IndicatorParameter = ({
   indicator,
   parameters
@@ -49,7 +47,6 @@ const IndicatorParameter = ({
       </span>
     </div>;
 };
-
 const StrategyDetail = () => {
   const {
     strategyId
@@ -311,7 +308,6 @@ const StrategyDetail = () => {
     if (groupIndex === 1) return "medium";
     return "low";
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -561,8 +557,8 @@ const StrategyDetail = () => {
                     
                     <div className="space-y-3">
                       {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => {
-                        if (inequality.right && inequality.right.indicator === "Volume MA") {
-                          return <div key={`entry-or-${inequality.id}`}>
+                      if (inequality.right && inequality.right.indicator === "Volume MA") {
+                        return <div key={`entry-or-${inequality.id}`}>
                             <div className="bg-slate-50 p-3 rounded-lg">
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
                                 <div className="p-2 bg-white rounded border">
@@ -574,16 +570,16 @@ const StrategyDetail = () => {
                                   </Badge>
                                 </div>
                                 <div className="p-2 bg-white rounded border">
-                                  <span className="font-medium">20-day MA</span>
+                                  <span className="font-medium">100</span>
                                 </div>
                               </div>
                             </div>
                           </div>;
-                        }
-                        return <div key={`entry-or-${inequality.id}`}>
+                      }
+                      return <div key={`entry-or-${inequality.id}`}>
                           {renderInequality(inequality)}
                         </div>;
-                      })}
+                    })}
                     </div>
                   </div>
                 </div>
@@ -663,5 +659,4 @@ const StrategyDetail = () => {
       </main>
     </div>;
 };
-
 export default StrategyDetail;

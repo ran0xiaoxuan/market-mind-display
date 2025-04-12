@@ -14,10 +14,6 @@ export const RuleGroup = ({
   description, 
   inequalities 
 }: RuleGroupProps) => {
-  const colorClass = color === "blue" 
-    ? "bg-blue-50 text-blue-800" 
-    : "bg-amber-50 text-amber-800";
-
   return (
     <div className="mb-6">
       <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>

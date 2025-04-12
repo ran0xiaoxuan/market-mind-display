@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -28,6 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { RuleGroup } from "@/components/strategy-detail/RuleGroup";
 
 const marketAssets = {
   Stocks: [
@@ -114,22 +114,140 @@ const EditStrategy = () => {
   const [entryRules, setEntryRules] = useState([
     {
       id: 1,
-      indicator: "SMA",
-      condition: "Crosses Above",
-      value: "SMA",
-      indicatorPeriod: "20",
-      valuePeriod: "50",
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }, {
+        id: 2,
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Greater Than",
+        right: {
+          type: "value",
+          value: "200"
+        }
+      }]
+    },
+    {
+      id: 2,
+      logic: "OR",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: {
+            period: "14"
+          }
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "30"
+        }
+      }, {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: "Volume",
+          parameters: {
+            period: "5"
+          }
+        },
+        condition: "Greater Than",
+        right: {
+          type: "indicator",
+          indicator: "Volume MA",
+          parameters: {
+            period: "20"
+          }
+        }
+      }]
     }
   ]);
   
   const [exitRules, setExitRules] = useState([
     {
       id: 1,
-      indicator: "SMA",
-      condition: "Crosses Below",
-      value: "SMA",
-      indicatorPeriod: "20",
-      valuePeriod: "50",
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }, {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: "MACD",
+          parameters: {
+            fast: "12",
+            slow: "26",
+            signal: "9"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "value",
+          value: "0"
+        }
+      }]
+    },
+    {
+      id: 2,
+      logic: "OR",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "145.50"
+        }
+      }, {
+        id: 2,
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Greater Than",
+        right: {
+          type: "value",
+          value: "175.25"
+        }
+      }]
     }
   ]);
 
@@ -396,97 +514,21 @@ const EditStrategy = () => {
             <div className="mb-8">
               <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
               
-              {entryRules.map((rule) => (
-                <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="font-medium">Inequality {rule.id}</div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeEntryRule(rule.id)}
-                      disabled={entryRules.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                    <div>
-                      <Label>Indicator</Label>
-                      <Select 
-                        value={rule.indicator} 
-                        onValueChange={(value) => updateEntryRule(rule.id, "indicator", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SMA">SMA</SelectItem>
-                          <SelectItem value="EMA">EMA</SelectItem>
-                          <SelectItem value="RSI">RSI</SelectItem>
-                          <SelectItem value="MACD">MACD</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label>Condition</Label>
-                      <Select 
-                        value={rule.condition} 
-                        onValueChange={(value) => updateEntryRule(rule.id, "condition", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Crosses Above">Crosses Above</SelectItem>
-                          <SelectItem value="Crosses Below">Crosses Below</SelectItem>
-                          <SelectItem value="Greater Than">Greater Than</SelectItem>
-                          <SelectItem value="Less Than">Less Than</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label>Value</Label>
-                      <Select 
-                        value={rule.value} 
-                        onValueChange={(value) => updateEntryRule(rule.id, "value", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SMA">SMA</SelectItem>
-                          <SelectItem value="EMA">EMA</SelectItem>
-                          <SelectItem value="Price">Price</SelectItem>
-                          <SelectItem value="Level">Level</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Parameters Period</Label>
-                      <Input 
-                        type="number"
-                        value={rule.indicatorPeriod}
-                        onChange={(e) => updateEntryRule(rule.id, "indicatorPeriod", e.target.value)}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Value Parameters Period</Label>
-                      <Input 
-                        type="number"
-                        value={rule.valuePeriod}
-                        onChange={(e) => updateEntryRule(rule.id, "valuePeriod", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {/* AND Group */}
+              <RuleGroup
+                title="AND Group"
+                color="blue"
+                description="All conditions must be met."
+                inequalities={entryRules[0].inequalities}
+              />
+              
+              {/* OR Group */}
+              <RuleGroup
+                title="OR Group"
+                color="amber"
+                description={`At least one of ${entryRules[1].inequalities.length} conditions must be met.`}
+                inequalities={entryRules[1].inequalities}
+              />
               
               <Button 
                 variant="outline" 
@@ -500,97 +542,21 @@ const EditStrategy = () => {
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
               
-              {exitRules.map((rule) => (
-                <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="font-medium">Inequality {rule.id}</div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeExitRule(rule.id)}
-                      disabled={exitRules.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                    <div>
-                      <Label>Indicator</Label>
-                      <Select 
-                        value={rule.indicator} 
-                        onValueChange={(value) => updateExitRule(rule.id, "indicator", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SMA">SMA</SelectItem>
-                          <SelectItem value="EMA">EMA</SelectItem>
-                          <SelectItem value="RSI">RSI</SelectItem>
-                          <SelectItem value="MACD">MACD</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label>Condition</Label>
-                      <Select 
-                        value={rule.condition} 
-                        onValueChange={(value) => updateExitRule(rule.id, "condition", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Crosses Above">Crosses Above</SelectItem>
-                          <SelectItem value="Crosses Below">Crosses Below</SelectItem>
-                          <SelectItem value="Greater Than">Greater Than</SelectItem>
-                          <SelectItem value="Less Than">Less Than</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label>Value</Label>
-                      <Select 
-                        value={rule.value} 
-                        onValueChange={(value) => updateExitRule(rule.id, "value", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SMA">SMA</SelectItem>
-                          <SelectItem value="EMA">EMA</SelectItem>
-                          <SelectItem value="Price">Price</SelectItem>
-                          <SelectItem value="Level">Level</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Parameters Period</Label>
-                      <Input 
-                        type="number"
-                        value={rule.indicatorPeriod}
-                        onChange={(e) => updateExitRule(rule.id, "indicatorPeriod", e.target.value)}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Value Parameters Period</Label>
-                      <Input 
-                        type="number"
-                        value={rule.valuePeriod}
-                        onChange={(e) => updateExitRule(rule.id, "valuePeriod", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {/* AND Group */}
+              <RuleGroup
+                title="AND Group"
+                color="blue"
+                description="All conditions must be met."
+                inequalities={exitRules[0].inequalities}
+              />
+              
+              {/* OR Group */}
+              <RuleGroup
+                title="OR Group"
+                color="amber"
+                description={`At least one of ${exitRules[1].inequalities.length} conditions must be met.`}
+                inequalities={exitRules[1].inequalities}
+              />
               
               <Button 
                 variant="outline" 

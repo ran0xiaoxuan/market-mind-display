@@ -278,45 +278,99 @@ const EditStrategy = () => {
   };
   
   const addEntryRule = () => {
-    setEntryRules([...entryRules, {
-      id: entryRules.length + 1,
-      indicator: "SMA",
+    const ruleIndex = entryRules.length > 0 ? entryRules[0].inequalities.length : 0;
+    const newRule = {
+      id: ruleIndex + 1,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "20"
+        }
+      },
       condition: "Crosses Above",
-      value: "SMA",
-      indicatorPeriod: "20",
-      valuePeriod: "50",
-    }]);
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "50"
+        }
+      }
+    };
+    
+    const updatedRules = [...entryRules];
+    if (updatedRules[0] && updatedRules[0].inequalities) {
+      updatedRules[0].inequalities.push(newRule);
+      setEntryRules(updatedRules);
+    }
   };
   
   const addExitRule = () => {
-    setExitRules([...exitRules, {
-      id: exitRules.length + 1,
-      indicator: "SMA",
+    const ruleIndex = exitRules.length > 0 ? exitRules[0].inequalities.length : 0;
+    const newRule = {
+      id: ruleIndex + 1,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "20"
+        }
+      },
       condition: "Crosses Below",
-      value: "SMA",
-      indicatorPeriod: "20",
-      valuePeriod: "50",
-    }]);
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "50"
+        }
+      }
+    };
+    
+    const updatedRules = [...exitRules];
+    if (updatedRules[0] && updatedRules[0].inequalities) {
+      updatedRules[0].inequalities.push(newRule);
+      setExitRules(updatedRules);
+    }
   };
   
-  const removeEntryRule = (id) => {
-    setEntryRules(entryRules.filter(rule => rule.id !== id));
+  const removeEntryRule = (id: number) => {
+    const updatedRules = entryRules.map(group => ({
+      ...group,
+      inequalities: group.inequalities.filter(rule => rule.id !== id)
+    }));
+    setEntryRules(updatedRules);
   };
   
-  const removeExitRule = (id) => {
-    setExitRules(exitRules.filter(rule => rule.id !== id));
+  const removeExitRule = (id: number) => {
+    const updatedRules = exitRules.map(group => ({
+      ...group,
+      inequalities: group.inequalities.filter(rule => rule.id !== id)
+    }));
+    setExitRules(updatedRules);
   };
   
-  const updateEntryRule = (id, field, value) => {
-    setEntryRules(entryRules.map(rule => 
-      rule.id === id ? { ...rule, [field]: value } : rule
-    ));
+  const updateEntryRule = (id: number, field: string, value: string) => {
+    const updatedRules = entryRules.map(group => ({
+      ...group,
+      inequalities: group.inequalities.map(rule => 
+        rule.id === id 
+          ? { ...rule, [field]: value } 
+          : rule
+      )
+    }));
+    setEntryRules(updatedRules);
   };
   
-  const updateExitRule = (id, field, value) => {
-    setExitRules(exitRules.map(rule => 
-      rule.id === id ? { ...rule, [field]: value } : rule
-    ));
+  const updateExitRule = (id: number, field: string, value: string) => {
+    const updatedRules = exitRules.map(group => ({
+      ...group,
+      inequalities: group.inequalities.map(rule => 
+        rule.id === id 
+          ? { ...rule, [field]: value } 
+          : rule
+      )
+    }));
+    setExitRules(updatedRules);
   };
 
   return (

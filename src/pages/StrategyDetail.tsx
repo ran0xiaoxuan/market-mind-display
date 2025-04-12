@@ -163,10 +163,10 @@ const StrategyDetail = () => {
               <div className="flex items-center gap-2">
                 <ToggleGroup type="single" defaultValue="overview">
                   <Link to={`/strategy/${strategyId}/edit`}>
-                    <ToggleGroupItem value="edit" aria-label="Edit Strategy" className="border border-input">
+                    <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
                       <Edit className="h-4 w-4 mr-1" />
                       <span className="hidden sm:inline">Edit</span>
-                    </ToggleGroupItem>
+                    </Button>
                   </Link>
                   
                   <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>

@@ -574,7 +574,7 @@ const StrategyDetail = () => {
                                   </Badge>
                                 </div>
                                 <div className="p-2 bg-white rounded border">
-                                  <span className="font-medium">20-day Volume Average</span>
+                                  <span className="font-medium">20-day MA</span>
                                 </div>
                               </div>
                             </div>

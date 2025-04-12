@@ -163,14 +163,14 @@ const StrategyDetail = () => {
               <div className="flex items-center gap-2">
                 <ToggleGroup type="single" defaultValue="overview">
                   <Link to={`/strategy/${strategyId}/edit`}>
-                    <ToggleGroupItem value="edit" aria-label="Edit Strategy" className="border border-gray-300">
+                    <ToggleGroupItem value="edit" aria-label="Edit Strategy" className="border border-input">
                       <Edit className="h-4 w-4 mr-1" />
                       <span className="hidden sm:inline">Edit</span>
                     </ToggleGroupItem>
                   </Link>
                   
                   <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
-                    <Button variant="outline" className="h-9 px-2.5" onClick={() => {
+                    <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={() => {
                       toast({
                         title: "Backtest started",
                         description: "Running backtest for this strategy..."
@@ -184,7 +184,7 @@ const StrategyDetail = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-9 flex items-center"
+                    className="h-9 flex items-center border border-input"
                     onClick={() => {
                       toast({
                         title: "Strategy copied",
@@ -198,7 +198,7 @@ const StrategyDetail = () => {
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9">
+                      <Button variant="outline" size="sm" className="h-9 border border-input">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

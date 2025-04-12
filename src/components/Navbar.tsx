@@ -21,7 +21,7 @@ export function Navbar() {
   return (
     <nav className="border-b">
       <div className="flex h-16 items-center px-4 justify-between">
-        <div className="flex gap-6 md:gap-10">
+        <div className="flex gap-6 md:gap-10 items-center">
           <Logo />
           
           {/* Dashboard link */}
@@ -29,7 +29,7 @@ export function Navbar() {
             key="Dashboard"
             to="/"
             className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
+              "text-sm font-medium transition-colors hover:text-primary flex items-center h-10",
               location.pathname === "/" ? "text-primary" : "text-foreground"
             )}
           >
@@ -55,7 +55,7 @@ export function Navbar() {
               key={item.name}
               to={item.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
+                "text-sm font-medium transition-colors hover:text-primary flex items-center h-10",
                 location.pathname === item.href ? "text-primary" : "text-foreground"
               )}
             >

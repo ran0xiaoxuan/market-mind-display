@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -588,6 +587,7 @@ const StrategyDetail = () => {
                   <div className="mb-6">
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
                       <div className="flex items-center justify-center gap-1 mb-2 mt-1">
                         <span className="text-xs text-muted-foreground">
                           At least one of {strategy.entryRules[1].inequalities.length} conditions must be met
@@ -628,6 +628,7 @@ const StrategyDetail = () => {
                   <div className="mb-6">
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
                       <div className="flex items-center justify-center gap-1 mb-2 mt-1">
                         <span className="text-xs text-muted-foreground">
                           At least one of {strategy.exitRules[1].inequalities.length} conditions must be met

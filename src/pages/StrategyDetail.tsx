@@ -605,75 +605,107 @@ const StrategyDetail = () => {
                 <div className="mb-8">
                   <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
                   
-                  {strategy.entryRules.map((ruleGroup, groupIndex) => (
-                    <div key={`entry-${ruleGroup.id}`} className="mb-6">
-                      {groupIndex > 0 && (
-                        <div className="flex justify-center my-3">
-                          <LogicalOrBadge priority={getRulePriority(groupIndex-1)} />
-                        </div>
-                      )}
-                      
-                      {ruleGroup.inequalities.length > 1 && ruleGroup.logic === "OR" && (
-                        <LogicalOrCounter 
-                          count={ruleGroup.inequalities.length} 
-                          priority={getRulePriority(groupIndex)} 
-                        />
-                      )}
-                      
-                      <div className="space-y-3">
-                        {ruleGroup.inequalities.map((inequality, ineqIndex) => (
-                          <div key={`entry-${ruleGroup.id}-${inequality.id}`}>
-                            {ineqIndex > 0 && (
-                              <div className="flex justify-center my-3">
-                                {ruleGroup.logic === "AND" ? 
-                                  <LogicalAndBadge priority={getRulePriority(groupIndex)} /> : 
-                                  <LogicalOrBadge priority={getRulePriority(groupIndex)} />
-                                }
-                              </div>
-                            )}
-                            {renderInequality(inequality)}
-                          </div>
-                        ))}
-                      </div>
+                  {/* AND Group */}
+                  <div className="mb-6">
+                    <div className="bg-blue-50 p-2 rounded-md mb-3">
+                      <h4 className="text-sm font-semibold text-blue-800 mb-1">AND Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
                     </div>
-                  ))}
+                    
+                    <div className="space-y-3">
+                      {strategy.entryRules[0].inequalities.map((inequality, ineqIndex) => (
+                        <div key={`entry-and-${inequality.id}`}>
+                          {ineqIndex > 0 && (
+                            <div className="flex justify-center my-3">
+                              <LogicalAndBadge priority="high" />
+                            </div>
+                          )}
+                          {renderInequality(inequality)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* OR Group */}
+                  <div className="mb-6">
+                    <div className="flex justify-center my-3">
+                      <LogicalOrBadge priority="medium" count={strategy.entryRules[1].inequalities.length} />
+                    </div>
+                    
+                    <div className="bg-amber-50 p-2 rounded-md mb-3">
+                      <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
+                      <LogicalOrCounter 
+                        count={strategy.entryRules[1].inequalities.length} 
+                        priority="medium" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => (
+                        <div key={`entry-or-${inequality.id}`}>
+                          {ineqIndex > 0 && (
+                            <div className="flex justify-center my-3">
+                              <LogicalOrBadge priority="medium" />
+                            </div>
+                          )}
+                          {renderInequality(inequality)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="mb-6">
                   <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
                   
-                  {strategy.exitRules.map((ruleGroup, groupIndex) => (
-                    <div key={`exit-${ruleGroup.id}`} className="mb-6">
-                      {groupIndex > 0 && (
-                        <div className="flex justify-center my-3">
-                          <LogicalOrBadge priority={getRulePriority(groupIndex-1)} />
-                        </div>
-                      )}
-                      
-                      {ruleGroup.inequalities.length > 1 && ruleGroup.logic === "OR" && (
-                        <LogicalOrCounter 
-                          count={ruleGroup.inequalities.length} 
-                          priority={getRulePriority(groupIndex)} 
-                        />
-                      )}
-                      
-                      <div className="space-y-3">
-                        {ruleGroup.inequalities.map((inequality, ineqIndex) => (
-                          <div key={`exit-${ruleGroup.id}-${inequality.id}`}>
-                            {ineqIndex > 0 && (
-                              <div className="flex justify-center my-3">
-                                {ruleGroup.logic === "AND" ? 
-                                  <LogicalAndBadge priority={getRulePriority(groupIndex)} /> : 
-                                  <LogicalOrBadge priority={getRulePriority(groupIndex)} />
-                                }
-                              </div>
-                            )}
-                            {renderInequality(inequality)}
-                          </div>
-                        ))}
-                      </div>
+                  {/* AND Group */}
+                  <div className="mb-6">
+                    <div className="bg-blue-50 p-2 rounded-md mb-3">
+                      <h4 className="text-sm font-semibold text-blue-800 mb-1">AND Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
                     </div>
-                  ))}
+                    
+                    <div className="space-y-3">
+                      {strategy.exitRules[0].inequalities.map((inequality, ineqIndex) => (
+                        <div key={`exit-and-${inequality.id}`}>
+                          {ineqIndex > 0 && (
+                            <div className="flex justify-center my-3">
+                              <LogicalAndBadge priority="high" />
+                            </div>
+                          )}
+                          {renderInequality(inequality)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* OR Group */}
+                  <div className="mb-6">
+                    <div className="flex justify-center my-3">
+                      <LogicalOrBadge priority="medium" count={strategy.exitRules[1].inequalities.length} />
+                    </div>
+                    
+                    <div className="bg-amber-50 p-2 rounded-md mb-3">
+                      <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
+                      <LogicalOrCounter 
+                        count={strategy.exitRules[1].inequalities.length} 
+                        priority="medium" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {strategy.exitRules[1].inequalities.map((inequality, ineqIndex) => (
+                        <div key={`exit-or-${inequality.id}`}>
+                          {ineqIndex > 0 && (
+                            <div className="flex justify-center my-3">
+                              <LogicalOrBadge priority="medium" />
+                            </div>
+                          )}
+                          {renderInequality(inequality)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </Card>
             </TabsContent>

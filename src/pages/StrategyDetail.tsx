@@ -61,6 +61,27 @@ const LogicalOrCounter = ({ count, required = 1 }: { count: number, required?: n
   </div>
 );
 
+// Helper component to display indicator parameter values with highlighting
+const IndicatorParameter = ({ 
+  name, 
+  value, 
+  highlighted = false 
+}: { 
+  name: string; 
+  value: string; 
+  highlighted?: boolean;
+}) => (
+  <span 
+    className={`text-xs ${
+      highlighted 
+        ? "bg-blue-50 text-blue-700 font-medium px-1 py-0.5 rounded" 
+        : "text-muted-foreground"
+    }`}
+  >
+    {name}: {value}
+  </span>
+);
+
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string; }>();
   const [activeTab, setActiveTab] = useState("overview");
@@ -268,6 +289,31 @@ const StrategyDetail = () => {
 
   const renderSide = (side: any) => {
     if (side.type === "indicator") {
+      // Special handling for MACD indicator which has multiple parameters
+      if (side.indicator === "MACD") {
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium">MACD</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {Object.entries(side.parameters).map(([key, value]) => (
+                <IndicatorParameter 
+                  key={key}
+                  name={key} 
+                  value={value as string} 
+                  highlighted={key === "signal"} // Highlight signal line as an example
+                />
+              ))}
+            </div>
+            {side.highlightedLine && (
+              <div className="mt-1 text-xs bg-green-50 text-green-700 px-1 py-0.5 rounded">
+                Using {side.highlightedLine} line
+              </div>
+            )}
+          </div>
+        );
+      }
+      
+      // General handling for other indicators
       return (
         <div className="flex flex-col">
           <span className="font-medium">{side.indicator}</span>
@@ -288,7 +334,7 @@ const StrategyDetail = () => {
   const renderInequality = (inequality: any) => (
     <div key={inequality.id} className="bg-slate-50 p-3 rounded-lg">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-        <div className="p-2 bg-white rounded border">
+        <div className="p-2 bg-white rounded border shadow-sm">
           {renderSide(inequality.left)}
         </div>
         <div className="flex justify-center">
@@ -296,7 +342,7 @@ const StrategyDetail = () => {
             {inequality.condition}
           </Badge>
         </div>
-        <div className="p-2 bg-white rounded border">
+        <div className="p-2 bg-white rounded border shadow-sm">
           {renderSide(inequality.right)}
         </div>
       </div>

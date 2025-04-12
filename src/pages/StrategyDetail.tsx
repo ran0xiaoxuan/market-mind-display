@@ -274,7 +274,7 @@ const StrategyDetail = () => {
             condition: "Less Than",
             right: {
               type: "value",
-              value: "Stop Loss"
+              value: "145.50"
             }
           },
           {
@@ -286,7 +286,7 @@ const StrategyDetail = () => {
             condition: "Greater Than",
             right: {
               type: "value",
-              value: "Take Profit"
+              value: "175.25"
             }
           }
         ]

@@ -17,7 +17,9 @@ import { Separator } from "@/components/ui/separator";
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+
 type PriorityLevel = "high" | "medium" | "low";
+
 const IndicatorParameter = ({
   indicator,
   parameters
@@ -47,6 +49,7 @@ const IndicatorParameter = ({
       </span>
     </div>;
 };
+
 const StrategyDetail = () => {
   const {
     strategyId
@@ -57,6 +60,7 @@ const StrategyDetail = () => {
   const {
     toast
   } = useToast();
+
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
     description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
@@ -271,7 +275,9 @@ const StrategyDetail = () => {
       }]
     }]
   };
+
   const [isActive, setIsActive] = useState(strategy.status === "active");
+
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
@@ -279,6 +285,7 @@ const StrategyDetail = () => {
       description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };
+
   const renderSide = (side: any) => {
     if (side.type === "indicator") {
       return <IndicatorParameter indicator={side.indicator} parameters={side.parameters} />;
@@ -288,6 +295,7 @@ const StrategyDetail = () => {
       return <span className="font-medium">{side.value}</span>;
     }
   };
+
   const renderInequality = (inequality: any) => <div key={inequality.id} className="bg-slate-50 p-3 rounded-lg">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
         <div className="p-2 bg-white rounded border">
@@ -303,11 +311,13 @@ const StrategyDetail = () => {
         </div>
       </div>
     </div>;
+
   const getRulePriority = (groupIndex: number): PriorityLevel => {
     if (groupIndex === 0) return "high";
     if (groupIndex === 1) return "medium";
     return "low";
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -553,11 +563,9 @@ const StrategyDetail = () => {
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
                       <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
-                      <div className="flex items-center justify-center gap-1 mb-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          At least one of {strategy.entryRules[1].inequalities.length} conditions must be met
-                        </span>
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        At least one of {strategy.entryRules[1].inequalities.length} conditions must be met
+                      </p>
                     </div>
                     
                     <div className="space-y-3">
@@ -590,11 +598,9 @@ const StrategyDetail = () => {
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
                       <p className="text-xs text-muted-foreground mb-2">At least one of 2 conditions must be met</p>
-                      <div className="flex items-center justify-center gap-1 mb-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          At least one of {strategy.exitRules[1].inequalities.length} conditions must be met
-                        </span>
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        At least one of {strategy.exitRules[1].inequalities.length} conditions must be met
+                      </p>
                     </div>
                     
                     <div className="space-y-3">
@@ -648,4 +654,5 @@ const StrategyDetail = () => {
       </main>
     </div>;
 };
+
 export default StrategyDetail;

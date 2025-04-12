@@ -4,28 +4,8 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ArrowLeft, 
-  Copy, 
-  PlayIcon, 
-  Edit, 
-  Trash2, 
-  History, 
-  LineChart,
-  MoreHorizontal,
-  ChevronRight,
-  CheckCircle2,
-  ChevronUp,
-  ChevronDown,
-  Star
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, History, LineChart, MoreHorizontal, ChevronRight, CheckCircle2, ChevronUp, ChevronDown, Star } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { Switch } from "@/components/ui/switch";
@@ -37,13 +17,16 @@ import { Separator } from "@/components/ui/separator";
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-
 type PriorityLevel = "high" | "medium" | "low";
-
-const IndicatorParameter = ({ indicator, parameters }: { indicator: string; parameters: Record<string, string> }) => {
+const IndicatorParameter = ({
+  indicator,
+  parameters
+}: {
+  indicator: string;
+  parameters: Record<string, string>;
+}) => {
   if (indicator === "MACD") {
-    return (
-      <div className="flex flex-col">
+    return <div className="flex flex-col">
         <div className="flex items-center gap-1.5">
           <span className="font-medium">{indicator}</span>
           <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5">
@@ -55,27 +38,25 @@ const IndicatorParameter = ({ indicator, parameters }: { indicator: string; para
           slow: {parameters.slow || '26'},
           signal: {parameters.signal || '9'}
         </span>
-      </div>
-    );
+      </div>;
   }
-  
-  return (
-    <div className="flex flex-col">
+  return <div className="flex flex-col">
       <span className="font-medium">{indicator}</span>
       <span className="text-xs text-muted-foreground">
-        {Object.entries(parameters).map(([key, value]) => 
-          `${key}: ${value}`
-        ).join(', ')}
+        {Object.entries(parameters).map(([key, value]) => `${key}: ${value}`).join(', ')}
       </span>
-    </div>
-  );
+    </div>;
 };
-
 const StrategyDetail = () => {
-  const { strategyId } = useParams<{ strategyId: string; }>();
+  const {
+    strategyId
+  } = useParams<{
+    strategyId: string;
+  }>();
   const [activeTab, setActiveTab] = useState("overview");
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
     description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
@@ -100,51 +81,49 @@ const StrategyDetail = () => {
       singleBuyVolume: "1000",
       maxBuyVolume: "5000"
     },
-    trades: [
-      {
-        date: "2023-12-01",
-        type: "Buy",
-        price: "$150.25",
-        shares: 10,
-        profitLoss: "-",
-        profitLossAmount: "-"
-      }, {
-        date: "2023-12-15",
-        type: "Sell",
-        price: "$158.50",
-        shares: 10,
-        profitLoss: "+5.5%",
-        profitLossAmount: "+$82.50"
-      }, {
-        date: "2024-01-10",
-        type: "Buy",
-        price: "$155.75",
-        shares: 12,
-        profitLoss: "-",
-        profitLossAmount: "-"
-      }, {
-        date: "2024-01-25",
-        type: "Sell",
-        price: "$162.25",
-        shares: 12,
-        profitLoss: "+4.2%",
-        profitLossAmount: "+$78.00"
-      }, {
-        date: "2024-02-05",
-        type: "Buy",
-        price: "$160.50",
-        shares: 15,
-        profitLoss: "-",
-        profitLossAmount: "-"
-      }, {
-        date: "2024-02-20",
-        type: "Sell",
-        price: "$168.75",
-        shares: 15,
-        profitLoss: "+5.1%",
-        profitLossAmount: "+$123.75"
-      }
-    ],
+    trades: [{
+      date: "2023-12-01",
+      type: "Buy",
+      price: "$150.25",
+      shares: 10,
+      profitLoss: "-",
+      profitLossAmount: "-"
+    }, {
+      date: "2023-12-15",
+      type: "Sell",
+      price: "$158.50",
+      shares: 10,
+      profitLoss: "+5.5%",
+      profitLossAmount: "+$82.50"
+    }, {
+      date: "2024-01-10",
+      type: "Buy",
+      price: "$155.75",
+      shares: 12,
+      profitLoss: "-",
+      profitLossAmount: "-"
+    }, {
+      date: "2024-01-25",
+      type: "Sell",
+      price: "$162.25",
+      shares: 12,
+      profitLoss: "+4.2%",
+      profitLossAmount: "+$78.00"
+    }, {
+      date: "2024-02-05",
+      type: "Buy",
+      price: "$160.50",
+      shares: 15,
+      profitLoss: "-",
+      profitLossAmount: "-"
+    }, {
+      date: "2024-02-20",
+      type: "Sell",
+      price: "$168.75",
+      shares: 15,
+      profitLoss: "+5.1%",
+      profitLossAmount: "+$123.75"
+    }],
     performanceMetrics: {
       totalReturn: "17.00%",
       annualizedReturn: "34.00%",
@@ -159,140 +138,139 @@ const StrategyDetail = () => {
       avgProfit: "$320.45",
       avgLoss: "-$175.20"
     },
-    entryRules: [
-      {
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
         id: 1,
-        logic: "AND",
-        inequalities: [
-          {
-            id: 1,
-            left: {
-              type: "indicator",
-              indicator: "SMA",
-              parameters: { period: "20" }
-            },
-            condition: "Crosses Above",
-            right: {
-              type: "indicator",
-              indicator: "SMA",
-              parameters: { period: "50" }
-            }
-          },
-          {
-            id: 2,
-            left: {
-              type: "price",
-              value: "Close"
-            },
-            condition: "Greater Than",
-            right: {
-              type: "value",
-              value: "200"
-            }
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
           }
-        ]
-      },
-      {
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }, {
         id: 2,
-        logic: "OR",
-        inequalities: [
-          {
-            id: 1,
-            left: {
-              type: "indicator",
-              indicator: "RSI",
-              parameters: { period: "14" }
-            },
-            condition: "Less Than",
-            right: {
-              type: "value",
-              value: "30"
-            }
-          },
-          {
-            id: 2,
-            left: {
-              type: "indicator",
-              indicator: "Volume",
-              parameters: { period: "5" }
-            },
-            condition: "Greater Than",
-            right: {
-              type: "indicator",
-              indicator: "Volume MA",
-              parameters: { period: "20" }
-            }
-          }
-        ]
-      }
-    ],
-    exitRules: [
-      {
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Greater Than",
+        right: {
+          type: "value",
+          value: "200"
+        }
+      }]
+    }, {
+      id: 2,
+      logic: "OR",
+      inequalities: [{
         id: 1,
-        logic: "AND",
-        inequalities: [
-          {
-            id: 1,
-            left: {
-              type: "indicator",
-              indicator: "SMA",
-              parameters: { period: "20" }
-            },
-            condition: "Crosses Below",
-            right: {
-              type: "indicator",
-              indicator: "SMA",
-              parameters: { period: "50" }
-            }
-          },
-          {
-            id: 2,
-            left: {
-              type: "indicator",
-              indicator: "MACD",
-              parameters: { fast: "12", slow: "26", signal: "9" }
-            },
-            condition: "Crosses Below",
-            right: {
-              type: "value",
-              value: "0"
-            }
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: {
+            period: "14"
           }
-        ]
-      },
-      {
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "30"
+        }
+      }, {
         id: 2,
-        logic: "OR",
-        inequalities: [
-          {
-            id: 1,
-            left: {
-              type: "price",
-              value: "Close"
-            },
-            condition: "Less Than",
-            right: {
-              type: "value",
-              value: "145.50"
-            }
-          },
-          {
-            id: 2,
-            left: {
-              type: "price",
-              value: "Close"
-            },
-            condition: "Greater Than",
-            right: {
-              type: "value",
-              value: "175.25"
-            }
+        left: {
+          type: "indicator",
+          indicator: "Volume",
+          parameters: {
+            period: "5"
           }
-        ]
-      }
-    ]
+        },
+        condition: "Greater Than",
+        right: {
+          type: "indicator",
+          indicator: "Volume MA",
+          parameters: {
+            period: "20"
+          }
+        }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }, {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: "MACD",
+          parameters: {
+            fast: "12",
+            slow: "26",
+            signal: "9"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "value",
+          value: "0"
+        }
+      }]
+    }, {
+      id: 2,
+      logic: "OR",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "145.50"
+        }
+      }, {
+        id: 2,
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Greater Than",
+        right: {
+          type: "value",
+          value: "175.25"
+        }
+      }]
+    }]
   };
-
   const [isActive, setIsActive] = useState(strategy.status === "active");
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
@@ -301,7 +279,6 @@ const StrategyDetail = () => {
       description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };
-
   const renderSide = (side: any) => {
     if (side.type === "indicator") {
       return <IndicatorParameter indicator={side.indicator} parameters={side.parameters} />;
@@ -311,9 +288,7 @@ const StrategyDetail = () => {
       return <span className="font-medium">{side.value}</span>;
     }
   };
-
-  const renderInequality = (inequality: any) => (
-    <div key={inequality.id} className="bg-slate-50 p-3 rounded-lg">
+  const renderInequality = (inequality: any) => <div key={inequality.id} className="bg-slate-50 p-3 rounded-lg">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
         <div className="p-2 bg-white rounded border">
           {renderSide(inequality.left)}
@@ -327,15 +302,12 @@ const StrategyDetail = () => {
           {renderSide(inequality.right)}
         </div>
       </div>
-    </div>
-  );
-
+    </div>;
   const getRulePriority = (groupIndex: number): PriorityLevel => {
     if (groupIndex === 0) return "high";
     if (groupIndex === 1) return "medium";
     return "low";
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -361,27 +333,22 @@ const StrategyDetail = () => {
                   
                   <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
                     <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={() => {
-                      toast({
-                        title: "Backtest started",
-                        description: "Running backtest for this strategy..."
-                      });
-                    }}>
+                    toast({
+                      title: "Backtest started",
+                      description: "Running backtest for this strategy..."
+                    });
+                  }}>
                       <PlayIcon className="h-4 w-4 mr-1" />
                       <span className="hidden sm:inline">Backtest</span>
                     </Button>
                   </ToggleGroupItem>
                   
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-9 px-2.5 border border-input"
-                    onClick={() => {
-                      toast({
-                        title: "Strategy copied",
-                        description: "A copy of this strategy has been created"
-                      });
-                    }}
-                  >
+                  <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input" onClick={() => {
+                  toast({
+                    title: "Strategy copied",
+                    description: "A copy of this strategy has been created"
+                  });
+                }}>
                     <Copy className="h-4 w-4 mr-1" />
                     <span className="hidden sm:inline">Copy</span>
                   </Button>
@@ -408,11 +375,11 @@ const StrategyDetail = () => {
                       </Link>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
-                        toast({
-                          title: "Delete strategy?",
-                          description: "This action cannot be undone."
-                        });
-                      }}>
+                      toast({
+                        title: "Delete strategy?",
+                        description: "This action cannot be undone."
+                      });
+                    }}>
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Strategy
                       </DropdownMenuItem>
@@ -575,11 +542,9 @@ const StrategyDetail = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      {strategy.entryRules[0].inequalities.map((inequality, ineqIndex) => (
-                        <div key={`entry-and-${inequality.id}`}>
+                      {strategy.entryRules[0].inequalities.map((inequality, ineqIndex) => <div key={`entry-and-${inequality.id}`}>
                           {renderInequality(inequality)}
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
                   
@@ -596,11 +561,9 @@ const StrategyDetail = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => (
-                        <div key={`entry-or-${inequality.id}`}>
+                      {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => <div key={`entry-or-${inequality.id}`}>
                           {renderInequality(inequality)}
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
                 </div>
@@ -616,11 +579,9 @@ const StrategyDetail = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      {strategy.exitRules[0].inequalities.map((inequality, ineqIndex) => (
-                        <div key={`exit-and-${inequality.id}`}>
+                      {strategy.exitRules[0].inequalities.map((inequality, ineqIndex) => <div key={`exit-and-${inequality.id}`}>
                           {renderInequality(inequality)}
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
                   
@@ -628,7 +589,7 @@ const StrategyDetail = () => {
                   <div className="mb-6">
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
-                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
+                      <p className="text-xs text-muted-foreground mb-2">At least one of 2 conditions must be met</p>
                       <div className="flex items-center justify-center gap-1 mb-2 mt-1">
                         <span className="text-xs text-muted-foreground">
                           At least one of {strategy.exitRules[1].inequalities.length} conditions must be met
@@ -637,11 +598,9 @@ const StrategyDetail = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      {strategy.exitRules[1].inequalities.map((inequality, ineqIndex) => (
-                        <div key={`exit-or-${inequality.id}`}>
+                      {strategy.exitRules[1].inequalities.map((inequality, ineqIndex) => <div key={`exit-or-${inequality.id}`}>
                           {renderInequality(inequality)}
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
                 </div>
@@ -689,5 +648,4 @@ const StrategyDetail = () => {
       </main>
     </div>;
 };
-
 export default StrategyDetail;

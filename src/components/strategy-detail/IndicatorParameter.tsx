@@ -1,9 +1,10 @@
 
 import { Badge } from "@/components/Badge";
+import { IndicatorParameters } from "./types";
 
 interface IndicatorParameterProps {
   indicator: string;
-  parameters: Record<string, string>;
+  parameters: IndicatorParameters;
 }
 
 export const IndicatorParameter = ({

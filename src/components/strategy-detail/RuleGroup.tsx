@@ -1,11 +1,12 @@
 
 import { RuleInequality } from "./RuleInequality";
+import { Inequality } from "./types";
 
 interface RuleGroupProps {
   title: "AND Group" | "OR Group";
   color: "blue" | "amber";
   description: string;
-  inequalities: any[];
+  inequalities: Inequality[];
 }
 
 export const RuleGroup = ({ 

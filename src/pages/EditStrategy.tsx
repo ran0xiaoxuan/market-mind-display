@@ -14,7 +14,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Save, X, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { Badge } from "@/components/Badge";
 import {
   Form,
@@ -27,7 +27,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { RuleGroup } from "@/components/strategy-detail/RuleGroup";
+import { TradingRules } from "@/components/strategy-detail/TradingRules";
+import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
 
 const marketAssets = {
   Stocks: [
@@ -89,7 +90,6 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
   const [isActive, setIsActive] = useState(true);
   
-  // Risk Management state
   const [stopLoss, setStopLoss] = useState("5");
   const [takeProfit, setTakeProfit] = useState("15");
   const [singleBuyVolume, setSingleBuyVolume] = useState("1000");
@@ -103,7 +103,6 @@ const EditStrategy = () => {
       timeframe: "Daily",
       targetAsset: "AAPL - Apple Inc.",
       isActive: true,
-      // Add risk management defaults
       stopLoss: "5",
       takeProfit: "15",
       singleBuyVolume: "1000",
@@ -111,7 +110,7 @@ const EditStrategy = () => {
     }
   });
   
-  const [entryRules, setEntryRules] = useState([
+  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
     {
       id: 1,
       logic: "AND",
@@ -183,7 +182,7 @@ const EditStrategy = () => {
     }
   ]);
   
-  const [exitRules, setExitRules] = useState([
+  const [exitRules, setExitRules] = useState<RuleGroupData[]>([
     {
       id: 1,
       logic: "AND",
@@ -278,56 +277,56 @@ const EditStrategy = () => {
   };
   
   const addEntryRule = () => {
-    const ruleIndex = entryRules.length > 0 ? entryRules[0].inequalities.length : 0;
-    const newRule = {
-      id: ruleIndex + 1,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Above",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
-      }
-    };
-    
     const updatedRules = [...entryRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
+      const ruleIndex = updatedRules[0].inequalities.length;
+      const newRule: Inequality = {
+        id: ruleIndex + 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      };
+      
       updatedRules[0].inequalities.push(newRule);
       setEntryRules(updatedRules);
     }
   };
   
   const addExitRule = () => {
-    const ruleIndex = exitRules.length > 0 ? exitRules[0].inequalities.length : 0;
-    const newRule = {
-      id: ruleIndex + 1,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Below",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
-      }
-    };
-    
     const updatedRules = [...exitRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
+      const ruleIndex = updatedRules[0].inequalities.length;
+      const newRule: Inequality = {
+        id: ruleIndex + 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      };
+      
       updatedRules[0].inequalities.push(newRule);
       setExitRules(updatedRules);
     }
@@ -501,7 +500,6 @@ const EditStrategy = () => {
             </Form>
           </Card>
           
-          {/* New Risk Management Section */}
           <Card className="p-6 mb-6">
             <h2 className="text-xl font-semibold mb-1">Risk Management</h2>
             <p className="text-sm text-muted-foreground mb-4">Define your risk parameters and investment limits</p>
@@ -565,63 +563,27 @@ const EditStrategy = () => {
             <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
             <p className="text-sm text-muted-foreground mb-4">Define the entry and exit conditions for your strategy</p>
             
-            <div className="mb-8">
-              <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
-              
-              {/* AND Group */}
-              <RuleGroup
-                title="AND Group"
-                color="blue"
-                description="All conditions must be met."
-                inequalities={entryRules[0].inequalities}
-              />
-              
-              {/* OR Group */}
-              <RuleGroup
-                title="OR Group"
-                color="amber"
-                description={`At least one of ${entryRules[1].inequalities.length} conditions must be met.`}
-                inequalities={entryRules[1].inequalities}
-              />
-              
+            <TradingRules entryRules={entryRules} exitRules={exitRules} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <Button 
                 variant="outline" 
-                className="w-full mt-2" 
+                className="w-full" 
                 onClick={addEntryRule}
               >
-                <Plus className="h-4 w-4 mr-2" /> Add Inequality
+                <Plus className="h-4 w-4 mr-2" /> Add Entry Rule
               </Button>
-            </div>
-            
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
-              
-              {/* AND Group */}
-              <RuleGroup
-                title="AND Group"
-                color="blue"
-                description="All conditions must be met."
-                inequalities={exitRules[0].inequalities}
-              />
-              
-              {/* OR Group */}
-              <RuleGroup
-                title="OR Group"
-                color="amber"
-                description={`At least one of ${exitRules[1].inequalities.length} conditions must be met.`}
-                inequalities={exitRules[1].inequalities}
-              />
               
               <Button 
                 variant="outline" 
-                className="w-full mt-2" 
+                className="w-full" 
                 onClick={addExitRule}
               >
-                <Plus className="h-4 w-4 mr-2" /> Add Inequality
+                <Plus className="h-4 w-4 mr-2" /> Add Exit Rule
               </Button>
             </div>
             
-            <div className="flex justify-end">
+            <div className="flex justify-end mt-4">
               <Button className="gap-2">
                 <Save className="h-4 w-4" /> Save Rules
               </Button>

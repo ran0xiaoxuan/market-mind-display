@@ -1,24 +1,10 @@
 
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
+import { Inequality } from "./types";
 
 interface RuleInequalityProps {
-  inequality: {
-    id: number;
-    left: {
-      type: string;
-      indicator?: string;
-      value?: string;
-      parameters?: Record<string, string>;
-    };
-    condition: string;
-    right: {
-      type: string;
-      indicator?: string;
-      value?: string;
-      parameters?: Record<string, string>;
-    };
-  };
+  inequality: Inequality;
 }
 
 export const RuleInequality = ({ inequality }: RuleInequalityProps) => {
@@ -26,7 +12,7 @@ export const RuleInequality = ({ inequality }: RuleInequalityProps) => {
     if (side.type === "indicator") {
       return (
         <IndicatorParameter 
-          indicator={side.indicator} 
+          indicator={side.indicator || ""} 
           parameters={side.parameters || {}} 
         />
       );

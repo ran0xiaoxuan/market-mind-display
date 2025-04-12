@@ -41,7 +41,7 @@ export function Navbar() {
             <Button 
               variant="ghost" 
               className={cn(
-                "bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1",
+                "bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 border border-gray-300",
                 location.pathname === "/ai-strategy" ? "ring-2 ring-purple-300" : ""
               )}
             >

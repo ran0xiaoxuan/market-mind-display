@@ -1,3 +1,4 @@
+
 import { ArrowDownUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 interface Trade {
@@ -46,7 +47,7 @@ export const TradeHistoryTable = ({
                     {tradeId}
                   </TableCell>}
                 <TableCell className="py-3">
-                  {trade.signal}
+                  {trade.signal === "Long" ? "Buy" : trade.signal === "Take Profit" ? "Sell" : trade.signal}
                 </TableCell>
                 <TableCell className="py-3">
                   {trade.date}

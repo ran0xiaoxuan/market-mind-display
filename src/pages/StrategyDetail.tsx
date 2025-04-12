@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -208,6 +209,20 @@ const StrategyDetail = () => {
               type: "value",
               value: "30"
             }
+          },
+          {
+            id: 2,
+            left: {
+              type: "indicator",
+              indicator: "Volume",
+              parameters: { period: "5" }
+            },
+            condition: "Greater Than",
+            right: {
+              type: "indicator",
+              indicator: "Volume MA",
+              parameters: { period: "20" }
+            }
           }
         ]
       }
@@ -260,6 +275,18 @@ const StrategyDetail = () => {
             right: {
               type: "value",
               value: "Stop Loss"
+            }
+          },
+          {
+            id: 2,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Greater Than",
+            right: {
+              type: "value",
+              value: "Take Profit"
             }
           }
         ]

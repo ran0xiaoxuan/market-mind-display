@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 import { Button } from "./ui/button";
 import { Logo } from "./Logo";
-import { Sparkles } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", href: "/" },
@@ -46,7 +45,6 @@ export function Navbar() {
                 location.pathname === "/ai-strategy" ? "ring-2 ring-purple-300" : ""
               )}
             >
-              <Sparkles className="h-4 w-4" />
               AI Strategy
             </Button>
           </Link>

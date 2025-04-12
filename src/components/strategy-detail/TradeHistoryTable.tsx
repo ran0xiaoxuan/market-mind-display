@@ -57,7 +57,7 @@ export const TradeHistoryTable = ({
                     <span className="text-muted-foreground text-xs">USD</span>
                   </div>
                 </TableCell>
-                <TableCell className="py-3 text-center">{trade.contracts}</TableCell>
+                <TableCell className="py-3 text-left">{trade.contracts}</TableCell>
                 <TableCell className="py-3">
                   {isExitRow && trade.profit && <div className="flex flex-col items-left">
                       <span className={isProfitPositive ? "text-green-600" : isProfitNegative ? "text-red-600" : ""}>

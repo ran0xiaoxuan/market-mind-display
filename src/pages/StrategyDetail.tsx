@@ -538,7 +538,7 @@ const StrategyDetail = () => {
                   <div className="mb-6">
                     <div className="bg-blue-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-blue-800 mb-1">AND Group</h4>
-                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met</p>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
                     </div>
                     
                     <div className="space-y-3">

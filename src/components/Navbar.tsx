@@ -25,19 +25,19 @@ export function Navbar() {
         <div className="flex gap-6 md:gap-10">
           <Logo />
           
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                location.pathname === item.href ? "text-primary" : "text-foreground"
-              )}
-            >
-              {item.name}
-            </Link>
-          ))}
+          {/* Dashboard link */}
+          <Link
+            key="Dashboard"
+            to="/"
+            className={cn(
+              "text-sm font-medium transition-colors hover:text-primary",
+              location.pathname === "/" ? "text-primary" : "text-foreground"
+            )}
+          >
+            Dashboard
+          </Link>
           
+          {/* AI Strategy button - now after Dashboard */}
           <Link to="/ai-strategy">
             <Button 
               variant="ghost" 
@@ -50,6 +50,20 @@ export function Navbar() {
               AI Strategy
             </Button>
           </Link>
+          
+          {/* Remaining nav items excluding Dashboard since it's handled separately */}
+          {navItems.slice(1).map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-primary",
+                location.pathname === item.href ? "text-primary" : "text-foreground"
+              )}
+            >
+              {item.name}
+            </Link>
+          ))}
         </div>
         
         {isAuthenticated ? (

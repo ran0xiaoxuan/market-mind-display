@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -13,7 +12,10 @@ import {
   Trash2, 
   History, 
   LineChart,
-  MoreHorizontal
+  MoreHorizontal,
+  AndIcon,
+  OrIcon,
+  ChevronRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +34,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+const AndIcon = () => (
+  <div className="rounded-md bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1">
+    AND
+  </div>
+);
+
+const OrIcon = () => (
+  <div className="rounded-md bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1">
+    OR
+  </div>
+);
 
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string; }>();
@@ -62,49 +76,51 @@ const StrategyDetail = () => {
       singleBuyVolume: "1000",
       maxBuyVolume: "5000"
     },
-    trades: [{
-      date: "2023-12-01",
-      type: "Buy",
-      price: "$150.25",
-      shares: 10,
-      profitLoss: "-",
-      profitLossAmount: "-"
-    }, {
-      date: "2023-12-15",
-      type: "Sell",
-      price: "$158.50",
-      shares: 10,
-      profitLoss: "+5.5%",
-      profitLossAmount: "+$82.50"
-    }, {
-      date: "2024-01-10",
-      type: "Buy",
-      price: "$155.75",
-      shares: 12,
-      profitLoss: "-",
-      profitLossAmount: "-"
-    }, {
-      date: "2024-01-25",
-      type: "Sell",
-      price: "$162.25",
-      shares: 12,
-      profitLoss: "+4.2%",
-      profitLossAmount: "+$78.00"
-    }, {
-      date: "2024-02-05",
-      type: "Buy",
-      price: "$160.50",
-      shares: 15,
-      profitLoss: "-",
-      profitLossAmount: "-"
-    }, {
-      date: "2024-02-20",
-      type: "Sell",
-      price: "$168.75",
-      shares: 15,
-      profitLoss: "+5.1%",
-      profitLossAmount: "+$123.75"
-    }],
+    trades: [
+      {
+        date: "2023-12-01",
+        type: "Buy",
+        price: "$150.25",
+        shares: 10,
+        profitLoss: "-",
+        profitLossAmount: "-"
+      }, {
+        date: "2023-12-15",
+        type: "Sell",
+        price: "$158.50",
+        shares: 10,
+        profitLoss: "+5.5%",
+        profitLossAmount: "+$82.50"
+      }, {
+        date: "2024-01-10",
+        type: "Buy",
+        price: "$155.75",
+        shares: 12,
+        profitLoss: "-",
+        profitLossAmount: "-"
+      }, {
+        date: "2024-01-25",
+        type: "Sell",
+        price: "$162.25",
+        shares: 12,
+        profitLoss: "+4.2%",
+        profitLossAmount: "+$78.00"
+      }, {
+        date: "2024-02-05",
+        type: "Buy",
+        price: "$160.50",
+        shares: 15,
+        profitLoss: "-",
+        profitLossAmount: "-"
+      }, {
+        date: "2024-02-20",
+        type: "Sell",
+        price: "$168.75",
+        shares: 15,
+        profitLoss: "+5.1%",
+        profitLossAmount: "+$123.75"
+      }
+    ],
     performanceMetrics: {
       totalReturn: "17.00%",
       annualizedReturn: "34.00%",
@@ -119,22 +135,112 @@ const StrategyDetail = () => {
       avgProfit: "$320.45",
       avgLoss: "-$175.20"
     },
-    entryRules: [{
-      id: 1,
-      indicator: "SMA",
-      condition: "Crosses Above",
-      value: "SMA",
-      indicatorPeriod: "20",
-      valuePeriod: "50"
-    }],
-    exitRules: [{
-      id: 1,
-      indicator: "SMA",
-      condition: "Crosses Below",
-      value: "SMA",
-      indicatorPeriod: "20",
-      valuePeriod: "50"
-    }]
+    entryRules: [
+      {
+        id: 1,
+        logic: "AND",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "20" }
+            },
+            condition: "Crosses Above",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "50" }
+            }
+          },
+          {
+            id: 2,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Greater Than",
+            right: {
+              type: "value",
+              value: "200"
+            }
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: { period: "14" }
+            },
+            condition: "Less Than",
+            right: {
+              type: "value",
+              value: "30"
+            }
+          }
+        ]
+      }
+    ],
+    exitRules: [
+      {
+        id: 1,
+        logic: "AND",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "20" }
+            },
+            condition: "Crosses Below",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "50" }
+            }
+          },
+          {
+            id: 2,
+            left: {
+              type: "indicator",
+              indicator: "MACD",
+              parameters: { fast: "12", slow: "26", signal: "9" }
+            },
+            condition: "Crosses Below",
+            right: {
+              type: "value",
+              value: "0"
+            }
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Less Than",
+            right: {
+              type: "value",
+              value: "Stop Loss"
+            }
+          }
+        ]
+      }
+    ]
   };
 
   const [isActive, setIsActive] = useState(strategy.status === "active");
@@ -145,6 +251,43 @@ const StrategyDetail = () => {
       description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };
+
+  const renderSide = (side: any) => {
+    if (side.type === "indicator") {
+      return (
+        <div className="flex flex-col">
+          <span className="font-medium">{side.indicator}</span>
+          <span className="text-xs text-muted-foreground">
+            {Object.entries(side.parameters).map(([key, value]) => 
+              `${key}: ${value}`
+            ).join(', ')}
+          </span>
+        </div>
+      );
+    } else if (side.type === "price") {
+      return <span className="font-medium">{side.value} Price</span>;
+    } else {
+      return <span className="font-medium">{side.value}</span>;
+    }
+  };
+
+  const renderInequality = (inequality: any) => (
+    <div key={inequality.id} className="bg-slate-50 p-3 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+        <div className="p-2 bg-white rounded border">
+          {renderSide(inequality.left)}
+        </div>
+        <div className="flex justify-center">
+          <Badge variant="outline" className="bg-white font-medium text-center">
+            {inequality.condition}
+          </Badge>
+        </div>
+        <div className="p-2 bg-white rounded border">
+          {renderSide(inequality.right)}
+        </div>
+      </div>
+    </div>
+  );
 
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -184,7 +327,7 @@ const StrategyDetail = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-9 flex items-center border border-input"
+                    className="h-9 px-2.5 border border-input"
                     onClick={() => {
                       toast({
                         title: "Strategy copied",
@@ -198,7 +341,7 @@ const StrategyDetail = () => {
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9 border border-input">
+                      <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -372,104 +515,60 @@ const StrategyDetail = () => {
             <TabsContent value="rules" className="pt-6">
               <Card className="p-6 mb-6">
                 <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
-                <p className="text-sm text-muted-foreground mb-4">Entry and exit conditions for this strategy</p>
+                <p className="text-sm text-muted-foreground mb-6">Entry and exit conditions for this strategy</p>
                 
                 <div className="mb-8">
                   <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
                   
-                  {strategy.entryRules.map(rule => <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="font-medium">Inequality {rule.id}</div>
-                      </div>
+                  {strategy.entryRules.map((ruleGroup, groupIndex) => (
+                    <div key={`entry-${ruleGroup.id}`} className="mb-6">
+                      {groupIndex > 0 && (
+                        <div className="flex justify-center my-3">
+                          <OrIcon />
+                        </div>
+                      )}
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                        <div>
-                          <Label>Indicator</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.indicator}
+                      <div className="space-y-3">
+                        {ruleGroup.inequalities.map((inequality, ineqIndex) => (
+                          <div key={`entry-${ruleGroup.id}-${inequality.id}`}>
+                            {ineqIndex > 0 && (
+                              <div className="flex justify-center my-3">
+                                <AndIcon />
+                              </div>
+                            )}
+                            {renderInequality(inequality)}
                           </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Condition</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.condition}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Value</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.value}
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Parameters Period</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.indicatorPeriod}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Value Parameters Period</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.valuePeriod}
-                          </div>
-                        </div>
-                      </div>
-                    </div>)}
+                    </div>
+                  ))}
                 </div>
                 
                 <div className="mb-6">
                   <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
                   
-                  {strategy.exitRules.map(rule => <div key={rule.id} className="mb-4 pb-4 border-b border-gray-100">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="font-medium">Inequality {rule.id}</div>
-                      </div>
+                  {strategy.exitRules.map((ruleGroup, groupIndex) => (
+                    <div key={`exit-${ruleGroup.id}`} className="mb-6">
+                      {groupIndex > 0 && (
+                        <div className="flex justify-center my-3">
+                          <OrIcon />
+                        </div>
+                      )}
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                        <div>
-                          <Label>Indicator</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.indicator}
+                      <div className="space-y-3">
+                        {ruleGroup.inequalities.map((inequality, ineqIndex) => (
+                          <div key={`exit-${ruleGroup.id}-${inequality.id}`}>
+                            {ineqIndex > 0 && (
+                              <div className="flex justify-center my-3">
+                                <AndIcon />
+                              </div>
+                            )}
+                            {renderInequality(inequality)}
                           </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Condition</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.condition}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Value</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.value}
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Parameters Period</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.indicatorPeriod}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Value Parameters Period</Label>
-                          <div className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background">
-                            {rule.valuePeriod}
-                          </div>
-                        </div>
-                      </div>
-                    </div>)}
+                    </div>
+                  ))}
                 </div>
               </Card>
             </TabsContent>

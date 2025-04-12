@@ -40,70 +40,6 @@ import { cn } from "@/lib/utils";
 
 type PriorityLevel = "high" | "medium" | "low";
 
-interface LogicalBadgeProps {
-  priority?: PriorityLevel;
-}
-
-const LogicalAndBadge = ({ priority = "medium" }: LogicalBadgeProps) => {
-  const styles = {
-    high: "bg-blue-100 text-blue-800 border-blue-300 shadow-sm",
-    medium: "bg-blue-50 text-blue-700 border-blue-200",
-    low: "bg-slate-50 text-blue-600 border-slate-200"
-  };
-  
-  return (
-    <div className={cn(
-      "rounded-md text-xs font-medium px-2 py-1 flex items-center gap-0.5 border",
-      styles[priority]
-    )}>
-      <span>AND</span>
-    </div>
-  );
-};
-
-const LogicalOrBadge = ({ count, priority = "medium" }: { count?: number; priority?: PriorityLevel }) => {
-  const styles = {
-    high: "bg-amber-100 text-amber-800 border-amber-300 shadow-sm",
-    medium: "bg-amber-50 text-amber-700 border-amber-200",
-    low: "bg-slate-50 text-amber-600 border-slate-200"
-  };
-  
-  return (
-    <div className={cn(
-      "rounded-md text-xs font-medium px-2 py-1 flex items-center gap-1 border",
-      styles[priority]
-    )}>
-      <span>OR</span>
-      {count && count > 0 && (
-        <span className={cn(
-          "text-amber-50 rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center",
-          priority === "high" ? "bg-amber-800" :
-          priority === "medium" ? "bg-amber-700" : "bg-amber-600"
-        )}>
-          {count}
-        </span>
-      )}
-    </div>
-  );
-};
-
-const LogicalOrCounter = ({ count, required = 1, priority = "medium" }: { count: number; required?: number; priority?: PriorityLevel }) => {
-  const textColorMap = {
-    high: "text-amber-800",
-    medium: "text-amber-700",
-    low: "text-amber-600"
-  };
-
-  return (
-    <div className="flex items-center justify-center gap-1 mb-2 mt-1">
-      <span className="text-xs text-muted-foreground">
-        At least {required === 1 ? "one" : required} of {count} conditions must be met
-      </span>
-      <CheckCircle2 className={cn("h-3 w-3", textColorMap[priority])} />
-    </div>
-  );
-};
-
 const IndicatorParameter = ({ indicator, parameters }: { indicator: string; parameters: Record<string, string> }) => {
   if (indicator === "MACD") {
     return (
@@ -615,11 +551,6 @@ const StrategyDetail = () => {
                     <div className="space-y-3">
                       {strategy.entryRules[0].inequalities.map((inequality, ineqIndex) => (
                         <div key={`entry-and-${inequality.id}`}>
-                          {ineqIndex > 0 && (
-                            <div className="flex justify-center my-3">
-                              <LogicalAndBadge priority="high" />
-                            </div>
-                          )}
                           {renderInequality(inequality)}
                         </div>
                       ))}
@@ -628,26 +559,18 @@ const StrategyDetail = () => {
                   
                   {/* OR Group */}
                   <div className="mb-6">
-                    <div className="flex justify-center my-3">
-                      <LogicalOrBadge priority="medium" count={strategy.entryRules[1].inequalities.length} />
-                    </div>
-                    
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
-                      <LogicalOrCounter 
-                        count={strategy.entryRules[1].inequalities.length} 
-                        priority="medium" 
-                      />
+                      <div className="flex items-center justify-center gap-1 mb-2 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          At least one of {strategy.entryRules[1].inequalities.length} conditions must be met
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="space-y-3">
                       {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => (
                         <div key={`entry-or-${inequality.id}`}>
-                          {ineqIndex > 0 && (
-                            <div className="flex justify-center my-3">
-                              <LogicalOrBadge priority="medium" />
-                            </div>
-                          )}
                           {renderInequality(inequality)}
                         </div>
                       ))}
@@ -668,11 +591,6 @@ const StrategyDetail = () => {
                     <div className="space-y-3">
                       {strategy.exitRules[0].inequalities.map((inequality, ineqIndex) => (
                         <div key={`exit-and-${inequality.id}`}>
-                          {ineqIndex > 0 && (
-                            <div className="flex justify-center my-3">
-                              <LogicalAndBadge priority="high" />
-                            </div>
-                          )}
                           {renderInequality(inequality)}
                         </div>
                       ))}
@@ -681,26 +599,18 @@ const StrategyDetail = () => {
                   
                   {/* OR Group */}
                   <div className="mb-6">
-                    <div className="flex justify-center my-3">
-                      <LogicalOrBadge priority="medium" count={strategy.exitRules[1].inequalities.length} />
-                    </div>
-                    
                     <div className="bg-amber-50 p-2 rounded-md mb-3">
                       <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
-                      <LogicalOrCounter 
-                        count={strategy.exitRules[1].inequalities.length} 
-                        priority="medium" 
-                      />
+                      <div className="flex items-center justify-center gap-1 mb-2 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          At least one of {strategy.exitRules[1].inequalities.length} conditions must be met
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="space-y-3">
                       {strategy.exitRules[1].inequalities.map((inequality, ineqIndex) => (
                         <div key={`exit-or-${inequality.id}`}>
-                          {ineqIndex > 0 && (
-                            <div className="flex justify-center my-3">
-                              <LogicalOrBadge priority="medium" />
-                            </div>
-                          )}
                           {renderInequality(inequality)}
                         </div>
                       ))}

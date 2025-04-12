@@ -14,7 +14,8 @@ import {
   History, 
   LineChart,
   MoreHorizontal,
-  ChevronRight
+  ChevronRight,
+  CheckCircle2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,9 +41,23 @@ const LogicalAndBadge = () => (
   </div>
 );
 
-const LogicalOrBadge = () => (
-  <div className="rounded-md bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1">
-    OR
+const LogicalOrBadge = ({ count }: { count?: number }) => (
+  <div className="rounded-md bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1 flex items-center gap-1">
+    <span>OR</span>
+    {count && count > 0 && (
+      <span className="bg-amber-700 text-amber-50 rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center">
+        {count}
+      </span>
+    )}
+  </div>
+);
+
+const LogicalOrCounter = ({ count, required = 1 }: { count: number, required?: number }) => (
+  <div className="flex items-center justify-center gap-1 mb-2 mt-1">
+    <span className="text-xs text-muted-foreground">
+      At least {required === 1 ? "one" : required} of {count} conditions must be met
+    </span>
+    <CheckCircle2 className="h-3 w-3 text-amber-700" />
   </div>
 );
 
@@ -527,12 +542,16 @@ const StrategyDetail = () => {
                         </div>
                       )}
                       
+                      {ruleGroup.inequalities.length > 1 && ruleGroup.logic === "OR" && (
+                        <LogicalOrCounter count={ruleGroup.inequalities.length} />
+                      )}
+                      
                       <div className="space-y-3">
                         {ruleGroup.inequalities.map((inequality, ineqIndex) => (
                           <div key={`entry-${ruleGroup.id}-${inequality.id}`}>
                             {ineqIndex > 0 && (
                               <div className="flex justify-center my-3">
-                                <LogicalAndBadge />
+                                {ruleGroup.logic === "AND" ? <LogicalAndBadge /> : <LogicalOrBadge />}
                               </div>
                             )}
                             {renderInequality(inequality)}
@@ -554,12 +573,16 @@ const StrategyDetail = () => {
                         </div>
                       )}
                       
+                      {ruleGroup.inequalities.length > 1 && ruleGroup.logic === "OR" && (
+                        <LogicalOrCounter count={ruleGroup.inequalities.length} />
+                      )}
+                      
                       <div className="space-y-3">
                         {ruleGroup.inequalities.map((inequality, ineqIndex) => (
                           <div key={`exit-${ruleGroup.id}-${inequality.id}`}>
                             {ineqIndex > 0 && (
                               <div className="flex justify-center my-3">
-                                <LogicalAndBadge />
+                                {ruleGroup.logic === "AND" ? <LogicalAndBadge /> : <LogicalOrBadge />}
                               </div>
                             )}
                             {renderInequality(inequality)}

@@ -574,12 +574,7 @@ const StrategyDetail = () => {
                                   </Badge>
                                 </div>
                                 <div className="p-2 bg-white rounded border">
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">Volume MA</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {Object.entries(inequality.right.parameters).map(([key, value]) => `${key}: ${value}`).join(', ')}
-                                    </span>
-                                  </div>
+                                  <span className="font-medium">20-day Volume Average</span>
                                 </div>
                               </div>
                             </div>

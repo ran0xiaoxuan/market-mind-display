@@ -1,62 +1,21 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, PlayIcon, Edit, Trash2, History, LineChart, MoreHorizontal, ChevronRight, CheckCircle2, ChevronUp, ChevronDown, Star } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/Badge";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Toggle, toggleVariants } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from "@/lib/utils";
-type PriorityLevel = "high" | "medium" | "low";
-const IndicatorParameter = ({
-  indicator,
-  parameters
-}: {
-  indicator: string;
-  parameters: Record<string, string>;
-}) => {
-  if (indicator === "MACD") {
-    return <div className="flex flex-col">
-        <div className="flex items-center gap-1.5">
-          <span className="font-medium">{indicator}</span>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5">
-            MACD line
-          </Badge>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          fast: {parameters.fast || '12'}, 
-          slow: {parameters.slow || '26'},
-          signal: {parameters.signal || '9'}
-        </span>
-      </div>;
-  }
-  return <div className="flex flex-col">
-      <span className="font-medium">{indicator}</span>
-      <span className="text-xs text-muted-foreground">
-        {Object.entries(parameters).map(([key, value]) => `${key}: ${value}`).join(', ')}
-      </span>
-    </div>;
-};
+import { StrategyHeader } from "@/components/strategy-detail/StrategyHeader";
+import { StrategyInfo } from "@/components/strategy-detail/StrategyInfo";
+import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
+import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
+import { TradingRules } from "@/components/strategy-detail/TradingRules";
+import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
+
 const StrategyDetail = () => {
-  const {
-    strategyId
-  } = useParams<{
-    strategyId: string;
-  }>();
+  const { strategyId } = useParams<{ strategyId: string }>();
   const [activeTab, setActiveTab] = useState("overview");
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const strategy = {
     name: strategyId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
     description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
@@ -271,7 +230,9 @@ const StrategyDetail = () => {
       }]
     }]
   };
+
   const [isActive, setIsActive] = useState(strategy.status === "active");
+  
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
@@ -279,116 +240,16 @@ const StrategyDetail = () => {
       description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };
-  const renderSide = (side: any) => {
-    if (side.type === "indicator") {
-      return <IndicatorParameter indicator={side.indicator} parameters={side.parameters} />;
-    } else if (side.type === "price") {
-      return <span className="font-medium">{side.value} Price</span>;
-    } else {
-      return <span className="font-medium">{side.value}</span>;
-    }
-  };
-  const renderInequality = (inequality: any) => <div key={inequality.id} className="bg-slate-50 p-3 rounded-lg">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-        <div className="p-2 bg-white rounded border">
-          {renderSide(inequality.left)}
-        </div>
-        <div className="flex justify-center">
-          <Badge variant="outline" className="bg-white font-medium text-center">
-            {inequality.condition}
-          </Badge>
-        </div>
-        <div className="p-2 bg-white rounded border">
-          {renderSide(inequality.right)}
-        </div>
-      </div>
-    </div>;
-  const getRulePriority = (groupIndex: number): PriorityLevel => {
-    if (groupIndex === 0) return "high";
-    if (groupIndex === 1) return "medium";
-    return "low";
-  };
-  return <div className="min-h-screen flex flex-col bg-background">
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
-            <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back
-            </Link>
-            
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl md:text-3xl font-bold">{strategy.name}</h1>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <ToggleGroup type="single" defaultValue="overview">
-                  <Link to={`/strategy/${strategyId}/edit`}>
-                    <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
-                      <Edit className="h-4 w-4 mr-1" />
-                      <span className="hidden sm:inline">Edit</span>
-                    </Button>
-                  </Link>
-                  
-                  <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
-                    <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={() => {
-                    toast({
-                      title: "Backtest started",
-                      description: "Running backtest for this strategy..."
-                    });
-                  }}>
-                      <PlayIcon className="h-4 w-4 mr-1" />
-                      <span className="hidden sm:inline">Backtest</span>
-                    </Button>
-                  </ToggleGroupItem>
-                  
-                  <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input" onClick={() => {
-                  toast({
-                    title: "Strategy copied",
-                    description: "A copy of this strategy has been created"
-                  });
-                }}>
-                    <Copy className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">Copy</span>
-                  </Button>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuSeparator />
-                      <Link to={`/strategy/${strategyId}/history`}>
-                        <DropdownMenuItem>
-                          <History className="h-4 w-4 mr-2" />
-                          Edit History
-                        </DropdownMenuItem>
-                      </Link>
-                      <Link to={`/strategy/${strategyId}/backtests`}>
-                        <DropdownMenuItem>
-                          <LineChart className="h-4 w-4 mr-2" />
-                          Backtest History
-                        </DropdownMenuItem>
-                      </Link>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
-                      toast({
-                        title: "Delete strategy?",
-                        description: "This action cannot be undone."
-                      });
-                    }}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Strategy
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </ToggleGroup>
-              </div>
-            </div>
-          </div>
+          <StrategyHeader 
+            strategyId={strategyId || ""} 
+            strategyName={strategy.name || ""} 
+          />
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList>
@@ -399,223 +260,29 @@ const StrategyDetail = () => {
             </TabsList>
             
             <TabsContent value="overview" className="pt-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-2">Strategy Information</h2>
-                <p className="text-muted-foreground mb-4">{strategy.description}</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Created</p>
-                    <p className="font-medium">{strategy.createdDate}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Last Updated</p>
-                    <p className="font-medium">{strategy.lastUpdated}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Market</p>
-                    <p className="font-medium">{strategy.market}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Timeframe</p>
-                    <p className="font-medium">{strategy.timeframe}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Target Asset</p>
-                    <p className="font-medium">{strategy.targetAsset}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <div className="flex items-center gap-2">
-                      <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              <StrategyInfo 
+                strategy={strategy} 
+                isActive={isActive} 
+                onStatusChange={handleStatusChange} 
+              />
               
-              <Card className="p-6 mt-6">
-                <div className="mb-2">
-                  <h2 className="text-xl font-semibold">Risk Management</h2>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Parameters to control risk exposure and trading volume
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Stop Loss</p>
-                      <p className="font-medium text-red-500">{strategy.riskManagement.stopLoss}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Take Profit</p>
-                      <p className="font-medium text-green-500">{strategy.riskManagement.takeProfit}%</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Single Buy Volume</p>
-                      <p className="font-medium">${strategy.riskManagement.singleBuyVolume}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Max Buy Volume</p>
-                      <p className="font-medium">${strategy.riskManagement.maxBuyVolume}</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              <RiskManagement 
+                riskManagement={strategy.riskManagement} 
+              />
             </TabsContent>
             
             <TabsContent value="performance" className="pt-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-2">Performance Metrics</h2>
-                <p className="text-sm text-muted-foreground mb-4">Detailed performance analysis (Only trades that generated trading signals are included.)</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Total Return</span>
-                        <span className="text-sm font-medium text-green-500">{strategy.performanceMetrics.totalReturn}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Annualized Return</span>
-                        <span className="text-sm font-medium text-green-500">{strategy.performanceMetrics.annualizedReturn}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Sharpe Ratio</span>
-                        <span className="text-sm font-medium">{strategy.performanceMetrics.sharpeRatio}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Max Drawdown</span>
-                        <span className="text-sm font-medium text-red-500">{strategy.performanceMetrics.maxDrawdown}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Win Rate</span>
-                        <span className="text-sm font-medium">{strategy.performanceMetrics.winRate}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Total Trades</span>
-                        <span className="text-sm font-medium">{strategy.tradeStats.totalTrades}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Winning Trades</span>
-                        <span className="text-sm font-medium">{strategy.tradeStats.winningTrades}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Losing Trades</span>
-                        <span className="text-sm font-medium">{strategy.tradeStats.losingTrades}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Avg. Profit</span>
-                        <span className="text-sm font-medium text-green-500">{strategy.tradeStats.avgProfit}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Avg. Loss</span>
-                        <span className="text-sm font-medium text-red-500">{strategy.tradeStats.avgLoss}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              <PerformanceMetricsCard 
+                performanceMetrics={strategy.performanceMetrics}
+                tradeStats={strategy.tradeStats}
+              />
             </TabsContent>
             
             <TabsContent value="rules" className="pt-6">
-              <Card className="p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
-                <p className="text-sm text-muted-foreground mb-6">Entry and exit conditions for this strategy</p>
-                
-                <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Entry Rules</h3>
-                  
-                  {/* AND Group */}
-                  <div className="mb-6">
-                    <div className="bg-blue-50 p-2 rounded-md mb-3">
-                      <h4 className="text-sm font-semibold text-blue-800 mb-1">AND Group</h4>
-                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {strategy.entryRules[0].inequalities.map((inequality, ineqIndex) => <div key={`entry-and-${inequality.id}`}>
-                          {renderInequality(inequality)}
-                        </div>)}
-                    </div>
-                  </div>
-                  
-                  {/* OR Group */}
-                  <div className="mb-6">
-                    <div className="bg-amber-50 p-2 rounded-md mb-3">
-                      <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
-                      <p className="text-xs text-muted-foreground mb-2">At least one of {strategy.entryRules[1].inequalities.length} conditions must be met.</p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => {
-                      if (inequality.right && inequality.right.indicator === "Volume MA") {
-                        return <div key={`entry-or-${inequality.id}`}>
-                            <div className="bg-slate-50 p-3 rounded-lg">
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-                                <div className="p-2 bg-white rounded border">
-                                  {renderSide(inequality.left)}
-                                </div>
-                                <div className="flex justify-center">
-                                  <Badge variant="outline" className="bg-white font-medium text-center">
-                                    {inequality.condition}
-                                  </Badge>
-                                </div>
-                                <div className="p-2 bg-white rounded border">
-                                  <span className="font-medium">100</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>;
-                      }
-                      return <div key={`entry-or-${inequality.id}`}>
-                          {renderInequality(inequality)}
-                        </div>;
-                    })}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
-                  
-                  {/* AND Group */}
-                  <div className="mb-6">
-                    <div className="bg-blue-50 p-2 rounded-md mb-3">
-                      <h4 className="text-sm font-semibold text-blue-800 mb-1">AND Group</h4>
-                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {strategy.exitRules[0].inequalities.map((inequality, ineqIndex) => <div key={`exit-and-${inequality.id}`}>
-                          {renderInequality(inequality)}
-                        </div>)}
-                    </div>
-                  </div>
-                  
-                  {/* OR Group */}
-                  <div className="mb-6">
-                    <div className="bg-amber-50 p-2 rounded-md mb-3">
-                      <h4 className="text-sm font-semibold text-amber-800 mb-1">OR Group</h4>
-                      <p className="text-xs text-muted-foreground mb-2">At least one of {strategy.exitRules[1].inequalities.length} conditions must be met.</p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {strategy.exitRules[1].inequalities.map((inequality, ineqIndex) => <div key={`exit-or-${inequality.id}`}>
-                          {renderInequality(inequality)}
-                        </div>)}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              <TradingRules 
+                entryRules={strategy.entryRules}
+                exitRules={strategy.exitRules}
+              />
             </TabsContent>
             
             <TabsContent value="trades" className="pt-6">
@@ -623,40 +290,14 @@ const StrategyDetail = () => {
                 <h2 className="text-xl font-semibold mb-2">Trade History</h2>
                 <p className="text-sm text-muted-foreground mb-6">Historical trades executed by this strategy</p>
                 
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Shares</TableHead>
-                        <TableHead>Profit/Loss</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {strategy.trades.map((trade, index) => <TableRow key={index}>
-                          <TableCell>{trade.date}</TableCell>
-                          <TableCell className={trade.type === "Buy" ? "text-green-500" : "text-red-500"}>
-                            {trade.type}
-                          </TableCell>
-                          <TableCell>{trade.price}</TableCell>
-                          <TableCell>{trade.shares}</TableCell>
-                          <TableCell>
-                            {trade.profitLoss !== "-" ? <div className="flex items-center gap-2">
-                                <span className="font-medium text-green-500">{trade.profitLoss}</span>
-                                <span className="text-green-500">{trade.profitLossAmount}</span>
-                              </div> : "-"}
-                          </TableCell>
-                        </TableRow>)}
-                    </TableBody>
-                  </Table>
-                </div>
+                <TradeHistoryTable trades={strategy.trades} />
               </Card>
             </TabsContent>
           </Tabs>
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default StrategyDetail;

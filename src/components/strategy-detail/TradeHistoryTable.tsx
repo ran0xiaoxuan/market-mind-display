@@ -1,4 +1,3 @@
-
 import { ArrowDownUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 interface Trade {
@@ -27,12 +26,12 @@ export const TradeHistoryTable = ({
               </div>
             </TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Signal</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Trade Type</TableHead>
+            
+            
             <TableHead className="whitespace-nowrap font-medium">Date/Time</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Volumn</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Profit</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Profit/Loss</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -44,7 +43,6 @@ export const TradeHistoryTable = ({
           const isProfitNegative = parseFloat(trade.profit?.replace(/[^0-9.-]+/g, '') || '0') < 0;
           // Determine if the trade is a buy or sell based on its type
           const tradeType = isEntryRow ? "Buy" : "Sell";
-          
           return <TableRow key={index} className={isEntryRow ? "border-b-0 pb-0" : ""}>
                 {isEntryRow && <TableCell rowSpan={2} className="align-top font-medium text-center">
                     {tradeId}

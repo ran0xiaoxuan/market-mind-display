@@ -30,7 +30,7 @@ export const TradeHistoryTable = ({
             
             <TableHead className="whitespace-nowrap font-medium">Date/Time</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Volumn</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Volume</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Profit/Loss</TableHead>
           </TableRow>
         </TableHeader>

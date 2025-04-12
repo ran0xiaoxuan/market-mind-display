@@ -51,18 +51,11 @@ const LogicalAndBadge = ({ priority = "medium" }: LogicalBadgeProps) => {
     low: "bg-slate-50 text-blue-600 border-slate-200"
   };
   
-  const iconMap = {
-    high: <Star className="h-3 w-3 mr-1" />,
-    medium: <ChevronUp className="h-3 w-3 mr-1" />,
-    low: null
-  };
-
   return (
     <div className={cn(
       "rounded-md text-xs font-medium px-2 py-1 flex items-center gap-0.5 border",
       styles[priority]
     )}>
-      {iconMap[priority]}
       <span>AND</span>
     </div>
   );
@@ -75,18 +68,11 @@ const LogicalOrBadge = ({ count, priority = "medium" }: { count?: number; priori
     low: "bg-slate-50 text-amber-600 border-slate-200"
   };
   
-  const iconMap = {
-    high: <Star className="h-3 w-3 mr-1" />,
-    medium: <ChevronUp className="h-3 w-3 mr-1" />,
-    low: null
-  };
-
   return (
     <div className={cn(
       "rounded-md text-xs font-medium px-2 py-1 flex items-center gap-1 border",
       styles[priority]
     )}>
-      {iconMap[priority]}
       <span>OR</span>
       {count && count > 0 && (
         <span className={cn(

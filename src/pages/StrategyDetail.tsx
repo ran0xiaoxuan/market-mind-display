@@ -40,49 +40,68 @@ const StrategyDetail = () => {
       singleBuyVolume: "1000",
       maxBuyVolume: "5000"
     },
-    trades: [{
-      date: "2023-12-01",
-      type: "Buy",
-      price: "$150.25",
-      shares: 10,
-      profitLoss: "-",
-      profitLossAmount: "-"
-    }, {
-      date: "2023-12-15",
-      type: "Sell",
-      price: "$158.50",
-      shares: 10,
-      profitLoss: "+5.5%",
-      profitLossAmount: "+$82.50"
-    }, {
-      date: "2024-01-10",
-      type: "Buy",
-      price: "$155.75",
-      shares: 12,
-      profitLoss: "-",
-      profitLossAmount: "-"
-    }, {
-      date: "2024-01-25",
-      type: "Sell",
-      price: "$162.25",
-      shares: 12,
-      profitLoss: "+4.2%",
-      profitLossAmount: "+$78.00"
-    }, {
-      date: "2024-02-05",
-      type: "Buy",
-      price: "$160.50",
-      shares: 15,
-      profitLoss: "-",
-      profitLossAmount: "-"
-    }, {
-      date: "2024-02-20",
-      type: "Sell",
-      price: "$168.75",
-      shares: 15,
-      profitLoss: "+5.1%",
-      profitLossAmount: "+$123.75"
-    }],
+    trades: [
+      {
+        id: 196,
+        date: "Apr 09, 2025",
+        type: "Entry long",
+        signal: "Long",
+        price: "171.95",
+        contracts: 1,
+        profit: "",
+        profitPercentage: ""
+      },
+      {
+        id: 196,
+        date: "Apr 11, 2025",
+        type: "Exit long",
+        signal: "Take Profit",
+        price: "190.81",
+        contracts: 1,
+        profit: "+18.86",
+        profitPercentage: "+10.97%"
+      },
+      {
+        id: 195,
+        date: "Apr 07, 2025",
+        type: "Entry long",
+        signal: "Long",
+        price: "177.20",
+        contracts: 1,
+        profit: "",
+        profitPercentage: ""
+      },
+      {
+        id: 195,
+        date: "Apr 08, 2025",
+        type: "Exit long",
+        signal: "Take Profit",
+        price: "186.70",
+        contracts: 1,
+        profit: "+9.50",
+        profitPercentage: "+5.36%"
+      },
+      {
+        id: 194,
+        date: "Mar 13, 2025",
+        type: "Entry long",
+        signal: "Long",
+        price: "215.95",
+        contracts: 1,
+        profit: "",
+        profitPercentage: ""
+      },
+      {
+        id: 194,
+        date: "Mar 14, 2025",
+        type: "Exit long",
+        signal: "Take Profit",
+        price: "211.25",
+        contracts: 1,
+        profit: "-4.70",
+        profitPercentage: "-2.18%"
+      }
+    ],
     performanceMetrics: {
       totalReturn: "17.00%",
       annualizedReturn: "34.00%",

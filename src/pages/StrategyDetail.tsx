@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -14,10 +15,7 @@ import {
   LineChart,
   MoreHorizontal,
   ChevronRight,
-  CheckCircle2,
-  ChevronUp,
-  ChevronDown,
-  Star
+  CheckCircle2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,87 +34,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from "@/lib/utils";
 
-type PriorityLevel = "high" | "medium" | "low";
+const LogicalAndBadge = () => (
+  <div className="rounded-md bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1">
+    AND
+  </div>
+);
 
-interface LogicalBadgeProps {
-  priority?: PriorityLevel;
-}
-
-const LogicalAndBadge = ({ priority = "medium" }: LogicalBadgeProps) => {
-  const styles = {
-    high: "bg-blue-100 text-blue-800 border-blue-300 shadow-sm",
-    medium: "bg-blue-50 text-blue-700 border-blue-200",
-    low: "bg-slate-50 text-blue-600 border-slate-200"
-  };
-  
-  const iconMap = {
-    high: <Star className="h-3 w-3 mr-1" />,
-    medium: <ChevronUp className="h-3 w-3 mr-1" />,
-    low: null
-  };
-
-  return (
-    <div className={cn(
-      "rounded-md text-xs font-medium px-2 py-1 flex items-center gap-0.5 border",
-      styles[priority]
-    )}>
-      {iconMap[priority]}
-      <span>AND</span>
-    </div>
-  );
-};
-
-const LogicalOrBadge = ({ count, priority = "medium" }: { count?: number; priority?: PriorityLevel }) => {
-  const styles = {
-    high: "bg-amber-100 text-amber-800 border-amber-300 shadow-sm",
-    medium: "bg-amber-50 text-amber-700 border-amber-200",
-    low: "bg-slate-50 text-amber-600 border-slate-200"
-  };
-  
-  const iconMap = {
-    high: <Star className="h-3 w-3 mr-1" />,
-    medium: <ChevronUp className="h-3 w-3 mr-1" />,
-    low: null
-  };
-
-  return (
-    <div className={cn(
-      "rounded-md text-xs font-medium px-2 py-1 flex items-center gap-1 border",
-      styles[priority]
-    )}>
-      {iconMap[priority]}
-      <span>OR</span>
-      {count && count > 0 && (
-        <span className={cn(
-          "text-amber-50 rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center",
-          priority === "high" ? "bg-amber-800" :
-          priority === "medium" ? "bg-amber-700" : "bg-amber-600"
-        )}>
-          {count}
-        </span>
-      )}
-    </div>
-  );
-};
-
-const LogicalOrCounter = ({ count, required = 1, priority = "medium" }: { count: number; required?: number; priority?: PriorityLevel }) => {
-  const textColorMap = {
-    high: "text-amber-800",
-    medium: "text-amber-700",
-    low: "text-amber-600"
-  };
-
-  return (
-    <div className="flex items-center justify-center gap-1 mb-2 mt-1">
-      <span className="text-xs text-muted-foreground">
-        At least {required === 1 ? "one" : required} of {count} conditions must be met
+const LogicalOrBadge = ({ count }: { count?: number }) => (
+  <div className="rounded-md bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1 flex items-center gap-1">
+    <span>OR</span>
+    {count && count > 0 && (
+      <span className="bg-amber-700 text-amber-50 rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center">
+        {count}
       </span>
-      <CheckCircle2 className={cn("h-3 w-3", textColorMap[priority])} />
-    </div>
-  );
-};
+    )}
+  </div>
+);
+
+const LogicalOrCounter = ({ count, required = 1 }: { count: number, required?: number }) => (
+  <div className="flex items-center justify-center gap-1 mb-2 mt-1">
+    <span className="text-xs text-muted-foreground">
+      At least {required === 1 ? "one" : required} of {count} conditions must be met
+    </span>
+    <CheckCircle2 className="h-3 w-3 text-amber-700" />
+  </div>
+);
 
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string; }>();
@@ -360,12 +303,6 @@ const StrategyDetail = () => {
     </div>
   );
 
-  const getRulePriority = (groupIndex: number): PriorityLevel => {
-    if (groupIndex === 0) return "high";
-    if (groupIndex === 1) return "medium";
-    return "low";
-  };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -601,15 +538,12 @@ const StrategyDetail = () => {
                     <div key={`entry-${ruleGroup.id}`} className="mb-6">
                       {groupIndex > 0 && (
                         <div className="flex justify-center my-3">
-                          <LogicalOrBadge priority={getRulePriority(groupIndex-1)} />
+                          <LogicalOrBadge />
                         </div>
                       )}
                       
                       {ruleGroup.inequalities.length > 1 && ruleGroup.logic === "OR" && (
-                        <LogicalOrCounter 
-                          count={ruleGroup.inequalities.length} 
-                          priority={getRulePriority(groupIndex)} 
-                        />
+                        <LogicalOrCounter count={ruleGroup.inequalities.length} />
                       )}
                       
                       <div className="space-y-3">
@@ -617,10 +551,7 @@ const StrategyDetail = () => {
                           <div key={`entry-${ruleGroup.id}-${inequality.id}`}>
                             {ineqIndex > 0 && (
                               <div className="flex justify-center my-3">
-                                {ruleGroup.logic === "AND" ? 
-                                  <LogicalAndBadge priority={getRulePriority(groupIndex)} /> : 
-                                  <LogicalOrBadge priority={getRulePriority(groupIndex)} />
-                                }
+                                {ruleGroup.logic === "AND" ? <LogicalAndBadge /> : <LogicalOrBadge />}
                               </div>
                             )}
                             {renderInequality(inequality)}
@@ -638,15 +569,12 @@ const StrategyDetail = () => {
                     <div key={`exit-${ruleGroup.id}`} className="mb-6">
                       {groupIndex > 0 && (
                         <div className="flex justify-center my-3">
-                          <LogicalOrBadge priority={getRulePriority(groupIndex-1)} />
+                          <LogicalOrBadge />
                         </div>
                       )}
                       
                       {ruleGroup.inequalities.length > 1 && ruleGroup.logic === "OR" && (
-                        <LogicalOrCounter 
-                          count={ruleGroup.inequalities.length} 
-                          priority={getRulePriority(groupIndex)} 
-                        />
+                        <LogicalOrCounter count={ruleGroup.inequalities.length} />
                       )}
                       
                       <div className="space-y-3">
@@ -654,10 +582,7 @@ const StrategyDetail = () => {
                           <div key={`exit-${ruleGroup.id}-${inequality.id}`}>
                             {ineqIndex > 0 && (
                               <div className="flex justify-center my-3">
-                                {ruleGroup.logic === "AND" ? 
-                                  <LogicalAndBadge priority={getRulePriority(groupIndex)} /> : 
-                                  <LogicalOrBadge priority={getRulePriority(groupIndex)} />
-                                }
+                                {ruleGroup.logic === "AND" ? <LogicalAndBadge /> : <LogicalOrBadge />}
                               </div>
                             )}
                             {renderInequality(inequality)}

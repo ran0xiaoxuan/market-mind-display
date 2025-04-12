@@ -4,13 +4,13 @@ import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 import { Button } from "./ui/button";
 import { Logo } from "./Logo";
+import { Sparkles } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", href: "/" },
   { name: "Strategies", href: "/strategies" },
   { name: "Backtest", href: "/backtest" },
   { name: "Analytics", href: "/analytics" },
-  { name: "AI Strategy", href: "/ai-strategy" },
 ];
 
 export function Navbar() {
@@ -37,6 +37,19 @@ export function Navbar() {
               {item.name}
             </Link>
           ))}
+          
+          <Link to="/ai-strategy">
+            <Button 
+              variant="ghost" 
+              className={cn(
+                "bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1",
+                location.pathname === "/ai-strategy" ? "ring-2 ring-purple-300" : ""
+              )}
+            >
+              <Sparkles className="h-4 w-4" />
+              AI Strategy
+            </Button>
+          </Link>
         </div>
         
         {isAuthenticated ? (

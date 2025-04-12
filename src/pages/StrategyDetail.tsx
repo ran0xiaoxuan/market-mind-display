@@ -560,9 +560,35 @@ const StrategyDetail = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => <div key={`entry-or-${inequality.id}`}>
+                      {strategy.entryRules[1].inequalities.map((inequality, ineqIndex) => {
+                        if (inequality.right && inequality.right.indicator === "Volume MA") {
+                          return <div key={`entry-or-${inequality.id}`}>
+                            <div className="bg-slate-50 p-3 rounded-lg">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                                <div className="p-2 bg-white rounded border">
+                                  {renderSide(inequality.left)}
+                                </div>
+                                <div className="flex justify-center">
+                                  <Badge variant="outline" className="bg-white font-medium text-center">
+                                    {inequality.condition}
+                                  </Badge>
+                                </div>
+                                <div className="p-2 bg-white rounded border">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">Volume MA</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {Object.entries(inequality.right.parameters).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>;
+                        }
+                        return <div key={`entry-or-${inequality.id}`}>
                           {renderInequality(inequality)}
-                        </div>)}
+                        </div>;
+                      })}
                     </div>
                   </div>
                 </div>

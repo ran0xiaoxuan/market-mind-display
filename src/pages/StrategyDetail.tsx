@@ -163,7 +163,7 @@ const StrategyDetail = () => {
               <div className="flex items-center gap-2">
                 <ToggleGroup type="single" defaultValue="overview">
                   <Link to={`/strategy/${strategyId}/edit`}>
-                    <ToggleGroupItem value="edit" aria-label="Edit Strategy">
+                    <ToggleGroupItem value="edit" aria-label="Edit Strategy" className="border border-gray-300">
                       <Edit className="h-4 w-4 mr-1" />
                       <span className="hidden sm:inline">Edit</span>
                     </ToggleGroupItem>

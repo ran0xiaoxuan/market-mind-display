@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
+
 const marketAssets = {
   Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
   Forex: ["EUR/USD - Euro / US Dollar", "GBP/USD - British Pound / US Dollar", "USD/JPY - US Dollar / Japanese Yen", "USD/CHF - US Dollar / Swiss Franc", "USD/CAD - US Dollar / Canadian Dollar", "AUD/USD - Australian Dollar / US Dollar", "NZD/USD - New Zealand Dollar / US Dollar"],
@@ -23,6 +24,7 @@ const marketAssets = {
   Futures: ["ES - S&P 500 E-mini", "NQ - Nasdaq 100 E-mini", "CL - Crude Oil", "GC - Gold", "SI - Silver", "ZC - Corn", "ZW - Wheat"],
   Options: ["SPY - S&P 500 ETF Options", "QQQ - Nasdaq 100 ETF Options", "IWM - Russell 2000 ETF Options", "GLD - Gold ETF Options", "SLV - Silver ETF Options", "USO - Oil ETF Options"]
 };
+
 const EditStrategy = () => {
   const navigate = useNavigate();
   const {
@@ -185,14 +187,17 @@ const EditStrategy = () => {
       }
     }]
   }]);
+
   useEffect(() => {
     if (marketAssets[market] && marketAssets[market].length > 0) {
       setTargetAsset(marketAssets[market][0]);
     }
   }, [market]);
+
   const handleCancel = () => {
     navigate(-1);
   };
+
   const handleSave = () => {
     toast({
       title: "Strategy updated",
@@ -200,6 +205,7 @@ const EditStrategy = () => {
     });
     navigate(-1);
   };
+
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
@@ -207,6 +213,7 @@ const EditStrategy = () => {
       description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`
     });
   };
+
   const addEntryRule = () => {
     const updatedRules = [...entryRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -233,6 +240,7 @@ const EditStrategy = () => {
       setEntryRules(updatedRules);
     }
   };
+
   const addExitRule = () => {
     const updatedRules = [...exitRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -259,6 +267,7 @@ const EditStrategy = () => {
       setExitRules(updatedRules);
     }
   };
+
   const removeEntryRule = (id: number) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -266,6 +275,7 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
+
   const removeExitRule = (id: number) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -273,6 +283,7 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
+
   const updateEntryRule = (id: number, field: string, value: string) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -283,6 +294,7 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
+
   const updateExitRule = (id: number, field: string, value: string) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -293,6 +305,7 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -303,19 +316,17 @@ const EditStrategy = () => {
             </Link>
           </div>
           
-          <div className="mb-6">
+          <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Edit Strategy</h1>
-          </div>
-          
-          
-          
-          <div className="flex justify-end mb-6 gap-2">
-            <Button variant="outline" onClick={handleCancel} className="gap-2">
-              <X className="h-4 w-4" /> Cancel
-            </Button>
-            <Button onClick={handleSave} className="gap-2">
-              <Save className="h-4 w-4" /> Save Changes
-            </Button>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleCancel} className="gap-2">
+                <X className="h-4 w-4" /> Cancel
+              </Button>
+              <Button onClick={handleSave} className="gap-2">
+                <Save className="h-4 w-4" /> Save Changes
+              </Button>
+            </div>
           </div>
           
           <Card className="p-6 mb-6">
@@ -460,4 +471,5 @@ const EditStrategy = () => {
       </main>
     </div>;
 };
+
 export default EditStrategy;

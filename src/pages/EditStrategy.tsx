@@ -16,10 +16,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
+
 const marketAssets = {
   Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
   Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"]
 };
+
 const EditStrategy = () => {
   const navigate = useNavigate();
   const {
@@ -182,14 +184,17 @@ const EditStrategy = () => {
       }
     }]
   }]);
+
   useEffect(() => {
     if (marketAssets[market] && marketAssets[market].length > 0) {
       setTargetAsset(marketAssets[market][0]);
     }
   }, [market]);
+
   const handleCancel = () => {
     navigate(-1);
   };
+
   const handleSave = () => {
     toast({
       title: "Strategy updated",
@@ -197,6 +202,7 @@ const EditStrategy = () => {
     });
     navigate(-1);
   };
+
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
@@ -204,6 +210,7 @@ const EditStrategy = () => {
       description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`
     });
   };
+
   const addEntryRule = () => {
     const updatedRules = [...entryRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -230,6 +237,7 @@ const EditStrategy = () => {
       setEntryRules(updatedRules);
     }
   };
+
   const addExitRule = () => {
     const updatedRules = [...exitRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -256,6 +264,7 @@ const EditStrategy = () => {
       setExitRules(updatedRules);
     }
   };
+
   const removeEntryRule = (id: number) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -263,6 +272,7 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
+
   const removeExitRule = (id: number) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -270,6 +280,7 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
+
   const updateEntryRule = (id: number, field: string, value: string) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -280,6 +291,7 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
+
   const updateExitRule = (id: number, field: string, value: string) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -290,6 +302,15 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
+
+  const handleEntryRulesChange = (rules: RuleGroupData[]) => {
+    setEntryRules(rules);
+  };
+
+  const handleExitRulesChange = (rules: RuleGroupData[]) => {
+    setExitRules(rules);
+  };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -414,7 +435,13 @@ const EditStrategy = () => {
             <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
             <p className="text-sm text-muted-foreground mb-4">Define the entry and exit conditions for your strategy</p>
             
-            <TradingRules entryRules={entryRules} exitRules={exitRules} />
+            <TradingRules 
+              entryRules={entryRules} 
+              exitRules={exitRules} 
+              editable={true}
+              onEntryRulesChange={handleEntryRulesChange}
+              onExitRulesChange={handleExitRulesChange}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <Button variant="outline" className="w-full" onClick={addEntryRule}>
@@ -436,4 +463,5 @@ const EditStrategy = () => {
       </main>
     </div>;
 };
+
 export default EditStrategy;

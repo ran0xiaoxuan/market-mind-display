@@ -175,12 +175,7 @@ const Backtest = () => {
                   <Input id="initialCapital" type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} placeholder="10000" />
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="positionSize" className="text-sm font-medium">
-                    Position Size (%)
-                  </label>
-                  <Input id="positionSize" type="number" value={positionSize} onChange={e => setPositionSize(e.target.value)} placeholder="10" />
-                </div>
+                
 
                 <Button className="w-full" onClick={handleRunBacktest}>
                   <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest

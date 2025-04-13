@@ -1,16 +1,13 @@
-
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
 export function PerformanceMetricsGrid() {
-  return (
-    <Card className="p-6">
+  return <Card className="p-6">
       <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
       <p className="text-sm text-muted-foreground mb-6">Key performance indicators</p>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Returns Section */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-[20px]">
           <h4 className="font-medium">Returns</h4>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
@@ -35,7 +32,7 @@ export function PerformanceMetricsGrid() {
         <Separator orientation="vertical" className="hidden md:block" />
 
         {/* Risk Metrics Section */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-[20px]">
           <h4 className="font-medium">Risk Metrics</h4>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
@@ -60,7 +57,7 @@ export function PerformanceMetricsGrid() {
         <Separator orientation="vertical" className="hidden md:block" />
 
         {/* Trading Stats Section */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-[20px]">
           <h4 className="font-medium">Trading Stats</h4>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
@@ -82,6 +79,5 @@ export function PerformanceMetricsGrid() {
           </div>
         </div>
       </div>
-    </Card>
-  );
+    </Card>;
 }

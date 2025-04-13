@@ -16,12 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
-
 const marketAssets = {
   Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
   Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"]
 };
-
 const EditStrategy = () => {
   const navigate = useNavigate();
   const {
@@ -184,17 +182,14 @@ const EditStrategy = () => {
       }
     }]
   }]);
-
   useEffect(() => {
     if (marketAssets[market] && marketAssets[market].length > 0) {
       setTargetAsset(marketAssets[market][0]);
     }
   }, [market]);
-
   const handleCancel = () => {
     navigate(-1);
   };
-
   const handleSave = () => {
     toast({
       title: "Strategy updated",
@@ -202,7 +197,6 @@ const EditStrategy = () => {
     });
     navigate(-1);
   };
-
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
@@ -210,7 +204,6 @@ const EditStrategy = () => {
       description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`
     });
   };
-
   const addEntryRule = () => {
     const updatedRules = [...entryRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -237,7 +230,6 @@ const EditStrategy = () => {
       setEntryRules(updatedRules);
     }
   };
-
   const addExitRule = () => {
     const updatedRules = [...exitRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -264,7 +256,6 @@ const EditStrategy = () => {
       setExitRules(updatedRules);
     }
   };
-
   const removeEntryRule = (id: number) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -272,7 +263,6 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
-
   const removeExitRule = (id: number) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -280,7 +270,6 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
-
   const updateEntryRule = (id: number, field: string, value: string) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -291,7 +280,6 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
-
   const updateExitRule = (id: number, field: string, value: string) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -302,7 +290,6 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -391,23 +378,7 @@ const EditStrategy = () => {
                   </Select>
                 </div>
                 
-                <div>
-                  <Label>Strategy Status</Label>
-                  <div className="flex items-center gap-4 mt-1">
-                    <Badge variant="outline" className={isActive ? "bg-green-100 text-green-800 border-green-300" : "bg-red-100 text-red-800 border-red-300"}>
-                      {isActive ? "Active" : "Inactive"}
-                    </Badge>
-                    <div className="flex items-center gap-2">
-                      <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} />
-                      <Label htmlFor="strategy-status" className="text-sm text-muted-foreground cursor-pointer">
-                        {isActive ? "Disable Strategy" : "Enable Strategy"}
-                      </Label>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This strategy is currently {isActive ? "active" : "inactive"} and will {isActive ? "" : "not"} generate trading signals.
-                  </p>
-                </div>
+                
               </div>
             </Form>
           </Card>
@@ -465,5 +436,4 @@ const EditStrategy = () => {
       </main>
     </div>;
 };
-
 export default EditStrategy;

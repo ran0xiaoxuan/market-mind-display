@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
 const Backtest = () => {
   const [strategy, setStrategy] = useState<string>("");
   const [symbol, setSymbol] = useState<string>("");
@@ -21,11 +22,8 @@ const Backtest = () => {
   const [initialCapital, setInitialCapital] = useState<string>("10000");
   const [positionSize, setPositionSize] = useState<string>("10");
   const [hasResults, setHasResults] = useState<boolean>(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
-  // Mock data for backtest results
   const performanceMetrics = [{
     name: "Total Return",
     value: "17.00%"
@@ -58,8 +56,8 @@ const Backtest = () => {
     name: "Avg. Loss",
     value: "-$175.20"
   }];
+
   const handleRunBacktest = () => {
-    // Validation
     if (!strategy) {
       toast({
         title: "Strategy is required",
@@ -68,14 +66,16 @@ const Backtest = () => {
       });
       return;
     }
+
     if (!symbol) {
       toast({
-        title: "Symbol is required",
+        title: "Trading Symbol is required",
         description: "Please select a trading symbol for your backtest",
         variant: "destructive"
       });
       return;
     }
+
     if (!startDate || !endDate) {
       toast({
         title: "Date range is required",
@@ -85,13 +85,11 @@ const Backtest = () => {
       return;
     }
 
-    // Run backtest logic would go here
     toast({
       title: "Backtest running",
       description: "Your backtest is being processed..."
     });
 
-    // Simulate a delay before showing results
     setTimeout(() => {
       setHasResults(true);
       toast({
@@ -100,6 +98,7 @@ const Backtest = () => {
       });
     }, 1500);
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -108,7 +107,6 @@ const Backtest = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Backtest Parameters */}
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-xl font-bold mb-1">Backtest Parameters</h2>
@@ -132,7 +130,24 @@ const Backtest = () => {
                   </Select>
                 </div>
 
-                
+                <div className="space-y-2">
+                  <label htmlFor="symbol" className="text-sm font-medium">
+                    Trading Symbol
+                  </label>
+                  <Select value={symbol} onValueChange={setSymbol}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select trading symbol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AAPL">AAPL (Apple)</SelectItem>
+                      <SelectItem value="MSFT">MSFT (Microsoft)</SelectItem>
+                      <SelectItem value="GOOGL">GOOGL (Google)</SelectItem>
+                      <SelectItem value="AMZN">AMZN (Amazon)</SelectItem>
+                      <SelectItem value="BTC">BTC (Bitcoin)</SelectItem>
+                      <SelectItem value="ETH">ETH (Ethereum)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Time Period</label>
@@ -175,8 +190,6 @@ const Backtest = () => {
                   <Input id="initialCapital" type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} placeholder="10000" />
                 </div>
 
-                
-
                 <Button className="w-full" onClick={handleRunBacktest}>
                   <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
                 </Button>
@@ -184,7 +197,6 @@ const Backtest = () => {
             </CardContent>
           </Card>
 
-          {/* Backtest Results */}
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
@@ -276,4 +288,5 @@ const Backtest = () => {
       </main>
     </div>;
 };
+
 export default Backtest;

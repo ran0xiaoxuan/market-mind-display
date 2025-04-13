@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const Backtest = () => {
   const [strategy, setStrategy] = useState<string>("");
-  const [symbol, setSymbol] = useState<string>("");
+  // Removing symbol state and keeping it for reference in case it's needed later
+  // const [symbol, setSymbol] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [initialCapital, setInitialCapital] = useState<string>("10000");
@@ -67,14 +68,7 @@ const Backtest = () => {
       return;
     }
 
-    if (!symbol) {
-      toast({
-        title: "Trading Symbol is required",
-        description: "Please select a trading symbol for your backtest",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Removed the symbol validation check since it's no longer needed
 
     if (!startDate || !endDate) {
       toast({
@@ -130,24 +124,7 @@ const Backtest = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="symbol" className="text-sm font-medium">
-                    Trading Symbol
-                  </label>
-                  <Select value={symbol} onValueChange={setSymbol}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select trading symbol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AAPL">AAPL (Apple)</SelectItem>
-                      <SelectItem value="MSFT">MSFT (Microsoft)</SelectItem>
-                      <SelectItem value="GOOGL">GOOGL (Google)</SelectItem>
-                      <SelectItem value="AMZN">AMZN (Amazon)</SelectItem>
-                      <SelectItem value="BTC">BTC (Bitcoin)</SelectItem>
-                      <SelectItem value="ETH">ETH (Ethereum)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Removed the Trading Symbol selection */}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Time Period</label>

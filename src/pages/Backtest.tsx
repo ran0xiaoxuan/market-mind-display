@@ -16,8 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 
 const Backtest = () => {
   const [strategy, setStrategy] = useState<string>("");
-  // Removing symbol state and keeping it for reference in case it's needed later
-  // const [symbol, setSymbol] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [initialCapital, setInitialCapital] = useState<string>("10000");
@@ -67,8 +65,6 @@ const Backtest = () => {
       });
       return;
     }
-
-    // Removed the symbol validation check since it's no longer needed
 
     if (!startDate || !endDate) {
       toast({
@@ -123,8 +119,6 @@ const Backtest = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Removed the Trading Symbol selection */}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Time Period</label>
@@ -194,7 +188,10 @@ const Backtest = () => {
                           <div className="space-y-2">
                             {performanceMetrics.map((metric, index) => <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{metric.name}</span>
-                                <span className="text-sm font-medium">{metric.value}</span>
+                                <span className={cn("text-sm font-medium", 
+                                  metric.value.startsWith("+") ? "text-green-600" : 
+                                  metric.value.startsWith("-") ? "text-red-600" : ""
+                                )}>{metric.value}</span>
                               </div>)}
                           </div>
                         </div>
@@ -203,7 +200,10 @@ const Backtest = () => {
                           <div className="space-y-2">
                             {tradeStatistics.map((stat, index) => <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{stat.name}</span>
-                                <span className="text-sm font-medium">{stat.value}</span>
+                                <span className={cn("text-sm font-medium", 
+                                  stat.value.startsWith("+") ? "text-green-600" : 
+                                  stat.value.startsWith("-") ? "text-red-600" : ""
+                                )}>{stat.value}</span>
                               </div>)}
                           </div>
                         </div>
@@ -221,36 +221,23 @@ const Backtest = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            <TableRow>
-                              <TableCell>04/01/2025</TableCell>
-                              <TableCell>Buy</TableCell>
-                              <TableCell>$320.45</TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>04/03/2025</TableCell>
-                              <TableCell>Sell</TableCell>
-                              <TableCell>$345.80</TableCell>
-                              <TableCell className="text-right text-green-600">+$25.35</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>04/05/2025</TableCell>
-                              <TableCell>Buy</TableCell>
-                              <TableCell>$342.10</TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>04/08/2025</TableCell>
-                              <TableCell>Sell</TableCell>
-                              <TableCell>$354.75</TableCell>
-                              <TableCell className="text-right text-green-600">+$12.65</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>04/10/2025</TableCell>
-                              <TableCell>Buy</TableCell>
-                              <TableCell>$358.30</TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                            </TableRow>
+                            {[
+                              { date: "04/01/2025", type: "Buy", price: "$320.45", pl: "-" },
+                              { date: "04/03/2025", type: "Sell", price: "$345.80", pl: "+$25.35" },
+                              { date: "04/05/2025", type: "Buy", price: "$342.10", pl: "-" },
+                              { date: "04/08/2025", type: "Sell", price: "$354.75", pl: "+$12.65" },
+                              { date: "04/10/2025", type: "Buy", price: "$358.30", pl: "-" },
+                            ].map((trade, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{trade.date}</TableCell>
+                                <TableCell>{trade.type}</TableCell>
+                                <TableCell>{trade.price}</TableCell>
+                                <TableCell className={cn("text-right", 
+                                  trade.pl.startsWith("+") ? "text-green-600" : 
+                                  trade.pl.startsWith("-") ? "text-red-600" : ""
+                                )}>{trade.pl}</TableCell>
+                              </TableRow>
+                            ))}
                           </TableBody>
                         </Table>
                       </div>

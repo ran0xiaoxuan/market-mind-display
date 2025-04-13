@@ -15,7 +15,10 @@ import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { FileDown } from "lucide-react";
+import { Clock } from "lucide-react";
+
 const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Market Correlation", "Trade Analysis"];
+
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
   const [period, setPeriod] = useState("Last Month");
@@ -23,6 +26,7 @@ const Analytics = () => {
   const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
     setTimeRange(range);
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -31,6 +35,10 @@ const Analytics = () => {
           <div className="flex items-center gap-2">
             <Button variant={timeRange === "7d" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("7d")}>
               7 Days
+            </Button>
+            
+            <Button variant={timeRange === "30d" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("30d")}>
+              <Clock className="mr-2 h-4 w-4" /> 30 Days
             </Button>
             
             <Button variant={timeRange === "all" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("all")}>
@@ -170,4 +178,5 @@ const Analytics = () => {
       </main>
     </div>;
 };
+
 export default Analytics;

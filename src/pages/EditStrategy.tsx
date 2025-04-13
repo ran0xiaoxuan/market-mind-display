@@ -377,11 +377,11 @@ const EditStrategy = () => {
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Link to="/strategies" className="text-sm flex items-center text-muted-foreground hover:text-foreground">
+          <div className="flex flex-col mb-6">
+            <Link to="/strategies" className="text-sm flex items-center text-muted-foreground hover:text-foreground mb-2">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Link>
-            <h1 className="text-2xl font-bold ml-4">Edit Strategy</h1>
+            <h1 className="text-2xl font-bold">Edit Strategy</h1>
           </div>
           
           <p className="text-muted-foreground mb-6">Modify your trading strategy settings</p>

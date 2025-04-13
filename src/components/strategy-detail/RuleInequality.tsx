@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
@@ -132,18 +131,30 @@ export const RuleInequality = ({
     
     return (
       <div className="space-y-2 p-2">
-        <Select value={side.type} onValueChange={(val) => updateSide("type", val)}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {valueTypes.map(type => (
-              <SelectItem key={type} value={type}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {isLeft ? (
+          <Select value={side.type} onValueChange={(val) => updateSide("type", val)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="indicator">Indicator</SelectItem>
+              <SelectItem value="price">Price</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <Select value={side.type} onValueChange={(val) => updateSide("type", val)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {valueTypes.map(type => (
+                <SelectItem key={type} value={type}>
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         
         {side.type === "indicator" && (
           <>
@@ -220,7 +231,7 @@ export const RuleInequality = ({
           </Select>
         )}
         
-        {side.type === "value" && (
+        {!isLeft && side.type === "value" && (
           <div>
             <span className="text-xs">Value</span>
             <Input 

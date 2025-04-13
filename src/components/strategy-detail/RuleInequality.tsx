@@ -247,7 +247,20 @@ export const RuleInequality = ({
   };
   
   return (
-    <div className="bg-slate-50 p-3 rounded-lg relative pr-12">
+    <div className="bg-slate-50 p-3 rounded-lg relative">
+      {editable && !isEditing && (
+        <div className="absolute top-2 right-2 flex space-x-1">
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={startEditing}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          {onDelete && (
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={onDelete}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
         {isEditing ? (
           <>
@@ -292,19 +305,6 @@ export const RuleInequality = ({
           </>
         )}
       </div>
-      
-      {editable && !isEditing && (
-        <div className="absolute top-2 right-2 flex space-x-1">
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={startEditing}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          {onDelete && (
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={onDelete}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 };

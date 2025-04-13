@@ -19,10 +19,7 @@ import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
 
 const marketAssets = {
   Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
-  Forex: ["EUR/USD - Euro / US Dollar", "GBP/USD - British Pound / US Dollar", "USD/JPY - US Dollar / Japanese Yen", "USD/CHF - US Dollar / Swiss Franc", "USD/CAD - US Dollar / Canadian Dollar", "AUD/USD - Australian Dollar / US Dollar", "NZD/USD - New Zealand Dollar / US Dollar"],
-  Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"],
-  Futures: ["ES - S&P 500 E-mini", "NQ - Nasdaq 100 E-mini", "CL - Crude Oil", "GC - Gold", "SI - Silver", "ZC - Corn", "ZW - Wheat"],
-  Options: ["SPY - S&P 500 ETF Options", "QQQ - Nasdaq 100 ETF Options", "IWM - Russell 2000 ETF Options", "GLD - Gold ETF Options", "SLV - Silver ETF Options", "USO - Oil ETF Options"]
+  Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"]
 };
 
 const EditStrategy = () => {
@@ -354,10 +351,7 @@ const EditStrategy = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Stocks">Stocks</SelectItem>
-                        <SelectItem value="Forex">Forex</SelectItem>
                         <SelectItem value="Crypto">Crypto</SelectItem>
-                        <SelectItem value="Futures">Futures</SelectItem>
-                        <SelectItem value="Options">Options</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

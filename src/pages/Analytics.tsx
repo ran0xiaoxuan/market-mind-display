@@ -15,93 +15,43 @@ import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { FileDown } from "lucide-react";
-
-const mainTabs = [
-  "Performance",
-  "Strategy Comparison",
-  "Risk Analysis",
-  "Market Correlation",
-  "Trade Analysis"
-];
-
+const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Market Correlation", "Trade Analysis"];
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
   const [period, setPeriod] = useState("Last Month");
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("30d");
-
   const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
     setTimeRange(range);
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Analytics</h1>
           <div className="flex items-center gap-2">
-            <Button 
-              variant={timeRange === "7d" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => handleTimeRangeChange("7d")}
-            >
+            <Button variant={timeRange === "7d" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("7d")}>
               7 Days
             </Button>
-            <Button 
-              variant={timeRange === "30d" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => handleTimeRangeChange("30d")}
-            >
+            <Button variant={timeRange === "30d" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("30d")} className="text-slate-50 bg-slate-950 hover:bg-slate-800">
               30 Days
             </Button>
-            <Button 
-              variant={timeRange === "all" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => handleTimeRangeChange("all")}
-            >
+            <Button variant={timeRange === "all" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("all")}>
               All Time
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <MetricSummary 
-            title="Total Return" 
-            value="+24.8%" 
-            changeValue="+2.5%" 
-            changePositive={true}
-            valueColor="positive" 
-          />
-          <MetricSummary 
-            title="Sharpe Ratio" 
-            value="1.85" 
-            changeValue="+0.12" 
-            changePositive={true} 
-          />
-          <MetricSummary 
-            title="Win Rate" 
-            value="68.5%" 
-            changeValue="+1.2%" 
-            changePositive={true} 
-          />
-          <MetricSummary 
-            title="Max Drawdown" 
-            value="-8.3%" 
-            changeValue="+0.7%" 
-            changePositive={true}
-            valueColor="negative" 
-          />
+          <MetricSummary title="Total Return" value="+24.8%" changeValue="+2.5%" changePositive={true} valueColor="positive" />
+          <MetricSummary title="Sharpe Ratio" value="1.85" changeValue="+0.12" changePositive={true} />
+          <MetricSummary title="Win Rate" value="68.5%" changeValue="+1.2%" changePositive={true} />
+          <MetricSummary title="Max Drawdown" value="-8.3%" changeValue="+0.7%" changePositive={true} valueColor="negative" />
         </div>
 
-        <AnalyticsTabs 
-          tabs={mainTabs} 
-          activeTab={currentTab} 
-          onTabChange={setCurrentTab} 
-        />
+        <AnalyticsTabs tabs={mainTabs} activeTab={currentTab} onTabChange={setCurrentTab} />
 
         <div className="mt-6">
-          {currentTab === "Performance" && (
-            <div className="space-y-8">
+          {currentTab === "Performance" && <div className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -125,11 +75,9 @@ const Analytics = () => {
               </div>
 
               <PerformanceMetricsGrid />
-            </div>
-          )}
+            </div>}
 
-          {currentTab === "Strategy Comparison" && (
-            <div className="space-y-8">
+          {currentTab === "Strategy Comparison" && <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Strategy Comparison</h2>
                 <Button variant="outline" size="sm">Total Return</Button>
@@ -147,11 +95,9 @@ const Analytics = () => {
               </div>
 
               <StrategyComparisonTable />
-            </div>
-          )}
+            </div>}
 
-          {currentTab === "Risk Analysis" && (
-            <div className="space-y-8">
+          {currentTab === "Risk Analysis" && <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Risk Analysis</h2>
                 <Button variant="outline" size="sm">Export Report</Button>
@@ -173,11 +119,9 @@ const Analytics = () => {
               </div>
 
               <ValueAtRisk />
-            </div>
-          )}
+            </div>}
 
-          {currentTab === "Market Correlation" && (
-            <div className="space-y-8">
+          {currentTab === "Market Correlation" && <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Market Correlation</h2>
                 <Button variant="outline" size="sm">All Markets</Button>
@@ -188,32 +132,20 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Correlation Matrix</h3>
                   <p className="text-sm text-muted-foreground mb-4">Correlation between strategies and indices</p>
-                  <PerformanceChart 
-                    type="volatility" 
-                    timeRange={timeRange} 
-                    title="Asset Correlation"
-                    description="Correlation between selected assets"
-                  />
+                  <PerformanceChart type="volatility" timeRange={timeRange} title="Asset Correlation" description="Correlation between selected assets" />
                 </Card>
                 
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Sector Exposure</h3>
                   <p className="text-sm text-muted-foreground mb-4">Portfolio allocation by sector</p>
-                  <PerformanceChart 
-                    type="returns" 
-                    timeRange={timeRange} 
-                    title="Sector Performance"
-                    description="Performance by market sector"
-                  />
+                  <PerformanceChart type="returns" timeRange={timeRange} title="Sector Performance" description="Performance by market sector" />
                 </Card>
               </div>
 
               <AssetCorrelation />
-            </div>
-          )}
+            </div>}
 
-          {currentTab === "Trade Analysis" && (
-            <div className="space-y-8">
+          {currentTab === "Trade Analysis" && <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Trade Analysis</h2>
                 <Button variant="outline" size="sm">All Strategies</Button>
@@ -224,33 +156,20 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Trade Distribution</h3>
                   <p className="text-sm text-muted-foreground mb-4">Distribution of trade profits and losses</p>
-                  <PerformanceChart 
-                    type="returns" 
-                    timeRange={timeRange}
-                    title="Trade P&L Distribution"
-                    description="Distribution of profitable and unprofitable trades"
-                  />
+                  <PerformanceChart type="returns" timeRange={timeRange} title="Trade P&L Distribution" description="Distribution of profitable and unprofitable trades" />
                 </Card>
                 
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Trade Timing</h3>
                   <p className="text-sm text-muted-foreground mb-4">Analysis of trade timing patterns</p>
-                  <PerformanceChart 
-                    type="equity" 
-                    timeRange={timeRange}
-                    title="Trade Timing Analysis"
-                    description="Performance based on trade timing"
-                  />
+                  <PerformanceChart type="equity" timeRange={timeRange} title="Trade Timing Analysis" description="Performance based on trade timing" />
                 </Card>
               </div>
 
               <RecentTrades />
-            </div>
-          )}
+            </div>}
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Analytics;

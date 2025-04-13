@@ -1,9 +1,9 @@
+import React, { useState } from 'react';
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Check, X } from "lucide-react";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -248,13 +248,13 @@ export const RuleInequality = ({
   
   return (
     <div className="bg-slate-50 p-3 rounded-lg relative pr-12">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
         {isEditing ? (
           <>
-            <div className="bg-white rounded border">
+            <div className="bg-white rounded border col-span-2">
               {renderEditableSide(editedInequality.left, true)}
             </div>
-            <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="flex flex-col items-center justify-center space-y-2 col-span-1">
               <Select value={editedInequality.condition} onValueChange={(val) => setEditedInequality({...editedInequality, condition: val})}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Condition" />
@@ -272,21 +272,21 @@ export const RuleInequality = ({
                 <Button size="sm" variant="default" onClick={saveChanges}><Check className="h-4 w-4 mr-1" /> Save</Button>
               </div>
             </div>
-            <div className="bg-white rounded border">
+            <div className="bg-white rounded border col-span-2">
               {renderEditableSide(editedInequality.right, false)}
             </div>
           </>
         ) : (
           <>
-            <div className="p-2 bg-white rounded border">
+            <div className="p-2 bg-white rounded border col-span-2">
               {renderReadOnlySide(inequality.left)}
             </div>
-            <div className="flex justify-center">
+            <div className="flex justify-center col-span-1">
               <Badge variant="outline" className="bg-white font-medium text-center">
                 {inequality.condition}
               </Badge>
             </div>
-            <div className="p-2 bg-white rounded border">
+            <div className="p-2 bg-white rounded border col-span-2">
               {renderReadOnlySide(inequality.right)}
             </div>
           </>

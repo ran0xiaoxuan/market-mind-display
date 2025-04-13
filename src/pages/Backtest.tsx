@@ -25,10 +25,12 @@ const Backtest = () => {
 
   const performanceMetrics = [{
     name: "Total Return",
-    value: "17.00%"
+    value: "17.00%",
+    green: true
   }, {
     name: "Annualized Return",
-    value: "34.00%"
+    value: "34.00%",
+    green: true
   }, {
     name: "Sharpe Ratio",
     value: "1.8"
@@ -50,7 +52,8 @@ const Backtest = () => {
     value: "8"
   }, {
     name: "Avg. Profit",
-    value: "$320.45"
+    value: "$320.45",
+    green: true
   }, {
     name: "Avg. Loss",
     value: "-$175.20"
@@ -186,25 +189,35 @@ const Backtest = () => {
                         <div>
                           <h3 className="font-medium mb-3">Performance Metrics</h3>
                           <div className="space-y-2">
-                            {performanceMetrics.map((metric, index) => <div key={index} className="flex justify-between items-center">
+                            {performanceMetrics.map((metric, index) => (
+                              <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{metric.name}</span>
                                 <span className={cn("text-sm font-medium", 
+                                  metric.green ? "text-green-600" : 
                                   metric.value.startsWith("+") ? "text-green-600" : 
                                   metric.value.startsWith("-") ? "text-red-600" : ""
-                                )}>{metric.value}</span>
-                              </div>)}
+                                )}>
+                                  {metric.value}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                         <div>
                           <h3 className="font-medium mb-3">Trade Statistics</h3>
                           <div className="space-y-2">
-                            {tradeStatistics.map((stat, index) => <div key={index} className="flex justify-between items-center">
+                            {tradeStatistics.map((stat, index) => (
+                              <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{stat.name}</span>
                                 <span className={cn("text-sm font-medium", 
+                                  stat.green ? "text-green-600" : 
                                   stat.value.startsWith("+") ? "text-green-600" : 
                                   stat.value.startsWith("-") ? "text-red-600" : ""
-                                )}>{stat.value}</span>
-                              </div>)}
+                                )}>
+                                  {stat.value}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>

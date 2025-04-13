@@ -247,7 +247,7 @@ export const RuleInequality = ({
   };
   
   return (
-    <div className="bg-slate-50 p-3 rounded-lg relative">
+    <div className="bg-slate-50 p-3 rounded-lg relative pr-12">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
         {isEditing ? (
           <>

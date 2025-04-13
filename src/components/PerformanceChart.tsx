@@ -5,7 +5,7 @@ import {
   ChartTooltip, 
   ChartTooltipContent 
 } from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Cell } from "recharts";
 import { cn } from "@/lib/utils";
 
 type PerformanceChartProps = {
@@ -222,9 +222,16 @@ export function PerformanceChart({
             }} />
             <Bar 
               dataKey="value" 
-              fill={(entry) => (entry.value >= 0 ? "#22c55e" : "#ef4444")}
+              fill="#6b7280" // Use a neutral color as default
               radius={[4, 4, 0, 0]}
-            />
+            >
+              {chartData.map((entry: any, index: number) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.value >= 0 ? "#22c55e" : "#ef4444"} 
+                />
+              ))}
+            </Bar>
           </BarChart>
         );
 

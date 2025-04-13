@@ -3,6 +3,8 @@ import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface RuleGroupProps {
   title: "AND Group" | "OR Group";
@@ -13,6 +15,7 @@ interface RuleGroupProps {
   onInequitiesChange?: (inequalities: Inequality[]) => void;
   requiredConditions?: number;
   onRequiredConditionsChange?: (count: number) => void;
+  onAddRule?: () => void; // New prop for add rule button
 }
 
 export const RuleGroup = ({ 
@@ -23,7 +26,8 @@ export const RuleGroup = ({
   editable = false,
   onInequitiesChange,
   requiredConditions,
-  onRequiredConditionsChange
+  onRequiredConditionsChange,
+  onAddRule
 }: RuleGroupProps) => {
   
   const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
@@ -99,6 +103,20 @@ export const RuleGroup = ({
           </div>
         ))}
       </div>
+      
+      {/* Add rule button - only shown when editable */}
+      {editable && onAddRule && (
+        <div className="mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full border-dashed"
+            onClick={onAddRule}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add Rule
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

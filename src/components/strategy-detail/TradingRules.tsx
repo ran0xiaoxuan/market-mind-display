@@ -67,6 +67,147 @@ export const TradingRules = ({
     
     onExitRulesChange(updatedRules);
   };
+  
+  // Add new rule to AND group for entry rules
+  const handleAddEntryRuleAND = () => {
+    if (!onEntryRulesChange || entryRules.length === 0) return;
+    
+    const updatedRules = [...entryRules];
+    const andGroup = updatedRules[0];
+    
+    // Generate new rule ID
+    const newRuleId = andGroup.inequalities.length > 0 
+      ? Math.max(...andGroup.inequalities.map(rule => rule.id)) + 1
+      : 1;
+    
+    // Create new default rule
+    const newRule: Inequality = {
+      id: newRuleId,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: { period: "20" }
+      },
+      condition: "Crosses Above",
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: { period: "50" }
+      }
+    };
+    
+    updatedRules[0] = {
+      ...andGroup,
+      inequalities: [...andGroup.inequalities, newRule]
+    };
+    
+    onEntryRulesChange(updatedRules);
+  };
+  
+  // Add new rule to OR group for entry rules
+  const handleAddEntryRuleOR = () => {
+    if (!onEntryRulesChange || entryRules.length < 2) return;
+    
+    const updatedRules = [...entryRules];
+    const orGroup = updatedRules[1];
+    
+    // Generate new rule ID
+    const newRuleId = orGroup.inequalities.length > 0 
+      ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1
+      : 1;
+    
+    // Create new default rule
+    const newRule: Inequality = {
+      id: newRuleId,
+      left: {
+        type: "indicator",
+        indicator: "RSI",
+        parameters: { period: "14" }
+      },
+      condition: "Less Than",
+      right: {
+        type: "value",
+        value: "30"
+      }
+    };
+    
+    updatedRules[1] = {
+      ...orGroup,
+      inequalities: [...orGroup.inequalities, newRule]
+    };
+    
+    onEntryRulesChange(updatedRules);
+  };
+  
+  // Add new rule to AND group for exit rules
+  const handleAddExitRuleAND = () => {
+    if (!onExitRulesChange || exitRules.length === 0) return;
+    
+    const updatedRules = [...exitRules];
+    const andGroup = updatedRules[0];
+    
+    // Generate new rule ID
+    const newRuleId = andGroup.inequalities.length > 0 
+      ? Math.max(...andGroup.inequalities.map(rule => rule.id)) + 1
+      : 1;
+    
+    // Create new default rule
+    const newRule: Inequality = {
+      id: newRuleId,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: { period: "20" }
+      },
+      condition: "Crosses Below",
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: { period: "50" }
+      }
+    };
+    
+    updatedRules[0] = {
+      ...andGroup,
+      inequalities: [...andGroup.inequalities, newRule]
+    };
+    
+    onExitRulesChange(updatedRules);
+  };
+  
+  // Add new rule to OR group for exit rules
+  const handleAddExitRuleOR = () => {
+    if (!onExitRulesChange || exitRules.length < 2) return;
+    
+    const updatedRules = [...exitRules];
+    const orGroup = updatedRules[1];
+    
+    // Generate new rule ID
+    const newRuleId = orGroup.inequalities.length > 0 
+      ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1
+      : 1;
+    
+    // Create new default rule
+    const newRule: Inequality = {
+      id: newRuleId,
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Less Than",
+      right: {
+        type: "value",
+        value: "0"
+      }
+    };
+    
+    updatedRules[1] = {
+      ...orGroup,
+      inequalities: [...orGroup.inequalities, newRule]
+    };
+    
+    onExitRulesChange(updatedRules);
+  };
 
   return <Card className="p-6 mb-6">
       
@@ -84,6 +225,7 @@ export const TradingRules = ({
               inequalities={entryRules[0].inequalities}
               editable={editable}
               onInequitiesChange={(inequalities) => handleEntryRuleChange(0, inequalities)}
+              onAddRule={editable ? handleAddEntryRuleAND : undefined}
             />
             
             {/* OR Group */}
@@ -96,6 +238,7 @@ export const TradingRules = ({
               onInequitiesChange={(inequalities) => handleEntryRuleChange(1, inequalities)}
               requiredConditions={entryRules[1].requiredConditions || 1}
               onRequiredConditionsChange={(count) => handleEntryRequiredConditionsChange(1, count)}
+              onAddRule={editable ? handleAddEntryRuleOR : undefined}
             />}
           </>}
       </div>
@@ -112,6 +255,7 @@ export const TradingRules = ({
               inequalities={exitRules[0].inequalities}
               editable={editable}
               onInequitiesChange={(inequalities) => handleExitRuleChange(0, inequalities)}
+              onAddRule={editable ? handleAddExitRuleAND : undefined}
             />
             
             {/* OR Group */}
@@ -124,6 +268,7 @@ export const TradingRules = ({
               onInequitiesChange={(inequalities) => handleExitRuleChange(1, inequalities)}
               requiredConditions={exitRules[1].requiredConditions || 1}
               onRequiredConditionsChange={(count) => handleExitRequiredConditionsChange(1, count)}
+              onAddRule={editable ? handleAddExitRuleOR : undefined}
             />}
           </>}
       </div>

@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-
 const Backtest = () => {
   const [strategy, setStrategy] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -21,8 +20,9 @@ const Backtest = () => {
   const [initialCapital, setInitialCapital] = useState<string>("10000");
   const [positionSize, setPositionSize] = useState<string>("10");
   const [hasResults, setHasResults] = useState<boolean>(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const performanceMetrics = [{
     name: "Total Return",
     value: "17.00%",
@@ -58,7 +58,6 @@ const Backtest = () => {
     name: "Avg. Loss",
     value: "-$175.20"
   }];
-
   const handleRunBacktest = () => {
     if (!strategy) {
       toast({
@@ -68,7 +67,6 @@ const Backtest = () => {
       });
       return;
     }
-
     if (!startDate || !endDate) {
       toast({
         title: "Date range is required",
@@ -77,12 +75,10 @@ const Backtest = () => {
       });
       return;
     }
-
     toast({
       title: "Backtest running",
       description: "Your backtest is being processed..."
     });
-
     setTimeout(() => {
       setHasResults(true);
       toast({
@@ -91,7 +87,6 @@ const Backtest = () => {
       });
     }, 1500);
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -164,7 +159,7 @@ const Backtest = () => {
                   <Input id="initialCapital" type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} placeholder="10000" />
                 </div>
 
-                <Button className="w-full" onClick={handleRunBacktest}>
+                <Button onClick={handleRunBacktest} className="w-full bg-zinc-950 hover:bg-zinc-800">
                   <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
                 </Button>
               </div>
@@ -189,35 +184,23 @@ const Backtest = () => {
                         <div>
                           <h3 className="font-medium mb-3">Performance Metrics</h3>
                           <div className="space-y-2">
-                            {performanceMetrics.map((metric, index) => (
-                              <div key={index} className="flex justify-between items-center">
+                            {performanceMetrics.map((metric, index) => <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{metric.name}</span>
-                                <span className={cn("text-sm font-medium", 
-                                  metric.green ? "text-green-600" : 
-                                  metric.value.startsWith("+") ? "text-green-600" : 
-                                  metric.value.startsWith("-") ? "text-red-600" : ""
-                                )}>
+                                <span className={cn("text-sm font-medium", metric.green ? "text-green-600" : metric.value.startsWith("+") ? "text-green-600" : metric.value.startsWith("-") ? "text-red-600" : "")}>
                                   {metric.value}
                                 </span>
-                              </div>
-                            ))}
+                              </div>)}
                           </div>
                         </div>
                         <div>
                           <h3 className="font-medium mb-3">Trade Statistics</h3>
                           <div className="space-y-2">
-                            {tradeStatistics.map((stat, index) => (
-                              <div key={index} className="flex justify-between items-center">
+                            {tradeStatistics.map((stat, index) => <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{stat.name}</span>
-                                <span className={cn("text-sm font-medium", 
-                                  stat.green ? "text-green-600" : 
-                                  stat.value.startsWith("+") ? "text-green-600" : 
-                                  stat.value.startsWith("-") ? "text-red-600" : ""
-                                )}>
+                                <span className={cn("text-sm font-medium", stat.green ? "text-green-600" : stat.value.startsWith("+") ? "text-green-600" : stat.value.startsWith("-") ? "text-red-600" : "")}>
                                   {stat.value}
                                 </span>
-                              </div>
-                            ))}
+                              </div>)}
                           </div>
                         </div>
                       </div>
@@ -234,23 +217,37 @@ const Backtest = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {[
-                              { date: "04/01/2025", type: "Buy", price: "$320.45", pl: "-" },
-                              { date: "04/03/2025", type: "Sell", price: "$345.80", pl: "+$25.35" },
-                              { date: "04/05/2025", type: "Buy", price: "$342.10", pl: "-" },
-                              { date: "04/08/2025", type: "Sell", price: "$354.75", pl: "+$12.65" },
-                              { date: "04/10/2025", type: "Buy", price: "$358.30", pl: "-" },
-                            ].map((trade, index) => (
-                              <TableRow key={index}>
+                            {[{
+                          date: "04/01/2025",
+                          type: "Buy",
+                          price: "$320.45",
+                          pl: "-"
+                        }, {
+                          date: "04/03/2025",
+                          type: "Sell",
+                          price: "$345.80",
+                          pl: "+$25.35"
+                        }, {
+                          date: "04/05/2025",
+                          type: "Buy",
+                          price: "$342.10",
+                          pl: "-"
+                        }, {
+                          date: "04/08/2025",
+                          type: "Sell",
+                          price: "$354.75",
+                          pl: "+$12.65"
+                        }, {
+                          date: "04/10/2025",
+                          type: "Buy",
+                          price: "$358.30",
+                          pl: "-"
+                        }].map((trade, index) => <TableRow key={index}>
                                 <TableCell>{trade.date}</TableCell>
                                 <TableCell>{trade.type}</TableCell>
                                 <TableCell>{trade.price}</TableCell>
-                                <TableCell className={cn("text-right", 
-                                  trade.pl.startsWith("+") ? "text-green-600" : 
-                                  trade.pl.startsWith("-") ? "text-red-600" : ""
-                                )}>{trade.pl}</TableCell>
-                              </TableRow>
-                            ))}
+                                <TableCell className={cn("text-right", trade.pl.startsWith("+") ? "text-green-600" : trade.pl.startsWith("-") ? "text-red-600" : "")}>{trade.pl}</TableCell>
+                              </TableRow>)}
                           </TableBody>
                         </Table>
                       </div>
@@ -265,5 +262,4 @@ const Backtest = () => {
       </main>
     </div>;
 };
-
 export default Backtest;

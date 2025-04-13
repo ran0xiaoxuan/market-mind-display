@@ -24,7 +24,7 @@ export const RuleInequality = ({
   const [editedInequality, setEditedInequality] = useState<Inequality>(inequality);
   
   const indicators = ["SMA", "EMA", "RSI", "MACD", "Volume", "Volume MA"];
-  const conditions = ["Greater Than", "Less Than", "Equals", "Crosses Above", "Crosses Below"];
+  const conditions = ["Greater Than", "Less Than", "Crosses Above", "Crosses Below"];
   const valueTypes = ["indicator", "price", "value"];
   const priceValues = ["Open", "High", "Low", "Close"];
   

@@ -422,15 +422,7 @@ const EditStrategy = () => {
             
             <TradingRules entryRules={entryRules} exitRules={exitRules} editable={true} onEntryRulesChange={handleEntryRulesChange} onExitRulesChange={handleExitRulesChange} />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              <Button variant="outline" className="w-full" onClick={addEntryRule}>
-                <Plus className="h-4 w-4 mr-2" /> Add Entry Rule
-              </Button>
-              
-              <Button variant="outline" className="w-full" onClick={addExitRule}>
-                <Plus className="h-4 w-4 mr-2" /> Add Exit Rule
-              </Button>
-            </div>
+            
             
             
           </Card>

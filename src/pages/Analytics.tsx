@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -65,7 +64,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Metrics Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <MetricSummary 
             title="Total Return" 
@@ -95,16 +93,13 @@ const Analytics = () => {
           />
         </div>
 
-        {/* Navigation Tabs */}
         <AnalyticsTabs 
           tabs={mainTabs} 
           activeTab={currentTab} 
           onTabChange={setCurrentTab} 
         />
 
-        {/* Tab Content */}
         <div className="mt-6">
-          {/* Performance Tab */}
           {currentTab === "Performance" && (
             <div className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -133,7 +128,6 @@ const Analytics = () => {
             </div>
           )}
 
-          {/* Strategy Comparison Tab */}
           {currentTab === "Strategy Comparison" && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -156,7 +150,6 @@ const Analytics = () => {
             </div>
           )}
 
-          {/* Risk Analysis Tab */}
           {currentTab === "Risk Analysis" && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -183,7 +176,6 @@ const Analytics = () => {
             </div>
           )}
 
-          {/* Market Correlation Tab */}
           {currentTab === "Market Correlation" && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -196,13 +188,23 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Correlation Matrix</h3>
                   <p className="text-sm text-muted-foreground mb-4">Correlation between strategies and indices</p>
-                  <ChartPlaceholder title="Correlation matrix not available" />
+                  <PerformanceChart 
+                    type="volatility" 
+                    timeRange={timeRange} 
+                    title="Asset Correlation"
+                    description="Correlation between selected assets"
+                  />
                 </Card>
                 
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Sector Exposure</h3>
                   <p className="text-sm text-muted-foreground mb-4">Portfolio allocation by sector</p>
-                  <ChartPlaceholder title="Sector exposure chart not available" />
+                  <PerformanceChart 
+                    type="returns" 
+                    timeRange={timeRange} 
+                    title="Sector Performance"
+                    description="Performance by market sector"
+                  />
                 </Card>
               </div>
 
@@ -210,7 +212,6 @@ const Analytics = () => {
             </div>
           )}
 
-          {/* Trade Analysis Tab */}
           {currentTab === "Trade Analysis" && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -234,7 +235,12 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Trade Timing</h3>
                   <p className="text-sm text-muted-foreground mb-4">Analysis of trade timing patterns</p>
-                  <ChartPlaceholder title="Trade timing chart not available" />
+                  <PerformanceChart 
+                    type="equity" 
+                    timeRange={timeRange}
+                    title="Trade Timing Analysis"
+                    description="Performance based on trade timing"
+                  />
                 </Card>
               </div>
 

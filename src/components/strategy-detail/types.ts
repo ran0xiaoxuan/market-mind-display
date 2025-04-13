@@ -1,5 +1,4 @@
 
-
 export type IndicatorParameters = {
   period?: string;
   fast?: string;
@@ -26,4 +25,5 @@ export type RuleGroupData = {
   id: number;
   logic: string;
   inequalities: Inequality[];
+  requiredConditions?: number; // Number of conditions that must be met for OR groups
 };

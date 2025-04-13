@@ -31,6 +31,18 @@ export const TradingRules = ({
     
     onEntryRulesChange(updatedRules);
   };
+
+  const handleEntryRequiredConditionsChange = (groupIndex: number, count: number) => {
+    if (!onEntryRulesChange) return;
+    
+    const updatedRules = [...entryRules];
+    updatedRules[groupIndex] = {
+      ...updatedRules[groupIndex],
+      requiredConditions: count
+    };
+    
+    onEntryRulesChange(updatedRules);
+  };
   
   const handleExitRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onExitRulesChange) return;
@@ -39,6 +51,18 @@ export const TradingRules = ({
     updatedRules[groupIndex] = {
       ...updatedRules[groupIndex],
       inequalities: updatedInequalities
+    };
+    
+    onExitRulesChange(updatedRules);
+  };
+
+  const handleExitRequiredConditionsChange = (groupIndex: number, count: number) => {
+    if (!onExitRulesChange) return;
+    
+    const updatedRules = [...exitRules];
+    updatedRules[groupIndex] = {
+      ...updatedRules[groupIndex],
+      requiredConditions: count
     };
     
     onExitRulesChange(updatedRules);
@@ -70,6 +94,8 @@ export const TradingRules = ({
               inequalities={entryRules[1].inequalities}
               editable={editable}
               onInequitiesChange={(inequalities) => handleEntryRuleChange(1, inequalities)}
+              requiredConditions={entryRules[1].requiredConditions || 1}
+              onRequiredConditionsChange={(count) => handleEntryRequiredConditionsChange(1, count)}
             />}
           </>}
       </div>
@@ -96,6 +122,8 @@ export const TradingRules = ({
               inequalities={exitRules[1].inequalities}
               editable={editable}
               onInequitiesChange={(inequalities) => handleExitRuleChange(1, inequalities)}
+              requiredConditions={exitRules[1].requiredConditions || 1}
+              onRequiredConditionsChange={(count) => handleExitRequiredConditionsChange(1, count)}
             />}
           </>}
       </div>

@@ -1,6 +1,8 @@
 
 import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
+import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
 
 interface RuleGroupProps {
   title: "AND Group" | "OR Group";
@@ -9,6 +11,8 @@ interface RuleGroupProps {
   inequalities: Inequality[];
   editable?: boolean;
   onInequitiesChange?: (inequalities: Inequality[]) => void;
+  requiredConditions?: number;
+  onRequiredConditionsChange?: (count: number) => void;
 }
 
 export const RuleGroup = ({ 
@@ -17,8 +21,28 @@ export const RuleGroup = ({
   description, 
   inequalities,
   editable = false,
-  onInequitiesChange
+  onInequitiesChange,
+  requiredConditions,
+  onRequiredConditionsChange
 }: RuleGroupProps) => {
+  
+  const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
+
+  useEffect(() => {
+    if (requiredConditions !== undefined) {
+      setConditionsCount(requiredConditions);
+    }
+  }, [requiredConditions]);
+
+  const handleConditionsCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= inequalities.length) {
+      setConditionsCount(value);
+      if (onRequiredConditionsChange) {
+        onRequiredConditionsChange(value);
+      }
+    }
+  };
   
   const handleInequalityChange = (updatedInequality: Inequality) => {
     if (!onInequitiesChange) return;
@@ -43,7 +67,24 @@ export const RuleGroup = ({
         <h4 className={`text-sm font-semibold mb-1 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
           {title}
         </h4>
-        <p className="text-xs text-muted-foreground mb-2">{description}</p>
+        {title === "OR Group" && editable ? (
+          <p className="text-xs text-muted-foreground mb-2">
+            At least <Input 
+              type="number" 
+              min={1} 
+              max={inequalities.length}
+              value={conditionsCount} 
+              onChange={handleConditionsCountChange}
+              className="w-16 h-6 px-2 py-0 inline-block mx-1 text-xs" 
+            /> of {inequalities.length} conditions must be met.
+          </p>
+        ) : title === "OR Group" ? (
+          <p className="text-xs text-muted-foreground mb-2">
+            At least {requiredConditions || 1} of {inequalities.length} conditions must be met.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground mb-2">{description}</p>
+        )}
       </div>
       
       <div className="space-y-3">

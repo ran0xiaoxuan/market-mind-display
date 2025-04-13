@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
@@ -126,12 +127,8 @@ export const RuleInequality = ({
   };
   
   const renderEditableSide = (side: InequalitySide, isLeft: boolean) => {
-    if (isLeft) {
-      return renderReadOnlySide(side);
-    }
-    
-    const updateSide = updateRight;
-    const updateParameter = updateRightParameter;
+    const updateSide = isLeft ? updateLeft : updateRight;
+    const updateParameter = isLeft ? updateLeftParameter : updateRightParameter;
     
     return (
       <div className="space-y-2 p-2">
@@ -244,7 +241,7 @@ export const RuleInequality = ({
         {isEditing ? (
           <>
             <div className="bg-white rounded border">
-              {renderReadOnlySide(editedInequality.left)}
+              {renderEditableSide(editedInequality.left, true)}
             </div>
             <div className="flex flex-col items-center justify-center space-y-2">
               <Select value={editedInequality.condition} onValueChange={(val) => setEditedInequality({...editedInequality, condition: val})}>

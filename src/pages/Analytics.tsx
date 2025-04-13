@@ -32,9 +32,7 @@ const Analytics = () => {
             <Button variant={timeRange === "7d" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("7d")}>
               7 Days
             </Button>
-            <Button variant={timeRange === "30d" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("30d")} className="bg-zinc-50 text-base text-zinc-950">
-              30 Days
-            </Button>
+            
             <Button variant={timeRange === "all" ? "default" : "outline"} size="sm" onClick={() => handleTimeRangeChange("all")}>
               All Time
             </Button>

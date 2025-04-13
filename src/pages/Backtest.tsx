@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon } from "lucide-react";
@@ -6,25 +5,14 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-
 const Backtest = () => {
   const [strategy, setStrategy] = useState<string>("");
   const [symbol, setSymbol] = useState<string>("");
@@ -33,50 +21,66 @@ const Backtest = () => {
   const [initialCapital, setInitialCapital] = useState<string>("10000");
   const [positionSize, setPositionSize] = useState<string>("10");
   const [hasResults, setHasResults] = useState<boolean>(false);
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Mock data for backtest results
-  const performanceMetrics = [
-    { name: "Total Return", value: "17.00%" },
-    { name: "Annualized Return", value: "34.00%" },
-    { name: "Sharpe Ratio", value: "1.8" },
-    { name: "Max Drawdown", value: "-3.8%" },
-    { name: "Win Rate", value: "68%" },
-  ];
-
-  const tradeStatistics = [
-    { name: "Total Trades", value: "25" },
-    { name: "Winning Trades", value: "17" },
-    { name: "Losing Trades", value: "8" },
-    { name: "Avg. Profit", value: "$320.45" },
-    { name: "Avg. Loss", value: "-$175.20" },
-  ];
-
+  const performanceMetrics = [{
+    name: "Total Return",
+    value: "17.00%"
+  }, {
+    name: "Annualized Return",
+    value: "34.00%"
+  }, {
+    name: "Sharpe Ratio",
+    value: "1.8"
+  }, {
+    name: "Max Drawdown",
+    value: "-3.8%"
+  }, {
+    name: "Win Rate",
+    value: "68%"
+  }];
+  const tradeStatistics = [{
+    name: "Total Trades",
+    value: "25"
+  }, {
+    name: "Winning Trades",
+    value: "17"
+  }, {
+    name: "Losing Trades",
+    value: "8"
+  }, {
+    name: "Avg. Profit",
+    value: "$320.45"
+  }, {
+    name: "Avg. Loss",
+    value: "-$175.20"
+  }];
   const handleRunBacktest = () => {
     // Validation
     if (!strategy) {
       toast({
         title: "Strategy is required",
         description: "Please select a strategy for your backtest",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     if (!symbol) {
       toast({
         title: "Symbol is required",
         description: "Please select a trading symbol for your backtest",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     if (!startDate || !endDate) {
       toast({
         title: "Date range is required",
         description: "Please select both start and end dates for your backtest",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -84,7 +88,7 @@ const Backtest = () => {
     // Run backtest logic would go here
     toast({
       title: "Backtest running",
-      description: "Your backtest is being processed...",
+      description: "Your backtest is being processed..."
     });
 
     // Simulate a delay before showing results
@@ -92,13 +96,11 @@ const Backtest = () => {
       setHasResults(true);
       toast({
         title: "Backtest complete",
-        description: "Your backtest results are ready to view",
+        description: "Your backtest results are ready to view"
       });
     }, 1500);
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="flex items-center justify-between mb-8">
@@ -130,23 +132,7 @@ const Backtest = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="symbol" className="text-sm font-medium">
-                    Symbol
-                  </label>
-                  <Select value={symbol} onValueChange={setSymbol}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select symbol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AAPL">AAPL</SelectItem>
-                      <SelectItem value="MSFT">MSFT</SelectItem>
-                      <SelectItem value="GOOGL">GOOGL</SelectItem>
-                      <SelectItem value="AMZN">AMZN</SelectItem>
-                      <SelectItem value="TSLA">TSLA</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Time Period</label>
@@ -155,25 +141,13 @@ const Backtest = () => {
                       <label className="text-xs text-muted-foreground">Start Date</label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !startDate && "text-muted-foreground"
-                            )}
-                          >
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {startDate ? format(startDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={setStartDate}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
+                          <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto" />
                         </PopoverContent>
                       </Popover>
                     </div>
@@ -181,25 +155,13 @@ const Backtest = () => {
                       <label className="text-xs text-muted-foreground">End Date</label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !endDate && "text-muted-foreground"
-                            )}
-                          >
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {endDate ? format(endDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={setEndDate}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
+                          <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto" />
                         </PopoverContent>
                       </Popover>
                     </div>
@@ -210,32 +172,17 @@ const Backtest = () => {
                   <label htmlFor="initialCapital" className="text-sm font-medium">
                     Initial Capital
                   </label>
-                  <Input
-                    id="initialCapital"
-                    type="number"
-                    value={initialCapital}
-                    onChange={(e) => setInitialCapital(e.target.value)}
-                    placeholder="10000"
-                  />
+                  <Input id="initialCapital" type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} placeholder="10000" />
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="positionSize" className="text-sm font-medium">
                     Position Size (%)
                   </label>
-                  <Input
-                    id="positionSize"
-                    type="number"
-                    value={positionSize}
-                    onChange={(e) => setPositionSize(e.target.value)}
-                    placeholder="10"
-                  />
+                  <Input id="positionSize" type="number" value={positionSize} onChange={e => setPositionSize(e.target.value)} placeholder="10" />
                 </div>
 
-                <Button 
-                  className="w-full" 
-                  onClick={handleRunBacktest}
-                >
+                <Button className="w-full" onClick={handleRunBacktest}>
                   <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
                 </Button>
               </div>
@@ -247,13 +194,10 @@ const Backtest = () => {
             <CardContent className="pt-6">
               <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
               <p className="text-muted-foreground text-sm mb-6">
-                {hasResults 
-                  ? "View the performance of your strategy over the selected time period."
-                  : "Run a backtest to see results here."}
+                {hasResults ? "View the performance of your strategy over the selected time period." : "Run a backtest to see results here."}
               </p>
 
-              {hasResults ? (
-                <div>
+              {hasResults ? <div>
                   <Tabs defaultValue="summary" className="mb-6">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -264,23 +208,19 @@ const Backtest = () => {
                         <div>
                           <h3 className="font-medium mb-3">Performance Metrics</h3>
                           <div className="space-y-2">
-                            {performanceMetrics.map((metric, index) => (
-                              <div key={index} className="flex justify-between items-center">
+                            {performanceMetrics.map((metric, index) => <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{metric.name}</span>
                                 <span className="text-sm font-medium">{metric.value}</span>
-                              </div>
-                            ))}
+                              </div>)}
                           </div>
                         </div>
                         <div>
                           <h3 className="font-medium mb-3">Trade Statistics</h3>
                           <div className="space-y-2">
-                            {tradeStatistics.map((stat, index) => (
-                              <div key={index} className="flex justify-between items-center">
+                            {tradeStatistics.map((stat, index) => <div key={index} className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{stat.name}</span>
                                 <span className="text-sm font-medium">{stat.value}</span>
-                              </div>
-                            ))}
+                              </div>)}
                           </div>
                         </div>
                       </div>
@@ -332,18 +272,13 @@ const Backtest = () => {
                       </div>
                     </TabsContent>
                   </Tabs>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-64">
+                </div> : <div className="flex flex-col items-center justify-center h-64">
                   <p className="text-muted-foreground">No backtest results to display. Click "Run Backtest" to start.</p>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Backtest;

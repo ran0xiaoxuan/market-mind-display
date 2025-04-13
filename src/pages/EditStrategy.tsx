@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -7,95 +6,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { Badge } from "@/components/Badge";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormDescription,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
-
 const marketAssets = {
-  Stocks: [
-    "AAPL - Apple Inc.",
-    "MSFT - Microsoft Corporation",
-    "GOOGL - Alphabet Inc.",
-    "AMZN - Amazon.com Inc.",
-    "META - Meta Platforms Inc.",
-    "TSLA - Tesla Inc.",
-    "NVDA - NVIDIA Corporation",
-    "JPM - JPMorgan Chase & Co."
-  ],
-  Forex: [
-    "EUR/USD - Euro / US Dollar",
-    "GBP/USD - British Pound / US Dollar",
-    "USD/JPY - US Dollar / Japanese Yen",
-    "USD/CHF - US Dollar / Swiss Franc",
-    "USD/CAD - US Dollar / Canadian Dollar",
-    "AUD/USD - Australian Dollar / US Dollar",
-    "NZD/USD - New Zealand Dollar / US Dollar"
-  ],
-  Crypto: [
-    "BTC/USD - Bitcoin / US Dollar",
-    "ETH/USD - Ethereum / US Dollar",
-    "XRP/USD - Ripple / US Dollar",
-    "SOL/USD - Solana / US Dollar",
-    "ADA/USD - Cardano / US Dollar",
-    "DOT/USD - Polkadot / US Dollar",
-    "LINK/USD - Chainlink / US Dollar"
-  ],
-  Futures: [
-    "ES - S&P 500 E-mini",
-    "NQ - Nasdaq 100 E-mini",
-    "CL - Crude Oil",
-    "GC - Gold",
-    "SI - Silver",
-    "ZC - Corn",
-    "ZW - Wheat"
-  ],
-  Options: [
-    "SPY - S&P 500 ETF Options",
-    "QQQ - Nasdaq 100 ETF Options",
-    "IWM - Russell 2000 ETF Options",
-    "GLD - Gold ETF Options",
-    "SLV - Silver ETF Options",
-    "USO - Oil ETF Options"
-  ]
+  Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
+  Forex: ["EUR/USD - Euro / US Dollar", "GBP/USD - British Pound / US Dollar", "USD/JPY - US Dollar / Japanese Yen", "USD/CHF - US Dollar / Swiss Franc", "USD/CAD - US Dollar / Canadian Dollar", "AUD/USD - Australian Dollar / US Dollar", "NZD/USD - New Zealand Dollar / US Dollar"],
+  Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"],
+  Futures: ["ES - S&P 500 E-mini", "NQ - Nasdaq 100 E-mini", "CL - Crude Oil", "GC - Gold", "SI - Silver", "ZC - Corn", "ZW - Wheat"],
+  Options: ["SPY - S&P 500 ETF Options", "QQQ - Nasdaq 100 ETF Options", "IWM - Russell 2000 ETF Options", "GLD - Gold ETF Options", "SLV - Silver ETF Options", "USO - Oil ETF Options"]
 };
-
 const EditStrategy = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [activeTab, setActiveTab] = useState("trading-rules");
-  
   const [strategyName, setStrategyName] = useState("Moving Average Crossover");
   const [description, setDescription] = useState("A strategy that generates signals based on when a faster moving average crosses a slower moving average.");
   const [market, setMarket] = useState("Stocks");
   const [timeframe, setTimeframe] = useState("Daily");
   const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
   const [isActive, setIsActive] = useState(true);
-  
   const [stopLoss, setStopLoss] = useState("5");
   const [takeProfit, setTakeProfit] = useState("15");
   const [singleBuyVolume, setSingleBuyVolume] = useState("1000");
   const [maxBuyVolume, setMaxBuyVolume] = useState("5000");
-  
   const form = useForm({
     defaultValues: {
       strategyName: "Moving Average Crossover",
@@ -110,173 +53,160 @@ const EditStrategy = () => {
       maxBuyVolume: "5000"
     }
   });
-  
-  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
-    {
+  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
+    id: 1,
+    logic: "AND",
+    inequalities: [{
       id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "20"
         }
-      }, {
-        id: 2,
-        left: {
-          type: "price",
-          value: "Close"
-        },
-        condition: "Greater Than",
-        right: {
-          type: "value",
-          value: "200"
+      },
+      condition: "Crosses Above",
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "50"
         }
-      }]
-    },
-    {
+      }
+    }, {
       id: 2,
-      logic: "OR",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "RSI",
-          parameters: {
-            period: "14"
-          }
-        },
-        condition: "Less Than",
-        right: {
-          type: "value",
-          value: "30"
-        }
-      }, {
-        id: 2,
-        left: {
-          type: "indicator",
-          indicator: "Volume",
-          parameters: {
-            period: "5"
-          }
-        },
-        condition: "Greater Than",
-        right: {
-          type: "indicator",
-          indicator: "Volume MA",
-          parameters: {
-            period: "20"
-          }
-        }
-      }]
-    }
-  ]);
-  
-  const [exitRules, setExitRules] = useState<RuleGroupData[]>([
-    {
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Greater Than",
+      right: {
+        type: "value",
+        value: "200"
+      }
+    }]
+  }, {
+    id: 2,
+    logic: "OR",
+    inequalities: [{
       id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
+      left: {
+        type: "indicator",
+        indicator: "RSI",
+        parameters: {
+          period: "14"
         }
-      }, {
-        id: 2,
-        left: {
-          type: "indicator",
-          indicator: "MACD",
-          parameters: {
-            fast: "12",
-            slow: "26",
-            signal: "9"
-          }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "value",
-          value: "0"
-        }
-      }]
-    },
-    {
+      },
+      condition: "Less Than",
+      right: {
+        type: "value",
+        value: "30"
+      }
+    }, {
       id: 2,
-      logic: "OR",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "price",
-          value: "Close"
-        },
-        condition: "Less Than",
-        right: {
-          type: "value",
-          value: "145.50"
+      left: {
+        type: "indicator",
+        indicator: "Volume",
+        parameters: {
+          period: "5"
         }
-      }, {
-        id: 2,
-        left: {
-          type: "price",
-          value: "Close"
-        },
-        condition: "Greater Than",
-        right: {
-          type: "value",
-          value: "175.25"
+      },
+      condition: "Greater Than",
+      right: {
+        type: "indicator",
+        indicator: "Volume MA",
+        parameters: {
+          period: "20"
         }
-      }]
-    }
-  ]);
-
+      }
+    }]
+  }]);
+  const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
+    id: 1,
+    logic: "AND",
+    inequalities: [{
+      id: 1,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "20"
+        }
+      },
+      condition: "Crosses Below",
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "50"
+        }
+      }
+    }, {
+      id: 2,
+      left: {
+        type: "indicator",
+        indicator: "MACD",
+        parameters: {
+          fast: "12",
+          slow: "26",
+          signal: "9"
+        }
+      },
+      condition: "Crosses Below",
+      right: {
+        type: "value",
+        value: "0"
+      }
+    }]
+  }, {
+    id: 2,
+    logic: "OR",
+    inequalities: [{
+      id: 1,
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Less Than",
+      right: {
+        type: "value",
+        value: "145.50"
+      }
+    }, {
+      id: 2,
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Greater Than",
+      right: {
+        type: "value",
+        value: "175.25"
+      }
+    }]
+  }]);
   useEffect(() => {
     if (marketAssets[market] && marketAssets[market].length > 0) {
       setTargetAsset(marketAssets[market][0]);
     }
   }, [market]);
-
   const handleCancel = () => {
     navigate(-1);
   };
-
   const handleSave = () => {
     toast({
       title: "Strategy updated",
-      description: "Your strategy has been successfully updated.",
+      description: "Your strategy has been successfully updated."
     });
     navigate(-1);
   };
-  
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
       title: checked ? "Strategy activated" : "Strategy deactivated",
-      description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`,
+      description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`
     });
   };
-  
   const addEntryRule = () => {
     const updatedRules = [...entryRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -299,12 +229,10 @@ const EditStrategy = () => {
           }
         }
       };
-      
       updatedRules[0].inequalities.push(newRule);
       setEntryRules(updatedRules);
     }
   };
-  
   const addExitRule = () => {
     const updatedRules = [...exitRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -327,12 +255,10 @@ const EditStrategy = () => {
           }
         }
       };
-      
       updatedRules[0].inequalities.push(newRule);
       setExitRules(updatedRules);
     }
   };
-  
   const removeEntryRule = (id: number) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -340,7 +266,6 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
-  
   const removeExitRule = (id: number) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -348,33 +273,27 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
-  
   const updateEntryRule = (id: number, field: string, value: string) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
-      inequalities: group.inequalities.map(rule => 
-        rule.id === id 
-          ? { ...rule, [field]: value } 
-          : rule
-      )
+      inequalities: group.inequalities.map(rule => rule.id === id ? {
+        ...rule,
+        [field]: value
+      } : rule)
     }));
     setEntryRules(updatedRules);
   };
-  
   const updateExitRule = (id: number, field: string, value: string) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
-      inequalities: group.inequalities.map(rule => 
-        rule.id === id 
-          ? { ...rule, [field]: value } 
-          : rule
-      )
+      inequalities: group.inequalities.map(rule => rule.id === id ? {
+        ...rule,
+        [field]: value
+      } : rule)
     }));
     setExitRules(updatedRules);
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
@@ -388,7 +307,7 @@ const EditStrategy = () => {
             <h1 className="text-2xl font-bold">Edit Strategy</h1>
           </div>
           
-          <p className="text-muted-foreground mb-6">Modify your trading strategy settings</p>
+          
           
           <div className="flex justify-end mb-6 gap-2">
             <Button variant="outline" onClick={handleCancel} className="gap-2">
@@ -407,23 +326,12 @@ const EditStrategy = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="name">Strategy Name</Label>
-                  <Input 
-                    id="name" 
-                    value={strategyName} 
-                    onChange={(e) => setStrategyName(e.target.value)} 
-                    className="mt-1"
-                  />
+                  <Input id="name" value={strategyName} onChange={e => setStrategyName(e.target.value)} className="mt-1" />
                 </div>
                 
                 <div>
                   <Label htmlFor="description">Description</Label>
-                  <Textarea 
-                    id="description" 
-                    value={description} 
-                    onChange={(e) => setDescription(e.target.value)} 
-                    className="mt-1 resize-none"
-                    rows={3}
-                  />
+                  <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="mt-1 resize-none" rows={3} />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -466,19 +374,14 @@ const EditStrategy = () => {
                 
                 <div>
                   <Label htmlFor="asset">Target Asset</Label>
-                  <Select 
-                    value={targetAsset} 
-                    onValueChange={setTargetAsset}
-                  >
+                  <Select value={targetAsset} onValueChange={setTargetAsset}>
                     <SelectTrigger id="asset" className="mt-1">
                       <SelectValue placeholder="Select Target Asset" />
                     </SelectTrigger>
                     <SelectContent>
-                      {marketAssets[market]?.map((asset) => (
-                        <SelectItem key={asset} value={asset}>
+                      {marketAssets[market]?.map(asset => <SelectItem key={asset} value={asset}>
                           {asset}
-                        </SelectItem>
-                      ))}
+                        </SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -511,54 +414,22 @@ const EditStrategy = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="stopLoss">Stop Loss (%)</Label>
-                <Input 
-                  id="stopLoss" 
-                  type="number" 
-                  min="0" 
-                  step="0.1" 
-                  value={stopLoss} 
-                  onChange={(e) => setStopLoss(e.target.value)}
-                  className="mt-1" 
-                />
+                <Input id="stopLoss" type="number" min="0" step="0.1" value={stopLoss} onChange={e => setStopLoss(e.target.value)} className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="takeProfit">Take Profit (%)</Label>
-                <Input 
-                  id="takeProfit" 
-                  type="number" 
-                  min="0" 
-                  step="0.1" 
-                  value={takeProfit} 
-                  onChange={(e) => setTakeProfit(e.target.value)}
-                  className="mt-1" 
-                />
+                <Input id="takeProfit" type="number" min="0" step="0.1" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} className="mt-1" />
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
               <div>
                 <Label htmlFor="singleBuyVolume">Single Buy Volume ($)</Label>
-                <Input 
-                  id="singleBuyVolume" 
-                  type="number" 
-                  min="0" 
-                  step="100" 
-                  value={singleBuyVolume} 
-                  onChange={(e) => setSingleBuyVolume(e.target.value)}
-                  className="mt-1" 
-                />
+                <Input id="singleBuyVolume" type="number" min="0" step="100" value={singleBuyVolume} onChange={e => setSingleBuyVolume(e.target.value)} className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="maxBuyVolume">Max Buy Volume ($)</Label>
-                <Input 
-                  id="maxBuyVolume" 
-                  type="number" 
-                  min="0" 
-                  step="100" 
-                  value={maxBuyVolume} 
-                  onChange={(e) => setMaxBuyVolume(e.target.value)}
-                  className="mt-1" 
-                />
+                <Input id="maxBuyVolume" type="number" min="0" step="100" value={maxBuyVolume} onChange={e => setMaxBuyVolume(e.target.value)} className="mt-1" />
               </div>
             </div>
           </Card>
@@ -570,19 +441,11 @@ const EditStrategy = () => {
             <TradingRules entryRules={entryRules} exitRules={exitRules} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={addEntryRule}
-              >
+              <Button variant="outline" className="w-full" onClick={addEntryRule}>
                 <Plus className="h-4 w-4 mr-2" /> Add Entry Rule
               </Button>
               
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={addExitRule}
-              >
+              <Button variant="outline" className="w-full" onClick={addExitRule}>
                 <Plus className="h-4 w-4 mr-2" /> Add Exit Rule
               </Button>
             </div>
@@ -595,8 +458,6 @@ const EditStrategy = () => {
           </Card>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default EditStrategy;

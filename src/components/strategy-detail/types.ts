@@ -1,4 +1,5 @@
 
+
 export type IndicatorParameters = {
   period?: string;
   fast?: string;
@@ -11,6 +12,7 @@ export type InequalitySide = {
   indicator?: string;
   parameters?: IndicatorParameters;
   value?: string;
+  valueType?: string; // Added for MACD value type (MACD Line, Signal, Histogram)
 };
 
 export type Inequality = {

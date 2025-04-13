@@ -5,11 +5,13 @@ import { IndicatorParameters } from "./types";
 interface IndicatorParameterProps {
   indicator: string;
   parameters: IndicatorParameters;
+  valueType?: string;
 }
 
 export const IndicatorParameter = ({
   indicator,
-  parameters
+  parameters,
+  valueType
 }: IndicatorParameterProps) => {
   if (indicator === "MACD") {
     return (
@@ -17,7 +19,7 @@ export const IndicatorParameter = ({
         <div className="flex items-center gap-1.5">
           <span className="font-medium">{indicator}</span>
           <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5">
-            MACD line
+            {valueType || "MACD Line"}
           </Badge>
         </div>
         <span className="text-xs text-muted-foreground">

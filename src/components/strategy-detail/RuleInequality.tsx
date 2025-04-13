@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
@@ -27,6 +28,7 @@ export const RuleInequality = ({
   const conditions = ["Greater Than", "Less Than", "Crosses Above", "Crosses Below"];
   const valueTypes = ["indicator", "price", "value"];
   const priceValues = ["Open", "High", "Low", "Close"];
+  const macdValueTypes = ["MACD Line", "Signal", "Histogram"];
   
   const startEditing = () => {
     setEditedInequality({...inequality});
@@ -96,6 +98,7 @@ export const RuleInequality = ({
         <IndicatorParameter 
           indicator={side.indicator || ""} 
           parameters={side.parameters || {}} 
+          valueType={side.valueType}
         />
       );
     } else if (side.type === "price") {
@@ -171,38 +174,56 @@ export const RuleInequality = ({
               </SelectContent>
             </Select>
             
-            {/* Parameters */}
-            {side.indicator === "MACD" ? (
-              <div className="grid grid-cols-3 gap-1">
-                <div>
-                  <span className="text-xs">Fast</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.fast || '12'} 
-                    onChange={(e) => updateParameter("fast", e.target.value)}
-                    className="h-8 text-sm"
-                  />
+            {side.indicator === "MACD" && (
+              <>
+                <Select 
+                  value={side.valueType || "MACD Line"} 
+                  onValueChange={(val) => updateSide("valueType", val)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="MACD Value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {macdValueTypes.map(type => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="grid grid-cols-3 gap-1">
+                  <div>
+                    <span className="text-xs">Fast</span>
+                    <Input 
+                      type="text" 
+                      value={side.parameters?.fast || '12'} 
+                      onChange={(e) => updateParameter("fast", e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs">Slow</span>
+                    <Input 
+                      type="text" 
+                      value={side.parameters?.slow || '26'} 
+                      onChange={(e) => updateParameter("slow", e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs">Signal</span>
+                    <Input 
+                      type="text" 
+                      value={side.parameters?.signal || '9'} 
+                      onChange={(e) => updateParameter("signal", e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs">Slow</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.slow || '26'} 
-                    onChange={(e) => updateParameter("slow", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Signal</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.signal || '9'} 
-                    onChange={(e) => updateParameter("signal", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            ) : (
+              </>
+            )}
+            
+            {side.indicator !== "MACD" && (
               <div>
                 <span className="text-xs">Period</span>
                 <Input 

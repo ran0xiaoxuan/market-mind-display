@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,11 @@ const mainTabs = [
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
   const [period, setPeriod] = useState("Last Month");
+  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("30d");
+
+  const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
+    setTimeRange(range);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -34,7 +40,29 @@ const Analytics = () => {
       <main className="flex-1 p-6">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Analytics</h1>
-          <PeriodSelector period={period} onPeriodChange={setPeriod} />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={timeRange === "7d" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => handleTimeRangeChange("7d")}
+            >
+              7 Days
+            </Button>
+            <Button 
+              variant={timeRange === "30d" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => handleTimeRangeChange("30d")}
+            >
+              30 Days
+            </Button>
+            <Button 
+              variant={timeRange === "all" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => handleTimeRangeChange("all")}
+            >
+              All Time
+            </Button>
+          </div>
         </div>
 
         {/* Metrics Summary */}
@@ -86,9 +114,8 @@ const Analytics = () => {
                       <h3 className="text-lg font-semibold">Equity Curve</h3>
                       <p className="text-sm text-muted-foreground">Portfolio performance over time</p>
                     </div>
-                    <Button variant="outline" size="sm">Last 30 Days</Button>
                   </div>
-                  <ChartPlaceholder title="Equity curve data not available" />
+                  <PerformanceChart type="equity" timeRange={timeRange} />
                 </Card>
                 
                 <Card className="p-6">
@@ -97,9 +124,8 @@ const Analytics = () => {
                       <h3 className="text-lg font-semibold">Monthly Returns</h3>
                       <p className="text-sm text-muted-foreground">Performance by month</p>
                     </div>
-                    <Button variant="outline" size="sm">2024</Button>
                   </div>
-                  <ChartPlaceholder title="Monthly returns data not available" />
+                  <PerformanceChart type="returns" timeRange={timeRange} />
                 </Card>
               </div>
 
@@ -120,7 +146,7 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Performance Comparison</h3>
                   <p className="text-sm text-muted-foreground mb-4">Strategy returns over time</p>
-                  <ChartPlaceholder title="Comparison chart not available" />
+                  <PerformanceChart type="equity" timeRange={timeRange} />
                 </Card>
                 
                 <StrategyRankings />
@@ -143,13 +169,13 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Volatility Analysis</h3>
                   <p className="text-sm text-muted-foreground mb-4">Historical volatility compared to benchmark</p>
-                  <ChartPlaceholder title="Volatility chart not available" />
+                  <PerformanceChart type="volatility" timeRange={timeRange} />
                 </Card>
                 
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Drawdown Analysis</h3>
                   <p className="text-sm text-muted-foreground mb-4">Historical drawdowns over time</p>
-                  <ChartPlaceholder title="Drawdown chart not available" />
+                  <PerformanceChart type="drawdown" timeRange={timeRange} />
                 </Card>
               </div>
 
@@ -197,7 +223,12 @@ const Analytics = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Trade Distribution</h3>
                   <p className="text-sm text-muted-foreground mb-4">Distribution of trade profits and losses</p>
-                  <ChartPlaceholder title="Trade distribution chart not available" />
+                  <PerformanceChart 
+                    type="returns" 
+                    timeRange={timeRange}
+                    title="Trade P&L Distribution"
+                    description="Distribution of profitable and unprofitable trades"
+                  />
                 </Card>
                 
                 <Card className="p-6">

@@ -1,4 +1,3 @@
-
 import { 
   Table, 
   TableHeader, 
@@ -58,9 +57,7 @@ const getColorClass = (value: string, columns: string[] = ['return', 'maxDrawdow
     if (value.startsWith("-")) return "text-red-600";
   }
   if (columns.includes('sharpe') || columns.includes('profitFactor')) {
-    const numValue = parseFloat(value);
-    if (numValue > 1) return "text-green-600";
-    if (numValue < 1) return "text-red-600";
+    return "text-black";
   }
   return "";
 };

@@ -36,13 +36,13 @@ export function Navbar() {
             Dashboard
           </Link>
           
-          {/* AI Strategy button - now after Dashboard */}
+          {/* AI Strategy button - now with black-gray-white gradient */}
           <Link to="/ai-strategy">
             <Button 
               variant="ghost" 
               className={cn(
-                "bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1",
-                location.pathname === "/ai-strategy" ? "ring-2 ring-purple-300" : ""
+                "bg-gradient-to-r from-black via-gray-500 to-white text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1",
+                location.pathname === "/ai-strategy" ? "ring-2 ring-gray-400" : ""
               )}
             >
               AI Strategy

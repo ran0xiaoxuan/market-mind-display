@@ -68,7 +68,7 @@ const Analytics = () => {
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold">Returns Analyze</h3>
+                      <h3 className="text-lg font-semibold">Returns Analysis</h3>
                       <p className="text-sm text-muted-foreground">Return Performance in details</p>
                     </div>
                   </div>

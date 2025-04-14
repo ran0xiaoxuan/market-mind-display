@@ -275,12 +275,7 @@ const EditHistory = () => {
                             <div>{version.name}</div>
                           </div>
                           
-                          <div>
-                            <div className="text-sm font-medium mb-1">Status</div>
-                            <Badge variant={version.status === "active" ? "default" : "secondary"} className={version.status === "active" ? "bg-green-500" : ""}>
-                              {version.status.charAt(0).toUpperCase() + version.status.slice(1)}
-                            </Badge>
-                          </div>
+                          
                           
                           <div>
                             <div className="text-sm font-medium mb-1">Description</div>

@@ -80,15 +80,7 @@ const Analytics = () => {
             </div>}
 
           {currentTab === "Strategy Comparison" && <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                
-                
-              </div>
-              
-              
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                
                 <StrategyRankings />
               </div>
 

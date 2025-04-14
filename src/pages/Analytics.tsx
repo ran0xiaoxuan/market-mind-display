@@ -81,17 +81,13 @@ const Analytics = () => {
 
           {currentTab === "Strategy Comparison" && <div className="space-y-8">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Strategy Comparison</h2>
-                <Button variant="outline" size="sm">Total Return</Button>
+                
+                
               </div>
-              <p className="text-sm text-muted-foreground -mt-6">Compare performance across different strategies</p>
+              
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Performance Comparison</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Strategy returns over time</p>
-                  <PerformanceChart type="equity" timeRange={timeRange} />
-                </Card>
+                
                 
                 <StrategyRankings />
               </div>

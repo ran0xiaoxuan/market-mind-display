@@ -15,14 +15,18 @@ import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { FileDown } from "lucide-react";
+
 const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Market Correlation", "Trade Analysis"];
+
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
   const [period, setPeriod] = useState("Last Month");
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("30d");
+
   const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
     setTimeRange(range);
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -82,9 +86,8 @@ const Analytics = () => {
           {currentTab === "Strategy Comparison" && <div className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <StrategyRankings />
+                <StrategyComparisonTable />
               </div>
-
-              <StrategyComparisonTable />
             </div>}
 
           {currentTab === "Risk Analysis" && <div className="space-y-8">
@@ -162,4 +165,5 @@ const Analytics = () => {
       </main>
     </div>;
 };
+
 export default Analytics;

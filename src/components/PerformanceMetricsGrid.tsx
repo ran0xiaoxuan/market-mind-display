@@ -3,7 +3,7 @@ import { Separator } from "@/components/ui/separator";
 export function PerformanceMetricsGrid() {
   return <Card className="p-6">
       <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
-      <p className="text-sm text-muted-foreground mb-6">Key performance</p>
+      <p className="text-sm text-muted-foreground mb-6">Key performance in details</p>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Returns Section */}

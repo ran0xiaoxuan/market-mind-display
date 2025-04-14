@@ -27,7 +27,7 @@ const strategies: Strategy[] = [{
   color: "bg-orange-500"
 }];
 export function StrategyRankings() {
-  return <Card className="p-6 px-[24px] w-full">
+  return <Card className="p-6 px-[24px]">
       <h3 className="text-lg font-semibold mb-4">Strategy Rankings</h3>
       <p className="text-sm text-muted-foreground mb-6">Strategies ranked by performance</p>
       

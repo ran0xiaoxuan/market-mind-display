@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -84,9 +85,13 @@ const Analytics = () => {
             </div>}
 
           {currentTab === "Strategy Comparison" && <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <StrategyRankings />
-                <StrategyComparisonTable />
+              <div className="grid grid-cols-5 gap-8">
+                <div className="col-span-2">
+                  <StrategyRankings />
+                </div>
+                <div className="col-span-3">
+                  <StrategyComparisonTable />
+                </div>
               </div>
             </div>}
 

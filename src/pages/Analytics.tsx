@@ -1,28 +1,28 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { MetricSummary } from "@/components/MetricSummary";
 import { AnalyticsTabs } from "@/components/AnalyticsTabs";
-import { ChartPlaceholder } from "@/components/ChartPlaceholder";
 import { Card } from "@/components/ui/card";
 import { PerformanceChart } from "@/components/PerformanceChart";
-import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { PerformanceMetricsGrid } from "@/components/PerformanceMetricsGrid";
 import { ValueAtRisk } from "@/components/ValueAtRisk";
 import { StrategyRankings } from "@/components/StrategyRankings";
 import { StrategyComparisonTable } from "@/components/StrategyComparisonTable";
-import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
-import { PeriodSelector } from "@/components/PeriodSelector";
-import { FileDown } from "lucide-react";
-const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Market Correlation", "Trade Analysis"];
+
+// Remove "Market Correlation" from the tabs
+const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Trade Analysis"];
+
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
-  const [period, setPeriod] = useState("Last Month");
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("30d");
+  
   const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
     setTimeRange(range);
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -91,9 +91,6 @@ const Analytics = () => {
             </div>}
 
           {currentTab === "Risk Analysis" && <div className="space-y-8">
-              
-              
-              
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Volatility Analysis</h3>
@@ -111,18 +108,12 @@ const Analytics = () => {
               <ValueAtRisk />
             </div>}
 
-          {currentTab === "Market Correlation"}
-
           {currentTab === "Trade Analysis" && <div className="space-y-8">
-              
-              
-              
-              
-
               <RecentTrades />
             </div>}
         </div>
       </main>
     </div>;
 };
+
 export default Analytics;

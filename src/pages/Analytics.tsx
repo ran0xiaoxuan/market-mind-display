@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -16,18 +15,14 @@ import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { FileDown } from "lucide-react";
-
 const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Market Correlation", "Trade Analysis"];
-
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
   const [period, setPeriod] = useState("Last Month");
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("30d");
-
   const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
     setTimeRange(range);
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -96,11 +91,8 @@ const Analytics = () => {
             </div>}
 
           {currentTab === "Risk Analysis" && <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Risk Analysis</h2>
-                <Button variant="outline" size="sm">Export Report</Button>
-              </div>
-              <p className="text-sm text-muted-foreground -mt-6">Analyze portfolio risk metrics and exposure</p>
+              
+              
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="p-6">
@@ -170,5 +162,4 @@ const Analytics = () => {
       </main>
     </div>;
 };
-
 export default Analytics;

@@ -136,25 +136,10 @@ const Analytics = () => {
             </div>}
 
           {currentTab === "Trade Analysis" && <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Trade Analysis</h2>
-                <Button variant="outline" size="sm">All Strategies</Button>
-              </div>
-              <p className="text-sm text-muted-foreground -mt-6">Analyze trading patterns and performance</p>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Trade Distribution</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Distribution of trade profits and losses</p>
-                  <PerformanceChart type="returns" timeRange={timeRange} title="Trade P&L Distribution" description="Distribution of profitable and unprofitable trades" />
-                </Card>
-                
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Trade Timing</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Analysis of trade timing patterns</p>
-                  <PerformanceChart type="equity" timeRange={timeRange} title="Trade Timing Analysis" description="Performance based on trade timing" />
-                </Card>
-              </div>
+              
+              
+              
 
               <RecentTrades />
             </div>}

@@ -228,19 +228,7 @@ const EditHistory = () => {
                   </Table>
                 </div>
                 
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Status</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted/20 rounded-md">
-                      <div className="text-sm font-medium text-muted-foreground mb-1">{comparisonVersions[0]?.version}</div>
-                      <div>{comparisonVersions[0]?.status}</div>
-                    </div>
-                    <div className="p-4 bg-muted/20 rounded-md">
-                      <div className="text-sm font-medium text-muted-foreground mb-1">{comparisonVersions[1]?.version}</div>
-                      <div>{comparisonVersions[1]?.status}</div>
-                    </div>
-                  </div>
-                </div>
+                
               </div>
             </Card> : <div className="space-y-4">
               {versions.map(version => <Card key={version.version} className="overflow-hidden">

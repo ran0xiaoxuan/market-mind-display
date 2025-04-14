@@ -83,7 +83,7 @@ export function RecentTrades() {
       </Table>
 
       <div className="p-4 flex justify-center">
-        <Button variant="outline">View All Trades</Button>
+        
       </div>
     </Card>;
 }

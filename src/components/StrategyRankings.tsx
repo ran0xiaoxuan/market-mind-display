@@ -37,7 +37,15 @@ export function StrategyRankings() {
               <div className={`h-3 w-3 rounded-full mr-3 ${strategy.color}`} />
               <span className="text-sm font-medium">{strategy.name}</span>
             </div>
-            <span className="text-sm font-semibold">{strategy.return}</span>
+            <span className={`text-sm font-semibold ${
+              strategy.return.startsWith("+") 
+                ? "text-green-600" 
+                : strategy.return.startsWith("-") 
+                  ? "text-red-600" 
+                  : ""
+            }`}>
+              {strategy.return}
+            </span>
           </div>)}
       </div>
     </Card>;

@@ -69,7 +69,7 @@ const Analytics = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold">Returns Analysis</h3>
-                      <p className="text-sm text-muted-foreground">Return Performance in details</p>
+                      <p className="text-sm text-muted-foreground">Return Performance over time</p>
                     </div>
                   </div>
                   <PerformanceChart type="returns" timeRange={timeRange} />

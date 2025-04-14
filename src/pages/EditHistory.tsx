@@ -1,26 +1,12 @@
-
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
 interface VersionData {
   version: string;
   date: string;
@@ -34,90 +20,82 @@ interface VersionData {
   isLatest?: boolean;
   isSelected?: boolean;
 }
-
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
-
 const EditHistory = () => {
-  const { strategyId } = useParams<{ strategyId: string }>();
+  const {
+    strategyId
+  } = useParams<{
+    strategyId: string;
+  }>();
   const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
-  
-  const [versions, setVersions] = useState<VersionData[]>([
-    {
-      version: "v1.2",
-      date: "Mar 28, 2024",
-      time: "10:30 PM",
-      name: "RSI Strategy v2",
-      description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
-      parameters: {
-        "period": 14,
-        "overbought": 70,
-        "oversold": 30
-      },
-      status: "active",
-      isLatest: true,
-      isSelected: true
+  const [versions, setVersions] = useState<VersionData[]>([{
+    version: "v1.2",
+    date: "Mar 28, 2024",
+    time: "10:30 PM",
+    name: "RSI Strategy v2",
+    description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
+    parameters: {
+      "period": 14,
+      "overbought": 70,
+      "oversold": 30
     },
-    {
-      version: "v1.1",
-      date: "Mar 25, 2024",
-      time: "06:15 PM",
-      name: "RSI Strategy",
-      description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
-      parameters: {
-        "period": 12,
-        "overbought": 75,
-        "oversold": 30
-      },
-      status: "active",
-      isSelected: true
+    status: "active",
+    isLatest: true,
+    isSelected: true
+  }, {
+    version: "v1.1",
+    date: "Mar 25, 2024",
+    time: "06:15 PM",
+    name: "RSI Strategy",
+    description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
+    parameters: {
+      "period": 12,
+      "overbought": 75,
+      "oversold": 30
     },
-    {
-      version: "v1.0",
-      date: "Mar 20, 2024",
-      time: "05:45 PM",
-      name: "RSI Strategy Initial",
-      description: "Initial implementation of RSI strategy.",
-      parameters: {
-        "period": 14,
-        "overbought": 70,
-        "oversold": 30
-      },
-      status: "inactive"
+    status: "active",
+    isSelected: true
+  }, {
+    version: "v1.0",
+    date: "Mar 20, 2024",
+    time: "05:45 PM",
+    name: "RSI Strategy Initial",
+    description: "Initial implementation of RSI strategy.",
+    parameters: {
+      "period": 14,
+      "overbought": 70,
+      "oversold": 30
     },
-    {
-      version: "v0.1",
-      date: "Mar 16, 2024",
-      time: "12:20 AM",
-      name: "RSI Draft",
-      description: "Draft version of RSI strategy.",
-      parameters: {
-        "period": 10,
-        "overbought": 80,
-        "oversold": 20
-      },
-      status: "inactive"
-    }
-  ]);
-  
+    status: "inactive"
+  }, {
+    version: "v0.1",
+    date: "Mar 16, 2024",
+    time: "12:20 AM",
+    name: "RSI Draft",
+    description: "Draft version of RSI strategy.",
+    parameters: {
+      "period": 10,
+      "overbought": 80,
+      "oversold": 20
+    },
+    status: "inactive"
+  }]);
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>({
     active: false,
     selectedVersions: ["v1.2", "v1.1"]
   });
-
   const [openVersions, setOpenVersions] = useState<Record<string, boolean>>({
     "v1.2": true
   });
-  
   const toggleVersionDetails = (version: string) => {
     setOpenVersions(prev => ({
       ...prev,
       [version]: !prev[version]
     }));
   };
-  
   const handleSelectForComparison = (version: string) => {
     setComparisonMode(prev => {
       // If already selected, remove it
@@ -127,7 +105,7 @@ const EditHistory = () => {
           selectedVersions: prev.selectedVersions.filter(v => v !== version)
         };
       }
-      
+
       // If not selected and less than 2 versions are selected, add it
       if (prev.selectedVersions.length < 2) {
         return {
@@ -135,7 +113,7 @@ const EditHistory = () => {
           selectedVersions: [...prev.selectedVersions, version]
         };
       }
-      
+
       // Replace the second selected version
       return {
         ...prev,
@@ -143,37 +121,29 @@ const EditHistory = () => {
       };
     });
   };
-  
   const handleCompareSelectedVersions = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: true
     }));
   };
-  
   const handleExitCompareMode = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: false
     }));
   };
-  
   const handleRevert = (version: string) => {
     // Implement revert functionality here
     console.log(`Reverting to version ${version}`);
   };
 
   // Get the two versions for comparison
-  const comparisonVersions = versions.filter(v => 
-    comparisonMode.selectedVersions.includes(v.version)
-  ).sort((a, b) => {
+  const comparisonVersions = versions.filter(v => comparisonMode.selectedVersions.includes(v.version)).sort((a, b) => {
     // Ensure v1.2 is first, v1.1 second
-    return comparisonMode.selectedVersions.indexOf(a.version) - 
-           comparisonMode.selectedVersions.indexOf(b.version);
+    return comparisonMode.selectedVersions.indexOf(a.version) - comparisonMode.selectedVersions.indexOf(b.version);
   });
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -188,22 +158,17 @@ const EditHistory = () => {
                 <p className="text-muted-foreground">View and manage the edit history for {strategyName}</p>
               </div>
               
-              {!comparisonMode.active && comparisonMode.selectedVersions.length === 2 && (
-                <Button onClick={handleCompareSelectedVersions}>
+              {!comparisonMode.active && comparisonMode.selectedVersions.length === 2 && <Button onClick={handleCompareSelectedVersions}>
                   Compare Selected Versions
-                </Button>
-              )}
+                </Button>}
               
-              {comparisonMode.active && (
-                <Button variant="outline" onClick={handleExitCompareMode}>
+              {comparisonMode.active && <Button variant="outline" onClick={handleExitCompareMode}>
                   Exit Compare Mode
-                </Button>
-              )}
+                </Button>}
             </div>
           </div>
           
-          {comparisonMode.active ? (
-            <Card className="p-6">
+          {comparisonMode.active ? <Card className="p-6">
               <div className="mb-4">
                 <h2 className="text-2xl font-semibold">Version Comparison</h2>
                 <p className="text-muted-foreground">
@@ -251,13 +216,14 @@ const EditHistory = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.keys({...comparisonVersions[0]?.parameters, ...comparisonVersions[1]?.parameters}).map((param) => (
-                        <TableRow key={param}>
+                      {Object.keys({
+                    ...comparisonVersions[0]?.parameters,
+                    ...comparisonVersions[1]?.parameters
+                  }).map(param => <TableRow key={param}>
                           <TableCell className="font-medium">{param}</TableCell>
                           <TableCell>{comparisonVersions[0]?.parameters[param]}</TableCell>
                           <TableCell>{comparisonVersions[1]?.parameters[param]}</TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
                   </Table>
                 </div>
@@ -276,11 +242,8 @@ const EditHistory = () => {
                   </div>
                 </div>
               </div>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {versions.map((version) => (
-                <Card key={version.version} className="overflow-hidden">
+            </Card> : <div className="space-y-4">
+              {versions.map(version => <Card key={version.version} className="overflow-hidden">
                   <div className="p-6 pb-4">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-3">
@@ -288,18 +251,9 @@ const EditHistory = () => {
                         <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {version.isSelected ? (
-                          <Button variant="default" size="sm" className="bg-black hover:bg-black/90">Selected</Button>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            disabled={comparisonMode.selectedVersions.length >= 2 && !comparisonMode.selectedVersions.includes(version.version)}
-                            onClick={() => handleSelectForComparison(version.version)}
-                          >
+                        {version.isSelected ? <Button variant="default" size="sm" className="bg-black hover:bg-black/90">Selected</Button> : <Button variant="outline" size="sm" disabled={comparisonMode.selectedVersions.length >= 2 && !comparisonMode.selectedVersions.includes(version.version)} onClick={() => handleSelectForComparison(version.version)}>
                             Select for Comparison
-                          </Button>
-                        )}
+                          </Button>}
                         <Button variant="outline" size="sm" onClick={() => handleRevert(version.version)}>
                           <RotateCcw className="h-4 w-4" />
                           <span className="ml-1">Revert</span>
@@ -308,22 +262,14 @@ const EditHistory = () => {
                     </div>
                     
                     <div className="mt-4">
-                      <div 
-                        className="flex justify-between items-center py-2 cursor-pointer"
-                        onClick={() => toggleVersionDetails(version.version)}
-                      >
-                        <div className="font-medium">View Version Details</div>
+                      <div className="flex justify-between items-center py-2 cursor-pointer" onClick={() => toggleVersionDetails(version.version)}>
+                        <div className="font-medium rounded-sm">View Version Details</div>
                         <div>
-                          {openVersions[version.version] ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
+                          {openVersions[version.version] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </div>
                       </div>
                       
-                      {openVersions[version.version] && (
-                        <div className="mt-2 space-y-6">
+                      {openVersions[version.version] && <div className="mt-2 space-y-6">
                           <div>
                             <div className="text-sm font-medium mb-1">Name</div>
                             <div>{version.name}</div>
@@ -351,27 +297,20 @@ const EditHistory = () => {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {Object.entries(version.parameters).map(([key, value]) => (
-                                  <TableRow key={key}>
+                                {Object.entries(version.parameters).map(([key, value]) => <TableRow key={key}>
                                     <TableCell>{key}</TableCell>
                                     <TableCell>{value}</TableCell>
-                                  </TableRow>
-                                ))}
+                                  </TableRow>)}
                               </TableBody>
                             </Table>
                           </div>
-                        </div>
-                      )}
+                        </div>}
                     </div>
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                </Card>)}
+            </div>}
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default EditHistory;

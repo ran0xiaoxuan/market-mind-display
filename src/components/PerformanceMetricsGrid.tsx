@@ -29,7 +29,7 @@ export function PerformanceMetricsGrid() {
           </div>
         </div>
 
-        <Separator orientation="vertical" className="hidden md:block" />
+        
 
         {/* Risk Metrics Section */}
         <div className="space-y-4 px-0">
@@ -54,7 +54,7 @@ export function PerformanceMetricsGrid() {
           </div>
         </div>
 
-        <Separator orientation="vertical" className="hidden md:block" />
+        
 
         {/* Trading Stats Section */}
         <div className="space-y-4 px-0">

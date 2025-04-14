@@ -111,29 +111,7 @@ const Analytics = () => {
               <ValueAtRisk />
             </div>}
 
-          {currentTab === "Market Correlation" && <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Market Correlation</h2>
-                <Button variant="outline" size="sm">All Markets</Button>
-              </div>
-              <p className="text-sm text-muted-foreground -mt-6">Analyze correlations between strategies and market indices</p>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Correlation Matrix</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Correlation between strategies and indices</p>
-                  <PerformanceChart type="volatility" timeRange={timeRange} title="Asset Correlation" description="Correlation between selected assets" />
-                </Card>
-                
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Sector Exposure</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Portfolio allocation by sector</p>
-                  <PerformanceChart type="returns" timeRange={timeRange} title="Sector Performance" description="Performance by market sector" />
-                </Card>
-              </div>
-
-              <AssetCorrelation />
-            </div>}
+          {currentTab === "Market Correlation"}
 
           {currentTab === "Trade Analysis" && <div className="space-y-8">
               

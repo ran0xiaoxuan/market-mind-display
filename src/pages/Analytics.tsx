@@ -15,9 +15,7 @@ import { AssetCorrelation } from "@/components/AssetCorrelation";
 import { RecentTrades } from "@/components/RecentTrades";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { FileDown } from "lucide-react";
-
 const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Market Correlation", "Trade Analysis"];
-
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
   const [period, setPeriod] = useState("Last Month");
@@ -25,7 +23,6 @@ const Analytics = () => {
   const handleTimeRangeChange = (range: "7d" | "30d" | "all") => {
     setTimeRange(range);
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -71,8 +68,8 @@ const Analytics = () => {
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold">Monthly Returns</h3>
-                      <p className="text-sm text-muted-foreground">Performance by month</p>
+                      <h3 className="text-lg font-semibold">Returns Analyze</h3>
+                      <p className="text-sm text-muted-foreground">Return Performance in details</p>
                     </div>
                   </div>
                   <PerformanceChart type="returns" timeRange={timeRange} />
@@ -177,5 +174,4 @@ const Analytics = () => {
       </main>
     </div>;
 };
-
 export default Analytics;

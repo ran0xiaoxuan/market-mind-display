@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { 
   ChartContainer, 
@@ -219,7 +218,7 @@ export function PerformanceChart({
             <YAxis tickFormatter={(value) => `${value}%`} />
             <Tooltip content={({ active, payload }) => {
               if (active && payload && payload.length) {
-                const value = payload[0].value as number;
+                const value = payload[0]?.value as number;
                 const benchmarkValue = payload[1]?.value as number;
                 const isPositive = value >= 0;
                 const isBenchmarkPositive = benchmarkValue >= 0;
@@ -230,13 +229,13 @@ export function PerformanceChart({
                       <div className="flex items-center gap-2">
                         <div className={`h-2 w-2 rounded ${isPositive ? "bg-green-600" : "bg-red-600"}`} />
                         <span className={isPositive ? "text-green-600" : "text-red-600"}>
-                          Strategy: {value.toLocaleString()}%
+                          Strategy: {value?.toLocaleString ? value.toLocaleString() : 0}%
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className={`h-2 w-2 rounded ${isBenchmarkPositive ? "bg-green-600" : "bg-red-600"}`} />
                         <span className={isBenchmarkPositive ? "text-green-600" : "text-red-600"}>
-                          Benchmark: {benchmarkValue.toLocaleString()}%
+                          Benchmark: {benchmarkValue?.toLocaleString ? benchmarkValue.toLocaleString() : 0}%
                         </span>
                       </div>
                     </div>
@@ -284,16 +283,19 @@ export function PerformanceChart({
             <YAxis tickFormatter={(value) => `${value}%`} />
             <Tooltip content={({ active, payload }) => {
               if (active && payload && payload.length) {
+                const strategyValue = payload[0]?.value;
+                const benchmarkValue = payload[1]?.value;
+                
                 return (
                   <div className="rounded-lg border bg-background p-2 shadow-sm">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-primary" />
-                        <span className="font-medium">Strategy: {payload[0].value}%</span>
+                        <span className="font-medium">Strategy: {strategyValue !== undefined ? `${strategyValue}%` : '0%'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-muted-foreground" />
-                        <span className="font-medium">Benchmark: {payload[1].value}%</span>
+                        <span className="font-medium">Benchmark: {benchmarkValue !== undefined ? `${benchmarkValue}%` : '0%'}</span>
                       </div>
                     </div>
                   </div>
@@ -315,21 +317,22 @@ export function PerformanceChart({
             <YAxis tickFormatter={(value) => `${value}%`} />
             <Tooltip content={({ active, payload }) => {
               if (active && payload && payload.length) {
-                const value = payload[0].value as number;
-                const benchmarkValue = payload[1]?.value as number;
+                const value = payload[0]?.value;
+                const benchmarkValue = payload[1]?.value;
+                
                 return (
                   <div className="rounded-lg border bg-background p-2 shadow-sm">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-red-600" />
                         <span className="font-medium text-red-600">
-                          Strategy: {value.toLocaleString()}%
+                          Strategy: {value !== undefined ? `${value.toLocaleString ? value.toLocaleString() : value}%` : '0%'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-red-400" />
                         <span className="font-medium text-red-400">
-                          Benchmark: {benchmarkValue.toLocaleString()}%
+                          Benchmark: {benchmarkValue !== undefined ? `${benchmarkValue.toLocaleString ? benchmarkValue.toLocaleString() : benchmarkValue}%` : '0%'}
                         </span>
                       </div>
                     </div>
@@ -368,10 +371,10 @@ export function PerformanceChart({
             <YAxis tickFormatter={(value) => `${value}%`} />
             <Tooltip content={({ active, payload }) => {
               if (active && payload && payload.length) {
-                const value = payload[0].value as number;
-                const benchmarkValue = payload[1]?.value as number;
-                const isPositive = value >= 0;
-                const isBenchmarkPositive = benchmarkValue >= 0;
+                const value = payload[0]?.value;
+                const benchmarkValue = payload[1]?.value;
+                const isPositive = value !== undefined && value >= 0;
+                const isBenchmarkPositive = benchmarkValue !== undefined && benchmarkValue >= 0;
                 
                 return (
                   <div className="rounded-lg border bg-background p-2 shadow-sm">
@@ -379,13 +382,13 @@ export function PerformanceChart({
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-primary" />
                         <span className={`font-medium ${isPositive ? "text-positive" : "text-negative"}`}>
-                          Strategy: {value.toLocaleString()}%
+                          Strategy: {value !== undefined ? `${value.toLocaleString ? value.toLocaleString() : value}%` : '0%'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-muted-foreground" />
                         <span className={`font-medium ${isBenchmarkPositive ? "text-positive" : "text-negative"}`}>
-                          Benchmark: {benchmarkValue.toLocaleString()}%
+                          Benchmark: {benchmarkValue !== undefined ? `${benchmarkValue.toLocaleString ? benchmarkValue.toLocaleString() : benchmarkValue}%` : '0%'}
                         </span>
                       </div>
                     </div>

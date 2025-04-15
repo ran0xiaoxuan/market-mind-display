@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 
 type PerformanceMetricsProps = {
@@ -10,21 +9,21 @@ type PerformanceMetricsProps = {
 const getEquityMetrics = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [
-      { label: "Total Growth", value: "+3.5%", positive: true },
+      { label: "Total Return", value: "+3.5%", positive: true },
       { label: "Max Drawdown", value: "-1.8%", negative: true },
       { label: "Total Trades", value: "8" },
       { label: "Profitable Trades", value: "6", percentValue: "75%" },
     ];
   } else if (timeRange === "30d") {
     return [
-      { label: "Total Growth", value: "+12.5%", positive: true },
+      { label: "Total Return", value: "+12.5%", positive: true },
       { label: "Max Drawdown", value: "-3.2%", negative: true },
       { label: "Total Trades", value: "18" },
       { label: "Profitable Trades", value: "12", percentValue: "67%" },
     ];
   } else {
     return [
-      { label: "Total Growth", value: "+50.0%", positive: true },
+      { label: "Total Return", value: "+50.0%", positive: true },
       { label: "Max Drawdown", value: "-8.3%", negative: true },
       { label: "Total Trades", value: "25" },
       { label: "Profitable Trades", value: "17", percentValue: "68%" },

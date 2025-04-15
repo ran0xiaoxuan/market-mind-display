@@ -37,12 +37,13 @@ export function Navbar() {
             Dashboard
           </Link>
           
-          {/* AI Strategy button - now with black-white design and Sparkles icon */}
+          {/* AI Strategy button - now with persistent blue hover */}
           <Link to="/ai-strategy">
             <Button 
               variant="ghost" 
               className={cn(
                 "bg-gradient-to-r from-black via-gray-700 to-gray-900 text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-2",
+                "hover:text-blue-500", // Add blue text on hover
                 location.pathname === "/ai-strategy" ? "ring-2 ring-gray-500" : ""
               )}
             >

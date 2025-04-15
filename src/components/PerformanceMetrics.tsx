@@ -90,7 +90,7 @@ export function PerformanceMetrics({ type, timeRange }: PerformanceMetricsProps)
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {equityMetrics.map((metric) => {
-          // Determine if the value is positive or negative based on the first character
+          // Determine color based on value
           const isPositive = metric.value.startsWith("+");
           const isNegative = metric.value.startsWith("-");
           
@@ -98,9 +98,11 @@ export function PerformanceMetrics({ type, timeRange }: PerformanceMetricsProps)
             <div key={metric.label}>
               <p className="text-sm text-muted-foreground">{metric.label}</p>
               <p className={`text-lg font-medium ${
-                metric.label === "Total Growth" 
-                  ? isPositive ? "text-positive" : isNegative ? "text-negative" : ""
-                  : metric.negative ? "text-negative" : ""
+                isPositive 
+                  ? "text-green-600" 
+                  : isNegative 
+                    ? "text-red-600" 
+                    : ""
               }`}>
                 {metric.value}
               </p>

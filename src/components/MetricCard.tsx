@@ -16,13 +16,13 @@ type MetricCardProps = {
 export function MetricCard({ title, value, change, direction, showChart = true }: MetricCardProps) {
   const isPositive = change?.positive || direction === "up";
   
-  // Determine if value is positive or negative based on string prefix
+  // Determine color based on value for Total Return
   let valueColor = "";
-  if (typeof value === "string") {
+  if (title === "Total Return" && typeof value === "string") {
     if (value.startsWith("+")) {
-      valueColor = "text-positive";
+      valueColor = "text-green-600";
     } else if (value.startsWith("-")) {
-      valueColor = "text-negative";
+      valueColor = "text-red-600";
     }
   }
 

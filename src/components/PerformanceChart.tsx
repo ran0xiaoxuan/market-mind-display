@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { 
   ChartContainer, 
@@ -314,8 +315,8 @@ export function PerformanceChart({
                   <div className="rounded-lg border bg-background p-2 shadow-sm">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded bg-primary" />
-                        <span className={`font-medium ${isPositive ? "text-positive" : "text-negative"}`}>
+                        <div className="h-2 w-2 rounded bg-[#26A69A]" />
+                        <span className={`font-medium ${isPositive ? "text-[#26A69A]" : "text-red-600"}`}>
                           {value.toLocaleString()}%
                         </span>
                       </div>

@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { 
   ChartContainer, 
@@ -209,8 +208,8 @@ export function PerformanceChart({
                   <div className="rounded-lg border bg-background p-2 shadow-sm">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded ${isPositive ? "bg-green-600" : "bg-red-600"}`} />
-                        <span className={isPositive ? "text-green-600" : "text-red-600"}>
+                        <div className={`h-2 w-2 rounded ${isPositive ? "bg-[#26A69A]" : "bg-red-600"}`} />
+                        <span className={isPositive ? "text-[#26A69A]" : "text-red-600"}>
                           {value.toLocaleString()}%
                         </span>
                       </div>
@@ -247,7 +246,7 @@ export function PerformanceChart({
                   <div className="rounded-lg border bg-background p-2 shadow-sm">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded bg-primary" />
+                        <div className="h-2 w-2 rounded bg-[#26A69A]" />
                         <span className="font-medium">Strategy: {payload[0].value}%</span>
                       </div>
                       <div className="flex items-center gap-2">

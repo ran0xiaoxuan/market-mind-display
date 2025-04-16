@@ -394,28 +394,27 @@ export function PerformanceChart({
   return (
     <div className={cn(title || description ? "pt-4" : "pt-6", "mx-[20px]")}>
       <div className="flex justify-between items-center px-6 mb-2">
-        <div>
+        <div className="flex items-center gap-4">
           {title && <h3 className="text-lg font-semibold">{title}</h3>}
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          {type === "equity" && showBenchmark && (
+            <div className="w-[180px]">
+              <Select 
+                onValueChange={handleBenchmarkChange}
+                defaultValue={selectedBenchmark}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Select benchmark" />
+                </SelectTrigger>
+                <SelectContent>
+                  {benchmarks.map((benchmark) => (
+                    <SelectItem key={benchmark.id} value={benchmark.id}>{benchmark.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
-        
-        {type === "equity" && showBenchmark && (
-          <div className="w-[180px]">
-            <Select 
-              onValueChange={handleBenchmarkChange}
-              defaultValue={selectedBenchmark}
-            >
-              <SelectTrigger className="h-8">
-                <SelectValue placeholder="Select benchmark" />
-              </SelectTrigger>
-              <SelectContent>
-                {benchmarks.map((benchmark) => (
-                  <SelectItem key={benchmark.id} value={benchmark.id}>{benchmark.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       
       <div className="px-6 py-2">

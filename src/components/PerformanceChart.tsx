@@ -4,6 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+
 type PerformanceChartProps = {
   type?: "equity" | "returns" | "volatility" | "drawdown";
   timeRange: "7d" | "30d" | "all";
@@ -12,6 +13,7 @@ type PerformanceChartProps = {
   description?: string;
   showBenchmark?: boolean;
 };
+
 const benchmarks = [{
   id: "sp500",
   name: "S&P 500"
@@ -25,6 +27,7 @@ const benchmarks = [{
   id: "russell",
   name: "Russell 2000"
 }];
+
 const generateEquityData = (timeRange: "7d" | "30d" | "all", benchmarkId?: string) => {
   let data;
   if (timeRange === "7d") {
@@ -133,6 +136,7 @@ const generateEquityData = (timeRange: "7d" | "30d" | "all", benchmarkId?: strin
   }
   return data;
 };
+
 const generateReturnsData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [{
@@ -214,6 +218,7 @@ const generateReturnsData = (timeRange: "7d" | "30d" | "all") => {
     }];
   }
 };
+
 const generateVolatilityData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [{
@@ -319,6 +324,7 @@ const generateVolatilityData = (timeRange: "7d" | "30d" | "all") => {
     }];
   }
 };
+
 const generateDrawdownData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [{
@@ -400,6 +406,7 @@ const generateDrawdownData = (timeRange: "7d" | "30d" | "all") => {
     }];
   }
 };
+
 export function PerformanceChart({
   type = "equity",
   timeRange,
@@ -424,9 +431,11 @@ export function PerformanceChart({
     default:
       chartData = generateEquityData(timeRange, selectedBenchmark);
   }
+
   const handleBenchmarkChange = (value: string) => {
     setSelectedBenchmark(value);
   };
+
   const renderChart = () => {
     switch (type) {
       case "returns":
@@ -554,7 +563,7 @@ export function PerformanceChart({
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-[#26A69A]" />
                         <span className={`font-medium ${isPositive ? "text-[#26A69A]" : "text-red-600"}`}>
-                          Strategy: {value.toLocaleString()}%
+                          Mine: {value.toLocaleString()}%
                         </span>
                       </div>
                       {selectedBenchmark && payload.length > 1 && <div className="flex items-center gap-2">
@@ -573,6 +582,7 @@ export function PerformanceChart({
           </AreaChart>;
     }
   };
+
   return <div className={cn(title || description ? "pt-4" : "pt-6", "mx-[20px]")}>
     <div className="flex justify-between items-center mb-2 px-0">
       <div className="flex items-center gap-4">

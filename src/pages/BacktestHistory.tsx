@@ -159,11 +159,14 @@ const BacktestHistory = () => {
                     {backtest.date}, {backtest.time}
                   </div>
                   
-                  <div 
-                    className="flex justify-between items-center py-2 cursor-pointer"
+                  <Button
+                    variant="outline" 
+                    className="flex justify-between items-center py-2 w-full md:w-auto"
                     onClick={() => toggleBacktestDetails(backtest.id)}
                   >
-                    <div className="font-medium">View Backtest Details</div>
+                    <div className="font-medium">
+                      {openBacktests[backtest.id] ? "Close Backtest Details" : "View Backtest Details"}
+                    </div>
                     <div>
                       {openBacktests[backtest.id] ? (
                         <ChevronUp className="h-4 w-4" />
@@ -171,7 +174,7 @@ const BacktestHistory = () => {
                         <ChevronDown className="h-4 w-4" />
                       )}
                     </div>
-                  </div>
+                  </Button>
                   
                   {openBacktests[backtest.id] && (
                     <div className="mt-4 space-y-6">

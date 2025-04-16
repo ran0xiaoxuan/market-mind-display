@@ -127,7 +127,7 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">View the performance of all your strategies over time.</p>
               </div>
 
-              <PerformanceChart type="equity" timeRange={timeRange} />
+              <PerformanceChart type="equity" timeRange={timeRange} showBenchmark={true} />
               <div className="p-6">
                 <PerformanceMetrics type="equity" timeRange={timeRange} />
               </div>

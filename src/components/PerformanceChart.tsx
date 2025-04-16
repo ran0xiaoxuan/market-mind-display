@@ -1,12 +1,21 @@
-
 import { Card } from "@/components/ui/card";
 import { 
   ChartContainer, 
   ChartTooltip, 
-  ChartTooltipContent 
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Cell } from "recharts";
 import { cn } from "@/lib/utils";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
+import { useState } from "react";
 
 type PerformanceChartProps = {
   type?: "equity" | "returns" | "volatility" | "drawdown";
@@ -14,12 +23,21 @@ type PerformanceChartProps = {
   height?: number;
   title?: string;
   description?: string;
+  showBenchmark?: boolean;
 };
 
-// Generate more detailed data for different time ranges
-const generateEquityData = (timeRange: "7d" | "30d" | "all") => {
+const benchmarks = [
+  { id: "sp500", name: "S&P 500" },
+  { id: "nasdaq", name: "NASDAQ" },
+  { id: "dow", name: "Dow Jones" },
+  { id: "russell", name: "Russell 2000" },
+];
+
+const generateEquityData = (timeRange: "7d" | "30d" | "all", benchmarkId?: string) => {
+  let data;
+  
   if (timeRange === "7d") {
-    return [
+    data = [
       { date: "Mon", value: 42 },
       { date: "Tue", value: 44 },
       { date: "Wed", value: 43 },
@@ -29,7 +47,7 @@ const generateEquityData = (timeRange: "7d" | "30d" | "all") => {
       { date: "Sun", value: 50 }
     ];
   } else if (timeRange === "30d") {
-    return [
+    data = [
       { date: "Week 1", value: 25 },
       { date: "Week 2", value: 32 },
       { date: "Week 3", value: 38 },
@@ -37,7 +55,7 @@ const generateEquityData = (timeRange: "7d" | "30d" | "all") => {
       { date: "Week 5", value: 50 }
     ];
   } else {
-    return [
+    data = [
       { date: "Jan", value: 0 },
       { date: "Feb", value: 6.5 },
       { date: "Mar", value: 12 },
@@ -52,9 +70,35 @@ const generateEquityData = (timeRange: "7d" | "30d" | "all") => {
       { date: "Dec", value: 50 }
     ];
   }
+
+  if (benchmarkId) {
+    return data.map(item => {
+      let benchmarkValue = 0;
+      
+      switch (benchmarkId) {
+        case "sp500":
+          benchmarkValue = item.value * 0.85 + Math.random() * 5;
+          break;
+        case "nasdaq":
+          benchmarkValue = item.value * 0.9 + Math.random() * 6;
+          break;
+        case "dow":
+          benchmarkValue = item.value * 0.8 + Math.random() * 4;
+          break;
+        case "russell":
+          benchmarkValue = item.value * 0.75 + Math.random() * 3;
+          break;
+        default:
+          benchmarkValue = item.value * 0.85;
+      }
+      
+      return { ...item, benchmark: parseFloat(benchmarkValue.toFixed(1)) };
+    });
+  }
+  
+  return data;
 };
 
-// Generate returns data
 const generateReturnsData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [
@@ -92,7 +136,6 @@ const generateReturnsData = (timeRange: "7d" | "30d" | "all") => {
   }
 };
 
-// Generate volatility data
 const generateVolatilityData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [
@@ -130,7 +173,6 @@ const generateVolatilityData = (timeRange: "7d" | "30d" | "all") => {
   }
 };
 
-// Generate drawdown data
 const generateDrawdownData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [
@@ -173,9 +215,11 @@ export function PerformanceChart({
   timeRange,
   height = 300,
   title,
-  description
+  description,
+  showBenchmark = true
 }: PerformanceChartProps) {
-  // Get appropriate data based on type and time range
+  const [selectedBenchmark, setSelectedBenchmark] = useState<string | undefined>(showBenchmark ? "sp500" : undefined);
+  
   let chartData;
   switch (type) {
     case "returns":
@@ -189,8 +233,12 @@ export function PerformanceChart({
       break;
     case "equity":
     default:
-      chartData = generateEquityData(timeRange);
+      chartData = generateEquityData(timeRange, selectedBenchmark);
   }
+
+  const handleBenchmarkChange = (value: string) => {
+    setSelectedBenchmark(value);
+  };
 
   const renderChart = () => {
     switch (type) {
@@ -222,7 +270,7 @@ export function PerformanceChart({
             }} />
             <Bar 
               dataKey="value" 
-              fill="#6b7280" // Use a neutral color as default
+              fill="#6b7280" 
               radius={[4, 4, 0, 0]}
             >
               {chartData.map((entry: any, index: number) => (
@@ -340,10 +388,46 @@ export function PerformanceChart({
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
       )}
+      
+      {type === "equity" && showBenchmark && (
+        <div className="px-6 mb-4 flex justify-end">
+          <div className="w-[180px]">
+            <Select 
+              onValueChange={handleBenchmarkChange}
+              defaultValue={selectedBenchmark}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue placeholder="Select benchmark" />
+              </SelectTrigger>
+              <SelectContent>
+                {benchmarks.map((benchmark) => (
+                  <SelectItem key={benchmark.id} value={benchmark.id}>{benchmark.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+      
       <div className="px-6 py-2">
         <ResponsiveContainer width="100%" height={height}>
           {renderChart()}
         </ResponsiveContainer>
+        
+        {type === "equity" && selectedBenchmark && (
+          <div className="mt-2 flex justify-center">
+            <div className="flex gap-6 items-center text-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="h-3 w-3 rounded-sm bg-[#26A69A]"></div>
+                <span>Strategy</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-3 w-3 rounded-sm bg-[#9e9e9e]"></div>
+                <span>{benchmarks.find(b => b.id === selectedBenchmark)?.name}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,7 +4,6 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-
 type PerformanceChartProps = {
   type?: "equity" | "returns" | "volatility" | "drawdown";
   timeRange: "7d" | "30d" | "all";
@@ -13,7 +12,6 @@ type PerformanceChartProps = {
   description?: string;
   showBenchmark?: boolean;
 };
-
 const benchmarks = [{
   id: "sp500",
   name: "S&P 500"
@@ -27,7 +25,6 @@ const benchmarks = [{
   id: "russell",
   name: "Russell 2000"
 }];
-
 const generateEquityData = (timeRange: "7d" | "30d" | "all", benchmarkId?: string) => {
   let data;
   if (timeRange === "7d") {
@@ -136,7 +133,6 @@ const generateEquityData = (timeRange: "7d" | "30d" | "all", benchmarkId?: strin
   }
   return data;
 };
-
 const generateReturnsData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [{
@@ -218,7 +214,6 @@ const generateReturnsData = (timeRange: "7d" | "30d" | "all") => {
     }];
   }
 };
-
 const generateVolatilityData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [{
@@ -324,7 +319,6 @@ const generateVolatilityData = (timeRange: "7d" | "30d" | "all") => {
     }];
   }
 };
-
 const generateDrawdownData = (timeRange: "7d" | "30d" | "all") => {
   if (timeRange === "7d") {
     return [{
@@ -406,7 +400,6 @@ const generateDrawdownData = (timeRange: "7d" | "30d" | "all") => {
     }];
   }
 };
-
 export function PerformanceChart({
   type = "equity",
   timeRange,
@@ -416,7 +409,6 @@ export function PerformanceChart({
   showBenchmark = true
 }: PerformanceChartProps) {
   const [selectedBenchmark, setSelectedBenchmark] = useState<string | undefined>(showBenchmark ? "sp500" : undefined);
-
   let chartData;
   switch (type) {
     case "returns":
@@ -432,11 +424,9 @@ export function PerformanceChart({
     default:
       chartData = generateEquityData(timeRange, selectedBenchmark);
   }
-
   const handleBenchmarkChange = (value: string) => {
     setSelectedBenchmark(value);
   };
-
   const renderChart = () => {
     switch (type) {
       case "returns":
@@ -583,27 +573,22 @@ export function PerformanceChart({
           </AreaChart>;
     }
   };
-
   return <div className={cn(title || description ? "pt-4" : "pt-6", "mx-[20px]")}>
     <div className="flex justify-between items-center mb-2 px-0">
       <div className="flex items-center gap-4">
         {title && <h3 className="text-lg font-semibold">{title}</h3>}
-        {type === "equity" && showBenchmark && (
-          <div className="w-[180px]">
+        {type === "equity" && showBenchmark && <div className="w-[180px]">
             <Select onValueChange={handleBenchmarkChange} defaultValue={selectedBenchmark}>
               <SelectTrigger className="h-8">
                 <SelectValue placeholder="Select benchmark" />
               </SelectTrigger>
               <SelectContent>
-                {benchmarks.map(benchmark => (
-                  <SelectItem key={benchmark.id} value={benchmark.id}>
+                {benchmarks.map(benchmark => <SelectItem key={benchmark.id} value={benchmark.id}>
                     {benchmark.name}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-        )}
+          </div>}
       </div>
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
     </div>
@@ -617,7 +602,7 @@ export function PerformanceChart({
         <div className="flex gap-6 items-center text-sm">
           <div className="flex items-center gap-1.5">
             <div className="h-3 w-3 rounded-sm bg-[#26A69A]"></div>
-            <span>Strategy</span>
+            <span>Mine</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="h-3 w-3 rounded-sm bg-[#9b87f5]"></div>

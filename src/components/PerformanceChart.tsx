@@ -393,15 +393,13 @@ export function PerformanceChart({
 
   return (
     <div className={cn(title || description ? "pt-4" : "pt-6", "mx-[20px]")}>
-      {(title || description) && (
-        <div className="px-6 mb-2">
+      <div className="flex justify-between items-center px-6 mb-2">
+        <div>
           {title && <h3 className="text-lg font-semibold">{title}</h3>}
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
-      )}
-      
-      {type === "equity" && showBenchmark && (
-        <div className="px-6 mb-4 flex justify-end">
+        
+        {type === "equity" && showBenchmark && (
           <div className="w-[180px]">
             <Select 
               onValueChange={handleBenchmarkChange}
@@ -417,8 +415,8 @@ export function PerformanceChart({
               </SelectContent>
             </Select>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       
       <div className="px-6 py-2">
         <ResponsiveContainer width="100%" height={height}>

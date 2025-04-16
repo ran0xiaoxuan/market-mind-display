@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { 
   ChartContainer, 
@@ -365,9 +366,17 @@ export function PerformanceChart({
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded bg-[#26A69A]" />
                         <span className={`font-medium ${isPositive ? "text-[#26A69A]" : "text-red-600"}`}>
-                          {value.toLocaleString()}%
+                          Strategy: {value.toLocaleString()}%
                         </span>
                       </div>
+                      {selectedBenchmark && payload.length > 1 && (
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded bg-[#9b87f5]" />
+                          <span className="font-medium">
+                            {benchmarks.find(b => b.id === selectedBenchmark)?.name}: {(payload[1].value as number).toLocaleString()}%
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -375,6 +384,9 @@ export function PerformanceChart({
               return null;
             }} />
             <Area type="monotone" dataKey="value" stroke="#26A69A" fill="#CCECE6" fillOpacity={0.3} />
+            {selectedBenchmark && (
+              <Area type="monotone" dataKey="benchmark" stroke="#9b87f5" fill="#D6BCFA" fillOpacity={0.1} strokeDasharray="5 5" />
+            )}
           </AreaChart>
         );
     }
@@ -422,7 +434,7 @@ export function PerformanceChart({
                 <span>Strategy</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="h-3 w-3 rounded-sm bg-[#9e9e9e]"></div>
+                <div className="h-3 w-3 rounded-sm bg-[#9b87f5]"></div>
                 <span>{benchmarks.find(b => b.id === selectedBenchmark)?.name}</span>
               </div>
             </div>

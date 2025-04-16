@@ -587,20 +587,26 @@ export function PerformanceChart({
     <div className="flex justify-between items-center mb-2 px-0">
       <div className="flex items-center gap-4">
         {title && <h3 className="text-lg font-semibold">{title}</h3>}
-        {type === "equity" && showBenchmark && <div className="w-[180px]">
-            <Select onValueChange={handleBenchmarkChange} defaultValue={selectedBenchmark}>
-              <SelectTrigger className="h-8">
-                <SelectValue placeholder="Select benchmark" />
-              </SelectTrigger>
-              <SelectContent>
-                {benchmarks.map(benchmark => <SelectItem key={benchmark.id} value={benchmark.id}>
-                    {benchmark.name}
-                  </SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>}
       </div>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      {type === "equity" && showBenchmark && 
+        <div className="w-[180px]">
+          <Select 
+            onValueChange={handleBenchmarkChange} 
+            defaultValue={selectedBenchmark}
+          >
+            <SelectTrigger className="h-8">
+              <SelectValue placeholder="Select benchmark" />
+            </SelectTrigger>
+            <SelectContent>
+              {benchmarks.map(benchmark => (
+                <SelectItem key={benchmark.id} value={benchmark.id}>
+                  {benchmark.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      }
     </div>
     
     <div className="px-6 py-2">

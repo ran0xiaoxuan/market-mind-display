@@ -1,21 +1,12 @@
-
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, Play } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PerformanceChart } from "@/components/PerformanceChart";
-
 interface BacktestData {
   id: number;
   version: string;
@@ -33,97 +24,90 @@ interface BacktestData {
   };
   parameters: {
     [key: string]: string | number;
-  }
+  };
 }
-
 const BacktestHistory = () => {
-  const { strategyId } = useParams<{ strategyId: string }>();
+  const {
+    strategyId
+  } = useParams<{
+    strategyId: string;
+  }>();
   const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
-  
-  const [backtests, setBacktests] = useState<BacktestData[]>([
-    {
-      id: 1,
-      version: "v1.2",
-      date: "Mar 28, 2024",
-      time: "10:30 PM",
-      isLatest: true,
-      metrics: {
-        totalReturn: "+17.50%",
-        totalReturnValue: 17.5,
-        sharpeRatio: 1.8,
-        winRate: "68%",
-        maxDrawdown: "-5.2%",
-        maxDrawdownValue: -5.2,
-        trades: 25
-      },
-      parameters: {
-        initialCapital: 10000,
-        startDate: "2023-01-01",
-        endDate: "2024-01-01",
-        symbol: "AAPL"
-      }
+  const [backtests, setBacktests] = useState<BacktestData[]>([{
+    id: 1,
+    version: "v1.2",
+    date: "Mar 28, 2024",
+    time: "10:30 PM",
+    isLatest: true,
+    metrics: {
+      totalReturn: "+17.50%",
+      totalReturnValue: 17.5,
+      sharpeRatio: 1.8,
+      winRate: "68%",
+      maxDrawdown: "-5.2%",
+      maxDrawdownValue: -5.2,
+      trades: 25
     },
-    {
-      id: 2,
-      version: "v1.1",
-      date: "Mar 25, 2024",
-      time: "06:15 PM",
-      metrics: {
-        totalReturn: "+15.80%",
-        totalReturnValue: 15.8,
-        sharpeRatio: 1.6,
-        winRate: "65%",
-        maxDrawdown: "-6.1%",
-        maxDrawdownValue: -6.1,
-        trades: 23
-      },
-      parameters: {
-        initialCapital: 10000,
-        startDate: "2023-01-01",
-        endDate: "2024-01-01",
-        symbol: "AAPL"
-      }
-    },
-    {
-      id: 3,
-      version: "v1.0",
-      date: "Mar 20, 2024",
-      time: "05:45 PM",
-      metrics: {
-        totalReturn: "+12.30%",
-        totalReturnValue: 12.3,
-        sharpeRatio: 1.4,
-        winRate: "60%",
-        maxDrawdown: "-7.5%",
-        maxDrawdownValue: -7.5,
-        trades: 18
-      },
-      parameters: {
-        initialCapital: 10000,
-        startDate: "2023-01-01",
-        endDate: "2023-12-01",
-        symbol: "AAPL"
-      }
+    parameters: {
+      initialCapital: 10000,
+      startDate: "2023-01-01",
+      endDate: "2024-01-01",
+      symbol: "AAPL"
     }
-  ]);
-  
+  }, {
+    id: 2,
+    version: "v1.1",
+    date: "Mar 25, 2024",
+    time: "06:15 PM",
+    metrics: {
+      totalReturn: "+15.80%",
+      totalReturnValue: 15.8,
+      sharpeRatio: 1.6,
+      winRate: "65%",
+      maxDrawdown: "-6.1%",
+      maxDrawdownValue: -6.1,
+      trades: 23
+    },
+    parameters: {
+      initialCapital: 10000,
+      startDate: "2023-01-01",
+      endDate: "2024-01-01",
+      symbol: "AAPL"
+    }
+  }, {
+    id: 3,
+    version: "v1.0",
+    date: "Mar 20, 2024",
+    time: "05:45 PM",
+    metrics: {
+      totalReturn: "+12.30%",
+      totalReturnValue: 12.3,
+      sharpeRatio: 1.4,
+      winRate: "60%",
+      maxDrawdown: "-7.5%",
+      maxDrawdownValue: -7.5,
+      trades: 18
+    },
+    parameters: {
+      initialCapital: 10000,
+      startDate: "2023-01-01",
+      endDate: "2023-12-01",
+      symbol: "AAPL"
+    }
+  }]);
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true
   });
-  
   const toggleBacktestDetails = (backtestId: number) => {
     setOpenBacktests(prev => ({
       ...prev,
       [backtestId]: !prev[backtestId]
     }));
   };
-  
   const handleRunNewBacktest = () => {
     console.log("Running new backtest");
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -146,8 +130,7 @@ const BacktestHistory = () => {
           </div>
           
           <div className="space-y-4">
-            {backtests.map((backtest) => (
-              <Card key={backtest.id} className="overflow-hidden">
+            {backtests.map(backtest => <Card key={backtest.id} className="overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-3">
@@ -160,25 +143,16 @@ const BacktestHistory = () => {
                     {backtest.date}, {backtest.time}
                   </div>
                   
-                  <Button
-                    variant="outline" 
-                    className="flex justify-between items-center py-2 w-full md:w-auto"
-                    onClick={() => toggleBacktestDetails(backtest.id)}
-                  >
+                  <Button variant="outline" className="flex justify-between items-center py-2 w-full md:w-auto" onClick={() => toggleBacktestDetails(backtest.id)}>
                     <div className="font-medium">
                       {openBacktests[backtest.id] ? "Close Backtest Details" : "View Backtest Details"}
                     </div>
                     <div>
-                      {openBacktests[backtest.id] ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
+                      {openBacktests[backtest.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </div>
                   </Button>
                   
-                  {openBacktests[backtest.id] && (
-                    <div className="mt-4 space-y-6">
+                  {openBacktests[backtest.id] && <div className="mt-4 space-y-6">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div>
                           <div className="text-sm text-muted-foreground">Total Return</div>
@@ -226,35 +200,21 @@ const BacktestHistory = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {Object.entries(backtest.parameters).map(([key, value]) => (
-                              <TableRow key={key}>
+                            {Object.entries(backtest.parameters).map(([key, value]) => <TableRow key={key}>
                                 <TableCell>{key}</TableCell>
                                 <TableCell>{value}</TableCell>
-                              </TableRow>
-                            ))}
+                              </TableRow>)}
                           </TableBody>
                         </Table>
                       </div>
                       
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Equity Curve</h3>
-                        <PerformanceChart 
-                          type="equity" 
-                          timeRange="all" 
-                          height={300} 
-                          showBenchmark={true}
-                        />
-                      </div>
-                    </div>
-                  )}
+                      
+                    </div>}
                 </div>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default BacktestHistory;

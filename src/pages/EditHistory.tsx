@@ -1,12 +1,20 @@
+
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+
+interface RuleData {
+  id: number;
+  type: string;
+  condition: string;
+  value: string;
+}
+
 interface VersionData {
   version: string;
   date: string;
@@ -16,14 +24,20 @@ interface VersionData {
   parameters: {
     [key: string]: string | number;
   };
+  rules?: {
+    entry: RuleData[];
+    exit: RuleData[];
+  };
   status: "active" | "inactive";
   isLatest?: boolean;
   isSelected?: boolean;
 }
+
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
+
 const EditHistory = () => {
   const {
     strategyId
@@ -42,6 +56,16 @@ const EditHistory = () => {
       "overbought": 70,
       "oversold": 30
     },
+    rules: {
+      entry: [
+        { id: 1, type: "RSI", condition: "Crosses Below", value: "30" },
+        { id: 2, type: "Price", condition: "Above", value: "SMA(20)" }
+      ],
+      exit: [
+        { id: 1, type: "RSI", condition: "Crosses Above", value: "70" },
+        { id: 2, type: "Stop Loss", condition: "Below", value: "2%" }
+      ]
+    },
     status: "active",
     isLatest: true,
     isSelected: true
@@ -56,6 +80,14 @@ const EditHistory = () => {
       "overbought": 75,
       "oversold": 30
     },
+    rules: {
+      entry: [
+        { id: 1, type: "RSI", condition: "Crosses Below", value: "30" }
+      ],
+      exit: [
+        { id: 1, type: "RSI", condition: "Crosses Above", value: "75" }
+      ]
+    },
     status: "active",
     isSelected: true
   }, {
@@ -69,6 +101,14 @@ const EditHistory = () => {
       "overbought": 70,
       "oversold": 30
     },
+    rules: {
+      entry: [
+        { id: 1, type: "RSI", condition: "Below", value: "30" }
+      ],
+      exit: [
+        { id: 1, type: "RSI", condition: "Above", value: "70" }
+      ]
+    },
     status: "inactive"
   }, {
     version: "v0.1",
@@ -80,6 +120,14 @@ const EditHistory = () => {
       "period": 10,
       "overbought": 80,
       "oversold": 20
+    },
+    rules: {
+      entry: [
+        { id: 1, type: "RSI", condition: "Below", value: "20" }
+      ],
+      exit: [
+        { id: 1, type: "RSI", condition: "Above", value: "80" }
+      ]
     },
     status: "inactive"
   }]);
@@ -228,6 +276,91 @@ const EditHistory = () => {
                   </Table>
                 </div>
                 
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Trading Rules</h3>
+                  
+                  {/* Entry Rules Comparison */}
+                  <div className="mb-6">
+                    <h4 className="text-base font-medium mb-2">Entry Rules</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Condition</TableHead>
+                          <TableHead>Value</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Condition</TableHead>
+                          <TableHead>Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Math.max(
+                          comparisonVersions[0]?.rules?.entry?.length || 0,
+                          comparisonVersions[1]?.rules?.entry?.length || 0
+                        ) > 0 ? (
+                          Array.from({ length: Math.max(
+                            comparisonVersions[0]?.rules?.entry?.length || 0,
+                            comparisonVersions[1]?.rules?.entry?.length || 0
+                          ) }).map((_, index) => (
+                            <TableRow key={`entry-${index}`}>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.value || "-"}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center">No entry rules defined</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {/* Exit Rules Comparison */}
+                  <div>
+                    <h4 className="text-base font-medium mb-2">Exit Rules</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Condition</TableHead>
+                          <TableHead>Value</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Condition</TableHead>
+                          <TableHead>Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Math.max(
+                          comparisonVersions[0]?.rules?.exit?.length || 0,
+                          comparisonVersions[1]?.rules?.exit?.length || 0
+                        ) > 0 ? (
+                          Array.from({ length: Math.max(
+                            comparisonVersions[0]?.rules?.exit?.length || 0,
+                            comparisonVersions[1]?.rules?.exit?.length || 0
+                          ) }).map((_, index) => (
+                            <TableRow key={`exit-${index}`}>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.value || "-"}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center">No exit rules defined</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
                 
               </div>
             </Card> : <div className="space-y-4">
@@ -235,7 +368,12 @@ const EditHistory = () => {
                   <div className="p-6 pb-4">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold">{version.version} {version.isLatest && <span className="text-sm font-medium text-muted-foreground ml-2">Latest</span>}</h2>
+                        <h2 className="text-xl font-semibold">
+                          {version.version} 
+                          {version.isLatest && 
+                            <Badge className="ml-2 text-xs bg-primary text-primary-foreground">Latest</Badge>
+                          }
+                        </h2>
                         <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -250,14 +388,20 @@ const EditHistory = () => {
                     </div>
                     
                     <div className="mt-4">
-                      <div className="flex justify-between items-center py-2 cursor-pointer" onClick={() => toggleVersionDetails(version.version)}>
-                        <div className="font-medium rounded-sm">View Version Details</div>
+                      <Button
+                        variant="outline" 
+                        className="flex justify-between items-center py-2 w-full md:w-auto"
+                        onClick={() => toggleVersionDetails(version.version)}
+                      >
+                        <div className="font-medium">
+                          {openVersions[version.version] ? "Close Version Details" : "View Version Details"}
+                        </div>
                         <div>
                           {openVersions[version.version] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </div>
-                      </div>
+                      </Button>
                       
-                      {openVersions[version.version] && <div className="mt-2 space-y-6">
+                      {openVersions[version.version] && <div className="mt-4 space-y-6">
                           <div>
                             <div className="text-sm font-medium mb-1">Name</div>
                             <div>{version.name}</div>
@@ -287,6 +431,70 @@ const EditHistory = () => {
                               </TableBody>
                             </Table>
                           </div>
+                          
+                          {version.rules && (
+                            <div>
+                              <div className="text-sm font-medium mb-2">Trading Rules</div>
+                              
+                              {/* Entry Rules */}
+                              <div className="mb-4">
+                                <h4 className="text-sm font-medium mb-2">Entry Rules</h4>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Type</TableHead>
+                                      <TableHead>Condition</TableHead>
+                                      <TableHead>Value</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {version.rules.entry.length > 0 ? (
+                                      version.rules.entry.map(rule => (
+                                        <TableRow key={rule.id}>
+                                          <TableCell>{rule.type}</TableCell>
+                                          <TableCell>{rule.condition}</TableCell>
+                                          <TableCell>{rule.value}</TableCell>
+                                        </TableRow>
+                                      ))
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={3} className="text-center">No entry rules defined</TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                              
+                              {/* Exit Rules */}
+                              <div>
+                                <h4 className="text-sm font-medium mb-2">Exit Rules</h4>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Type</TableHead>
+                                      <TableHead>Condition</TableHead>
+                                      <TableHead>Value</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {version.rules.exit.length > 0 ? (
+                                      version.rules.exit.map(rule => (
+                                        <TableRow key={rule.id}>
+                                          <TableCell>{rule.type}</TableCell>
+                                          <TableCell>{rule.condition}</TableCell>
+                                          <TableCell>{rule.value}</TableCell>
+                                        </TableRow>
+                                      ))
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={3} className="text-center">No exit rules defined</TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+                          )}
                         </div>}
                     </div>
                   </div>

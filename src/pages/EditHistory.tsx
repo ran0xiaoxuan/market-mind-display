@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -146,7 +145,6 @@ const EditHistory = () => {
   };
   const handleSelectForComparison = (version: string) => {
     setComparisonMode(prev => {
-      // If already selected, remove it
       if (prev.selectedVersions.includes(version)) {
         return {
           ...prev,
@@ -154,7 +152,6 @@ const EditHistory = () => {
         };
       }
 
-      // If not selected and less than 2 versions are selected, add it
       if (prev.selectedVersions.length < 2) {
         return {
           ...prev,
@@ -162,7 +159,6 @@ const EditHistory = () => {
         };
       }
 
-      // Replace the second selected version
       return {
         ...prev,
         selectedVersions: [prev.selectedVersions[0], version]
@@ -182,15 +178,13 @@ const EditHistory = () => {
     }));
   };
   const handleRevert = (version: string) => {
-    // Implement revert functionality here
     console.log(`Reverting to version ${version}`);
   };
 
-  // Get the two versions for comparison
   const comparisonVersions = versions.filter(v => comparisonMode.selectedVersions.includes(v.version)).sort((a, b) => {
-    // Ensure v1.2 is first, v1.1 second
     return comparisonMode.selectedVersions.indexOf(a.version) - comparisonMode.selectedVersions.indexOf(b.version);
   });
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -368,10 +362,10 @@ const EditHistory = () => {
                   <div className="p-6 pb-4">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold">
+                        <h2 className="text-xl font-semibold flex items-center">
                           {version.version} 
                           {version.isLatest && 
-                            <Badge className="ml-2 text-xs bg-primary text-primary-foreground">Latest</Badge>
+                            <Badge variant="outline" className="ml-2 text-xs">Latest</Badge>
                           }
                         </h2>
                         <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>

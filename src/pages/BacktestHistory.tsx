@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { PerformanceChart } from "@/components/PerformanceChart";
 
 interface BacktestData {
   id: number;
@@ -237,9 +238,12 @@ const BacktestHistory = () => {
                       
                       <div>
                         <h3 className="text-lg font-medium mb-4">Equity Curve</h3>
-                        <div className="aspect-[3/1] bg-muted/20 flex items-center justify-center rounded-md">
-                          <p className="text-muted-foreground">Equity curve chart would be displayed here</p>
-                        </div>
+                        <PerformanceChart 
+                          type="equity" 
+                          timeRange="all" 
+                          height={300} 
+                          showBenchmark={true}
+                        />
                       </div>
                     </div>
                   )}

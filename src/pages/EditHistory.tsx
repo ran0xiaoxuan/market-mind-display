@@ -359,140 +359,143 @@ const EditHistory = () => {
               </div>
             </Card> : <div className="space-y-4">
               {versions.map(version => <Card key={version.version} className="overflow-hidden">
-                  <div className="p-6 pb-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold flex items-center">
-                          {version.version} 
-                          {version.isLatest && 
-                            <Badge variant="outline" className="ml-2 text-xs">Latest</Badge>
-                          }
-                        </h2>
-                        <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {version.isSelected ? <Button variant="default" size="sm" className="bg-black hover:bg-black/90">Selected</Button> : <Button variant="outline" size="sm" disabled={comparisonMode.selectedVersions.length >= 2 && !comparisonMode.selectedVersions.includes(version.version)} onClick={() => handleSelectForComparison(version.version)}>
-                            Select for Comparison
-                          </Button>}
-                        <Button variant="outline" size="sm" onClick={() => handleRevert(version.version)}>
-                          <RotateCcw className="h-4 w-4" />
-                          <span className="ml-1">Revert</span>
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <Button
-                        variant="outline" 
-                        className="flex justify-between items-center py-2 w-full md:w-auto"
-                        onClick={() => toggleVersionDetails(version.version)}
-                      >
-                        <div className="font-medium">
-                          {openVersions[version.version] ? "Close Version Details" : "View Version Details"}
-                        </div>
-                        <div>
-                          {openVersions[version.version] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </div>
-                      </Button>
-                      
-                      {openVersions[version.version] && <div className="mt-4 space-y-6">
-                          <div>
-                            <div className="text-sm font-medium mb-1">Name</div>
-                            <div>{version.name}</div>
-                          </div>
-                          
-                          
-                          
-                          <div>
-                            <div className="text-sm font-medium mb-1">Description</div>
-                            <div>{version.description}</div>
-                          </div>
-                          
-                          <div>
-                            <div className="text-sm font-medium mb-2">Parameters</div>
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Parameter</TableHead>
-                                  <TableHead>Value</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {Object.entries(version.parameters).map(([key, value]) => <TableRow key={key}>
-                                    <TableCell>{key}</TableCell>
-                                    <TableCell>{value}</TableCell>
-                                  </TableRow>)}
-                              </TableBody>
-                            </Table>
-                          </div>
-                          
-                          {version.rules && (
-                            <div>
-                              <div className="text-sm font-medium mb-2">Trading Rules</div>
-                              
-                              {/* Entry Rules */}
-                              <div className="mb-4">
-                                <h4 className="text-sm font-medium mb-2">Entry Rules</h4>
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Type</TableHead>
-                                      <TableHead>Condition</TableHead>
-                                      <TableHead>Value</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {version.rules.entry.length > 0 ? (
-                                      version.rules.entry.map(rule => (
-                                        <TableRow key={rule.id}>
-                                          <TableCell>{rule.type}</TableCell>
-                                          <TableCell>{rule.condition}</TableCell>
-                                          <TableCell>{rule.value}</TableCell>
-                                        </TableRow>
-                                      ))
-                                    ) : (
-                                      <TableRow>
-                                        <TableCell colSpan={3} className="text-center">No entry rules defined</TableCell>
-                                      </TableRow>
-                                    )}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                              
-                              {/* Exit Rules */}
-                              <div>
-                                <h4 className="text-sm font-medium mb-2">Exit Rules</h4>
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Type</TableHead>
-                                      <TableHead>Condition</TableHead>
-                                      <TableHead>Value</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {version.rules.exit.length > 0 ? (
-                                      version.rules.exit.map(rule => (
-                                        <TableRow key={rule.id}>
-                                          <TableCell>{rule.type}</TableCell>
-                                          <TableCell>{rule.condition}</TableCell>
-                                          <TableCell>{rule.value}</TableCell>
-                                        </TableRow>
-                                      ))
-                                    ) : (
-                                      <TableRow>
-                                        <TableCell colSpan={3} className="text-center">No exit rules defined</TableCell>
-                                      </TableRow>
-                                    )}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            </div>
-                          )}
-                        </div>}
-                    </div>
-                  </div>
-                </Card>)}
+  <div className="p-6 pb-4">
+    <div className="flex justify-between items-center">
+      <div>
+        <div className="flex items-center gap-3 mb-1">
+          <h2 className="text-xl font-semibold flex items-center">
+            {version.version} 
+            {version.isLatest && 
+              <Badge variant="outline" className="ml-2 text-xs">Latest</Badge>
+            }
+          </h2>
+        </div>
+        <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {version.isSelected ? <Button variant="default" size="sm" className="bg-black hover:bg-black/90">Selected</Button> : <Button variant="outline" size="sm" disabled={comparisonMode.selectedVersions.length >= 2 && !comparisonMode.selectedVersions.includes(version.version)} onClick={() => handleSelectForComparison(version.version)}>
+            Select for Comparison
+          </Button>}
+        <Button variant="outline" size="sm" onClick={() => handleRevert(version.version)}>
+          <RotateCcw className="h-4 w-4" />
+          <span className="ml-1">Revert</span>
+        </Button>
+      </div>
+    </div>
+    
+    <div className="mt-4">
+      <Button
+        variant="outline" 
+        className="flex justify-between items-center py-2 w-full md:w-auto"
+        onClick={() => toggleVersionDetails(version.version)}
+      >
+        <div className="font-medium">
+          {openVersions[version.version] ? "Close Version Details" : "View Version Details"}
+        </div>
+        <div>
+          {openVersions[version.version] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </div>
+      </Button>
+      
+      {openVersions[version.version] && <div className="mt-4 space-y-6">
+          <div>
+            <div className="text-sm font-medium mb-1">Name</div>
+            <div>{version.name}</div>
+          </div>
+          
+          
+          
+          <div>
+            <div className="text-sm font-medium mb-1">Description</div>
+            <div>{version.description}</div>
+          </div>
+          
+          <div>
+            <div className="text-sm font-medium mb-2">Parameters</div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Parameter</TableHead>
+                  <TableHead>Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(version.parameters).map(([key, value]) => <TableRow key={key}>
+                    <TableCell>{key}</TableCell>
+                    <TableCell>{value}</TableCell>
+                  </TableRow>)}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {version.rules && (
+            <div>
+              <div className="text-sm font-medium mb-2">Trading Rules</div>
+              
+              {/* Entry Rules */}
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2">Entry Rules</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Condition</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {version.rules.entry.length > 0 ? (
+                      version.rules.entry.map(rule => (
+                        <TableRow key={rule.id}>
+                          <TableCell>{rule.type}</TableCell>
+                          <TableCell>{rule.condition}</TableCell>
+                          <TableCell>{rule.value}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center">No entry rules defined</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Exit Rules */}
+              <div>
+                <h4 className="text-sm font-medium mb-2">Exit Rules</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Condition</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {version.rules.exit.length > 0 ? (
+                      version.rules.exit.map(rule => (
+                        <TableRow key={rule.id}>
+                          <TableCell>{rule.type}</TableCell>
+                          <TableCell>{rule.condition}</TableCell>
+                          <TableCell>{rule.value}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center">No exit rules defined</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </div>}
+    </div>
+  </div>
+</Card>)}
             </div>}
         </div>
       </main>

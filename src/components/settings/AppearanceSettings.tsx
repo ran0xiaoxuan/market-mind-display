@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/ThemeProvider";
-import { Sun, Moon, Check, Save } from "lucide-react";
+import { Sun, Moon, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -52,10 +51,9 @@ export function AppearanceSettings() {
       
       <Button 
         onClick={handleSavePreferences}
-        variant="outline"
+        variant="default"
         className="mt-4"
       >
-        <Save className="mr-2 h-4 w-4" />
         Save Preferences
       </Button>
     </div>;

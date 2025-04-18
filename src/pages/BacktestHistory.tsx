@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PerformanceChart } from "@/components/PerformanceChart";
+
 interface BacktestData {
   id: number;
   version: string;
@@ -26,6 +27,7 @@ interface BacktestData {
     [key: string]: string | number;
   };
 }
+
 const BacktestHistory = () => {
   const {
     strategyId
@@ -98,15 +100,18 @@ const BacktestHistory = () => {
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true
   });
+
   const toggleBacktestDetails = (backtestId: number) => {
     setOpenBacktests(prev => ({
       ...prev,
       [backtestId]: !prev[backtestId]
     }));
   };
+
   const handleRunNewBacktest = () => {
     console.log("Running new backtest");
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -153,7 +158,7 @@ const BacktestHistory = () => {
                   </Button>
                   
                   {openBacktests[backtest.id] && <div className="mt-4 space-y-6">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-5 gap-6">
                         <div>
                           <div className="text-sm text-muted-foreground">Total Return</div>
                           <div className={`text-xl font-medium ${backtest.metrics.totalReturnValue >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -208,7 +213,6 @@ const BacktestHistory = () => {
                         </Table>
                       </div>
                       
-                      
                     </div>}
                 </div>
               </Card>)}
@@ -217,4 +221,5 @@ const BacktestHistory = () => {
       </main>
     </div>;
 };
+
 export default BacktestHistory;

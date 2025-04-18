@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -7,6 +6,7 @@ import { Button } from "./ui/button";
 import { LogOut, Moon, Settings, Sun, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTheme } from "./ThemeProvider";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -31,7 +31,7 @@ export function UserMenu() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 ml-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/avatar.png" alt="User" />
+            <AvatarImage src={DEFAULT_AVATAR_URL} alt="User" />
             <AvatarFallback className="bg-red-500 text-white">RA</AvatarFallback>
           </Avatar>
         </Button>

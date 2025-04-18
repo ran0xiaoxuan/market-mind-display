@@ -1,19 +1,28 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { Upload } from "lucide-react";
 
 export function AccountSettings() {
   const [name, setName] = useState("ranxiaoxuan");
   const [email, setEmail] = useState("ran0xiaoxuan@gmail.com");
   const [bio, setBio] = useState("");
-  
+  const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR_URL);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAvatarUrl(url);
+    }
+  };
 
   return (
     <div className="space-y-12">
@@ -101,16 +110,32 @@ export function AccountSettings() {
         
         <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
           <Avatar className="h-20 w-20">
-            <AvatarImage src="/avatar.png" alt="Profile" />
-            <AvatarFallback className="text-lg">RA</AvatarFallback>
+            <AvatarImage src={avatarUrl} alt="Profile" />
+            <AvatarFallback className="bg-red-500 text-white text-lg">RA</AvatarFallback>
           </Avatar>
           
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
-              <Button variant="outline">Choose File</Button>
-              <p className="text-xs text-muted-foreground">Recommended size: 200 x 200 pixels. Max file size: 1MB.</p>
+              <label htmlFor="avatar-upload" className="cursor-pointer">
+                <Button variant="outline" className="gap-2" asChild>
+                  <span>
+                    <Upload className="h-4 w-4" />
+                    Choose File
+                  </span>
+                </Button>
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                Recommended size: 200 x 200 pixels. Max file size: 1MB.
+              </p>
             </div>
-            <Button variant="outline">Update Avatar</Button>
+            <Button variant="default">Update Avatar</Button>
           </div>
         </div>
       </div>

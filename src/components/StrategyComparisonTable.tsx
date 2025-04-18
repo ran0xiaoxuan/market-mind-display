@@ -1,3 +1,4 @@
+
 import { 
   Table, 
   TableHeader, 
@@ -53,11 +54,8 @@ const strategies = [
 
 const getColorClass = (value: string, columns: string[] = ['return', 'maxDrawdown', 'sharpe', 'profitFactor']) => {
   if (columns.includes('return') || columns.includes('maxDrawdown')) {
-    if (value.startsWith("+")) return "text-green-600";
-    if (value.startsWith("-")) return "text-red-600";
-  }
-  if (columns.includes('sharpe') || columns.includes('profitFactor')) {
-    return "text-black";
+    if (value.startsWith("+")) return "text-green-600 dark:text-green-400";
+    if (value.startsWith("-")) return "text-red-600 dark:text-red-400";
   }
   return "";
 };
@@ -86,10 +84,10 @@ export function StrategyComparisonTable() {
             <TableRow key={strategy.name}>
               <TableCell>{strategy.name}</TableCell>
               <TableCell className={getColorClass(strategy.return, ['return'])}>{strategy.return}</TableCell>
-              <TableCell className={getColorClass(strategy.sharpe, ['sharpe'])}>{strategy.sharpe}</TableCell>
+              <TableCell>{strategy.sharpe}</TableCell>
               <TableCell className={getColorClass(strategy.maxDrawdown, ['maxDrawdown'])}>{strategy.maxDrawdown}</TableCell>
               <TableCell>{strategy.winRate}</TableCell>
-              <TableCell className={getColorClass(strategy.profitFactor, ['profitFactor'])}>{strategy.profitFactor}</TableCell>
+              <TableCell>{strategy.profitFactor}</TableCell>
             </TableRow>
           ))}
         </TableBody>

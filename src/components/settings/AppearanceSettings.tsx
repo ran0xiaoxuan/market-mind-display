@@ -52,7 +52,8 @@ export function AppearanceSettings() {
       
       <Button 
         onClick={handleSavePreferences}
-        className="w-full mt-6"
+        variant="outline"
+        className="mt-4"
       >
         <Save className="mr-2 h-4 w-4" />
         Save Preferences

@@ -13,7 +13,6 @@ interface RuleData {
   type: string;
   condition: string;
   value: string;
-  // Added for rule group support
   inequalities?: Inequality[];
   requiredConditions?: number;
   logic?: string;
@@ -555,8 +554,9 @@ const EditHistory = () => {
                       <div>
                         <div className="flex items-center gap-3 mb-1">
                           <h2 className="text-xl font-semibold flex items-center">
-                            {version.version} 
+                            {version.version}
                             {version.isLatest && <Badge variant="outline" className="ml-2 text-xs">Latest</Badge>}
+                            {version.status === "active" && <Badge className="ml-2 bg-green-500 hover:bg-green-600">Current</Badge>}
                           </h2>
                         </div>
                         <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>

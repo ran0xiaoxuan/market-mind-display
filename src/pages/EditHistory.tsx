@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 interface RuleData {
   id: number;
@@ -319,63 +319,147 @@ const EditHistory = () => {
                   {/* Entry Rules Comparison */}
                   <div className="mb-6">
                     <h4 className="text-base font-medium mb-2">Entry Rules</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Condition</TableHead>
-                          <TableHead>Value</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Condition</TableHead>
-                          <TableHead>Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Math.max(comparisonVersions[0]?.rules?.entry?.length || 0, comparisonVersions[1]?.rules?.entry?.length || 0) > 0 ? Array.from({
-                      length: Math.max(comparisonVersions[0]?.rules?.entry?.length || 0, comparisonVersions[1]?.rules?.entry?.length || 0)
-                    }).map((_, index) => <TableRow key={`entry-${index}`}>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.value || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.value || "-"}</TableCell>
-                            </TableRow>) : <TableRow>
-                            <TableCell colSpan={6} className="text-center">No entry rules defined</TableCell>
-                          </TableRow>}
-                      </TableBody>
-                    </Table>
+                    
+                    {/* AND Group */}
+                    <div className={`p-2 rounded-md mb-3 bg-blue-50`}>
+                      <h4 className={`text-sm font-semibold mb-1 text-blue-800`}>AND Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
+                      <Table>
+                        <TableBody>
+                          {Math.max(
+                            comparisonVersions[0]?.rules?.entry[0]?.inequalities?.length || 0,
+                            comparisonVersions[1]?.rules?.entry[0]?.inequalities?.length || 0
+                          ) > 0 ? Array.from({
+                            length: Math.max(
+                              comparisonVersions[0]?.rules?.entry[0]?.inequalities?.length || 0,
+                              comparisonVersions[1]?.rules?.entry[0]?.inequalities?.length || 0
+                            )
+                          }).map((_, index) => (
+                            <TableRow key={`entry-and-${index}`}>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities[index]?.value || "-"}</TableCell>
+                            </TableRow>
+                          )) : (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center">No AND rules defined</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* OR Group */}
+                    <div className={`p-2 rounded-md mb-3 bg-amber-50`}>
+                      <h4 className={`text-sm font-semibold mb-1 text-amber-800`}>OR Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Version {comparisonVersions[0]?.version}: At least {comparisonVersions[0]?.rules?.entry[1]?.requiredConditions || 1} of {comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0} conditions must be met.
+                        <br />
+                        Version {comparisonVersions[1]?.version}: At least {comparisonVersions[1]?.rules?.entry[1]?.requiredConditions || 1} of {comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0} conditions must be met.
+                      </p>
+                      <Table>
+                        <TableBody>
+                          {Math.max(
+                            comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0,
+                            comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0
+                          ) > 0 ? Array.from({
+                            length: Math.max(
+                              comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0,
+                              comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0
+                            )
+                          }).map((_, index) => (
+                            <TableRow key={`entry-or-${index}`}>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities[index]?.value || "-"}</TableCell>
+                            </TableRow>
+                          )) : (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center">No OR rules defined</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                   
-                  {/* Exit Rules Comparison */}
+                  {/* Exit Rules */}
                   <div>
                     <h4 className="text-base font-medium mb-2">Exit Rules</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Condition</TableHead>
-                          <TableHead>Value</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Condition</TableHead>
-                          <TableHead>Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Math.max(comparisonVersions[0]?.rules?.exit?.length || 0, comparisonVersions[1]?.rules?.exit?.length || 0) > 0 ? Array.from({
-                      length: Math.max(comparisonVersions[0]?.rules?.exit?.length || 0, comparisonVersions[1]?.rules?.exit?.length || 0)
-                    }).map((_, index) => <TableRow key={`exit-${index}`}>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.value || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.value || "-"}</TableCell>
-                            </TableRow>) : <TableRow>
-                            <TableCell colSpan={6} className="text-center">No exit rules defined</TableCell>
-                          </TableRow>}
-                      </TableBody>
-                    </Table>
+                    
+                    {/* AND Group */}
+                    <div className={`p-2 rounded-md mb-3 bg-blue-50`}>
+                      <h4 className={`text-sm font-semibold mb-1 text-blue-800`}>AND Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
+                      <Table>
+                        <TableBody>
+                          {Math.max(
+                            comparisonVersions[0]?.rules?.exit[0]?.inequalities?.length || 0,
+                            comparisonVersions[1]?.rules?.exit[0]?.inequalities?.length || 0
+                          ) > 0 ? Array.from({
+                            length: Math.max(
+                              comparisonVersions[0]?.rules?.exit[0]?.inequalities?.length || 0,
+                              comparisonVersions[1]?.rules?.exit[0]?.inequalities?.length || 0
+                            )
+                          }).map((_, index) => (
+                            <TableRow key={`exit-and-${index}`}>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities[index]?.value || "-"}</TableCell>
+                            </TableRow>
+                          )) : (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center">No AND rules defined</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* OR Group */}
+                    <div className={`p-2 rounded-md mb-3 bg-amber-50`}>
+                      <h4 className={`text-sm font-semibold mb-1 text-amber-800`}>OR Group</h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Version {comparisonVersions[0]?.version}: At least {comparisonVersions[0]?.rules?.exit[1]?.requiredConditions || 1} of {comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0} conditions must be met.
+                        <br />
+                        Version {comparisonVersions[1]?.version}: At least {comparisonVersions[1]?.rules?.exit[1]?.requiredConditions || 1} of {comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0} conditions must be met.
+                      </p>
+                      <Table>
+                        <TableBody>
+                          {Math.max(
+                            comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0,
+                            comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0
+                          ) > 0 ? Array.from({
+                            length: Math.max(
+                              comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0,
+                              comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0
+                            )
+                          }).map((_, index) => (
+                            <TableRow key={`exit-or-${index}`}>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities[index]?.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities[index]?.value || "-"}</TableCell>
+                            </TableRow>
+                          )) : (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center">No OR rules defined</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 </div>
                 

@@ -6,18 +6,26 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
+
 interface RuleData {
   id: number;
   type: string;
   condition: string;
   value: string;
+  // Added for rule group support
+  inequalities?: Inequality[];
+  requiredConditions?: number;
+  logic?: string;
 }
+
 interface RiskManagementData {
   stopLoss: string;
   takeProfit: string;
   singleBuyVolume: string;
   maxBuyVolume: string;
 }
+
 interface VersionData {
   version: string;
   date: string;
@@ -36,10 +44,12 @@ interface VersionData {
   isSelected?: boolean;
   riskManagement?: RiskManagementData;
 }
+
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
+
 const EditHistory = () => {
   const {
     strategyId
@@ -69,23 +79,53 @@ const EditHistory = () => {
         id: 1,
         type: "RSI",
         condition: "Crosses Below",
-        value: "30"
+        value: "30",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Crosses Below",
+          right: { type: "value", value: "30" }
+        }]
       }, {
         id: 2,
         type: "Price",
         condition: "Above",
-        value: "SMA(20)"
+        value: "SMA(20)",
+        logic: "OR",
+        requiredConditions: 1,
+        inequalities: [{
+          id: 1,
+          left: { type: "price", value: "Close" },
+          condition: "Above",
+          right: { type: "indicator", indicator: "SMA", parameters: { period: "20" } }
+        }]
       }],
       exit: [{
         id: 1,
         type: "RSI",
         condition: "Crosses Above",
-        value: "70"
+        value: "70",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Crosses Above",
+          right: { type: "value", value: "70" }
+        }]
       }, {
         id: 2,
         type: "Stop Loss",
         condition: "Below",
-        value: "2%"
+        value: "2%",
+        logic: "OR",
+        requiredConditions: 1,
+        inequalities: [{
+          id: 1,
+          left: { type: "price", value: "Close" },
+          condition: "Below",
+          right: { type: "value", value: "2%" }
+        }]
       }]
     },
     status: "active",
@@ -113,13 +153,27 @@ const EditHistory = () => {
         id: 1,
         type: "RSI",
         condition: "Crosses Below",
-        value: "30"
+        value: "30",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Crosses Below",
+          right: { type: "value", value: "30" }
+        }]
       }],
       exit: [{
         id: 1,
         type: "RSI",
         condition: "Crosses Above",
-        value: "75"
+        value: "75",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Crosses Above",
+          right: { type: "value", value: "75" }
+        }]
       }]
     },
     status: "active",
@@ -140,13 +194,27 @@ const EditHistory = () => {
         id: 1,
         type: "RSI",
         condition: "Below",
-        value: "30"
+        value: "30",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Less Than",
+          right: { type: "value", value: "30" }
+        }]
       }],
       exit: [{
         id: 1,
         type: "RSI",
         condition: "Above",
-        value: "70"
+        value: "70",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Greater Than",
+          right: { type: "value", value: "70" }
+        }]
       }]
     },
     status: "inactive"
@@ -166,30 +234,48 @@ const EditHistory = () => {
         id: 1,
         type: "RSI",
         condition: "Below",
-        value: "20"
+        value: "20",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Less Than",
+          right: { type: "value", value: "20" }
+        }]
       }],
       exit: [{
         id: 1,
         type: "RSI",
         condition: "Above",
-        value: "80"
+        value: "80",
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          condition: "Greater Than",
+          right: { type: "value", value: "80" }
+        }]
       }]
     },
     status: "inactive"
   }]);
+  
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>({
     active: false,
     selectedVersions: ["v1.2", "v1.1"]
   });
+  
   const [openVersions, setOpenVersions] = useState<Record<string, boolean>>({
     "v1.2": true
   });
+  
   const toggleVersionDetails = (version: string) => {
     setOpenVersions(prev => ({
       ...prev,
       [version]: !prev[version]
     }));
   };
+
   const handleSelectForComparison = (version: string) => {
     setComparisonMode(prev => {
       if (prev.selectedVersions.includes(version)) {
@@ -210,24 +296,29 @@ const EditHistory = () => {
       };
     });
   };
+
   const handleCompareSelectedVersions = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: true
     }));
   };
+
   const handleExitCompareMode = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: false
     }));
   };
+
   const handleRevert = (version: string) => {
     console.log(`Reverting to version ${version}`);
   };
+  
   const comparisonVersions = versions.filter(v => comparisonMode.selectedVersions.includes(v.version)).sort((a, b) => {
     return comparisonMode.selectedVersions.indexOf(a.version) - comparisonMode.selectedVersions.indexOf(b.version);
   });
+  
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -293,13 +384,11 @@ const EditHistory = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-2">Parameters</h3>
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Parameter</TableHead>
-                        <TableHead>{comparisonVersions[0]?.version}</TableHead>
-                        <TableHead>{comparisonVersions[1]?.version}</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                    <TableRow>
+                      <TableHead>Parameter</TableHead>
+                      <TableHead>{comparisonVersions[0]?.version}</TableHead>
+                      <TableHead>{comparisonVersions[1]?.version}</TableHead>
+                    </TableRow>
                     <TableBody>
                       {Object.keys({
                     ...comparisonVersions[0]?.parameters,
@@ -336,12 +425,12 @@ const EditHistory = () => {
                             )
                           }).map((_, index) => (
                             <TableRow key={`entry-and-${index}`}>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities[index]?.value || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                             </TableRow>
                           )) : (
                             <TableRow>
@@ -372,12 +461,12 @@ const EditHistory = () => {
                             )
                           }).map((_, index) => (
                             <TableRow key={`entry-or-${index}`}>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities[index]?.value || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                             </TableRow>
                           )) : (
                             <TableRow>
@@ -409,12 +498,12 @@ const EditHistory = () => {
                             )
                           }).map((_, index) => (
                             <TableRow key={`exit-and-${index}`}>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities[index]?.value || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                             </TableRow>
                           )) : (
                             <TableRow>
@@ -445,12 +534,12 @@ const EditHistory = () => {
                             )
                           }).map((_, index) => (
                             <TableRow key={`exit-or-${index}`}>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities[index]?.value || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities[index]?.type || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities[index]?.condition || "-"}</TableCell>
-                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities[index]?.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
+                              <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                             </TableRow>
                           )) : (
                             <TableRow>
@@ -539,13 +628,11 @@ const EditHistory = () => {
                               <div className="mb-4">
                                 <h4 className="text-sm mb-2 font-medium">Entry Rules</h4>
                                 <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Type</TableHead>
-                                      <TableHead>Condition</TableHead>
-                                      <TableHead>Value</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
+                                  <TableRow>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Condition</TableHead>
+                                    <TableHead>Value</TableHead>
+                                  </TableRow>
                                   <TableBody>
                                     {version.rules.entry.length > 0 ? version.rules.entry.map(rule => <TableRow key={rule.id}>
                                           <TableCell>{rule.type}</TableCell>
@@ -562,13 +649,11 @@ const EditHistory = () => {
                               <div>
                                 <h4 className="text-sm font-medium mb-2">Exit Rules</h4>
                                 <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Type</TableHead>
-                                      <TableHead>Condition</TableHead>
-                                      <TableHead>Value</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
+                                  <TableRow>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Condition</TableHead>
+                                    <TableHead>Value</TableHead>
+                                  </TableRow>
                                   <TableBody>
                                     {version.rules.exit.length > 0 ? version.rules.exit.map(rule => <TableRow key={rule.id}>
                                           <TableCell>{rule.type}</TableCell>
@@ -590,4 +675,5 @@ const EditHistory = () => {
       </main>
     </div>;
 };
+
 export default EditHistory;

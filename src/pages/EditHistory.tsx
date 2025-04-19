@@ -6,14 +6,12 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
 interface RuleData {
   id: number;
   type: string;
   condition: string;
   value: string;
 }
-
 interface VersionData {
   version: string;
   date: string;
@@ -31,12 +29,10 @@ interface VersionData {
   isLatest?: boolean;
   isSelected?: boolean;
 }
-
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
-
 const EditHistory = () => {
   const {
     strategyId
@@ -56,14 +52,28 @@ const EditHistory = () => {
       "oversold": 30
     },
     rules: {
-      entry: [
-        { id: 1, type: "RSI", condition: "Crosses Below", value: "30" },
-        { id: 2, type: "Price", condition: "Above", value: "SMA(20)" }
-      ],
-      exit: [
-        { id: 1, type: "RSI", condition: "Crosses Above", value: "70" },
-        { id: 2, type: "Stop Loss", condition: "Below", value: "2%" }
-      ]
+      entry: [{
+        id: 1,
+        type: "RSI",
+        condition: "Crosses Below",
+        value: "30"
+      }, {
+        id: 2,
+        type: "Price",
+        condition: "Above",
+        value: "SMA(20)"
+      }],
+      exit: [{
+        id: 1,
+        type: "RSI",
+        condition: "Crosses Above",
+        value: "70"
+      }, {
+        id: 2,
+        type: "Stop Loss",
+        condition: "Below",
+        value: "2%"
+      }]
     },
     status: "active",
     isLatest: true,
@@ -80,12 +90,18 @@ const EditHistory = () => {
       "oversold": 30
     },
     rules: {
-      entry: [
-        { id: 1, type: "RSI", condition: "Crosses Below", value: "30" }
-      ],
-      exit: [
-        { id: 1, type: "RSI", condition: "Crosses Above", value: "75" }
-      ]
+      entry: [{
+        id: 1,
+        type: "RSI",
+        condition: "Crosses Below",
+        value: "30"
+      }],
+      exit: [{
+        id: 1,
+        type: "RSI",
+        condition: "Crosses Above",
+        value: "75"
+      }]
     },
     status: "active",
     isSelected: true
@@ -101,12 +117,18 @@ const EditHistory = () => {
       "oversold": 30
     },
     rules: {
-      entry: [
-        { id: 1, type: "RSI", condition: "Below", value: "30" }
-      ],
-      exit: [
-        { id: 1, type: "RSI", condition: "Above", value: "70" }
-      ]
+      entry: [{
+        id: 1,
+        type: "RSI",
+        condition: "Below",
+        value: "30"
+      }],
+      exit: [{
+        id: 1,
+        type: "RSI",
+        condition: "Above",
+        value: "70"
+      }]
     },
     status: "inactive"
   }, {
@@ -121,12 +143,18 @@ const EditHistory = () => {
       "oversold": 20
     },
     rules: {
-      entry: [
-        { id: 1, type: "RSI", condition: "Below", value: "20" }
-      ],
-      exit: [
-        { id: 1, type: "RSI", condition: "Above", value: "80" }
-      ]
+      entry: [{
+        id: 1,
+        type: "RSI",
+        condition: "Below",
+        value: "20"
+      }],
+      exit: [{
+        id: 1,
+        type: "RSI",
+        condition: "Above",
+        value: "80"
+      }]
     },
     status: "inactive"
   }]);
@@ -151,14 +179,12 @@ const EditHistory = () => {
           selectedVersions: prev.selectedVersions.filter(v => v !== version)
         };
       }
-
       if (prev.selectedVersions.length < 2) {
         return {
           ...prev,
           selectedVersions: [...prev.selectedVersions, version]
         };
       }
-
       return {
         ...prev,
         selectedVersions: [prev.selectedVersions[0], version]
@@ -180,11 +206,9 @@ const EditHistory = () => {
   const handleRevert = (version: string) => {
     console.log(`Reverting to version ${version}`);
   };
-
   const comparisonVersions = versions.filter(v => comparisonMode.selectedVersions.includes(v.version)).sort((a, b) => {
     return comparisonMode.selectedVersions.indexOf(a.version) - comparisonMode.selectedVersions.indexOf(b.version);
   });
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -288,28 +312,18 @@ const EditHistory = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {Math.max(
-                          comparisonVersions[0]?.rules?.entry?.length || 0,
-                          comparisonVersions[1]?.rules?.entry?.length || 0
-                        ) > 0 ? (
-                          Array.from({ length: Math.max(
-                            comparisonVersions[0]?.rules?.entry?.length || 0,
-                            comparisonVersions[1]?.rules?.entry?.length || 0
-                          ) }).map((_, index) => (
-                            <TableRow key={`entry-${index}`}>
+                        {Math.max(comparisonVersions[0]?.rules?.entry?.length || 0, comparisonVersions[1]?.rules?.entry?.length || 0) > 0 ? Array.from({
+                      length: Math.max(comparisonVersions[0]?.rules?.entry?.length || 0, comparisonVersions[1]?.rules?.entry?.length || 0)
+                    }).map((_, index) => <TableRow key={`entry-${index}`}>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[index]?.value || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[index]?.value || "-"}</TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
+                            </TableRow>) : <TableRow>
                             <TableCell colSpan={6} className="text-center">No entry rules defined</TableCell>
-                          </TableRow>
-                        )}
+                          </TableRow>}
                       </TableBody>
                     </Table>
                   </div>
@@ -329,28 +343,18 @@ const EditHistory = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {Math.max(
-                          comparisonVersions[0]?.rules?.exit?.length || 0,
-                          comparisonVersions[1]?.rules?.exit?.length || 0
-                        ) > 0 ? (
-                          Array.from({ length: Math.max(
-                            comparisonVersions[0]?.rules?.exit?.length || 0,
-                            comparisonVersions[1]?.rules?.exit?.length || 0
-                          ) }).map((_, index) => (
-                            <TableRow key={`exit-${index}`}>
+                        {Math.max(comparisonVersions[0]?.rules?.exit?.length || 0, comparisonVersions[1]?.rules?.exit?.length || 0) > 0 ? Array.from({
+                      length: Math.max(comparisonVersions[0]?.rules?.exit?.length || 0, comparisonVersions[1]?.rules?.exit?.length || 0)
+                    }).map((_, index) => <TableRow key={`exit-${index}`}>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[index]?.value || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[index]?.value || "-"}</TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
+                            </TableRow>) : <TableRow>
                             <TableCell colSpan={6} className="text-center">No exit rules defined</TableCell>
-                          </TableRow>
-                        )}
+                          </TableRow>}
                       </TableBody>
                     </Table>
                   </div>
@@ -365,9 +369,7 @@ const EditHistory = () => {
         <div className="flex items-center gap-3 mb-1">
           <h2 className="text-xl font-semibold flex items-center">
             {version.version} 
-            {version.isLatest && 
-              <Badge variant="outline" className="ml-2 text-xs">Latest</Badge>
-            }
+            {version.isLatest && <Badge variant="outline" className="ml-2 text-xs">Latest</Badge>}
           </h2>
         </div>
         <div className="text-sm text-muted-foreground">{version.date}, {version.time}</div>
@@ -385,11 +387,7 @@ const EditHistory = () => {
     </div>
     
     <div className="mt-4">
-      <Button
-        variant="outline" 
-        className="flex justify-between items-center py-2 w-full md:w-auto"
-        onClick={() => toggleVersionDetails(version.version)}
-      >
+      <Button variant="outline" className="flex justify-between items-center py-2 w-full md:w-auto" onClick={() => toggleVersionDetails(version.version)}>
         <div className="font-medium">
           {openVersions[version.version] ? "Close Version Details" : "View Version Details"}
         </div>
@@ -411,26 +409,9 @@ const EditHistory = () => {
             <div>{version.description}</div>
           </div>
           
-          <div>
-            <div className="text-sm font-medium mb-2">Parameters</div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Parameter</TableHead>
-                  <TableHead>Value</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(version.parameters).map(([key, value]) => <TableRow key={key}>
-                    <TableCell>{key}</TableCell>
-                    <TableCell>{value}</TableCell>
-                  </TableRow>)}
-              </TableBody>
-            </Table>
-          </div>
           
-          {version.rules && (
-            <div>
+          
+          {version.rules && <div>
               <div className="text-sm font-medium mb-2">Trading Rules</div>
               
               {/* Entry Rules */}
@@ -445,19 +426,13 @@ const EditHistory = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {version.rules.entry.length > 0 ? (
-                      version.rules.entry.map(rule => (
-                        <TableRow key={rule.id}>
+                    {version.rules.entry.length > 0 ? version.rules.entry.map(rule => <TableRow key={rule.id}>
                           <TableCell>{rule.type}</TableCell>
                           <TableCell>{rule.condition}</TableCell>
                           <TableCell>{rule.value}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
+                        </TableRow>) : <TableRow>
                         <TableCell colSpan={3} className="text-center">No entry rules defined</TableCell>
-                      </TableRow>
-                    )}
+                      </TableRow>}
                   </TableBody>
                 </Table>
               </div>
@@ -474,28 +449,21 @@ const EditHistory = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {version.rules.exit.length > 0 ? (
-                      version.rules.exit.map(rule => (
-                        <TableRow key={rule.id}>
+                    {version.rules.exit.length > 0 ? version.rules.exit.map(rule => <TableRow key={rule.id}>
                           <TableCell>{rule.type}</TableCell>
                           <TableCell>{rule.condition}</TableCell>
                           <TableCell>{rule.value}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
+                        </TableRow>) : <TableRow>
                         <TableCell colSpan={3} className="text-center">No exit rules defined</TableCell>
-                      </TableRow>
-                    )}
+                      </TableRow>}
                   </TableBody>
                 </Table>
               </div>
-            </div>
-          )}
+            </div>}
         </div>}
     </div>
   </div>
-</Card>)}
+          </Card>)}
             </div>}
         </div>
       </main>

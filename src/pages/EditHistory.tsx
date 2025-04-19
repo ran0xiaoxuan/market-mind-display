@@ -383,23 +383,18 @@ const EditHistory = () => {
                 
                 <div>
                   <h3 className="text-lg font-medium mb-2">Parameters</h3>
-                  <Table>
-                    <TableRow>
-                      <TableHead>Parameter</TableHead>
-                      <TableHead>{comparisonVersions[0]?.version}</TableHead>
-                      <TableHead>{comparisonVersions[1]?.version}</TableHead>
-                    </TableRow>
-                    <TableBody>
-                      {Object.keys({
+                  {Object.keys({
                     ...comparisonVersions[0]?.parameters,
                     ...comparisonVersions[1]?.parameters
-                  }).map(param => <TableRow key={param}>
-                          <TableCell className="font-medium">{param}</TableCell>
-                          <TableCell>{comparisonVersions[0]?.parameters[param]}</TableCell>
-                          <TableCell>{comparisonVersions[1]?.parameters[param]}</TableCell>
-                        </TableRow>)}
-                    </TableBody>
-                  </Table>
+                  }).map(param => (
+                    <div key={param} className="grid grid-cols-2 gap-4 mb-2">
+                      <div className="font-medium">{param}</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>{comparisonVersions[0]?.parameters[param]}</div>
+                        <div>{comparisonVersions[1]?.parameters[param]}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 
                 <div>

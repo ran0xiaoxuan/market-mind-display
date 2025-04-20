@@ -1,7 +1,9 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock } from "lucide-react";
+
 export function TradingSettings() {
   return <div className="space-y-12">
       <div>
@@ -26,7 +28,7 @@ export function TradingSettings() {
             <Button className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
           </div>
           
-          <CardContent className="p-6 min-h-[150px]">
+          <CardContent className="p-6 min-h-[300px]">
             {/* This content is intentionally hidden behind the overlay */}
           </CardContent>
         </Card>

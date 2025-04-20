@@ -7,27 +7,24 @@ import { LogOut, Moon, Settings, Sun, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTheme } from "./ThemeProvider";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-
 export function UserMenu() {
   const [open, setOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const {
+    theme,
+    setTheme
+  } = useTheme();
   const navigate = useNavigate();
-  
   const handleClose = () => setOpen(false);
-  
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
-  
   const handleLogout = () => {
     // Handle logout logic here
     console.log("Logging out...");
     handleClose();
     navigate("/auth/login");
   };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
+  return <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 ml-2">
           <Avatar className="h-8 w-8">
@@ -54,30 +51,13 @@ export function UserMenu() {
             </Button>
           </Link>
           
-          <Button variant="ghost" onClick={toggleTheme} className="w-full justify-start px-4 py-2 h-auto">
-            {theme === "dark" ? (
-              <>
-                <Sun className="mr-2 h-4 w-4" />
-                Light Mode
-              </>
-            ) : (
-              <>
-                <Moon className="mr-2 h-4 w-4" />
-                Dark Mode
-              </>
-            )}
-          </Button>
           
-          <Button 
-            variant="ghost" 
-            onClick={handleLogout}
-            className="w-full justify-start px-4 py-2 h-auto text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
-          >
+          
+          <Button variant="ghost" onClick={handleLogout} className="w-full justify-start px-4 py-2 h-auto text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20">
             <LogOut className="mr-2 h-4 w-4" />
             Log out
           </Button>
         </div>
       </PopoverContent>
-    </Popover>
-  );
+    </Popover>;
 }

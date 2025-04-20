@@ -1,8 +1,6 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-
 export function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [strategyUpdates, setStrategyUpdates] = useState(true);
@@ -11,9 +9,7 @@ export function NotificationSettings() {
   const [pushNotifications, setPushNotifications] = useState(false);
   const [tradingSignals, setTradingSignals] = useState(false);
   const [priceAlerts, setPriceAlerts] = useState(true);
-
-  return (
-    <div>
+  return <div>
       <h2 className="text-xl font-medium mb-4">Notification Preferences</h2>
       <p className="text-sm text-muted-foreground mb-6">Choose how you want to be notified</p>
       
@@ -22,26 +18,14 @@ export function NotificationSettings() {
           <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
           
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Strategy Updates</p>
-                <p className="text-sm text-muted-foreground">Receive emails when your strategies are updated</p>
-              </div>
-              <Switch 
-                checked={strategyUpdates}
-                onCheckedChange={setStrategyUpdates}
-              />
-            </div>
+            
             
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Performance Alerts</p>
                 <p className="text-sm text-muted-foreground">Receive emails about significant performance changes</p>
               </div>
-              <Switch 
-                checked={performanceAlerts}
-                onCheckedChange={setPerformanceAlerts}
-              />
+              <Switch checked={performanceAlerts} onCheckedChange={setPerformanceAlerts} />
             </div>
             
             <div className="flex items-center justify-between">
@@ -49,10 +33,7 @@ export function NotificationSettings() {
                 <p className="font-medium">Platform Updates</p>
                 <p className="text-sm text-muted-foreground">Receive emails about new features and updates</p>
               </div>
-              <Switch 
-                checked={platformUpdates}
-                onCheckedChange={setPlatformUpdates}
-              />
+              <Switch checked={platformUpdates} onCheckedChange={setPlatformUpdates} />
             </div>
           </div>
         </div>
@@ -66,10 +47,7 @@ export function NotificationSettings() {
                 <p className="font-medium">Trading Signals</p>
                 <p className="text-sm text-muted-foreground">Receive notifications for new trading signals</p>
               </div>
-              <Switch 
-                checked={tradingSignals}
-                onCheckedChange={setTradingSignals}
-              />
+              <Switch checked={tradingSignals} onCheckedChange={setTradingSignals} />
             </div>
             
             <div className="flex items-center justify-between">
@@ -77,16 +55,12 @@ export function NotificationSettings() {
                 <p className="font-medium">Price Alerts</p>
                 <p className="text-sm text-muted-foreground">Receive notifications for price alerts</p>
               </div>
-              <Switch 
-                checked={priceAlerts}
-                onCheckedChange={setPriceAlerts}
-              />
+              <Switch checked={priceAlerts} onCheckedChange={setPriceAlerts} />
             </div>
           </div>
         </div>
         
         <Button className="mt-4">Save Preferences</Button>
       </div>
-    </div>
-  );
+    </div>;
 }

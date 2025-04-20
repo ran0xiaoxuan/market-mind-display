@@ -51,10 +51,9 @@ const BacktestHistory = () => {
       trades: 25
     },
     parameters: {
-      initialCapital: 10000,
-      startDate: "2023-01-01",
-      endDate: "2024-01-01",
-      symbol: "AAPL"
+      "Initial Capital": 10000,
+      "Start Date": "2023-01-01",
+      "End Date": "2024-01-01"
     }
   }, {
     id: 2,
@@ -71,10 +70,9 @@ const BacktestHistory = () => {
       trades: 23
     },
     parameters: {
-      initialCapital: 10000,
-      startDate: "2023-01-01",
-      endDate: "2024-01-01",
-      symbol: "AAPL"
+      "Initial Capital": 10000,
+      "Start Date": "2023-01-01",
+      "End Date": "2024-01-01"
     }
   }, {
     id: 3,
@@ -91,10 +89,9 @@ const BacktestHistory = () => {
       trades: 18
     },
     parameters: {
-      initialCapital: 10000,
-      startDate: "2023-01-01",
-      endDate: "2023-12-01",
-      symbol: "AAPL"
+      "Initial Capital": 10000,
+      "Start Date": "2023-01-01",
+      "End Date": "2023-12-01"
     }
   }]);
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({

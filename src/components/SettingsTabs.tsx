@@ -1,7 +1,7 @@
 
-import { User, Bell, BarChart2, Paintbrush } from "lucide-react";
+import { User, Bell, BarChart2 } from "lucide-react";
 
-type SettingsTab = "account" | "notifications" | "trading" | "appearance";
+type SettingsTab = "account" | "notifications" | "trading";
 
 interface SettingsTabsProps {
   activeTab: SettingsTab;
@@ -13,7 +13,6 @@ export function SettingsTabs({ activeTab, setActiveTab }: SettingsTabsProps) {
     { id: "account" as const, label: "Account", icon: <User className="h-4 w-4" /> },
     { id: "notifications" as const, label: "Notifications", icon: <Bell className="h-4 w-4" /> },
     { id: "trading" as const, label: "Trading", icon: <BarChart2 className="h-4 w-4" /> },
-    { id: "appearance" as const, label: "Appearance", icon: <Paintbrush className="h-4 w-4" /> },
   ];
 
   return (

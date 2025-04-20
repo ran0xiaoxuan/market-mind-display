@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { Upload } from "lucide-react";
-
 export function AccountSettings() {
   const [name, setName] = useState("ranxiaoxuan");
   const [email, setEmail] = useState("ran0xiaoxuan@gmail.com");
@@ -15,7 +14,6 @@ export function AccountSettings() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -23,9 +21,7 @@ export function AccountSettings() {
       setAvatarUrl(url);
     }
   };
-
-  return (
-    <div className="space-y-12">
+  return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
         <h2 className="text-xl font-medium">Subscription Plan</h2>
@@ -70,32 +66,15 @@ export function AccountSettings() {
         <div className="grid gap-4">
           <div>
             <label htmlFor="name" className="block text-sm mb-2">Name</label>
-            <Input 
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} />
           </div>
           
           <div>
             <label htmlFor="email" className="block text-sm mb-2">Email</label>
-            <Input 
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
           
-          <div>
-            <label htmlFor="bio" className="block text-sm mb-2">Bio</label>
-            <Textarea 
-              id="bio"
-              placeholder="Tell us about yourself"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-            />
-          </div>
+          
           
           <div>
             <Button variant="outline" className="mt-2">Save Changes</Button>
@@ -124,13 +103,7 @@ export function AccountSettings() {
                   </span>
                 </Button>
               </label>
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
+              <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               <p className="text-xs text-muted-foreground">
                 Recommended size: 200 x 200 pixels. Max file size: 1MB.
               </p>
@@ -148,32 +121,17 @@ export function AccountSettings() {
         <div className="grid gap-4">
           <div>
             <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
-            <Input 
-              id="current-password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
+            <Input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
           </div>
           
           <div>
             <label htmlFor="new-password" className="block text-sm mb-2">New Password</label>
-            <Input 
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
+            <Input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
           </div>
           
           <div>
             <label htmlFor="confirm-password" className="block text-sm mb-2">Confirm New Password</label>
-            <Input 
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
+            <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
           </div>
           
           <div>
@@ -199,6 +157,5 @@ export function AccountSettings() {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }

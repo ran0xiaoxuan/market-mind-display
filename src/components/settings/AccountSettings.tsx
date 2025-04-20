@@ -39,20 +39,7 @@ export function AccountSettings() {
             
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
               <p className="text-amber-800 text-sm font-medium">Free plan limitations:</p>
-              <ul className="mt-2 space-y-1 text-sm text-amber-700">
-                <li className="flex items-start gap-2">
-                  • Cannot connect broker accounts
-                </li>
-                <li className="flex items-start gap-2">
-                  • Limited to paper trading accounts
-                </li>
-                <li className="flex items-start gap-2">
-                  • Limited to 3 active strategies
-                </li>
-                <li className="flex items-start gap-2">
-                  • Basic analytics only
-                </li>
-              </ul>
+              
             </div>
           </CardContent>
         </Card>

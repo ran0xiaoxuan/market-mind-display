@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { Upload } from "lucide-react";
+import { Upload, Lock } from "lucide-react";
+
 export function AccountSettings() {
   const [name, setName] = useState("ranxiaoxuan");
   const [email, setEmail] = useState("ran0xiaoxuan@gmail.com");
@@ -14,6 +15,7 @@ export function AccountSettings() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -21,6 +23,7 @@ export function AccountSettings() {
       setAvatarUrl(url);
     }
   };
+
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -39,7 +42,10 @@ export function AccountSettings() {
             
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
               <p className="text-amber-800 text-sm font-medium">Free plan limitations:</p>
-              
+              <div className="mt-2 text-amber-700 text-sm flex items-center">
+                <Lock className="h-4 w-4 mr-2 text-amber-600" />
+                No API connections
+              </div>
             </div>
           </CardContent>
         </Card>

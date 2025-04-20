@@ -7,13 +7,12 @@ import { AnalyticsTabs } from "@/components/AnalyticsTabs";
 import { Card } from "@/components/ui/card";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { PerformanceMetricsGrid } from "@/components/PerformanceMetricsGrid";
-import { ValueAtRisk } from "@/components/ValueAtRisk";
 import { StrategyRankings } from "@/components/StrategyRankings";
 import { StrategyComparisonTable } from "@/components/StrategyComparisonTable";
 import { RecentTrades } from "@/components/RecentTrades";
 
-// Remove "Market Correlation" from the tabs
-const mainTabs = ["Performance", "Strategy Comparison", "Risk Analysis", "Trade Analysis"];
+// Removed "Risk Analysis" from the tabs
+const mainTabs = ["Performance", "Strategy Comparison", "Trade Analysis"];
 
 const Analytics = () => {
   const [currentTab, setCurrentTab] = useState("Performance");
@@ -88,24 +87,6 @@ const Analytics = () => {
                   <StrategyComparisonTable />
                 </div>
               </div>
-            </div>}
-
-          {currentTab === "Risk Analysis" && <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Volatility Analysis</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Historical volatility compared to benchmark</p>
-                  <PerformanceChart type="volatility" timeRange={timeRange} />
-                </Card>
-                
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Drawdown Analysis</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Historical drawdowns over time</p>
-                  <PerformanceChart type="drawdown" timeRange={timeRange} />
-                </Card>
-              </div>
-
-              <ValueAtRisk />
             </div>}
 
           {currentTab === "Trade Analysis" && <div className="space-y-8">

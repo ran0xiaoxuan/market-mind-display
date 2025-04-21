@@ -124,10 +124,12 @@ const BacktestHistory = () => {
                 <p className="text-muted-foreground">View and compare backtest results for {strategyName}</p>
               </div>
               
-              <Button onClick={handleRunNewBacktest}>
-                <Play className="h-4 w-4 mr-2" />
-                Run New Backtest
-              </Button>
+              <Link to="/backtest">
+                <Button>
+                  <Play className="h-4 w-4 mr-2" />
+                  Run New Backtest
+                </Button>
+              </Link>
             </div>
           </div>
           

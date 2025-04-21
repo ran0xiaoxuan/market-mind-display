@@ -41,8 +41,7 @@ export function AccountSettings() {
             
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
               <p className="text-amber-800 text-sm font-medium">Pro Plan feature:</p>
-              <div className="mt-2 text-amber-700 text-sm flex items-center gap-2">
-                <Link2Off className="h-4 w-4 mr-1" />
+              <div className="mt-2 text-amber-700 text-sm flex gap-2 items-center">
                 Live trading via API connection.
               </div>
             </div>
@@ -151,3 +150,4 @@ export function AccountSettings() {
       </div>
     </div>;
 }
+

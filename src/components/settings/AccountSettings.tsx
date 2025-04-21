@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { Upload, Lock } from "lucide-react";
+import { Upload, Lock, Link2Off } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
 export function AccountSettings() {
   const [name, setName] = useState("ranxiaoxuan");
   const [email, setEmail] = useState("ran0xiaoxuan@gmail.com");
@@ -30,18 +33,17 @@ export function AccountSettings() {
         <Card>
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
-              <div>
-                <div className="text-sm font-medium">Free</div>
-                <div className="text-sm">Limited access to features</div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs px-2 py-0.5">Free</Badge>
               </div>
               <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
             </div>
             
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
               <p className="text-amber-800 text-sm font-medium">Pro Plan feature:</p>
-              <div className="mt-2 text-amber-700 text-sm flex items-center">
-                
-                No API connections
+              <div className="mt-2 text-amber-700 text-sm flex items-center gap-2">
+                <Link2Off className="h-4 w-4 mr-1" />
+                Live trading via API connection.
               </div>
             </div>
           </CardContent>

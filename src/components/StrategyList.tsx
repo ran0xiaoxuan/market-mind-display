@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 type Strategy = {
   id: number;
@@ -48,9 +49,11 @@ export function StrategyList() {
         </div>
       </CardContent>
       <CardFooter className="pt-2 pb-6">
-        <Button variant="outline" className="w-full">
-          View All Strategies
-        </Button>
+        <Link to="/strategies" className="w-full">
+          <Button variant="outline" className="w-full">
+            View All Strategies
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );

@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { Upload, Lock, Link2Off } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CheckCircle } from "lucide-react";
 
 export function AccountSettings() {
   const [name, setName] = useState("ranxiaoxuan");
@@ -42,6 +43,7 @@ export function AccountSettings() {
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
               <p className="text-amber-800 text-sm font-medium">Pro Plan feature:</p>
               <div className="mt-2 text-amber-700 text-sm flex gap-2 items-center">
+                <CheckCircle className="h-4 w-4 text-amber-700" />
                 Live trading via API connection.
               </div>
             </div>
@@ -65,10 +67,8 @@ export function AccountSettings() {
             <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
           
-          
-          
           <div>
-            <Button variant="outline" className="mt-2">Save Changes</Button>
+            <Button variant="default" className="bg-black text-white mt-2">Save Changes</Button>
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@ export function AccountSettings() {
           </div>
           
           <div>
-            <Button variant="outline" className="mt-2">Update Password</Button>
+            <Button variant="default" className="bg-black text-white mt-2">Update Password</Button>
           </div>
         </div>
       </div>
@@ -150,4 +150,3 @@ export function AccountSettings() {
       </div>
     </div>;
 }
-

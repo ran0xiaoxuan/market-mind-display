@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
-
 interface RuleData {
   id: number;
   type: string;
@@ -18,14 +17,12 @@ interface RuleData {
   requiredConditions?: number;
   logic?: string;
 }
-
 interface RiskManagementData {
   stopLoss: string;
   takeProfit: string;
   singleBuyVolume: string;
   maxBuyVolume: string;
 }
-
 interface VersionData {
   version: string;
   date: string;
@@ -44,15 +41,12 @@ interface VersionData {
   isSelected?: boolean;
   riskManagement?: RiskManagementData;
 }
-
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
-
 const convertToRuleGroupData = (rules: any): RuleGroupData[] => {
   if (!rules) return [];
-  
   return rules.map((rule: any) => ({
     id: rule.id,
     logic: rule.logic,
@@ -60,7 +54,6 @@ const convertToRuleGroupData = (rules: any): RuleGroupData[] => {
     requiredConditions: rule.requiredConditions
   }));
 };
-
 const EditHistory = () => {
   const {
     strategyId
@@ -433,8 +426,7 @@ const EditHistory = () => {
             </div>
           </div>
           
-          {comparisonMode.active ? (
-            <Card className="p-6">
+          {comparisonMode.active ? <Card className="p-6">
               <div className="mb-4">
                 <h2 className="text-2xl font-semibold">Version Comparison</h2>
                 <p className="text-muted-foreground">
@@ -479,28 +471,20 @@ const EditHistory = () => {
                       <div className="text-sm font-medium text-muted-foreground mb-2">
                         {comparisonVersions[0]?.version}
                       </div>
-                      <TradingRules
-                        entryRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.entry)}
-                        exitRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.exit)}
-                      />
+                      <TradingRules entryRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.entry)} exitRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.exit)} />
                     </div>
                     
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">
                         {comparisonVersions[1]?.version}
                       </div>
-                      <TradingRules
-                        entryRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.entry)}
-                        exitRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.exit)}
-                      />
+                      <TradingRules entryRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.entry)} exitRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.exit)} />
                     </div>
                   </div>
                 </div>
                 
               </div>
-            </Card>
-          ) : (
-            <div className="space-y-4">
+            </Card> : <div className="space-y-4">
               {versions.map(version => <Card key={version.version} className="overflow-hidden">
                   <div className="p-6 pb-4">
                     <div className="flex justify-between items-center">
@@ -569,60 +553,14 @@ const EditHistory = () => {
                               </div>
                             </div>}
                           
-                          {version.rules && <div>
-                              <div className="text-sm font-medium mb-2">Trading Rules</div>
-                              
-                              {/* Entry Rules */}
-                              <div className="mb-4">
-                                <h4 className="text-sm mb-2 font-medium">Entry Rules</h4>
-                                <Table>
-                                  <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Condition</TableHead>
-                                    <TableHead>Value</TableHead>
-                                  </TableRow>
-                                  <TableBody>
-                                    {version.rules.entry.length > 0 ? version.rules.entry.map(rule => <TableRow key={rule.id}>
-                                          <TableCell>{rule.type}</TableCell>
-                                          <TableCell>{rule.condition}</TableCell>
-                                          <TableCell>{rule.value}</TableCell>
-                                        </TableRow>) : <TableRow>
-                                        <TableCell colSpan={3} className="text-center">No entry rules defined</TableCell>
-                                      </TableRow>}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                              
-                              {/* Exit Rules */}
-                              <div>
-                                <h4 className="text-sm font-medium mb-2">Exit Rules</h4>
-                                <Table>
-                                  <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Condition</TableHead>
-                                    <TableHead>Value</TableHead>
-                                  </TableRow>
-                                  <TableBody>
-                                    {version.rules.exit.length > 0 ? version.rules.exit.map(rule => <TableRow key={rule.id}>
-                                          <TableCell>{rule.type}</TableCell>
-                                          <TableCell>{rule.condition}</TableCell>
-                                          <TableCell>{rule.value}</TableCell>
-                                        </TableRow>) : <TableRow>
-                                        <TableCell colSpan={3} className="text-center">No exit rules defined</TableCell>
-                                      </TableRow>}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            </div>}
+                          {version.rules}
                         </div>}
                     </div>
                   </div>
                 </Card>)}
-            </div>
-          )}
+            </div>}
         </div>
       </main>
     </div>;
 };
-
 export default EditHistory;

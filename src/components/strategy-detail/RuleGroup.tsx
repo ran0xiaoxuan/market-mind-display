@@ -1,3 +1,4 @@
+
 import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ interface RuleGroupProps {
   requiredConditions?: number;
   onRequiredConditionsChange?: (count: number) => void;
   onAddRule?: () => void;
-  className?: string;
+  className?: string; // Added className prop to fix TypeScript error
 }
 
 export const RuleGroup = ({ 
@@ -68,12 +69,12 @@ export const RuleGroup = ({
   
   return (
     <div className={`mb-6 ${className || ''}`}>
-      <div className={`${color === "blue" ? "bg-blue-50/50 border border-blue-100" : "bg-amber-50/50 border border-amber-100"} p-3 rounded-lg mb-4`}>
-        <h4 className={`text-sm font-semibold mb-2 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
+      <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>
+        <h4 className={`text-sm font-semibold mb-1 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
           {title}
         </h4>
         {title === "OR Group" && editable ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-2">
             At least <Input 
               type="number" 
               min={1} 
@@ -84,11 +85,11 @@ export const RuleGroup = ({
             /> of {inequalities.length} conditions must be met.
           </p>
         ) : title === "OR Group" ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-2">
             At least {requiredConditions || 1} of {inequalities.length} conditions must be met.
           </p>
         ) : (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground mb-2">{description}</p>
         )}
       </div>
       
@@ -105,12 +106,13 @@ export const RuleGroup = ({
         ))}
       </div>
       
+      {/* Add rule button - only shown when editable */}
       {editable && onAddRule && (
         <div className="mt-3">
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full border-dashed hover:bg-muted/50"
+            className="w-full border-dashed"
             onClick={onAddRule}
           >
             <Plus className="mr-1 h-4 w-4" /> Add Rule
@@ -120,3 +122,4 @@ export const RuleGroup = ({
     </div>
   );
 };
+

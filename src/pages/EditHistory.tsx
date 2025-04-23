@@ -433,7 +433,8 @@ const EditHistory = () => {
             </div>
           </div>
           
-          {comparisonMode.active ? <Card className="p-6">
+          {comparisonMode.active ? (
+            <Card className="p-6">
               <div className="mb-4">
                 <h2 className="text-2xl font-semibold">Version Comparison</h2>
                 <p className="text-muted-foreground">
@@ -475,7 +476,9 @@ const EditHistory = () => {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground mb-2">{comparisonVersions[0]?.version}</div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">
+                        {comparisonVersions[0]?.version}
+                      </div>
                       <TradingRules
                         entryRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.entry)}
                         exitRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.exit)}
@@ -483,7 +486,9 @@ const EditHistory = () => {
                     </div>
                     
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground mb-2">{comparisonVersions[1]?.version}</div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">
+                        {comparisonVersions[1]?.version}
+                      </div>
                       <TradingRules
                         entryRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.entry)}
                         exitRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.exit)}
@@ -493,7 +498,9 @@ const EditHistory = () => {
                 </div>
                 
               </div>
-            </Card> : <div className="space-y-4">
+            </Card>
+          ) : (
+            <div className="space-y-4">
               {versions.map(version => <Card key={version.version} className="overflow-hidden">
                   <div className="p-6 pb-4">
                     <div className="flex justify-between items-center">
@@ -611,7 +618,8 @@ const EditHistory = () => {
                     </div>
                   </div>
                 </Card>)}
-            </div>}
+            </div>
+          )}
         </div>
       </main>
     </div>;

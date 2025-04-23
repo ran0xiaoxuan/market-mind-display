@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
+
 interface RuleData {
   id: number;
   type: string;
@@ -17,12 +18,14 @@ interface RuleData {
   requiredConditions?: number;
   logic?: string;
 }
+
 interface RiskManagementData {
   stopLoss: string;
   takeProfit: string;
   singleBuyVolume: string;
   maxBuyVolume: string;
 }
+
 interface VersionData {
   version: string;
   date: string;
@@ -41,10 +44,12 @@ interface VersionData {
   isSelected?: boolean;
   riskManagement?: RiskManagementData;
 }
+
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
+
 const convertToRuleGroupData = (rules: any): RuleGroupData[] => {
   if (!rules) return [];
   return rules.map((rule: any) => ({
@@ -54,6 +59,7 @@ const convertToRuleGroupData = (rules: any): RuleGroupData[] => {
     requiredConditions: rule.requiredConditions
   }));
 };
+
 const EditHistory = () => {
   const {
     strategyId
@@ -357,12 +363,14 @@ const EditHistory = () => {
   const [openVersions, setOpenVersions] = useState<Record<string, boolean>>({
     "v1.2": true
   });
+
   const toggleVersionDetails = (version: string) => {
     setOpenVersions(prev => ({
       ...prev,
       [version]: !prev[version]
     }));
   };
+
   const handleSelectForComparison = (version: string) => {
     setComparisonMode(prev => {
       if (prev.selectedVersions.includes(version)) {
@@ -383,24 +391,29 @@ const EditHistory = () => {
       };
     });
   };
+
   const handleCompareSelectedVersions = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: true
     }));
   };
+
   const handleExitCompareMode = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: false
     }));
   };
+
   const handleRevert = (version: string) => {
     console.log(`Reverting to version ${version}`);
   };
+
   const comparisonVersions = versions.filter(v => comparisonMode.selectedVersions.includes(v.version)).sort((a, b) => {
     return comparisonMode.selectedVersions.indexOf(a.version) - comparisonMode.selectedVersions.indexOf(b.version);
   });
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -471,14 +484,20 @@ const EditHistory = () => {
                       <div className="text-sm font-medium text-muted-foreground mb-2">
                         {comparisonVersions[0]?.version}
                       </div>
-                      <TradingRules entryRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.entry)} exitRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.exit)} />
+                      <TradingRules 
+                        entryRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.entry)} 
+                        exitRules={convertToRuleGroupData(comparisonVersions[0]?.rules?.exit)} 
+                      />
                     </div>
                     
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">
                         {comparisonVersions[1]?.version}
                       </div>
-                      <TradingRules entryRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.entry)} exitRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.exit)} />
+                      <TradingRules 
+                        entryRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.entry)} 
+                        exitRules={convertToRuleGroupData(comparisonVersions[1]?.rules?.exit)} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -553,7 +572,15 @@ const EditHistory = () => {
                               </div>
                             </div>}
                           
-                          {version.rules}
+                          {version.rules && (
+                            <div>
+                              <div className="text-sm font-medium mb-2">Trading Rules</div>
+                              <TradingRules 
+                                entryRules={convertToRuleGroupData(version.rules.entry)} 
+                                exitRules={convertToRuleGroupData(version.rules.exit)} 
+                              />
+                            </div>
+                          )}
                         </div>}
                     </div>
                   </div>
@@ -563,4 +590,5 @@ const EditHistory = () => {
       </main>
     </div>;
 };
+
 export default EditHistory;

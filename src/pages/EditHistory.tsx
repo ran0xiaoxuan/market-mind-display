@@ -7,7 +7,6 @@ import { ArrowLeft, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
-
 interface RuleData {
   id: number;
   type: string;
@@ -17,14 +16,12 @@ interface RuleData {
   requiredConditions?: number;
   logic?: string;
 }
-
 interface RiskManagementData {
   stopLoss: string;
   takeProfit: string;
   singleBuyVolume: string;
   maxBuyVolume: string;
 }
-
 interface VersionData {
   version: string;
   date: string;
@@ -43,12 +40,10 @@ interface VersionData {
   isSelected?: boolean;
   riskManagement?: RiskManagementData;
 }
-
 interface ComparisonMode {
   active: boolean;
   selectedVersions: string[];
 }
-
 const EditHistory = () => {
   const {
     strategyId
@@ -82,9 +77,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Crosses Below",
-          right: { type: "value", value: "30" }
+          right: {
+            type: "value",
+            value: "30"
+          }
         }]
       }, {
         id: 2,
@@ -95,9 +99,18 @@ const EditHistory = () => {
         requiredConditions: 1,
         inequalities: [{
           id: 1,
-          left: { type: "price", value: "Close" },
+          left: {
+            type: "price",
+            value: "Close"
+          },
           condition: "Above",
-          right: { type: "indicator", indicator: "SMA", parameters: { period: "20" } }
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          }
         }]
       }],
       exit: [{
@@ -108,9 +121,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Crosses Above",
-          right: { type: "value", value: "70" }
+          right: {
+            type: "value",
+            value: "70"
+          }
         }]
       }, {
         id: 2,
@@ -121,9 +143,15 @@ const EditHistory = () => {
         requiredConditions: 1,
         inequalities: [{
           id: 1,
-          left: { type: "price", value: "Close" },
+          left: {
+            type: "price",
+            value: "Close"
+          },
           condition: "Below",
-          right: { type: "value", value: "2%" }
+          right: {
+            type: "value",
+            value: "2%"
+          }
         }]
       }]
     },
@@ -156,9 +184,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Crosses Below",
-          right: { type: "value", value: "30" }
+          right: {
+            type: "value",
+            value: "30"
+          }
         }]
       }],
       exit: [{
@@ -169,9 +206,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Crosses Above",
-          right: { type: "value", value: "75" }
+          right: {
+            type: "value",
+            value: "75"
+          }
         }]
       }]
     },
@@ -197,9 +243,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Less Than",
-          right: { type: "value", value: "30" }
+          right: {
+            type: "value",
+            value: "30"
+          }
         }]
       }],
       exit: [{
@@ -210,9 +265,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Greater Than",
-          right: { type: "value", value: "70" }
+          right: {
+            type: "value",
+            value: "70"
+          }
         }]
       }]
     },
@@ -237,9 +301,18 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Less Than",
-          right: { type: "value", value: "20" }
+          right: {
+            type: "value",
+            value: "20"
+          }
         }]
       }],
       exit: [{
@@ -250,31 +323,36 @@ const EditHistory = () => {
         logic: "AND",
         inequalities: [{
           id: 1,
-          left: { type: "indicator", indicator: "RSI", parameters: { period: "14" } },
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
           condition: "Greater Than",
-          right: { type: "value", value: "80" }
+          right: {
+            type: "value",
+            value: "80"
+          }
         }]
       }]
     },
     status: "inactive"
   }]);
-  
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>({
     active: false,
     selectedVersions: ["v1.2", "v1.1"]
   });
-  
   const [openVersions, setOpenVersions] = useState<Record<string, boolean>>({
     "v1.2": true
   });
-  
   const toggleVersionDetails = (version: string) => {
     setOpenVersions(prev => ({
       ...prev,
       [version]: !prev[version]
     }));
   };
-
   const handleSelectForComparison = (version: string) => {
     setComparisonMode(prev => {
       if (prev.selectedVersions.includes(version)) {
@@ -295,29 +373,24 @@ const EditHistory = () => {
       };
     });
   };
-
   const handleCompareSelectedVersions = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: true
     }));
   };
-
   const handleExitCompareMode = () => {
     setComparisonMode(prev => ({
       ...prev,
       active: false
     }));
   };
-
   const handleRevert = (version: string) => {
     console.log(`Reverting to version ${version}`);
   };
-  
   const comparisonVersions = versions.filter(v => comparisonMode.selectedVersions.includes(v.version)).sort((a, b) => {
     return comparisonMode.selectedVersions.indexOf(a.version) - comparisonMode.selectedVersions.indexOf(b.version);
   });
-  
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -380,21 +453,7 @@ const EditHistory = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Parameters</h3>
-                  {Object.keys({
-                    ...comparisonVersions[0]?.parameters,
-                    ...comparisonVersions[1]?.parameters
-                  }).map(param => (
-                    <div key={param} className="grid grid-cols-2 gap-4 mb-2">
-                      <div className="font-medium">{param}</div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>{comparisonVersions[0]?.parameters[param]}</div>
-                        <div>{comparisonVersions[1]?.parameters[param]}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                
                 
                 <div>
                   <h3 className="text-lg font-medium mb-2">Trading Rules</h3>
@@ -409,28 +468,18 @@ const EditHistory = () => {
                       <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
                       <Table>
                         <TableBody>
-                          {Math.max(
-                            comparisonVersions[0]?.rules?.entry[0]?.inequalities?.length || 0,
-                            comparisonVersions[1]?.rules?.entry[0]?.inequalities?.length || 0
-                          ) > 0 ? Array.from({
-                            length: Math.max(
-                              comparisonVersions[0]?.rules?.entry[0]?.inequalities?.length || 0,
-                              comparisonVersions[1]?.rules?.entry[0]?.inequalities?.length || 0
-                            )
-                          }).map((_, index) => (
-                            <TableRow key={`entry-and-${index}`}>
+                          {Math.max(comparisonVersions[0]?.rules?.entry[0]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.entry[0]?.inequalities?.length || 0) > 0 ? Array.from({
+                        length: Math.max(comparisonVersions[0]?.rules?.entry[0]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.entry[0]?.inequalities?.length || 0)
+                      }).map((_, index) => <TableRow key={`entry-and-${index}`}>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
-                            </TableRow>
-                          )) : (
-                            <TableRow>
+                            </TableRow>) : <TableRow>
                               <TableCell colSpan={6} className="text-center">No AND rules defined</TableCell>
-                            </TableRow>
-                          )}
+                            </TableRow>}
                         </TableBody>
                       </Table>
                     </div>
@@ -445,28 +494,18 @@ const EditHistory = () => {
                       </p>
                       <Table>
                         <TableBody>
-                          {Math.max(
-                            comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0,
-                            comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0
-                          ) > 0 ? Array.from({
-                            length: Math.max(
-                              comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0,
-                              comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0
-                            )
-                          }).map((_, index) => (
-                            <TableRow key={`entry-or-${index}`}>
+                          {Math.max(comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0) > 0 ? Array.from({
+                        length: Math.max(comparisonVersions[0]?.rules?.entry[1]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.entry[1]?.inequalities?.length || 0)
+                      }).map((_, index) => <TableRow key={`entry-or-${index}`}>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.entry[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.entry[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
-                            </TableRow>
-                          )) : (
-                            <TableRow>
+                            </TableRow>) : <TableRow>
                               <TableCell colSpan={6} className="text-center">No OR rules defined</TableCell>
-                            </TableRow>
-                          )}
+                            </TableRow>}
                         </TableBody>
                       </Table>
                     </div>
@@ -482,28 +521,18 @@ const EditHistory = () => {
                       <p className="text-xs text-muted-foreground mb-2">All conditions must be met.</p>
                       <Table>
                         <TableBody>
-                          {Math.max(
-                            comparisonVersions[0]?.rules?.exit[0]?.inequalities?.length || 0,
-                            comparisonVersions[1]?.rules?.exit[0]?.inequalities?.length || 0
-                          ) > 0 ? Array.from({
-                            length: Math.max(
-                              comparisonVersions[0]?.rules?.exit[0]?.inequalities?.length || 0,
-                              comparisonVersions[1]?.rules?.exit[0]?.inequalities?.length || 0
-                            )
-                          }).map((_, index) => (
-                            <TableRow key={`exit-and-${index}`}>
+                          {Math.max(comparisonVersions[0]?.rules?.exit[0]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.exit[0]?.inequalities?.length || 0) > 0 ? Array.from({
+                        length: Math.max(comparisonVersions[0]?.rules?.exit[0]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.exit[0]?.inequalities?.length || 0)
+                      }).map((_, index) => <TableRow key={`exit-and-${index}`}>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[0]?.inequalities?.[index]?.right.value || "-"}</TableCell>
-                            </TableRow>
-                          )) : (
-                            <TableRow>
+                            </TableRow>) : <TableRow>
                               <TableCell colSpan={6} className="text-center">No AND rules defined</TableCell>
-                            </TableRow>
-                          )}
+                            </TableRow>}
                         </TableBody>
                       </Table>
                     </div>
@@ -518,28 +547,18 @@ const EditHistory = () => {
                       </p>
                       <Table>
                         <TableBody>
-                          {Math.max(
-                            comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0,
-                            comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0
-                          ) > 0 ? Array.from({
-                            length: Math.max(
-                              comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0,
-                              comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0
-                            )
-                          }).map((_, index) => (
-                            <TableRow key={`exit-or-${index}`}>
+                          {Math.max(comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0) > 0 ? Array.from({
+                        length: Math.max(comparisonVersions[0]?.rules?.exit[1]?.inequalities?.length || 0, comparisonVersions[1]?.rules?.exit[1]?.inequalities?.length || 0)
+                      }).map((_, index) => <TableRow key={`exit-or-${index}`}>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[0]?.rules?.exit[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities?.[index]?.left.type || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities?.[index]?.condition || "-"}</TableCell>
                               <TableCell>{comparisonVersions[1]?.rules?.exit[1]?.inequalities?.[index]?.right.value || "-"}</TableCell>
-                            </TableRow>
-                          )) : (
-                            <TableRow>
+                            </TableRow>) : <TableRow>
                               <TableCell colSpan={6} className="text-center">No OR rules defined</TableCell>
-                            </TableRow>
-                          )}
+                            </TableRow>}
                         </TableBody>
                       </Table>
                     </div>
@@ -670,5 +689,4 @@ const EditHistory = () => {
       </main>
     </div>;
 };
-
 export default EditHistory;

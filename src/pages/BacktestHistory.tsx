@@ -34,7 +34,7 @@ const BacktestHistory = () => {
   }>();
   const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
   const [backtests, setBacktests] = useState<BacktestData[]>([{
-    id: 1,
+    id: 3,
     version: "v1.2",
     date: "Mar 28, 2024",
     time: "10:30 PM",
@@ -73,7 +73,7 @@ const BacktestHistory = () => {
       "End Date": "2024-01-01"
     }
   }, {
-    id: 3,
+    id: 1,
     version: "v1.0",
     date: "Mar 20, 2024",
     time: "05:45 PM",

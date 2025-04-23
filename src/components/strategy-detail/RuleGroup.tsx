@@ -15,7 +15,8 @@ interface RuleGroupProps {
   onInequitiesChange?: (inequalities: Inequality[]) => void;
   requiredConditions?: number;
   onRequiredConditionsChange?: (count: number) => void;
-  onAddRule?: () => void; // New prop for add rule button
+  onAddRule?: () => void;
+  className?: string; // Added className prop to fix TypeScript error
 }
 
 export const RuleGroup = ({ 
@@ -27,7 +28,8 @@ export const RuleGroup = ({
   onInequitiesChange,
   requiredConditions,
   onRequiredConditionsChange,
-  onAddRule
+  onAddRule,
+  className
 }: RuleGroupProps) => {
   
   const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
@@ -66,7 +68,7 @@ export const RuleGroup = ({
   };
   
   return (
-    <div className="mb-6">
+    <div className={`mb-6 ${className || ''}`}>
       <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>
         <h4 className={`text-sm font-semibold mb-1 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
           {title}
@@ -120,3 +122,4 @@ export const RuleGroup = ({
     </div>
   );
 };
+

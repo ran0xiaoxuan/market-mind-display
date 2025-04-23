@@ -7,7 +7,6 @@ import { ArrowLeft, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PerformanceChart } from "@/components/PerformanceChart";
-
 interface BacktestData {
   id: number;
   version: string;
@@ -27,7 +26,6 @@ interface BacktestData {
     [key: string]: string | number;
   };
 }
-
 const BacktestHistory = () => {
   const {
     strategyId
@@ -97,18 +95,15 @@ const BacktestHistory = () => {
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true
   });
-
   const toggleBacktestDetails = (backtestId: number) => {
     setOpenBacktests(prev => ({
       ...prev,
       [backtestId]: !prev[backtestId]
     }));
   };
-
   const handleRunNewBacktest = () => {
     console.log("Running new backtest");
   };
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -194,23 +189,7 @@ const BacktestHistory = () => {
                         </div>
                       </div>
                       
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">Backtest Parameters</h3>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Parameter</TableHead>
-                              <TableHead>Value</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {Object.entries(backtest.parameters).map(([key, value]) => <TableRow key={key}>
-                                <TableCell>{key}</TableCell>
-                                <TableCell>{value}</TableCell>
-                              </TableRow>)}
-                          </TableBody>
-                        </Table>
-                      </div>
+                      
                       
                     </div>}
                 </div>
@@ -220,5 +199,4 @@ const BacktestHistory = () => {
       </main>
     </div>;
 };
-
 export default BacktestHistory;

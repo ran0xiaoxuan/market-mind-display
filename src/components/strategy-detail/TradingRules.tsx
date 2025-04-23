@@ -201,7 +201,6 @@ export const TradingRules = ({
         
         {entryRules.length > 0 && (
           <>
-            {/* AND Group */}
             <RuleGroup 
               title="AND Group" 
               color="blue" 
@@ -210,10 +209,9 @@ export const TradingRules = ({
               editable={editable}
               onInequitiesChange={(inequalities) => handleEntryRuleChange(0, inequalities)}
               onAddRule={editable ? handleAddEntryRuleAND : undefined}
-              className="bg-blue-50/50 border border-blue-100"
+              className="bg-blue-50/50"
             />
             
-            {/* OR Group */}
             {entryRules.length > 1 && (
               <RuleGroup 
                 title="OR Group" 
@@ -225,19 +223,18 @@ export const TradingRules = ({
                 requiredConditions={entryRules[1].requiredConditions || 1}
                 onRequiredConditionsChange={(count) => handleEntryRequiredConditionsChange(1, count)}
                 onAddRule={editable ? handleAddEntryRuleOR : undefined}
-                className="bg-amber-50/50 border border-amber-100"
+                className="bg-amber-50/50"
               />
             )}
           </>
         )}
       </div>
       
-      <div className="mb-6">
+      <div>
         <h3 className="text-lg font-medium mb-4">Exit Rules</h3>
         
         {exitRules.length > 0 && (
           <>
-            {/* AND Group */}
             <RuleGroup 
               title="AND Group" 
               color="blue" 
@@ -246,10 +243,9 @@ export const TradingRules = ({
               editable={editable}
               onInequitiesChange={(inequalities) => handleExitRuleChange(0, inequalities)}
               onAddRule={editable ? handleAddExitRuleAND : undefined}
-              className="bg-blue-50/50 border border-blue-100"
+              className="bg-blue-50/50"
             />
             
-            {/* OR Group */}
             {exitRules.length > 1 && (
               <RuleGroup 
                 title="OR Group" 
@@ -261,7 +257,7 @@ export const TradingRules = ({
                 requiredConditions={exitRules[1].requiredConditions || 1}
                 onRequiredConditionsChange={(count) => handleExitRequiredConditionsChange(1, count)}
                 onAddRule={editable ? handleAddExitRuleOR : undefined}
-                className="bg-amber-50/50 border border-amber-100"
+                className="bg-amber-50/50"
               />
             )}
           </>

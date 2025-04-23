@@ -16,7 +16,7 @@ interface RuleGroupProps {
   requiredConditions?: number;
   onRequiredConditionsChange?: (count: number) => void;
   onAddRule?: () => void;
-  className?: string; // Added className prop to fix TypeScript error
+  className?: string;
 }
 
 export const RuleGroup = ({ 
@@ -66,15 +66,19 @@ export const RuleGroup = ({
     const updatedInequalities = inequalities.filter(inequality => inequality.id !== id);
     onInequitiesChange(updatedInequalities);
   };
+
+  const groupTitle = title === "AND Group" ? "AND Group" : "OR Group";
+  const groupColor = color === "blue" ? "bg-blue-50 border-blue-100" : "bg-amber-50 border-amber-100";
+  const textColor = color === "blue" ? "text-blue-800" : "text-amber-800";
   
   return (
     <div className={`mb-6 ${className || ''}`}>
-      <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>
-        <h4 className={`text-sm font-semibold mb-1 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
-          {title}
+      <div className={`${groupColor} border rounded-lg p-4 mb-4`}>
+        <h4 className={`text-sm font-semibold ${textColor}`}>
+          {groupTitle}
         </h4>
         {title === "OR Group" && editable ? (
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="text-sm text-muted-foreground mt-1">
             At least <Input 
               type="number" 
               min={1} 
@@ -85,17 +89,18 @@ export const RuleGroup = ({
             /> of {inequalities.length} conditions must be met.
           </p>
         ) : title === "OR Group" ? (
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="text-sm text-muted-foreground mt-1">
             At least {requiredConditions || 1} of {inequalities.length} conditions must be met.
           </p>
         ) : (
-          <p className="text-xs text-muted-foreground mb-2">{description}</p>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-4">
         {inequalities.map((inequality) => (
-          <div key={`${title.toLowerCase().split(' ')[0]}-${inequality.id}`}>
+          <div key={`${title.toLowerCase().split(' ')[0]}-${inequality.id}`}
+               className="bg-white rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition-colors">
             <RuleInequality 
               inequality={inequality} 
               editable={editable}
@@ -106,20 +111,18 @@ export const RuleGroup = ({
         ))}
       </div>
       
-      {/* Add rule button - only shown when editable */}
       {editable && onAddRule && (
-        <div className="mt-3">
+        <div className="mt-4">
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full border-dashed"
+            className="w-full border-dashed hover:border-gray-400"
             onClick={onAddRule}
           >
-            <Plus className="mr-1 h-4 w-4" /> Add Rule
+            <Plus className="mr-2 h-4 w-4" /> Add Rule
           </Button>
         </div>
       )}
     </div>
   );
 };
-

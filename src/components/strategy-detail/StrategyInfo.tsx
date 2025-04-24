@@ -11,8 +11,12 @@ interface StrategyInfoProps {
 export const StrategyInfo = ({ strategy, isActive, onStatusChange }: StrategyInfoProps) => {
   return (
     <Card className="p-6">
-      <h2 className="text-xl font-semibold mb-2">Strategy Information</h2>
-      <p className="text-muted-foreground mb-4">{strategy.description}</p>
+      <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
+      
+      <div className="mb-8">
+        <h3 className="text-lg font-medium mb-3">Strategy Introduction</h3>
+        <p className="text-muted-foreground">{strategy.description}</p>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
         <div>

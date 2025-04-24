@@ -3,10 +3,11 @@ import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ChevronDown, ChevronUp, Play } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Play, CalendarDays, DollarSign, FileText, Shield, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PerformanceChart } from "@/components/PerformanceChart";
+import { TradingRules } from "@/components/strategy-detail/TradingRules";
 interface BacktestData {
   id: number;
   version: string;
@@ -25,7 +26,56 @@ interface BacktestData {
   parameters: {
     [key: string]: string | number;
   };
+  entryRules: {
+    id: number;
+    logic: string;
+    inequalities: {
+      id: number;
+      left: {
+        type: string;
+        indicator?: string;
+        parameters?: {
+          period?: string;
+        };
+        value?: string;
+      };
+      condition: string;
+      right: {
+        type: string;
+        indicator?: string;
+        parameters?: {
+          period?: string;
+        };
+        value?: string;
+      };
+    }[];
+  }[];
+  exitRules: {
+    id: number;
+    logic: string;
+    inequalities: {
+      id: number;
+      left: {
+        type: string;
+        indicator?: string;
+        parameters?: {
+          period?: string;
+        };
+        value?: string;
+      };
+      condition: string;
+      right: {
+        type: string;
+        indicator?: string;
+        parameters?: {
+          period?: string;
+        };
+        value?: string;
+      };
+    }[];
+  }[];
 }
+
 const BacktestHistory = () => {
   const {
     strategyId
@@ -52,7 +102,27 @@ const BacktestHistory = () => {
       "Initial Capital": 10000,
       "Start Date": "2023-01-01",
       "End Date": "2024-01-01"
-    }
+    },
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { type: "indicator", indicator: "SMA", parameters: { period: "20" } },
+        condition: "Crosses Above",
+        right: { type: "indicator", indicator: "SMA", parameters: { period: "50" } }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { type: "indicator", indicator: "SMA", parameters: { period: "20" } },
+        condition: "Crosses Below",
+        right: { type: "indicator", indicator: "SMA", parameters: { period: "50" } }
+      }]
+    }]
   }, {
     id: 2,
     version: "v1.1",
@@ -71,7 +141,27 @@ const BacktestHistory = () => {
       "Initial Capital": 10000,
       "Start Date": "2023-01-01",
       "End Date": "2024-01-01"
-    }
+    },
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { type: "indicator", indicator: "SMA", parameters: { period: "20" } },
+        condition: "Crosses Above",
+        right: { type: "indicator", indicator: "SMA", parameters: { period: "50" } }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { type: "indicator", indicator: "SMA", parameters: { period: "20" } },
+        condition: "Crosses Below",
+        right: { type: "indicator", indicator: "SMA", parameters: { period: "50" } }
+      }]
+    }]
   }, {
     id: 1,
     version: "v1.0",
@@ -90,7 +180,27 @@ const BacktestHistory = () => {
       "Initial Capital": 10000,
       "Start Date": "2023-01-01",
       "End Date": "2023-12-01"
-    }
+    },
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { type: "indicator", indicator: "SMA", parameters: { period: "20" } },
+        condition: "Crosses Above",
+        right: { type: "indicator", indicator: "SMA", parameters: { period: "50" } }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { type: "indicator", indicator: "SMA", parameters: { period: "20" } },
+        condition: "Crosses Below",
+        right: { type: "indicator", indicator: "SMA", parameters: { period: "50" } }
+      }]
+    }]
   }]);
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true
@@ -189,7 +299,77 @@ const BacktestHistory = () => {
                         </div>
                       </div>
                       
-                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div>
+                          <h4 className="text-sm text-muted-foreground mb-2">Time Period</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                            <p>From: {backtest.parameters["Start Date"]}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                            <p>To: {backtest.parameters["End Date"]}</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-sm text-muted-foreground mb-2">Initial Capital</h4>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <p>${backtest.parameters["Initial Capital"].toLocaleString()}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t pt-4">
+                        <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Trading Rules
+                        </h4>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="font-medium mb-2 flex items-center gap-2">
+                              <ArrowUp className="h-4 w-4 text-green-500" />
+                              Entry Rules
+                            </h5>
+                            <TradingRules
+                              entryRules={backtest.entryRules}
+                              exitRules={[]}
+                              editable={false}
+                            />
+                          </div>
+                          
+                          <div>
+                            <h5 className="font-medium mb-2 flex items-center gap-2">
+                              <ArrowDown className="h-4 w-4 text-red-500" />
+                              Exit Rules
+                            </h5>
+                            <TradingRules
+                              entryRules={[]}
+                              exitRules={backtest.exitRules}
+                              editable={false}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t pt-4">
+                        <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Risk Management
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Stop Loss</p>
+                            <p className="font-medium text-red-500">-2.5%</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Take Profit</p>
+                            <p className="font-medium text-green-500">+5.0%</p>
+                          </div>
+                        </div>
+                      </div>
                       
                     </div>}
                 </div>
@@ -199,4 +379,5 @@ const BacktestHistory = () => {
       </main>
     </div>;
 };
+
 export default BacktestHistory;

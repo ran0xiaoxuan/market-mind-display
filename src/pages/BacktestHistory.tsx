@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
+
 interface BacktestData {
   id: number;
   version: string;
@@ -75,217 +76,224 @@ interface BacktestData {
     }[];
   }[];
 }
+
 const BacktestHistory = () => {
-  const {
-    strategyId
-  } = useParams<{
-    strategyId: string;
-  }>();
+  const { strategyId } = useParams<{ strategyId: string }>();
   const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
-  const [backtests, setBacktests] = useState<BacktestData[]>([{
-    id: 3,
-    version: "v1.2",
-    date: "Mar 28, 2024",
-    time: "10:30 PM",
-    isLatest: true,
-    metrics: {
-      totalReturn: "+17.50%",
-      totalReturnValue: 17.5,
-      sharpeRatio: 1.8,
-      winRate: "68%",
-      maxDrawdown: "-5.2%",
-      maxDrawdownValue: -5.2,
-      trades: 25
-    },
-    parameters: {
-      "Initial Capital": 10000,
-      "Start Date": "2023-01-01",
-      "End Date": "2024-01-01"
-    },
-    entryRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
+  
+  const [backtests, setBacktests] = useState<BacktestData[]>([
+    {
+      id: 3,
+      version: "v1.2",
+      date: "Mar 28, 2024",
+      time: "10:30 PM",
+      isLatest: true,
+      metrics: {
+        totalReturn: "+17.50%",
+        totalReturnValue: 17.5,
+        sharpeRatio: 1.8,
+        winRate: "68%",
+        maxDrawdown: "-5.2%",
+        maxDrawdownValue: -5.2,
+        trades: 25
+      },
+      parameters: {
+        "Initial Capital": 10000,
+        "Start Date": "2023-01-01",
+        "End Date": "2024-01-01"
+      },
+      entryRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
+        }]
+      }],
+      exitRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Below",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
+        }]
       }]
-    }]
-  }, {
-    id: 2,
-    version: "v1.1",
-    date: "Mar 25, 2024",
-    time: "06:15 PM",
-    metrics: {
-      totalReturn: "+15.80%",
-      totalReturnValue: 15.8,
-      sharpeRatio: 1.6,
-      winRate: "65%",
-      maxDrawdown: "-6.1%",
-      maxDrawdownValue: -6.1,
-      trades: 23
     },
-    parameters: {
-      "Initial Capital": 10000,
-      "Start Date": "2023-01-01",
-      "End Date": "2024-01-01"
+    {
+      id: 2,
+      version: "v1.1",
+      date: "Mar 25, 2024",
+      time: "06:15 PM",
+      metrics: {
+        totalReturn: "+15.80%",
+        totalReturnValue: 15.8,
+        sharpeRatio: 1.6,
+        winRate: "65%",
+        maxDrawdown: "-6.1%",
+        maxDrawdownValue: -6.1,
+        trades: 23
+      },
+      parameters: {
+        "Initial Capital": 10000,
+        "Start Date": "2023-01-01",
+        "End Date": "2024-01-01"
+      },
+      entryRules: [{
+        id: 1,
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
+          }
+        }]
+      }],
+      exitRules: [{
+        id: 1,
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Below",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
+          }
+        }]
+      }]
     },
-    entryRules: [{
+    {
       id: 1,
-      logic: "AND",
-      inequalities: [{
+      version: "v1.0",
+      date: "Mar 20, 2024",
+      time: "05:45 PM",
+      metrics: {
+        totalReturn: "+12.30%",
+        totalReturnValue: 12.3,
+        sharpeRatio: 1.4,
+        winRate: "60%",
+        maxDrawdown: "-7.5%",
+        maxDrawdownValue: -7.5,
+        trades: 18
+      },
+      parameters: {
+        "Initial Capital": 10000,
+        "Start Date": "2023-01-01",
+        "End Date": "2023-12-01"
+      },
+      entryRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
+        }]
+      }],
+      exitRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Below",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
+        }]
       }]
-    }]
-  }, {
-    id: 1,
-    version: "v1.0",
-    date: "Mar 20, 2024",
-    time: "05:45 PM",
-    metrics: {
-      totalReturn: "+12.30%",
-      totalReturnValue: 12.3,
-      sharpeRatio: 1.4,
-      winRate: "60%",
-      maxDrawdown: "-7.5%",
-      maxDrawdownValue: -7.5,
-      trades: 18
-    },
-    parameters: {
-      "Initial Capital": 10000,
-      "Start Date": "2023-01-01",
-      "End Date": "2023-12-01"
-    },
-    entryRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }]
-  }]);
+    }
+  ]);
+  
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true
   });
+  
   const toggleBacktestDetails = (backtestId: number) => {
     setOpenBacktests(prev => ({
       ...prev,
       [backtestId]: !prev[backtestId]
     }));
   };
+  
   const handleRunNewBacktest = () => {
     console.log("Running new backtest");
   };
-  return <div className="min-h-screen flex flex-col bg-background">
+  
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -310,7 +318,8 @@ const BacktestHistory = () => {
           </div>
           
           <div className="space-y-4">
-            {backtests.map(backtest => <Card key={backtest.id} className="overflow-hidden">
+            {backtests.map(backtest => (
+              <Card key={backtest.id} className="overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-3">
@@ -332,7 +341,8 @@ const BacktestHistory = () => {
                     </div>
                   </Button>
                   
-                  {openBacktests[backtest.id] && <div className="mt-4 space-y-6">
+                  {openBacktests[backtest.id] && (
+                    <div className="mt-4 space-y-6">
                       <div className="grid grid-cols-5 gap-6">
                         <div>
                           <div className="text-sm text-muted-foreground">Total Return</div>
@@ -374,11 +384,9 @@ const BacktestHistory = () => {
                         <div>
                           <h4 className="text-sm text-muted-foreground mb-2">Time Period</h4>
                           <div className="flex items-center gap-2 mb-1">
-                            
                             <p>From: {backtest.parameters["Start Date"]}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            
                             <p>To: {backtest.parameters["End Date"]}</p>
                           </div>
                         </div>
@@ -386,7 +394,6 @@ const BacktestHistory = () => {
                         <div>
                           <h4 className="text-sm text-muted-foreground mb-2">Initial Capital</h4>
                           <div className="flex items-center gap-2">
-                            
                             <p>${backtest.parameters["Initial Capital"].toLocaleString()}</p>
                           </div>
                         </div>
@@ -437,32 +444,34 @@ const BacktestHistory = () => {
 
                       <div className="border-t pt-4">
                         <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">Exit Rules</h4>
-                      <TradingRules
-                        entryRules={[]}
-                        exitRules={[
-                          {
-                            id: 1,
-                            logic: "AND",
-                            inequalities: backtest.exitRules[0].inequalities
-                          },
-                          {
-                            id: 2,
-                            logic: "OR",
-                            inequalities: backtest.exitRules[1]?.inequalities || [],
-                            requiredConditions: 1
-                          }
-                        ]}
-                        editable={false}
-                      />
+                        <TradingRules
+                          entryRules={[]}
+                          exitRules={[
+                            {
+                              id: 1,
+                              logic: "AND",
+                              inequalities: backtest.exitRules[0].inequalities
+                            },
+                            {
+                              id: 2,
+                              logic: "OR",
+                              inequalities: backtest.exitRules[1]?.inequalities || [],
+                              requiredConditions: 1
+                            }
+                          ]}
+                          editable={false}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </Card>
             ))}
           </div>
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
 
 export default BacktestHistory;

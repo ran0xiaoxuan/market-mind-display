@@ -3,11 +3,18 @@ import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ChevronDown, ChevronUp, Play, CalendarDays, DollarSign, FileText, Shield, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PerformanceChart } from "@/components/PerformanceChart";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface IndicatorParameters {
+  period?: string;
+  fast?: string;
+  slow?: string;
+  signal?: string;
+}
 
 interface BacktestData {
   id: number;
@@ -35,18 +42,14 @@ interface BacktestData {
       left: {
         type: string;
         indicator?: string;
-        parameters?: {
-          period?: string;
-        };
+        parameters?: IndicatorParameters;
         value?: string;
       };
       condition: string;
       right: {
         type: string;
         indicator?: string;
-        parameters?: {
-          period?: string;
-        };
+        parameters?: IndicatorParameters;
         value?: string;
       };
     }[];
@@ -59,18 +62,14 @@ interface BacktestData {
       left: {
         type: string;
         indicator?: string;
-        parameters?: {
-          period?: string;
-        };
+        parameters?: IndicatorParameters;
         value?: string;
       };
       condition: string;
       right: {
         type: string;
         indicator?: string;
-        parameters?: {
-          period?: string;
-        };
+        parameters?: IndicatorParameters;
         value?: string;
       };
     }[];
@@ -81,266 +80,278 @@ const BacktestHistory = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
   const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
   
-  const [backtests, setBacktests] = useState<BacktestData[]>([{
-    id: 3,
-    version: "v1.2",
-    date: "Mar 28, 2024",
-    time: "10:30 PM",
-    isLatest: true,
-    metrics: {
-      totalReturn: "+17.50%",
-      totalReturnValue: 17.5,
-      sharpeRatio: 1.8,
-      winRate: "68%",
-      maxDrawdown: "-5.2%",
-      maxDrawdownValue: -5.2,
-      trades: 25
-    },
-    parameters: {
-      "Initial Capital": 10000,
-      "Start Date": "2023-01-01",
-      "End Date": "2024-01-01"
-    },
-    entryRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
+  const [backtests, setBacktests] = useState<BacktestData[]>([
+    {
+      id: 3,
+      version: "v1.2",
+      date: "Mar 28, 2024",
+      time: "10:30 PM",
+      isLatest: true,
+      metrics: {
+        totalReturn: "+17.50%",
+        totalReturnValue: 17.5,
+        sharpeRatio: 1.8,
+        winRate: "68%",
+        maxDrawdown: "-5.2%",
+        maxDrawdownValue: -5.2,
+        trades: 25
+      },
+      parameters: {
+        "Initial Capital": 10000,
+        "Start Date": "2023-01-01",
+        "End Date": "2024-01-01",
+        "Single Buy Volume": 1000,
+        "Max Buy Volume": 5000
+      },
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [{
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: {
+                period: "20"
+              }
+            },
+            condition: "Crosses Above",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: {
+                period: "50"
+              }
+            }
+          }]
         },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
+        {
+          id: 2,
+          logic: "OR",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: {
+                  period: "14"
+                }
+              },
+              condition: "Less Than",
+              right: {
+                type: "value",
+                value: "30"
+              }
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "MACD",
+                parameters: {
+                  fast: "12",
+                  slow: "26",
+                  signal: "9"
+                }
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "value",
+                value: "0"
+              }
+            }
+          ]
         }
-      }]
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [{
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: {
+                period: "20"
+              }
+            },
+            condition: "Crosses Below",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: {
+                period: "50"
+              }
+            }
+          }]
+        },
+        {
+          id: 2,
+          logic: "OR",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: {
+                  period: "14"
+                }
+              },
+              condition: "Greater Than",
+              right: {
+                type: "value",
+                value: "70"
+              }
+            },
+            {
+              id: 2,
+              left: {
+                type: "price",
+                value: "Close"
+              },
+              condition: "Less Than",
+              right: {
+                type: "value",
+                value: "Stop Loss"
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       id: 2,
-      logic: "OR",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "RSI",
-          parameters: {
-            period: "14"
-          }
-        },
-        condition: "Less Than",
-        right: {
-          type: "value",
-          value: "30"
-        }
+      version: "v1.1",
+      date: "Mar 25, 2024",
+      time: "06:15 PM",
+      metrics: {
+        totalReturn: "+15.80%",
+        totalReturnValue: 15.8,
+        sharpeRatio: 1.6,
+        winRate: "65%",
+        maxDrawdown: "-6.1%",
+        maxDrawdownValue: -6.1,
+        trades: 23
       },
-      {
-        id: 2,
-        left: {
-          type: "indicator",
-          indicator: "MACD",
-          parameters: {
-            fast: "12",
-            slow: "26",
-            signal: "9"
-          }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "value",
-          value: "0"
-        }
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
+      parameters: {
+        "Initial Capital": 10000,
+        "Start Date": "2023-01-01",
+        "End Date": "2024-01-01"
+      },
+      entryRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
+        }]
+      }],
+      exitRules: [{
+        id: 1,
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Below",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        }
+        }]
       }]
     },
     {
-      id: 2,
-      logic: "OR",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "RSI",
-          parameters: {
-            period: "14"
-          }
-        },
-        condition: "Greater Than",
-        right: {
-          type: "value",
-          value: "70"
-        }
+      id: 1,
+      version: "v1.0",
+      date: "Mar 20, 2024",
+      time: "05:45 PM",
+      metrics: {
+        totalReturn: "+12.30%",
+        totalReturnValue: 12.3,
+        sharpeRatio: 1.4,
+        winRate: "60%",
+        maxDrawdown: "-7.5%",
+        maxDrawdownValue: -7.5,
+        trades: 18
       },
-      {
-        id: 2,
-        left: {
-          type: "price",
-          value: "Close"
-        },
-        condition: "Less Than",
-        right: {
-          type: "value",
-          value: "Stop Loss"
-        }
-      }]
-    }]
-  },
-  {
-    id: 2,
-    version: "v1.1",
-    date: "Mar 25, 2024",
-    time: "06:15 PM",
-    metrics: {
-      totalReturn: "+15.80%",
-      totalReturnValue: 15.8,
-      sharpeRatio: 1.6,
-      winRate: "65%",
-      maxDrawdown: "-6.1%",
-      maxDrawdownValue: -6.1,
-      trades: 23
-    },
-    parameters: {
-      "Initial Capital": 10000,
-      "Start Date": "2023-01-01",
-      "End Date": "2024-01-01"
-    },
-    entryRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
+      parameters: {
+        "Initial Capital": 10000,
+        "Start Date": "2023-01-01",
+        "End Date": "2023-12-01"
+      },
+      entryRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
+        }]
+      }],
+      exitRules: [{
         id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
+        logic: "AND",
+        inequalities: [{
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "20"
+            }
+          },
+          condition: "Crosses Below",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: {
+              period: "50"
+            }
           }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
+        }]
       }]
-    }]
-  },
-  {
-    id: 1,
-    version: "v1.0",
-    date: "Mar 20, 2024",
-    time: "05:45 PM",
-    metrics: {
-      totalReturn: "+12.30%",
-      totalReturnValue: 12.3,
-      sharpeRatio: 1.4,
-      winRate: "60%",
-      maxDrawdown: "-7.5%",
-      maxDrawdownValue: -7.5,
-      trades: 18
-    },
-    parameters: {
-      "Initial Capital": 10000,
-      "Start Date": "2023-01-01",
-      "End Date": "2023-12-01"
-    },
-    entryRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "20"
-          }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: {
-            period: "50"
-          }
-        }
-      }]
-    }]
-  }]);
+    }
+  ]);
 
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true

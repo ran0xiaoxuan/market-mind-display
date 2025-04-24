@@ -81,217 +81,291 @@ const BacktestHistory = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
   const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
   
-  const [backtests, setBacktests] = useState<BacktestData[]>([
-    {
-      id: 3,
-      version: "v1.2",
-      date: "Mar 28, 2024",
-      time: "10:30 PM",
-      isLatest: true,
-      metrics: {
-        totalReturn: "+17.50%",
-        totalReturnValue: 17.5,
-        sharpeRatio: 1.8,
-        winRate: "68%",
-        maxDrawdown: "-5.2%",
-        maxDrawdownValue: -5.2,
-        trades: 25
-      },
-      parameters: {
-        "Initial Capital": 10000,
-        "Start Date": "2023-01-01",
-        "End Date": "2024-01-01"
-      },
-      entryRules: [{
+  const [backtests, setBacktests] = useState<BacktestData[]>([{
+    id: 3,
+    version: "v1.2",
+    date: "Mar 28, 2024",
+    time: "10:30 PM",
+    isLatest: true,
+    metrics: {
+      totalReturn: "+17.50%",
+      totalReturnValue: 17.5,
+      sharpeRatio: 1.8,
+      winRate: "68%",
+      maxDrawdown: "-5.2%",
+      maxDrawdownValue: -5.2,
+      trades: 25
+    },
+    parameters: {
+      "Initial Capital": 10000,
+      "Start Date": "2023-01-01",
+      "End Date": "2024-01-01"
+    },
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
         id: 1,
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
-            }
-          },
-          condition: "Crosses Above",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "50"
-            }
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
           }
-        }]
-      }],
-      exitRules: [{
-        id: 1,
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
-            }
-          },
-          condition: "Crosses Below",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "50"
-            }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
           }
-        }]
+        }
       }]
     },
     {
       id: 2,
-      version: "v1.1",
-      date: "Mar 25, 2024",
-      time: "06:15 PM",
-      metrics: {
-        totalReturn: "+15.80%",
-        totalReturnValue: 15.8,
-        sharpeRatio: 1.6,
-        winRate: "65%",
-        maxDrawdown: "-6.1%",
-        maxDrawdownValue: -6.1,
-        trades: 23
-      },
-      parameters: {
-        "Initial Capital": 10000,
-        "Start Date": "2023-01-01",
-        "End Date": "2024-01-01"
-      },
-      entryRules: [{
+      logic: "OR",
+      inequalities: [{
         id: 1,
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
-            }
-          },
-          condition: "Crosses Above",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "50"
-            }
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: {
+            period: "14"
           }
-        }]
-      }],
-      exitRules: [{
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "30"
+        }
+      },
+      {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: "MACD",
+          parameters: {
+            fast: "12",
+            slow: "26",
+            signal: "9"
+          }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "value",
+          value: "0"
+        }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
         id: 1,
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
-            }
-          },
-          condition: "Crosses Below",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "50"
-            }
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
           }
-        }]
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
       }]
     },
     {
-      id: 1,
-      version: "v1.0",
-      date: "Mar 20, 2024",
-      time: "05:45 PM",
-      metrics: {
-        totalReturn: "+12.30%",
-        totalReturnValue: 12.3,
-        sharpeRatio: 1.4,
-        winRate: "60%",
-        maxDrawdown: "-7.5%",
-        maxDrawdownValue: -7.5,
-        trades: 18
-      },
-      parameters: {
-        "Initial Capital": 10000,
-        "Start Date": "2023-01-01",
-        "End Date": "2023-12-01"
-      },
-      entryRules: [{
+      id: 2,
+      logic: "OR",
+      inequalities: [{
         id: 1,
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
-            }
-          },
-          condition: "Crosses Above",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "50"
-            }
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: {
+            period: "14"
           }
-        }]
-      }],
-      exitRules: [{
-        id: 1,
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
-            }
-          },
-          condition: "Crosses Below",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "50"
-            }
-          }
-        }]
+        },
+        condition: "Greater Than",
+        right: {
+          type: "value",
+          value: "70"
+        }
+      },
+      {
+        id: 2,
+        left: {
+          type: "price",
+          value: "Close"
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "Stop Loss"
+        }
       }]
-    }
-  ]);
-  
+    }]
+  },
+  {
+    id: 2,
+    version: "v1.1",
+    date: "Mar 25, 2024",
+    time: "06:15 PM",
+    metrics: {
+      totalReturn: "+15.80%",
+      totalReturnValue: 15.8,
+      sharpeRatio: 1.6,
+      winRate: "65%",
+      maxDrawdown: "-6.1%",
+      maxDrawdownValue: -6.1,
+      trades: 23
+    },
+    parameters: {
+      "Initial Capital": 10000,
+      "Start Date": "2023-01-01",
+      "End Date": "2024-01-01"
+    },
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }]
+    }]
+  },
+  {
+    id: 1,
+    version: "v1.0",
+    date: "Mar 20, 2024",
+    time: "05:45 PM",
+    metrics: {
+      totalReturn: "+12.30%",
+      totalReturnValue: 12.3,
+      sharpeRatio: 1.4,
+      winRate: "60%",
+      maxDrawdown: "-7.5%",
+      maxDrawdownValue: -7.5,
+      trades: 18
+    },
+    parameters: {
+      "Initial Capital": 10000,
+      "Start Date": "2023-01-01",
+      "End Date": "2023-12-01"
+    },
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "20"
+          }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: {
+            period: "50"
+          }
+        }
+      }]
+    }]
+  }]);
+
   const [openBacktests, setOpenBacktests] = useState<Record<number, boolean>>({
     1: true
   });
-  
+
+  const [activeTab, setActiveTab] = useState<Record<number, "summary" | "trades">>({});
+
+  const toggleTab = (backtestId: number, tab: "summary" | "trades") => {
+    setActiveTab(prev => ({
+      ...prev,
+      [backtestId]: tab
+    }));
+  };
+
   const toggleBacktestDetails = (backtestId: number) => {
     setOpenBacktests(prev => ({
       ...prev,
       [backtestId]: !prev[backtestId]
     }));
   };
-  
+
   const handleRunNewBacktest = () => {
     console.log("Running new backtest");
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -462,6 +536,99 @@ const BacktestHistory = () => {
                           editable={false}
                         />
                       </div>
+
+                      {openBacktests[backtest.id] && (
+                        <div className="border-t pt-4">
+                          <h4 className="text-sm text-muted-foreground mb-3">Backtest Results</h4>
+                          <Tabs defaultValue="summary" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 mb-4">
+                              <TabsTrigger value="summary" onClick={() => toggleTab(backtest.id, "summary")}>
+                                Summary
+                              </TabsTrigger>
+                              <TabsTrigger value="trades" onClick={() => toggleTab(backtest.id, "trades")}>
+                                Trades
+                              </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="summary" className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <h3 className="font-medium mb-3">Performance Metrics</h3>
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Total Return</span>
+                                      <span className={`text-sm font-medium ${backtest.metrics.totalReturnValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {backtest.metrics.totalReturn}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Sharpe Ratio</span>
+                                      <span className="text-sm font-medium">{backtest.metrics.sharpeRatio}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Win Rate</span>
+                                      <span className="text-sm font-medium">{backtest.metrics.winRate}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <h3 className="font-medium mb-3">Trade Statistics</h3>
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Total Trades</span>
+                                      <span className="text-sm font-medium">{backtest.metrics.trades}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Winning Trades</span>
+                                      <span className="text-sm font-medium">17</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Losing Trades</span>
+                                      <span className="text-sm font-medium">8</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </TabsContent>
+
+                            <TabsContent value="trades">
+                              <div className="rounded-md border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Date</TableHead>
+                                      <TableHead>Type</TableHead>
+                                      <TableHead>Price</TableHead>
+                                      <TableHead className="text-right">P/L</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {[
+                                      { date: "04/01/2024", type: "Buy", price: "$320.45", pl: "-" },
+                                      { date: "04/03/2024", type: "Sell", price: "$345.80", pl: "+$25.35" },
+                                      { date: "04/05/2024", type: "Buy", price: "$342.10", pl: "-" },
+                                      { date: "04/08/2024", type: "Sell", price: "$354.75", pl: "+$12.65" }
+                                    ].map((trade, index) => (
+                                      <TableRow key={index}>
+                                        <TableCell>{trade.date}</TableCell>
+                                        <TableCell>{trade.type}</TableCell>
+                                        <TableCell>{trade.price}</TableCell>
+                                        <TableCell className={`text-right ${
+                                          trade.pl.startsWith("+") ? "text-green-600" : 
+                                          trade.pl.startsWith("-") ? "text-red-600" : ""
+                                        }`}>
+                                          {trade.pl}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TabsContent>
+                          </Tabs>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

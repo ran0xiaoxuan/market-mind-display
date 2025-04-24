@@ -1,20 +1,20 @@
-
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-
 interface StrategyInfoProps {
   strategy: any;
   isActive: boolean;
   onStatusChange: (checked: boolean) => void;
 }
-
-export const StrategyInfo = ({ strategy, isActive, onStatusChange }: StrategyInfoProps) => {
-  return (
-    <Card className="p-6">
+export const StrategyInfo = ({
+  strategy,
+  isActive,
+  onStatusChange
+}: StrategyInfoProps) => {
+  return <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
       
       <div className="mb-8">
-        <h3 className="text-lg font-medium mb-3">Strategy Introduction</h3>
+        <h3 className="mb-3 text-sm font-medium">Strategy Introduction</h3>
         <p className="text-muted-foreground">{strategy.description}</p>
       </div>
       
@@ -46,6 +46,5 @@ export const StrategyInfo = ({ strategy, isActive, onStatusChange }: StrategyInf
           </div>
         </div>
       </div>
-    </Card>
-  );
+    </Card>;
 };

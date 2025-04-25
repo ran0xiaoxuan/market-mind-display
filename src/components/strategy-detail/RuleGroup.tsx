@@ -1,4 +1,3 @@
-
 import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,7 @@ interface RuleGroupProps {
   requiredConditions?: number;
   onRequiredConditionsChange?: (count: number) => void;
   onAddRule?: () => void;
-  className?: string; // Added className prop to fix TypeScript error
+  className?: string;
 }
 
 export const RuleGroup = ({ 
@@ -67,6 +66,54 @@ export const RuleGroup = ({
     onInequitiesChange(updatedInequalities);
   };
   
+  const handleAddDefaultInequalities = () => {
+    if (!onInequitiesChange || inequalities.length !== 0) return;
+    
+    const defaultInequalities: Inequality[] = [
+      {
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: {
+            period: "14"
+          }
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "30"
+        }
+      },
+      {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: "Volume",
+          parameters: {
+            period: "5"
+          }
+        },
+        condition: "Greater Than",
+        right: {
+          type: "indicator",
+          indicator: "Volume MA",
+          parameters: {
+            period: "20"
+          }
+        }
+      }
+    ];
+    
+    onInequitiesChange(defaultInequalities);
+  };
+
+  useEffect(() => {
+    if (title === "OR Group" && inequalities.length === 0) {
+      handleAddDefaultInequalities();
+    }
+  }, [title, inequalities.length]);
+  
   return (
     <div className={`mb-6 ${className || ''}`}>
       <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>
@@ -106,7 +153,6 @@ export const RuleGroup = ({
         ))}
       </div>
       
-      {/* Add rule button - only shown when editable */}
       {editable && onAddRule && (
         <div className="mt-3">
           <Button 
@@ -122,4 +168,3 @@ export const RuleGroup = ({
     </div>
   );
 };
-

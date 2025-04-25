@@ -627,20 +627,22 @@ const BacktestHistory = () => {
                                       <TableHead>Date</TableHead>
                                       <TableHead>Type</TableHead>
                                       <TableHead>Price</TableHead>
+                                      <TableHead>Shares</TableHead>
                                       <TableHead className="text-right">P/L</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {[
-                                      { date: "04/01/2024", type: "Buy", price: "$320.45", pl: "-" },
-                                      { date: "04/03/2024", type: "Sell", price: "$345.80", pl: "+$25.35" },
-                                      { date: "04/05/2024", type: "Buy", price: "$342.10", pl: "-" },
-                                      { date: "04/08/2024", type: "Sell", price: "$354.75", pl: "+$12.65" }
+                                      { date: "04/01/2024", type: "Buy", price: "$320.45", shares: "100", pl: "-" },
+                                      { date: "04/03/2024", type: "Sell", price: "$345.80", shares: "100", pl: "+$25.35" },
+                                      { date: "04/05/2024", type: "Buy", price: "$342.10", shares: "150", pl: "-" },
+                                      { date: "04/08/2024", type: "Sell", price: "$354.75", shares: "150", pl: "+$12.65" }
                                     ].map((trade, index) => (
                                       <TableRow key={index}>
                                         <TableCell>{trade.date}</TableCell>
                                         <TableCell>{trade.type}</TableCell>
                                         <TableCell>{trade.price}</TableCell>
+                                        <TableCell>{trade.shares}</TableCell>
                                         <TableCell className={`text-right ${
                                           trade.pl.startsWith("+") ? "text-green-600" : 
                                           trade.pl.startsWith("-") ? "text-red-600" : ""

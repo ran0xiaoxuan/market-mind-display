@@ -573,8 +573,16 @@ const BacktestHistory = () => {
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Annualized Return</span>
+                                      <span className="text-sm font-medium text-green-600">+21.5%</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
                                       <span className="text-sm text-muted-foreground">Sharpe Ratio</span>
                                       <span className="text-sm font-medium">{backtest.metrics.sharpeRatio}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Max Drawdown</span>
+                                      <span className="text-sm font-medium text-red-600">{backtest.metrics.maxDrawdown}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm text-muted-foreground">Win Rate</span>
@@ -597,6 +605,14 @@ const BacktestHistory = () => {
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm text-muted-foreground">Losing Trades</span>
                                       <span className="text-sm font-medium">8</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Avg. Profit</span>
+                                      <span className="text-sm font-medium text-green-600">$245.80</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">Avg. Loss</span>
+                                      <span className="text-sm font-medium text-red-600">-$125.30</span>
                                     </div>
                                   </div>
                                 </div>

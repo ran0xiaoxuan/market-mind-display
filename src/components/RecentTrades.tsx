@@ -1,6 +1,7 @@
+
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 const recentTradesData = [{
   date: "2024-03",
   day: "03",
@@ -9,6 +10,7 @@ const recentTradesData = [{
   type: "Buy",
   typeColor: "text-green-600",
   price: "$172.40",
+  shares: "100",
   pnl: "-",
   pnlColor: ""
 }, {
@@ -19,6 +21,7 @@ const recentTradesData = [{
   type: "Sell",
   typeColor: "text-red-600",
   price: "$149.75",
+  shares: "150",
   pnl: "-3.2%",
   pnlColor: "text-red-600"
 }, {
@@ -29,6 +32,7 @@ const recentTradesData = [{
   type: "Buy",
   typeColor: "text-green-600",
   price: "$147.00",
+  shares: "200",
   pnl: "-",
   pnlColor: ""
 }, {
@@ -39,6 +43,7 @@ const recentTradesData = [{
   type: "Sell",
   typeColor: "text-red-600",
   price: "$177.82",
+  shares: "75",
   pnl: "-1.8%",
   pnlColor: "text-red-600"
 }, {
@@ -49,9 +54,11 @@ const recentTradesData = [{
   type: "Sell",
   typeColor: "text-red-600",
   price: "$178.75",
+  shares: "125",
   pnl: "+0.5%",
   pnlColor: "text-green-600"
 }];
+
 export function RecentTrades() {
   return <Card>
       <div className="p-6 pb-3">
@@ -67,6 +74,7 @@ export function RecentTrades() {
             <TableHead>Symbol</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Price</TableHead>
+            <TableHead>Shares</TableHead>
             <TableHead>P/L</TableHead>
           </TableRow>
         </TableHeader>
@@ -77,6 +85,7 @@ export function RecentTrades() {
               <TableCell>{trade.symbol}</TableCell>
               <TableCell className={trade.typeColor}>{trade.type}</TableCell>
               <TableCell>{trade.price}</TableCell>
+              <TableCell>{trade.shares}</TableCell>
               <TableCell className={trade.pnlColor}>{trade.pnl}</TableCell>
             </TableRow>)}
         </TableBody>

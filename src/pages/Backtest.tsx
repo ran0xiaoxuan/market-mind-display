@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
 const Backtest = () => {
   const [strategy, setStrategy] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -23,6 +24,7 @@ const Backtest = () => {
   const {
     toast
   } = useToast();
+
   const performanceMetrics = [{
     name: "Total Return",
     value: "17.00%",
@@ -41,6 +43,7 @@ const Backtest = () => {
     name: "Win Rate",
     value: "68%"
   }];
+
   const tradeStatistics = [{
     name: "Total Trades",
     value: "25"
@@ -58,6 +61,7 @@ const Backtest = () => {
     name: "Avg. Loss",
     value: "-$175.20"
   }];
+
   const handleRunBacktest = () => {
     if (!strategy) {
       toast({
@@ -87,6 +91,7 @@ const Backtest = () => {
       });
     }, 1500);
   };
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -213,39 +218,46 @@ const Backtest = () => {
                               <TableHead>Date</TableHead>
                               <TableHead>Type</TableHead>
                               <TableHead>Price</TableHead>
+                              <TableHead>Shares</TableHead>
                               <TableHead className="text-right">P/L</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {[{
-                          date: "04/01/2025",
-                          type: "Buy",
-                          price: "$320.45",
-                          pl: "-"
-                        }, {
-                          date: "04/03/2025",
-                          type: "Sell",
-                          price: "$345.80",
-                          pl: "+$25.35"
-                        }, {
-                          date: "04/05/2025",
-                          type: "Buy",
-                          price: "$342.10",
-                          pl: "-"
-                        }, {
-                          date: "04/08/2025",
-                          type: "Sell",
-                          price: "$354.75",
-                          pl: "+$12.65"
-                        }, {
-                          date: "04/10/2025",
-                          type: "Buy",
-                          price: "$358.30",
-                          pl: "-"
-                        }].map((trade, index) => <TableRow key={index}>
+                              date: "04/01/2025",
+                              type: "Buy",
+                              price: "$320.45",
+                              shares: "100",
+                              pl: "-"
+                            }, {
+                              date: "04/03/2025",
+                              type: "Sell",
+                              price: "$345.80",
+                              shares: "100",
+                              pl: "+$25.35"
+                            }, {
+                              date: "04/05/2025",
+                              type: "Buy",
+                              price: "$342.10",
+                              shares: "150",
+                              pl: "-"
+                            }, {
+                              date: "04/08/2025",
+                              type: "Sell",
+                              price: "$354.75",
+                              shares: "150",
+                              pl: "+$12.65"
+                            }, {
+                              date: "04/10/2025",
+                              type: "Buy",
+                              price: "$358.30",
+                              shares: "200",
+                              pl: "-"
+                            }].map((trade, index) => <TableRow key={index}>
                                 <TableCell>{trade.date}</TableCell>
                                 <TableCell>{trade.type}</TableCell>
                                 <TableCell>{trade.price}</TableCell>
+                                <TableCell>{trade.shares}</TableCell>
                                 <TableCell className={cn("text-right", trade.pl.startsWith("+") ? "text-green-600" : trade.pl.startsWith("-") ? "text-red-600" : "")}>{trade.pl}</TableCell>
                               </TableRow>)}
                           </TableBody>
@@ -262,4 +274,5 @@ const Backtest = () => {
       </main>
     </div>;
 };
+
 export default Backtest;

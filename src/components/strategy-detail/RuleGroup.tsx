@@ -1,3 +1,4 @@
+
 import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
@@ -69,6 +70,7 @@ export const RuleGroup = ({
   const handleAddDefaultInequalities = () => {
     if (!onInequitiesChange || inequalities.length !== 0) return;
     
+    // Always add 2 default inequalities for OR groups
     const defaultInequalities: Inequality[] = [
       {
         id: 1,
@@ -114,6 +116,11 @@ export const RuleGroup = ({
     }
   }, [title, inequalities.length]);
   
+  // Ensure we show "At least 1 of 2 conditions must be met." for OR groups
+  const orGroupDescription = inequalities.length >= 2 
+    ? `At least ${requiredConditions || 1} of ${inequalities.length} conditions must be met.`
+    : "At least 1 of 2 conditions must be met.";
+  
   return (
     <div className={`mb-6 ${className || ''}`}>
       <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>
@@ -133,7 +140,7 @@ export const RuleGroup = ({
           </p>
         ) : title === "OR Group" ? (
           <p className="text-xs text-muted-foreground mb-2">
-            At least {requiredConditions || 1} of {inequalities.length} conditions must be met.
+            {orGroupDescription}
           </p>
         ) : (
           <p className="text-xs text-muted-foreground mb-2">{description}</p>

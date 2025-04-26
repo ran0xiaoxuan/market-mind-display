@@ -8,6 +8,69 @@ interface BacktestRulesProps {
 }
 
 export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
+  // Ensure OR groups have at least 2 conditions
+  const processedEntryRules = [...entryRules];
+  const processedExitRules = [...exitRules];
+  
+  // Process entry rules
+  if (processedEntryRules.length > 1 && processedEntryRules[1]?.logic === "OR") {
+    if (!processedEntryRules[1].inequalities || processedEntryRules[1].inequalities.length < 2) {
+      // Add default inequalities if needed
+      const currentInequalities = processedEntryRules[1].inequalities || [];
+      while (currentInequalities.length < 2) {
+        const newId = currentInequalities.length > 0 
+          ? Math.max(...currentInequalities.map(ineq => ineq.id)) + 1 
+          : 1;
+        
+        currentInequalities.push({
+          id: newId,
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
+          },
+          condition: "Less Than",
+          right: {
+            type: "value",
+            value: "30"
+          }
+        });
+      }
+      processedEntryRules[1].inequalities = currentInequalities;
+    }
+  }
+  
+  // Process exit rules
+  if (processedExitRules.length > 1 && processedExitRules[1]?.logic === "OR") {
+    if (!processedExitRules[1].inequalities || processedExitRules[1].inequalities.length < 2) {
+      // Add default inequalities if needed
+      const currentInequalities = processedExitRules[1].inequalities || [];
+      while (currentInequalities.length < 2) {
+        const newId = currentInequalities.length > 0 
+          ? Math.max(...currentInequalities.map(ineq => ineq.id)) + 1 
+          : 1;
+        
+        currentInequalities.push({
+          id: newId,
+          left: {
+            type: currentInequalities.length === 0 ? "indicator" : "price",
+            indicator: currentInequalities.length === 0 ? "RSI" : undefined,
+            parameters: currentInequalities.length === 0 ? { period: "14" } : undefined,
+            value: currentInequalities.length === 0 ? undefined : "Close"
+          },
+          condition: currentInequalities.length === 0 ? "Greater Than" : "Less Than",
+          right: {
+            type: "value",
+            value: currentInequalities.length === 0 ? "70" : "Stop Loss"
+          }
+        });
+      }
+      processedExitRules[1].inequalities = currentInequalities;
+    }
+  }
+
   return (
     <>
       <div className="border-t pt-4">
@@ -17,12 +80,12 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
             {
               id: 1,
               logic: "AND",
-              inequalities: entryRules[0].inequalities
+              inequalities: processedEntryRules[0].inequalities
             },
             {
               id: 2,
               logic: "OR",
-              inequalities: entryRules[1]?.inequalities || [],
+              inequalities: processedEntryRules[1]?.inequalities || [],
               requiredConditions: 1
             }
           ]}
@@ -39,12 +102,12 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
             {
               id: 1,
               logic: "AND",
-              inequalities: exitRules[0].inequalities
+              inequalities: processedExitRules[0].inequalities
             },
             {
               id: 2,
               logic: "OR",
-              inequalities: exitRules[1]?.inequalities || [],
+              inequalities: processedExitRules[1]?.inequalities || [],
               requiredConditions: 1
             }
           ]}

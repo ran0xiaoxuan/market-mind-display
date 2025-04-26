@@ -3,15 +3,11 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
-import { StrategyParameters } from "@/components/strategy/StrategyParameters";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 
 const AIStrategy = () => {
   const [assetType, setAssetType] = useState<"stocks" | "cryptocurrency">("stocks");
-  const [riskLevel, setRiskLevel] = useState(50);
-  const [timeHorizon, setTimeHorizon] = useState<"short" | "medium" | "long">("medium");
   const [selectedAsset, setSelectedAsset] = useState<string>("");
-  const [strategyType, setStrategyType] = useState<string>("");
   const [strategyDescription, setStrategyDescription] = useState<string>("");
 
   const handleAssetTypeChange = (type: "stocks" | "cryptocurrency") => {
@@ -23,18 +19,11 @@ const AIStrategy = () => {
     setSelectedAsset(symbol);
   };
 
-  const handleStrategyTypeSelect = (type: string) => {
-    setStrategyType(type);
-  };
-
   const handleGenerateStrategy = () => {
     // Logic for generating the strategy would go here
     console.log({
       assetType,
       selectedAsset,
-      riskLevel,
-      timeHorizon,
-      strategyType,
       strategyDescription
     });
   };
@@ -53,15 +42,6 @@ const AIStrategy = () => {
           selectedAsset={selectedAsset}
           onAssetTypeChange={handleAssetTypeChange}
           onAssetSelect={handleAssetSelect}
-        />
-
-        <StrategyParameters
-          riskLevel={riskLevel}
-          timeHorizon={timeHorizon}
-          strategyType={strategyType}
-          onRiskLevelChange={setRiskLevel}
-          onTimeHorizonChange={setTimeHorizon}
-          onStrategyTypeChange={handleStrategyTypeSelect}
         />
         
         <StrategyDescription

@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
+
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
   exitRules: RuleGroupData[];
@@ -8,6 +9,7 @@ interface TradingRulesProps {
   onExitRulesChange?: (rules: RuleGroupData[]) => void;
   editable?: boolean;
 }
+
 export const TradingRules = ({
   entryRules,
   exitRules,
@@ -24,6 +26,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+
   const handleEntryRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onEntryRulesChange) return;
     const updatedRules = [...entryRules];
@@ -33,6 +36,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+
   const handleExitRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onExitRulesChange) return;
     const updatedRules = [...exitRules];
@@ -42,6 +46,7 @@ export const TradingRules = ({
     };
     onExitRulesChange(updatedRules);
   };
+
   const handleExitRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onExitRulesChange) return;
     const updatedRules = [...exitRules];
@@ -51,6 +56,7 @@ export const TradingRules = ({
     };
     onExitRulesChange(updatedRules);
   };
+
   const handleAddEntryRuleAND = () => {
     if (!onEntryRulesChange || entryRules.length === 0) return;
     const updatedRules = [...entryRules];
@@ -80,6 +86,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+
   const handleAddEntryRuleOR = () => {
     if (!onEntryRulesChange || entryRules.length < 2) return;
     const updatedRules = [...entryRules];
@@ -106,6 +113,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+
   const handleAddExitRuleAND = () => {
     if (!onExitRulesChange || exitRules.length === 0) return;
     const updatedRules = [...exitRules];
@@ -135,6 +143,7 @@ export const TradingRules = ({
     };
     onExitRulesChange(updatedRules);
   };
+
   const handleAddExitRuleOR = () => {
     if (!onExitRulesChange || exitRules.length < 2) return;
     const updatedRules = [...exitRules];
@@ -158,28 +167,61 @@ export const TradingRules = ({
     };
     onExitRulesChange(updatedRules);
   };
+
   return <Card className="p-6 mb-6">
       <div className="mb-8">
-        
-        
         {entryRules.length > 0 && <>
-            {/* AND Group */}
-            <RuleGroup title="AND Group" color="blue" description="All conditions must be met." inequalities={entryRules[0].inequalities} editable={editable} onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} onAddRule={editable ? handleAddEntryRuleAND : undefined} className="bg-blue-50/50 border border-blue-100" />
+            <RuleGroup 
+              title="AND Group" 
+              color="blue" 
+              description="All conditions must be met." 
+              inequalities={entryRules[0].inequalities} 
+              editable={editable} 
+              onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
+              onAddRule={editable ? handleAddEntryRuleAND : undefined} 
+              className="bg-blue-50/50 border border-blue-100" 
+            />
             
-            {/* OR Group */}
-            {entryRules.length > 1 && <RuleGroup title="OR Group" color="amber" description={`At least one of ${entryRules[1].inequalities.length} conditions must be met.`} inequalities={entryRules[1].inequalities} editable={editable} onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} requiredConditions={entryRules[1].requiredConditions || 1} onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} onAddRule={editable ? handleAddEntryRuleOR : undefined} className="bg-amber-50/50 border border-amber-100" />}
+            {entryRules.length > 1 && <RuleGroup 
+              title="OR Group" 
+              color="amber" 
+              description="At least 1 of 2 conditions must be met." 
+              inequalities={entryRules[1].inequalities} 
+              editable={editable} 
+              onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 
+              requiredConditions={1} 
+              onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
+              onAddRule={editable ? handleAddEntryRuleOR : undefined} 
+              className="bg-amber-50/50 border border-amber-100" 
+            />}
           </>}
       </div>
       
       <div className="mb-6">
-        
-        
         {exitRules.length > 0 && <>
-            {/* AND Group */}
-            <RuleGroup title="AND Group" color="blue" description="All conditions must be met." inequalities={exitRules[0].inequalities} editable={editable} onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} onAddRule={editable ? handleAddExitRuleAND : undefined} className="bg-blue-50/50 border border-blue-100" />
+            <RuleGroup 
+              title="AND Group" 
+              color="blue" 
+              description="All conditions must be met." 
+              inequalities={exitRules[0].inequalities} 
+              editable={editable} 
+              onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
+              onAddRule={editable ? handleAddExitRuleAND : undefined} 
+              className="bg-blue-50/50 border border-blue-100" 
+            />
             
-            {/* OR Group */}
-            {exitRules.length > 1 && <RuleGroup title="OR Group" color="amber" description={`At least one of ${exitRules[1].inequalities.length} conditions must be met.`} inequalities={exitRules[1].inequalities} editable={editable} onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} requiredConditions={exitRules[1].requiredConditions || 1} onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} onAddRule={editable ? handleAddExitRuleOR : undefined} className="bg-amber-50/50 border border-amber-100" />}
+            {exitRules.length > 1 && <RuleGroup 
+              title="OR Group" 
+              color="amber" 
+              description="At least 1 of 2 conditions must be met." 
+              inequalities={exitRules[1].inequalities} 
+              editable={editable} 
+              onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} 
+              requiredConditions={1} 
+              onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
+              onAddRule={editable ? handleAddExitRuleOR : undefined} 
+              className="bg-amber-50/50 border border-amber-100" 
+            />}
           </>}
       </div>
     </Card>;

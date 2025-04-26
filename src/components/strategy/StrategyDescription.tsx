@@ -17,7 +17,7 @@ export const StrategyDescription = ({
       <p className="text-sm text-muted-foreground mb-4">Tell us about your trading goals and specific requirements</p>
       
       <Textarea 
-        placeholder="Describe your ideal trading strategy. For example: I want a momentum-based strategy using RSI and MACD indicators, targeting mid-cap stocks with a medium risk tolerance. Focus on 3-6 month investment horizons, with strict stop-loss and take-profit rules."
+        placeholder="Describe your ideal trading strategy. For example, I want a momentum-based strategy using RSI and MACD indicators, with a medium risk tolerance. Focus on mid-term investment time zones, with a profit-loss ratio of 2:1."
         className="min-h-[120px]"
         value={description}
         onChange={(e) => onDescriptionChange(e.target.value)}

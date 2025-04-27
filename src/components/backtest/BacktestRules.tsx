@@ -8,11 +8,11 @@ interface BacktestRulesProps {
 }
 
 export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
-  // Ensure OR groups have at least 2 conditions
+  // Ensure we're working with copies of the arrays
   const processedEntryRules = [...entryRules];
   const processedExitRules = [...exitRules];
   
-  // Process entry rules
+  // Process entry rules - ensure OR groups have at least 2 conditions
   if (processedEntryRules.length > 1 && processedEntryRules[1]?.logic === "OR") {
     if (!processedEntryRules[1].inequalities || processedEntryRules[1].inequalities.length < 2) {
       // Add default inequalities if needed
@@ -42,7 +42,7 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
     }
   }
   
-  // Process exit rules
+  // Process exit rules - ensure OR groups have at least 2 conditions
   if (processedExitRules.length > 1 && processedExitRules[1]?.logic === "OR") {
     if (!processedExitRules[1].inequalities || processedExitRules[1].inequalities.length < 2) {
       // Add default inequalities if needed
@@ -80,7 +80,7 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
             {
               id: 1,
               logic: "AND",
-              inequalities: processedEntryRules[0].inequalities
+              inequalities: processedEntryRules[0]?.inequalities || []
             },
             {
               id: 2,
@@ -102,7 +102,7 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
             {
               id: 1,
               logic: "AND",
-              inequalities: processedExitRules[0].inequalities
+              inequalities: processedExitRules[0]?.inequalities || []
             },
             {
               id: 2,

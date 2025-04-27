@@ -67,59 +67,12 @@ export const RuleGroup = ({
     onInequitiesChange(updatedInequalities);
   };
   
-  const handleAddDefaultInequalities = () => {
-    if (!onInequitiesChange || inequalities.length !== 0) return;
-    
-    // Always add 2 default inequalities for OR groups
-    const defaultInequalities: Inequality[] = [
-      {
-        id: 1,
-        left: {
-          type: "indicator",
-          indicator: "RSI",
-          parameters: {
-            period: "14"
-          }
-        },
-        condition: "Less Than",
-        right: {
-          type: "value",
-          value: "30"
-        }
-      },
-      {
-        id: 2,
-        left: {
-          type: "indicator",
-          indicator: "Volume",
-          parameters: {
-            period: "5"
-          }
-        },
-        condition: "Greater Than",
-        right: {
-          type: "indicator",
-          indicator: "Volume MA",
-          parameters: {
-            period: "20"
-          }
-        }
-      }
-    ];
-    
-    onInequitiesChange(defaultInequalities);
-  };
-
-  useEffect(() => {
-    if (title === "OR Group" && inequalities.length === 0) {
-      handleAddDefaultInequalities();
-    }
-  }, [title, inequalities.length]);
-  
-  // Ensure we show "At least 1 of 2 conditions must be met." for OR groups
-  const orGroupDescription = inequalities.length >= 2 
-    ? `At least ${requiredConditions || 1} of ${inequalities.length} conditions must be met.`
-    : "At least 1 of 2 conditions must be met.";
+  // Ensure we show "At least 1 of X conditions must be met." for OR groups
+  // where X is the actual number of inequalities (minimum 2)
+  const effectiveInequalitiesCount = Math.max(2, inequalities?.length || 0);
+  const orGroupDescription = title === "OR Group"
+    ? `At least ${requiredConditions || 1} of ${effectiveInequalitiesCount} conditions must be met.`
+    : description;
   
   return (
     <div className={`mb-6 ${className || ''}`}>
@@ -136,7 +89,7 @@ export const RuleGroup = ({
               value={conditionsCount} 
               onChange={handleConditionsCountChange}
               className="w-16 h-6 px-2 py-0 inline-block mx-1 text-xs" 
-            /> of {inequalities.length} conditions must be met.
+            /> of {effectiveInequalitiesCount} conditions must be met.
           </p>
         ) : title === "OR Group" ? (
           <p className="text-xs text-muted-foreground mb-2">
@@ -148,16 +101,22 @@ export const RuleGroup = ({
       </div>
       
       <div className="space-y-3">
-        {inequalities.map((inequality) => (
-          <div key={`${title.toLowerCase().split(' ')[0]}-${inequality.id}`}>
-            <RuleInequality 
-              inequality={inequality} 
-              editable={editable}
-              onChange={handleInequalityChange}
-              onDelete={editable ? () => handleInequalityDelete(inequality.id) : undefined}
-            />
+        {inequalities && inequalities.length > 0 ? (
+          inequalities.map((inequality) => (
+            <div key={`${title.toLowerCase().split(' ')[0]}-${inequality.id}`}>
+              <RuleInequality 
+                inequality={inequality} 
+                editable={editable}
+                onChange={handleInequalityChange}
+                onDelete={editable ? () => handleInequalityDelete(inequality.id) : undefined}
+              />
+            </div>
+          ))
+        ) : (
+          <div className="p-3 bg-gray-100 rounded text-center text-gray-500">
+            No conditions defined
           </div>
-        ))}
+        )}
       </div>
       
       {editable && onAddRule && (

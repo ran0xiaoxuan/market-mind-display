@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -169,7 +170,7 @@ export const TradingRules = ({
   };
 
   return <Card className="p-6 mb-6">
-      <div className="mb-8">
+      <div className="mb-8 flex flex-col justify-center min-h-[200px]">
         {entryRules.length > 0 && <>
             {entryRules[0] && <RuleGroup 
               title="AND Group" 
@@ -197,7 +198,7 @@ export const TradingRules = ({
           </>}
       </div>
       
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col justify-center min-h-[200px]">
         {exitRules.length > 0 && <>
             {exitRules[0] && <RuleGroup 
               title="AND Group" 

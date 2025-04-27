@@ -116,19 +116,7 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
       <div className="border-t pt-4">
         <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">Entry Rules</h4>
         <TradingRules
-          entryRules={[
-            {
-              id: 1,
-              logic: "AND",
-              inequalities: processedEntryRules[0]?.inequalities || []
-            },
-            {
-              id: 2,
-              logic: "OR",
-              inequalities: processedEntryRules[1]?.inequalities || [],
-              requiredConditions: 1
-            }
-          ]}
+          entryRules={processedEntryRules}
           exitRules={[]}
           editable={false}
         />
@@ -138,19 +126,7 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
         <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">Exit Rules</h4>
         <TradingRules
           entryRules={[]}
-          exitRules={[
-            {
-              id: 1,
-              logic: "AND",
-              inequalities: processedExitRules[0]?.inequalities || []
-            },
-            {
-              id: 2,
-              logic: "OR",
-              inequalities: processedExitRules[1]?.inequalities || [],
-              requiredConditions: 1
-            }
-          ]}
+          exitRules={processedExitRules}
           editable={false}
         />
       </div>

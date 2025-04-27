@@ -23,7 +23,7 @@ export const RuleGroup = ({
   title, 
   color, 
   description, 
-  inequalities,
+  inequalities = [],
   editable = false,
   onInequitiesChange,
   requiredConditions,

@@ -8,21 +8,26 @@ interface BacktestRulesProps {
 }
 
 export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
-  // Ensure we're working with copies of the arrays
-  const processedEntryRules = [...entryRules];
-  const processedExitRules = [...exitRules];
+  // Create deep copies of the arrays to avoid modifying the original data
+  const processedEntryRules = JSON.parse(JSON.stringify(entryRules));
+  const processedExitRules = JSON.parse(JSON.stringify(exitRules));
   
   // Process entry rules - ensure OR groups have at least 2 conditions
   if (processedEntryRules.length > 1 && processedEntryRules[1]?.logic === "OR") {
-    if (!processedEntryRules[1].inequalities || processedEntryRules[1].inequalities.length < 2) {
-      // Add default inequalities if needed
-      const currentInequalities = processedEntryRules[1].inequalities || [];
-      while (currentInequalities.length < 2) {
-        const newId = currentInequalities.length > 0 
-          ? Math.max(...currentInequalities.map(ineq => ineq.id)) + 1 
-          : 1;
-        
-        currentInequalities.push({
+    // Initialize inequalities array if it doesn't exist
+    if (!processedEntryRules[1].inequalities) {
+      processedEntryRules[1].inequalities = [];
+    }
+    
+    // Add default conditions if there are fewer than 2
+    while (processedEntryRules[1].inequalities.length < 2) {
+      const newId = processedEntryRules[1].inequalities.length > 0 
+        ? Math.max(...processedEntryRules[1].inequalities.map(ineq => ineq.id)) + 1 
+        : 1;
+      
+      // Add appropriate condition based on current length
+      if (processedEntryRules[1].inequalities.length === 0) {
+        processedEntryRules[1].inequalities.push({
           id: newId,
           left: {
             type: "indicator",
@@ -37,37 +42,72 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
             value: "30"
           }
         });
+      } else {
+        processedEntryRules[1].inequalities.push({
+          id: newId,
+          left: {
+            type: "indicator",
+            indicator: "MACD",
+            parameters: {
+              fast: "12",
+              slow: "26",
+              signal: "9"
+            }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "value",
+            value: "0"
+          }
+        });
       }
-      processedEntryRules[1].inequalities = currentInequalities;
     }
   }
   
   // Process exit rules - ensure OR groups have at least 2 conditions
   if (processedExitRules.length > 1 && processedExitRules[1]?.logic === "OR") {
-    if (!processedExitRules[1].inequalities || processedExitRules[1].inequalities.length < 2) {
-      // Add default inequalities if needed
-      const currentInequalities = processedExitRules[1].inequalities || [];
-      while (currentInequalities.length < 2) {
-        const newId = currentInequalities.length > 0 
-          ? Math.max(...currentInequalities.map(ineq => ineq.id)) + 1 
-          : 1;
-        
-        currentInequalities.push({
+    // Initialize inequalities array if it doesn't exist
+    if (!processedExitRules[1].inequalities) {
+      processedExitRules[1].inequalities = [];
+    }
+    
+    // Add default conditions if there are fewer than 2
+    while (processedExitRules[1].inequalities.length < 2) {
+      const newId = processedExitRules[1].inequalities.length > 0 
+        ? Math.max(...processedExitRules[1].inequalities.map(ineq => ineq.id)) + 1 
+        : 1;
+      
+      // Add appropriate condition based on current length
+      if (processedExitRules[1].inequalities.length === 0) {
+        processedExitRules[1].inequalities.push({
           id: newId,
           left: {
-            type: currentInequalities.length === 0 ? "indicator" : "price",
-            indicator: currentInequalities.length === 0 ? "RSI" : undefined,
-            parameters: currentInequalities.length === 0 ? { period: "14" } : undefined,
-            value: currentInequalities.length === 0 ? undefined : "Close"
+            type: "indicator",
+            indicator: "RSI",
+            parameters: {
+              period: "14"
+            }
           },
-          condition: currentInequalities.length === 0 ? "Greater Than" : "Less Than",
+          condition: "Greater Than",
           right: {
             type: "value",
-            value: currentInequalities.length === 0 ? "70" : "Stop Loss"
+            value: "70"
+          }
+        });
+      } else {
+        processedExitRules[1].inequalities.push({
+          id: newId,
+          left: {
+            type: "price",
+            value: "Close"
+          },
+          condition: "Less Than",
+          right: {
+            type: "value",
+            value: "Stop Loss"
           }
         });
       }
-      processedExitRules[1].inequalities = currentInequalities;
     }
   }
 

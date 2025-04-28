@@ -1,3 +1,4 @@
+
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 

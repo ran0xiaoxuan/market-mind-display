@@ -66,12 +66,12 @@ const EditHistory = () => {
   } = useParams<{
     strategyId: string;
   }>();
-  const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
+  const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v1";
   const [versions, setVersions] = useState<VersionData[]>([{
-    version: "v1.2",
+    version: "v1",
     date: "Mar 28, 2024",
     time: "10:30 PM",
-    name: "RSI Strategy v2",
+    name: "RSI Strategy v1",
     description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
     parameters: {
       "period": 14,
@@ -174,194 +174,13 @@ const EditHistory = () => {
     status: "active",
     isLatest: true,
     isSelected: true
-  }, {
-    version: "v1.1",
-    date: "Mar 25, 2024",
-    time: "06:15 PM",
-    name: "RSI Strategy",
-    description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
-    parameters: {
-      "period": 12,
-      "overbought": 75,
-      "oversold": 30
-    },
-    riskManagement: {
-      stopLoss: "3.0",
-      takeProfit: "4.5",
-      singleBuyVolume: "800",
-      maxBuyVolume: "4000"
-    },
-    rules: {
-      entry: [{
-        id: 1,
-        type: "RSI",
-        condition: "Crosses Below",
-        value: "30",
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: {
-              period: "14"
-            }
-          },
-          condition: "Crosses Below",
-          right: {
-            type: "value",
-            value: "30"
-          }
-        }]
-      }],
-      exit: [{
-        id: 1,
-        type: "RSI",
-        condition: "Crosses Above",
-        value: "75",
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: {
-              period: "14"
-            }
-          },
-          condition: "Crosses Above",
-          right: {
-            type: "value",
-            value: "75"
-          }
-        }]
-      }]
-    },
-    status: "active",
-    isSelected: true
-  }, {
-    version: "v1.0",
-    date: "Mar 20, 2024",
-    time: "05:45 PM",
-    name: "RSI Strategy Initial",
-    description: "Initial implementation of RSI strategy.",
-    parameters: {
-      "period": 14,
-      "overbought": 70,
-      "oversold": 30
-    },
-    rules: {
-      entry: [{
-        id: 1,
-        type: "RSI",
-        condition: "Below",
-        value: "30",
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: {
-              period: "14"
-            }
-          },
-          condition: "Less Than",
-          right: {
-            type: "value",
-            value: "30"
-          }
-        }]
-      }],
-      exit: [{
-        id: 1,
-        type: "RSI",
-        condition: "Above",
-        value: "70",
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: {
-              period: "14"
-            }
-          },
-          condition: "Greater Than",
-          right: {
-            type: "value",
-            value: "70"
-          }
-        }]
-      }]
-    },
-    status: "inactive"
-  }, {
-    version: "v0.1",
-    date: "Mar 16, 2024",
-    time: "12:20 AM",
-    name: "RSI Draft",
-    description: "Draft version of RSI strategy.",
-    parameters: {
-      "period": 10,
-      "overbought": 80,
-      "oversold": 20
-    },
-    rules: {
-      entry: [{
-        id: 1,
-        type: "RSI",
-        condition: "Below",
-        value: "20",
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: {
-              period: "14"
-            }
-          },
-          condition: "Less Than",
-          right: {
-            type: "value",
-            value: "20"
-          }
-        }]
-      }],
-      exit: [{
-        id: 1,
-        type: "RSI",
-        condition: "Above",
-        value: "80",
-        logic: "AND",
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: {
-              period: "14"
-            }
-          },
-          condition: "Greater Than",
-          right: {
-            type: "value",
-            value: "80"
-          }
-        }]
-      }]
-    },
-    status: "inactive"
   }]);
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>({
     active: false,
-    selectedVersions: ["v1.2", "v1.1"]
+    selectedVersions: ["v1"]
   });
   const [openVersions, setOpenVersions] = useState<Record<string, boolean>>({
-    "v1.2": true
+    "v1": true
   });
 
   const toggleVersionDetails = (version: string) => {

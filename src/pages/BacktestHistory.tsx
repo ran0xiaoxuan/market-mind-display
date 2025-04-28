@@ -12,8 +12,8 @@ const BacktestHistory = () => {
   
   const [backtests, setBacktests] = useState<BacktestData[]>([
     {
-      id: 3,
-      version: "v1.2",
+      id: 1,
+      version: "v1.0",
       date: "Mar 28, 2024",
       time: "10:30 PM",
       isLatest: true,

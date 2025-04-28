@@ -1,4 +1,3 @@
-
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -112,24 +111,12 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
   }
 
   return (
-    <>
-      <div className="border-t pt-4">
-        <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">Entry Rules</h4>
-        <TradingRules
-          entryRules={processedEntryRules}
-          exitRules={[]}
-          editable={false}
-        />
-      </div>
-
-      <div className="border-t pt-4">
-        <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">Exit Rules</h4>
-        <TradingRules
-          entryRules={[]}
-          exitRules={processedExitRules}
-          editable={false}
-        />
-      </div>
-    </>
+    <div className="space-y-6">
+      <TradingRules
+        entryRules={processedEntryRules}
+        exitRules={processedExitRules}
+        editable={false}
+      />
+    </div>
   );
 }

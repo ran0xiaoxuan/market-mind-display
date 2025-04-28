@@ -19,7 +19,7 @@ export function BacktestCard({ backtest, isOpen, onToggle }: BacktestCardProps) 
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-semibold">
-              Backtest {backtest.id} {backtest.version}
+              Backtest {backtest.id} <span className="text-base font-medium">{backtest.version}</span>
             </h2>
             {backtest.isLatest && <Badge variant="outline" className="text-xs">Latest</Badge>}
           </div>

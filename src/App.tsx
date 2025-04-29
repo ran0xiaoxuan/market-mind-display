@@ -19,6 +19,8 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import { ThemeProvider } from "./components/ThemeProvider";
 import EditHistory from "./pages/EditHistory";
 import BacktestHistory from "./pages/BacktestHistory";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -26,28 +28,70 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Auth Routes */}
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/signup" element={<Signup />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            
-            {/* App Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/strategies" element={<Strategies />} />
-            <Route path="/strategy/:strategyId" element={<StrategyDetail />} />
-            <Route path="/strategy/:strategyId/edit" element={<EditStrategy />} />
-            <Route path="/strategy/:strategyId/history" element={<EditHistory />} />
-            <Route path="/strategy/:strategyId/backtests" element={<BacktestHistory />} />
-            <Route path="/backtest" element={<Backtest />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/ai-strategy" element={<AIStrategy />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Auth Routes */}
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/signup" element={<Signup />} />
+              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              
+              {/* Protected App Routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategies" element={
+                <ProtectedRoute>
+                  <Strategies />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId" element={
+                <ProtectedRoute>
+                  <StrategyDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId/edit" element={
+                <ProtectedRoute>
+                  <EditStrategy />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId/history" element={
+                <ProtectedRoute>
+                  <EditHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId/backtests" element={
+                <ProtectedRoute>
+                  <BacktestHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="/backtest" element={
+                <ProtectedRoute>
+                  <Backtest />
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-strategy" element={
+                <ProtectedRoute>
+                  <AIStrategy />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

@@ -113,21 +113,40 @@ const EditHistory = () => {
         value: "SMA(20)",
         logic: "OR",
         requiredConditions: 1,
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "price",
-            value: "Close"
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Above",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: {
+                period: "20"
+              }
+            }
           },
-          condition: "Above",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: {
-              period: "20"
+          {
+            id: 2,
+            left: {
+              type: "indicator",
+              indicator: "MACD",
+              parameters: {
+                fast: "12",
+                slow: "26",
+                signal: "9"
+              }
+            },
+            condition: "Crosses Above",
+            right: {
+              type: "value",
+              value: "0"
             }
           }
-        }]
+        ]
       }],
       exit: [{
         id: 1,
@@ -157,18 +176,35 @@ const EditHistory = () => {
         value: "2%",
         logic: "OR",
         requiredConditions: 1,
-        inequalities: [{
-          id: 1,
-          left: {
-            type: "price",
-            value: "Close"
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Below",
+            right: {
+              type: "value",
+              value: "2%"
+            }
           },
-          condition: "Below",
-          right: {
-            type: "value",
-            value: "2%"
+          {
+            id: 2,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: {
+                period: "14"
+              }
+            },
+            condition: "Greater Than",
+            right: {
+              type: "value",
+              value: "80"
+            }
           }
-        }]
+        ]
       }]
     },
     status: "active",

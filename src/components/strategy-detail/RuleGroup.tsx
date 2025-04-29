@@ -74,6 +74,11 @@ export const RuleGroup = ({
     ? `At least ${requiredConditions || 1} of ${effectiveInequalitiesCount} conditions must be met.`
     : description;
   
+  // Debug log to check inequalities in OR groups
+  if (title === "OR Group") {
+    console.log("OR Group Inequalities:", inequalities);
+  }
+  
   return (
     <div className={`mb-6 ${className || ''}`}>
       <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>

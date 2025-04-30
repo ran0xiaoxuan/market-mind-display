@@ -68,11 +68,17 @@ export const generateStrategy = async (
   strategyDescription: string
 ): Promise<GeneratedStrategy> => {
   try {
+    // Get the session token for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error("User not authenticated");
+    }
+    
     const response = await fetch("/api/generate-strategy", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabase.auth.getSession()}`
+        "Authorization": `Bearer ${session.access_token}`
       },
       body: JSON.stringify({
         assetType,
@@ -273,7 +279,7 @@ export const getStrategy = async (strategyId: string): Promise<{
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: rule.left_parameters as unknown as IndicatorParameters, // Properly cast parameters
-          value: rule.left_value // This field may not exist in the DB
+          // Remove the reference to left_value as it doesn't exist in the database
         },
         condition: rule.condition,
         right: {

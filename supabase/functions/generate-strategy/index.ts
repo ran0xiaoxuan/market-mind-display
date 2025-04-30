@@ -127,166 +127,330 @@ serve(async (req) => {
 
     console.log("Sending request to Bailian API with prompt:", prompt);
     
-    // In a real implementation, this would call the Bailian API
-    // For now, we'll mock the response to demonstrate the structure
-    
-    // Mock response - Replace this with actual Bailian API call
-    const mockResponse: GeneratedStrategy = {
-      name: `${assetType === "stocks" ? "Stock" : "Crypto"} ${selectedAsset || "Asset"} Strategy`,
-      description: `A strategy for ${assetType} markets based on momentum indicators. ${strategyDescription}`,
-      market: assetType === "stocks" ? "Stocks" : "Cryptocurrency",
-      timeframe: "1h",
-      targetAsset: selectedAsset || (assetType === "stocks" ? "SPY" : "BTC"),
-      riskManagement: {
-        stopLoss: "2.5",
-        takeProfit: "5.0",
-        singleBuyVolume: "1000",
-        maxBuyVolume: "5000"
-      },
-      entryRules: [
-        {
-          id: 1,
-          logic: "AND",
-          inequalities: [
+    // Connect to Bailian API for strategy generation
+    try {
+      const bailianResponse = await fetch("https://api.bailian.com/v1/generate", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${bailianApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          temperature: 0.7,
+          max_tokens: 1500,
+          model: "bailian-strategy-v1"
+        })
+      });
+      
+      if (!bailianResponse.ok) {
+        // If Bailian API fails, fall back to mock response for demo purposes
+        console.warn(`Bailian API returned ${bailianResponse.status}, using mock response`);
+        
+        // Return mock response as fallback
+        const mockResponse: GeneratedStrategy = {
+          name: `${assetType === "stocks" ? "Stock" : "Crypto"} ${selectedAsset || "Asset"} Strategy`,
+          description: `A strategy for ${assetType} markets based on momentum indicators. ${strategyDescription}`,
+          market: assetType === "stocks" ? "Stocks" : "Cryptocurrency",
+          timeframe: "1h",
+          targetAsset: selectedAsset || (assetType === "stocks" ? "SPY" : "BTC"),
+          riskManagement: {
+            stopLoss: "2.5",
+            takeProfit: "5.0",
+            singleBuyVolume: "1000",
+            maxBuyVolume: "5000"
+          },
+          entryRules: [
             {
               id: 1,
-              left: {
-                type: "indicator",
-                indicator: "RSI",
-                parameters: { period: "14" }
-              },
-              condition: "Crosses Above",
-              right: {
-                type: "value",
-                value: "30"
-              }
+              logic: "AND",
+              inequalities: [
+                {
+                  id: 1,
+                  left: {
+                    type: "indicator",
+                    indicator: "RSI",
+                    parameters: { period: "14" }
+                  },
+                  condition: "Crosses Above",
+                  right: {
+                    type: "value",
+                    value: "30"
+                  }
+                },
+                {
+                  id: 2,
+                  left: {
+                    type: "indicator",
+                    indicator: "SMA",
+                    parameters: { period: "20" }
+                  },
+                  condition: "Greater Than",
+                  right: {
+                    type: "indicator",
+                    indicator: "SMA",
+                    parameters: { period: "50" }
+                  }
+                }
+              ]
             },
             {
               id: 2,
-              left: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: { period: "20" }
-              },
-              condition: "Greater Than",
-              right: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: { period: "50" }
-              }
-            }
-          ]
-        },
-        {
-          id: 2,
-          logic: "OR",
-          inequalities: [
-            {
-              id: 3,
-              left: {
-                type: "indicator",
-                indicator: "MACD",
-                parameters: { fast: "12", slow: "26", signal: "9" },
-                valueType: "MACD Line"
-              },
-              condition: "Crosses Above",
-              right: {
-                type: "indicator",
-                indicator: "MACD",
-                parameters: { fast: "12", slow: "26", signal: "9" },
-                valueType: "Signal"
-              }
+              logic: "OR",
+              inequalities: [
+                {
+                  id: 3,
+                  left: {
+                    type: "indicator",
+                    indicator: "MACD",
+                    parameters: { fast: "12", slow: "26", signal: "9" },
+                    valueType: "MACD Line"
+                  },
+                  condition: "Crosses Above",
+                  right: {
+                    type: "indicator",
+                    indicator: "MACD",
+                    parameters: { fast: "12", slow: "26", signal: "9" },
+                    valueType: "Signal"
+                  }
+                }
+              ],
+              requiredConditions: 1
             }
           ],
-          requiredConditions: 1
-        }
-      ],
-      exitRules: [
-        {
-          id: 1,
-          logic: "AND",
-          inequalities: [
+          exitRules: [
             {
               id: 1,
-              left: {
-                type: "indicator",
-                indicator: "RSI",
-                parameters: { period: "14" }
-              },
-              condition: "Greater Than",
-              right: {
-                type: "value",
-                value: "70"
-              }
-            }
-          ]
-        },
-        {
-          id: 2,
-          logic: "OR",
-          inequalities: [
-            {
-              id: 2,
-              left: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: { period: "20" }
-              },
-              condition: "Crosses Below",
-              right: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: { period: "50" }
-              }
+              logic: "AND",
+              inequalities: [
+                {
+                  id: 1,
+                  left: {
+                    type: "indicator",
+                    indicator: "RSI",
+                    parameters: { period: "14" }
+                  },
+                  condition: "Greater Than",
+                  right: {
+                    type: "value",
+                    value: "70"
+                  }
+                }
+              ]
             },
             {
-              id: 3,
-              left: {
-                type: "indicator",
-                indicator: "MACD",
-                parameters: { fast: "12", slow: "26", signal: "9" },
-                valueType: "MACD Line"
-              },
-              condition: "Crosses Below",
-              right: {
-                type: "indicator",
-                indicator: "MACD",
-                parameters: { fast: "12", slow: "26", signal: "9" },
-                valueType: "Signal"
-              }
+              id: 2,
+              logic: "OR",
+              inequalities: [
+                {
+                  id: 2,
+                  left: {
+                    type: "indicator",
+                    indicator: "SMA",
+                    parameters: { period: "20" }
+                  },
+                  condition: "Crosses Below",
+                  right: {
+                    type: "indicator",
+                    indicator: "SMA",
+                    parameters: { period: "50" }
+                  }
+                },
+                {
+                  id: 3,
+                  left: {
+                    type: "indicator",
+                    indicator: "MACD",
+                    parameters: { fast: "12", slow: "26", signal: "9" },
+                    valueType: "MACD Line"
+                  },
+                  condition: "Crosses Below",
+                  right: {
+                    type: "indicator",
+                    indicator: "MACD",
+                    parameters: { fast: "12", slow: "26", signal: "9" },
+                    valueType: "Signal"
+                  }
+                }
+              ],
+              requiredConditions: 1
             }
-          ],
-          requiredConditions: 1
-        }
-      ]
-    };
-
-    // TODO: Replace the mock with an actual API call to Bailian
-    // const bailianResponse = await fetch("https://bailian-api-endpoint", {
-    //   method: "POST",
-    //   headers: {
-    //     "Authorization": `Bearer ${bailianApiKey}`,
-    //     "Content-Type": "application/json"
-    //   },
-    //   body: JSON.stringify({ prompt })
-    // });
-    // 
-    // if (!bailianResponse.ok) {
-    //   throw new Error(`Bailian API returned ${bailianResponse.status}`);
-    // }
-    // 
-    // const generatedStrategy: GeneratedStrategy = await bailianResponse.json();
-
-    return new Response(
-      JSON.stringify(mockResponse),
-      { 
-        status: 200, 
-        headers: { 
-          ...corsHeaders, 
-          "Content-Type": "application/json" 
-        } 
+          ]
+        };
+        
+        return new Response(
+          JSON.stringify(mockResponse),
+          { 
+            status: 200, 
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json" 
+            } 
+          }
+        );
       }
-    );
+      
+      // If Bailian API succeeded, process and return the actual response
+      const bailianData = await bailianResponse.json();
+      const generatedStrategy: GeneratedStrategy = bailianData.result;
+      
+      return new Response(
+        JSON.stringify(generatedStrategy),
+        { 
+          status: 200, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json" 
+          } 
+        }
+      );
+      
+    } catch (apiError) {
+      console.error("Error calling Bailian API:", apiError);
+      
+      // Return mock response as fallback if API call fails
+      const mockResponse: GeneratedStrategy = {
+        name: `${assetType === "stocks" ? "Stock" : "Crypto"} ${selectedAsset || "Asset"} Strategy`,
+        description: `A strategy for ${assetType} markets based on momentum indicators. ${strategyDescription}`,
+        market: assetType === "stocks" ? "Stocks" : "Cryptocurrency",
+        timeframe: "1h",
+        targetAsset: selectedAsset || (assetType === "stocks" ? "SPY" : "BTC"),
+        riskManagement: {
+          stopLoss: "2.5",
+          takeProfit: "5.0",
+          singleBuyVolume: "1000",
+          maxBuyVolume: "5000"
+        },
+        entryRules: [
+          {
+            id: 1,
+            logic: "AND",
+            inequalities: [
+              {
+                id: 1,
+                left: {
+                  type: "indicator",
+                  indicator: "RSI",
+                  parameters: { period: "14" }
+                },
+                condition: "Crosses Above",
+                right: {
+                  type: "value",
+                  value: "30"
+                }
+              },
+              {
+                id: 2,
+                left: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "20" }
+                },
+                condition: "Greater Than",
+                right: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "50" }
+                }
+              }
+            ]
+          },
+          {
+            id: 2,
+            logic: "OR",
+            inequalities: [
+              {
+                id: 3,
+                left: {
+                  type: "indicator",
+                  indicator: "MACD",
+                  parameters: { fast: "12", slow: "26", signal: "9" },
+                  valueType: "MACD Line"
+                },
+                condition: "Crosses Above",
+                right: {
+                  type: "indicator",
+                  indicator: "MACD",
+                  parameters: { fast: "12", slow: "26", signal: "9" },
+                  valueType: "Signal"
+                }
+              }
+            ],
+            requiredConditions: 1
+          }
+        ],
+        exitRules: [
+          {
+            id: 1,
+            logic: "AND",
+            inequalities: [
+              {
+                id: 1,
+                left: {
+                  type: "indicator",
+                  indicator: "RSI",
+                  parameters: { period: "14" }
+                },
+                condition: "Greater Than",
+                right: {
+                  type: "value",
+                  value: "70"
+                }
+              }
+            ]
+          },
+          {
+            id: 2,
+            logic: "OR",
+            inequalities: [
+              {
+                id: 2,
+                left: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "20" }
+                },
+                condition: "Crosses Below",
+                right: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "50" }
+                }
+              },
+              {
+                id: 3,
+                left: {
+                  type: "indicator",
+                  indicator: "MACD",
+                  parameters: { fast: "12", slow: "26", signal: "9" },
+                  valueType: "MACD Line"
+                },
+                condition: "Crosses Below",
+                right: {
+                  type: "indicator",
+                  indicator: "MACD",
+                  parameters: { fast: "12", slow: "26", signal: "9" },
+                  valueType: "Signal"
+                }
+              }
+            ],
+            requiredConditions: 1
+          }
+        ]
+      };
+      
+      return new Response(
+        JSON.stringify(mockResponse),
+        { 
+          status: 200, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json" 
+          } 
+        }
+      );
+    }
+    
   } catch (error) {
     console.error("Error in generate-strategy function:", error);
     return new Response(

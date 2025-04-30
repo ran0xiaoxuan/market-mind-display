@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
 import { Input } from "@/components/ui/input";
@@ -10,68 +10,40 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { getStrategies, Strategy } from "@/services/strategyService";
+import { toast } from "sonner";
 
 const Strategies = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  
-  // Mock strategies data
-  const strategies = [
-    {
-      name: "Moving Average Crossover",
-      description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
-      performance: "+8.2%",
-      days: 2,
-      asset: "AAPL",
-      status: "active"
-    },
-    {
-      name: "RSI Strategy",
-      description: "Uses the Relative Strength Index to identify overbought and oversold conditions in the market.",
-      performance: "+12.5%",
-      days: 3,
-      asset: "MSFT",
-      status: "active"
-    },
-    {
-      name: "Bollinger Bands",
-      description: "Uses Bollinger Bands to identify volatility and potential reversal points in the market.",
-      performance: "+5.7%",
-      days: 5,
-      asset: "BTC",
-      status: "active"
-    },
-    {
-      name: "MACD Strategy",
-      description: "Uses the Moving Average Convergence Divergence indicator to identify trend changes and momentum.",
-      performance: "-2.3%",
-      days: 7,
-      asset: "GOOGL",
-      status: "inactive"
-    },
-    {
-      name: "Fibonacci Retracement",
-      description: "Uses Fibonacci retracement levels to identify potential support and resistance levels.",
-      performance: "+3.8%",
-      days: 4,
-      asset: "AMZN",
-      status: "active"
-    },
-    {
-      name: "Ichimoku Cloud",
-      description: "Uses the Ichimoku Cloud to identify trend direction, momentum, and potential support/resistance levels.",
-      performance: "+7.1%",
-      days: 6,
-      asset: "ETH",
-      status: "active"
-    }
-  ];
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStrategies = async () => {
+      try {
+        setLoading(true);
+        const data = await getStrategies();
+        setStrategies(data);
+      } catch (error) {
+        console.error("Error fetching strategies:", error);
+        toast.error("Failed to load strategies");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStrategies();
+  }, []);
 
   // Filter strategies based on search term and status filter
   const filteredStrategies = strategies.filter(strategy => {
-    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         strategy.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || strategy.status === statusFilter;
+    const matchesSearch = 
+      strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && strategy.isActive) || 
+      (statusFilter === "inactive" && !strategy.isActive);
     return matchesSearch && matchesStatus;
   });
 
@@ -110,19 +82,31 @@ const Strategies = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {filteredStrategies.map((strategy, index) => (
-              <StrategyCard
-                key={index}
-                name={strategy.name}
-                description={strategy.description}
-                performance={strategy.performance}
-                days={strategy.days}
-                asset={strategy.asset}
-                status={strategy.status as "active" | "inactive"}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />
+              ))}
+            </div>
+          ) : filteredStrategies.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {filteredStrategies.map((strategy) => (
+                <StrategyCard
+                  key={strategy.id}
+                  name={strategy.name}
+                  description={strategy.description || "No description provided"}
+                  days={Math.floor((Date.now() - new Date(strategy.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24))}
+                  asset={strategy.targetAsset || strategy.market}
+                  status={strategy.isActive ? "active" : "inactive"}
+                  id={strategy.id}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No strategies found. Try updating your search criteria.</p>
+            </div>
+          )}
         </div>
       </main>
     </div>

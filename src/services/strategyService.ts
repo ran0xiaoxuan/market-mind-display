@@ -74,28 +74,28 @@ export const generateStrategy = async (
       throw new Error("User not authenticated");
     }
     
-    const response = await fetch("/api/generate-strategy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
+    // Call the Supabase Edge Function directly instead of using a relative API path
+    const { data, error } = await supabase.functions.invoke("generate-strategy", {
+      body: {
         assetType,
         selectedAsset,
         strategyDescription
-      })
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to generate strategy");
+    if (error) {
+      console.error("Error invoking generate-strategy function:", error);
+      throw new Error(error.message || "Failed to generate strategy");
     }
 
-    return await response.json();
+    if (!data) {
+      throw new Error("No data received from strategy generation");
+    }
+
+    return data as GeneratedStrategy;
   } catch (error) {
     console.error("Error generating strategy:", error);
-    toast.error("Failed to generate strategy");
+    toast.error("Failed to generate strategy: Please try again with a different description");
     throw error;
   }
 };
@@ -274,12 +274,11 @@ export const getStrategy = async (strategyId: string): Promise<{
 
     for (const rule of rulesData) {
       const inequality: Inequality = {
-        id: parseInt(rule.id), // Convert string id to number
+        id: parseInt(rule.id as unknown as string), // Convert string id to number
         left: {
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: rule.left_parameters as unknown as IndicatorParameters, // Properly cast parameters
-          // Remove the reference to left_value as it doesn't exist in the database
         },
         condition: rule.condition,
         right: {
@@ -360,3 +359,4 @@ export const getStrategy = async (strategyId: string): Promise<{
     return null;
   }
 };
+

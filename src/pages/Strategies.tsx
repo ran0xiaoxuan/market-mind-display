@@ -104,7 +104,7 @@ const Strategies = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No strategies found. Try updating your search criteria.</p>
+              <p className="text-muted-foreground">No strategies found.</p>
             </div>
           )}
         </div>

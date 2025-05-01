@@ -94,44 +94,40 @@ export const AssetTypeSelector = ({
 
       setIsLoading(true);
       
-      // If we're using local data, search locally
-      if (useLocalData) {
-        const results = searchLocalAssets(query, assetType);
-        setSearchResults(results);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Otherwise search the API
       try {
+        // First check local data for immediate results
+        const localResults = searchLocalAssets(query, assetType);
+        
+        // If we have local results, show them immediately
+        if (localResults.length > 0) {
+          setSearchResults(localResults);
+        }
+        
+        // If using local data only, we're done
+        if (useLocalData) {
+          setIsLoading(false);
+          return;
+        }
+        
+        // Otherwise try to fetch from API
         if (!apiKey) {
           throw new Error("API key not available");
         }
         
-        let results: Asset[] = [];
+        let apiResults: Asset[] = [];
         
         if (assetType === "stocks") {
-          results = await searchStocks(query, apiKey);
+          apiResults = await searchStocks(query, apiKey);
         } else {
-          results = await searchCryptocurrencies(query, apiKey);
+          apiResults = await searchCryptocurrencies(query, apiKey);
         }
         
-        setSearchResults(results);
-        
-        // If no results, fallback to local data
-        if (results.length === 0) {
-          const localResults = searchLocalAssets(query, assetType);
-          
-          if (localResults.length > 0) {
-            setSearchResults(localResults);
-            if (apiRetries > 1) {
-              toast({
-                title: "Using local data",
-                description: "API returned no results, showing local matches"
-              });
-            }
-          }
+        // If we got API results, use those (they're more accurate/complete)
+        if (apiResults.length > 0) {
+          setSearchResults(apiResults);
         }
+        // If API returned no results but we had local results, keep using those
+        
       } catch (error) {
         console.error(`Error searching ${assetType}:`, error);
         
@@ -150,10 +146,6 @@ export const AssetTypeSelector = ({
             });
           }
         }
-        
-        // Fall back to local data
-        const localResults = searchLocalAssets(query, assetType);
-        setSearchResults(localResults);
       } finally {
         setIsLoading(false);
       }
@@ -163,7 +155,7 @@ export const AssetTypeSelector = ({
 
   // Trigger search when query changes or search dialog opens
   useEffect(() => {
-    if (isSearchOpen && searchQuery.length >= 2) {
+    if (isSearchOpen) {
       searchAssets(searchQuery);
     }
   }, [searchQuery, isSearchOpen, searchAssets]);
@@ -172,7 +164,7 @@ export const AssetTypeSelector = ({
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
     // If there's already a query, trigger search immediately
-    if (searchQuery.length >= 2) {
+    if (searchQuery) {
       searchAssets(searchQuery);
     }
   };
@@ -181,6 +173,7 @@ export const AssetTypeSelector = ({
   const handleSelectAsset = (asset: Asset) => {
     onAssetSelect(asset.symbol);
     setIsSearchOpen(false);
+    setSearchQuery(""); // Clear the search query when an item is selected
   };
 
   return (
@@ -226,7 +219,13 @@ export const AssetTypeSelector = ({
         
         <CommandDialog 
           open={isSearchOpen} 
-          onOpenChange={setIsSearchOpen}
+          onOpenChange={(open) => {
+            setIsSearchOpen(open);
+            if (!open) {
+              // When dialog closes, don't clear the search query immediately
+              // This allows the selected result to be properly processed
+            }
+          }}
         >
           <DialogTitle className="sr-only">
             {assetType === "stocks" ? "Search Stocks" : "Search Cryptocurrencies"}
@@ -254,6 +253,7 @@ export const AssetTypeSelector = ({
               {searchResults.map((asset) => (
                 <CommandItem
                   key={asset.symbol}
+                  value={asset.symbol} // Set the value to be matched against the search
                   onSelect={() => handleSelectAsset(asset)}
                 >
                   <div className="flex flex-col">

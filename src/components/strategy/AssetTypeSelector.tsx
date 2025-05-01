@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +11,8 @@ import {
   CommandGroup, 
   CommandItem 
 } from "@/components/ui/command";
+import { DialogTitle } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
 
 interface Asset {
   symbol: string;
@@ -60,7 +61,7 @@ export const AssetTypeSelector = ({
     { symbol: "LINK/USDT", name: "Chainlink/USDT" }
   ];
 
-  // Additional stock options to simulate search results
+  // Fallback local data for when API calls fail
   const allStocks = [
     ...popularStocks,
     { symbol: "NFLX", name: "Netflix" },
@@ -85,7 +86,6 @@ export const AssetTypeSelector = ({
     { symbol: "JNJ", name: "Johnson & Johnson" }
   ];
 
-  // Additional crypto options to simulate search results
   const allCryptos = [
     ...popularCryptocurrencies,
     { symbol: "AVAX/USDT", name: "Avalanche/USDT" },
@@ -105,6 +105,9 @@ export const AssetTypeSelector = ({
     { symbol: "NEAR/USDT", name: "NEAR Protocol/USDT" }
   ];
 
+  // API key for Financial Modeling Prep
+  const FMP_API_KEY = "demo"; // Replace with actual API key for production use
+
   // Update popular assets when assetType changes
   useEffect(() => {
     setPopularAssets(assetType === "stocks" ? popularStocks : popularCryptocurrencies);
@@ -122,24 +125,87 @@ export const AssetTypeSelector = ({
       setIsLoading(true);
       
       try {
-        // Instead of API call, filter the local assets list
+        let url = "";
+        
+        if (assetType === "stocks") {
+          url = `https://financialmodelingprep.com/api/v3/search?query=${query}&limit=20&exchange=NASDAQ,NYSE&apikey=${FMP_API_KEY}`;
+        } else {
+          url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${FMP_API_KEY}`;
+        }
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        let results: Asset[] = [];
+        
+        if (assetType === "stocks") {
+          results = data.map((item: any) => ({
+            symbol: item.symbol,
+            name: item.name || item.symbol
+          }));
+        } else {
+          // Filter crypto results by query
+          results = data
+            .filter((item: any) => 
+              item.symbol?.toLowerCase().includes(query.toLowerCase()) || 
+              item.name?.toLowerCase().includes(query.toLowerCase())
+            )
+            .slice(0, 20)
+            .map((item: any) => ({
+              symbol: `${item.symbol}`,
+              name: item.name || item.symbol
+            }));
+        }
+        
+        setSearchResults(results);
+
+        if (results.length === 0) {
+          // Fallback to local data if API returns empty results
+          const localAssetsList = assetType === "stocks" ? allStocks : allCryptos;
+          
+          const localResults = localAssetsList.filter(asset => 
+            asset.symbol.toLowerCase().includes(query.toLowerCase()) || 
+            asset.name.toLowerCase().includes(query.toLowerCase())
+          ).slice(0, 20);
+          
+          setSearchResults(localResults);
+          
+          if (localResults.length > 0) {
+            toast({
+              title: "Using local data",
+              description: "External API results unavailable, showing local matches"
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error searching assets:", error);
+        
+        // Fall back to local data if API fails
         const localAssetsList = assetType === "stocks" ? allStocks : allCryptos;
         
-        // Filter by query
         const results = localAssetsList.filter(asset => 
           asset.symbol.toLowerCase().includes(query.toLowerCase()) || 
           asset.name.toLowerCase().includes(query.toLowerCase())
-        ).slice(0, 20); // Limit results to 20
+        ).slice(0, 20);
         
         setSearchResults(results);
-      } catch (error) {
-        console.error("Error searching assets:", error);
-        setSearchResults([]);
+        
+        if (results.length > 0) {
+          toast({
+            title: "Using local data",
+            description: "API unavailable, showing local matches"
+          });
+        }
       } finally {
         setIsLoading(false);
       }
     }, 300),
-    [assetType]
+    [assetType, FMP_API_KEY, allStocks, allCryptos]
   );
 
   useEffect(() => {
@@ -189,7 +255,13 @@ export const AssetTypeSelector = ({
           }
         </Button>
         
-        <CommandDialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <CommandDialog 
+          open={isSearchOpen} 
+          onOpenChange={setIsSearchOpen}
+        >
+          <DialogTitle className="sr-only">
+            {assetType === "stocks" ? "Search Stocks" : "Search Cryptocurrencies"}
+          </DialogTitle>
           <CommandInput 
             placeholder={assetType === "stocks" ? "Search all US stocks..." : "Search cryptocurrencies..."} 
             value={searchQuery}

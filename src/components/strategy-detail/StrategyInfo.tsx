@@ -37,11 +37,11 @@ export const StrategyInfo = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
         <div>
           <p className="text-sm text-muted-foreground">Created</p>
-          <p className="font-medium">{formatTimeAgo(strategy.createdDate)}</p>
+          <p className="font-medium">{formatTimeAgo(strategy.createdAt)}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Last Updated</p>
-          <p className="font-medium">{formatTimeAgo(strategy.lastUpdated)}</p>
+          <p className="font-medium">{formatTimeAgo(strategy.updatedAt)}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Market</p>

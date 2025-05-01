@@ -48,36 +48,31 @@ export const AssetTypeSelector = ({
   const [apiRetries, setApiRetries] = useState(0);
   const [useLocalData, setUseLocalData] = useState(false);
 
-  // Fetch API key on component mount
+  // Fetch API key on component mount and when component updates
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
+        setIsLoading(true);
         const key = await getFmpApiKey();
         
         if (key) {
           setApiKey(key);
-          console.log("API key retrieved successfully");
           setUseLocalData(false);
+          console.log("API key retrieved successfully");
         } else {
           console.error("API key not found");
-          toast({
-            title: "API Key Error",
-            description: "Using local data for search results",
-          });
           setUseLocalData(true);
         }
       } catch (error) {
         console.error("Error fetching API key:", error);
-        toast({
-          title: "API Key Error",
-          description: "Using local data for search results",
-        });
         setUseLocalData(true);
+      } finally {
+        setIsLoading(false);
       }
     };
     
     fetchApiKey();
-  }, []);
+  }, [apiRetries]);
 
   // Update popular assets when assetType changes
   useEffect(() => {
@@ -96,42 +91,42 @@ export const AssetTypeSelector = ({
 
       setIsLoading(true);
       
+      // Try to get API results directly
       try {
-        // Always check local data first for immediate feedback
-        const localResults = searchLocalAssets(query, assetType);
-        
-        // If we have local results, show them immediately
-        if (localResults.length > 0) {
-          setSearchResults(localResults);
-        } else {
-          // If no local results, show popular assets until API results come in
-          setSearchResults(popularAssets);
-        }
-        
-        // If using local data only, we're done
-        if (useLocalData) {
-          setIsLoading(false);
-          return;
-        }
-        
-        // Otherwise try to fetch from API
         if (!apiKey) {
-          throw new Error("API key not available");
+          // If no API key, try to fetch it
+          const key = await getFmpApiKey();
+          if (key) {
+            setApiKey(key);
+            setUseLocalData(false);
+          } else {
+            throw new Error("Failed to retrieve API key");
+          }
         }
         
         let apiResults: Asset[] = [];
         
         if (assetType === "stocks") {
-          apiResults = await searchStocks(query, apiKey);
+          apiResults = await searchStocks(query, apiKey || "");
         } else {
-          apiResults = await searchCryptocurrencies(query, apiKey);
+          apiResults = await searchCryptocurrencies(query, apiKey || "");
         }
         
-        // If we got API results, use those (they're more accurate/complete)
+        // If we got API results, use those
         if (apiResults.length > 0) {
           setSearchResults(apiResults);
+          setIsLoading(false);
+          return;
         }
-        // If API returned no results but we had local results, keep using those
+        
+        // If API returned no results, show message
+        setSearchResults([]);
+        if (query.length > 0) {
+          toast({
+            title: "No Results Found",
+            description: `No ${assetType} found matching "${query}"`
+          });
+        }
         
       } catch (error) {
         console.error(`Error searching ${assetType}:`, error);
@@ -142,14 +137,47 @@ export const AssetTypeSelector = ({
           const newKey = await getFmpApiKey();
           if (newKey && newKey !== apiKey) {
             setApiKey(newKey);
-            // Don't show toast here, we'll retry the search
-          } else {
-            setUseLocalData(true);
-            toast({
-              title: "API Search Failed",
-              description: "Using local data for search results"
-            });
+            // Retry search with new key
+            if (assetType === "stocks") {
+              try {
+                const retryResults = await searchStocks(query, newKey);
+                setSearchResults(retryResults);
+                setIsLoading(false);
+                return;
+              } catch (retryError) {
+                console.error("Retry search failed:", retryError);
+                // Fall through to local data
+              }
+            } else {
+              try {
+                const retryResults = await searchCryptocurrencies(query, newKey);
+                setSearchResults(retryResults);
+                setIsLoading(false);
+                return;
+              } catch (retryError) {
+                console.error("Retry search failed:", retryError);
+                // Fall through to local data
+              }
+            }
           }
+        }
+        
+        // As a last resort, show local results
+        const localResults = searchLocalAssets(query, assetType);
+        setSearchResults(localResults);
+        
+        // Only show the toast if genuinely needed
+        if (localResults.length > 0) {
+          toast({
+            title: "API Search Failed",
+            description: "Using local data for search results"
+          });
+        } else if (query.length > 0) {
+          toast({
+            title: "Search Failed",
+            description: "No results found and API search failed",
+            variant: "destructive"
+          });
         }
       } finally {
         setIsLoading(false);
@@ -168,7 +196,6 @@ export const AssetTypeSelector = ({
   // Handle search dialog open
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
-    // If there's already a query, trigger search immediately
     searchAssets(searchQuery);
   };
 
@@ -225,7 +252,10 @@ export const AssetTypeSelector = ({
           onOpenChange={(open) => {
             setIsSearchOpen(open);
             if (!open) {
-              // Don't clear search query immediately to allow selection to process
+              // Wait briefly before clearing the search query to allow selection to process
+              setTimeout(() => {
+                setSearchQuery("");
+              }, 100);
             }
           }}
         >
@@ -236,6 +266,7 @@ export const AssetTypeSelector = ({
             placeholder={assetType === "stocks" ? "Search all US stocks..." : "Search cryptocurrencies..."} 
             value={searchQuery}
             onValueChange={setSearchQuery}
+            autoFocus={true}
           />
           <CommandList>
             <CommandEmpty>
@@ -253,7 +284,7 @@ export const AssetTypeSelector = ({
               {searchResults.map((asset) => (
                 <CommandItem
                   key={asset.symbol}
-                  value={asset.symbol} // Set the value to be matched against the search
+                  value={`${asset.symbol} ${asset.name}`}
                   onSelect={() => handleSelectAsset(asset)}
                 >
                   <div className="flex flex-col">

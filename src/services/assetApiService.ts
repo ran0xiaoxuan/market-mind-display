@@ -18,12 +18,22 @@ export const getFmpApiKey = async (): Promise<string | null> => {
     
     if (error || !data?.apiKey) {
       console.error("Error fetching FMP API key:", error || "No API key returned");
+      toast({
+        title: "API Key Error",
+        description: "Failed to retrieve API key. Please try again.",
+        variant: "destructive"
+      });
       return null;
     }
 
     return data.apiKey;
   } catch (error) {
     console.error("Exception fetching FMP API key:", error);
+    toast({
+      title: "API Key Error",
+      description: "Failed to retrieve API key. Please try again.",
+      variant: "destructive"
+    });
     return null;
   }
 };
@@ -33,11 +43,18 @@ export const getFmpApiKey = async (): Promise<string | null> => {
  */
 export const searchStocks = async (query: string, apiKey: string): Promise<Asset[]> => {
   try {
+    if (!apiKey) {
+      throw new Error("API key is required");
+    }
+    
     const url = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE&apikey=${apiKey}`;
     
     const response = await fetch(url, { 
-      headers: { 'Cache-Control': 'no-cache' },
-      signal: AbortSignal.timeout(5000) // 5 second timeout
+      headers: { 
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
     
     if (!response.ok) {
@@ -64,12 +81,19 @@ export const searchStocks = async (query: string, apiKey: string): Promise<Asset
  */
 export const searchCryptocurrencies = async (query: string, apiKey: string): Promise<Asset[]> => {
   try {
+    if (!apiKey) {
+      throw new Error("API key is required");
+    }
+    
     // First get all available cryptocurrencies
     const url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${apiKey}`;
     
     const response = await fetch(url, { 
-      headers: { 'Cache-Control': 'no-cache' },
-      signal: AbortSignal.timeout(5000) // 5 second timeout
+      headers: { 
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(10000) // 10 second timeout 
     });
     
     if (!response.ok) {

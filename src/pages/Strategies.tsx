@@ -96,7 +96,7 @@ const Strategies = () => {
                   name={strategy.name}
                   description={strategy.description || "No description provided"}
                   days={Math.floor((Date.now() - new Date(strategy.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24))}
-                  asset={strategy.targetAsset || strategy.market}
+                  asset={strategy.targetAsset || "Unknown"}
                   status={strategy.isActive ? "active" : "inactive"}
                   id={strategy.id}
                 />

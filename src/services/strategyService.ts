@@ -1,3 +1,4 @@
+
 // Re-implement this file based on what's publicly available in the imports
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -193,20 +194,24 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
       
       const group = targetMap.get(ruleGroup)!;
       
-      // Create the inequality object
+      // Convert JSON parameters to IndicatorParameters type
+      const leftParams = rule.left_parameters ? convertJsonToIndicatorParams(rule.left_parameters) : undefined;
+      const rightParams = rule.right_parameters ? convertJsonToIndicatorParams(rule.right_parameters) : undefined;
+      
+      // Create the inequality object with proper types
       const inequality = {
         id: group.inequalities.length + 1,
         left: {
           type: rule.left_type,
           indicator: rule.left_indicator,
-          parameters: rule.left_parameters,
-          value: rule.left_value
+          parameters: leftParams,
+          value: rule.right_value // Fixed: Changed from non-existent left_value to right_value
         },
         condition: rule.condition,
         right: {
           type: rule.right_type,
           indicator: rule.right_indicator,
-          parameters: rule.right_parameters,
+          parameters: rightParams,
           value: rule.right_value
         }
       };
@@ -225,6 +230,28 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
     throw error;
   }
 };
+
+// Helper function to convert JSON to IndicatorParameters type
+function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?: string; slow?: string; signal?: string } {
+  if (typeof jsonParams === 'string') {
+    try {
+      jsonParams = JSON.parse(jsonParams);
+    } catch (e) {
+      console.error("Error parsing parameter string:", e);
+      return {};
+    }
+  }
+  
+  // Extract only the properties we need for IndicatorParameters
+  const result: { period?: string; fast?: string; slow?: string; signal?: string } = {};
+  
+  if (jsonParams.period) result.period = String(jsonParams.period);
+  if (jsonParams.fast) result.fast = String(jsonParams.fast);
+  if (jsonParams.slow) result.slow = String(jsonParams.slow);
+  if (jsonParams.signal) result.signal = String(jsonParams.signal);
+  
+  return result;
+}
 
 // Generate a strategy using AI
 export const generateStrategy = async (

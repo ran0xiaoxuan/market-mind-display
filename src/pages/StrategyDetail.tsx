@@ -10,7 +10,7 @@ import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
-import { getStrategyById, Strategy } from "@/services/strategyService";
+import { getStrategyById, Strategy, getRiskManagementForStrategy, RiskManagementData } from "@/services/strategyService";
 
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
@@ -18,9 +18,10 @@ const StrategyDetail = () => {
   const [strategy, setStrategy] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isActive, setIsActive] = useState(false);
+  const [riskManagement, setRiskManagement] = useState<RiskManagementData | null>(null);
 
   useEffect(() => {
-    const fetchStrategy = async () => {
+    const fetchStrategyData = async () => {
       if (!strategyId) return;
       
       try {
@@ -28,6 +29,10 @@ const StrategyDetail = () => {
         const fetchedStrategy = await getStrategyById(strategyId);
         
         if (fetchedStrategy) {
+          // Fetch risk management data
+          const riskData = await getRiskManagementForStrategy(strategyId);
+          setRiskManagement(riskData);
+          
           // Convert database strategy to UI strategy format
           setStrategy({
             ...fetchedStrategy,
@@ -48,12 +53,6 @@ const StrategyDetail = () => {
             startingValue: "$10,000",
             currentValue: "$15,000",
             totalGrowth: "+50.0%",
-            riskManagement: {
-              stopLoss: "5",
-              takeProfit: "15",
-              singleBuyVolume: "1000",
-              maxBuyVolume: "5000"
-            },
             // Keep mock data for now
             trades: [
               {
@@ -277,7 +276,7 @@ const StrategyDetail = () => {
       }
     };
 
-    fetchStrategy();
+    fetchStrategyData();
   }, [strategyId]);
   
   const handleStatusChange = async (checked: boolean) => {
@@ -324,6 +323,16 @@ const StrategyDetail = () => {
     );
   }
 
+  // Use default values if risk management data is not available
+  const defaultRiskManagement = {
+    stopLoss: "5",
+    takeProfit: "15", 
+    singleBuyVolume: "1000",
+    maxBuyVolume: "5000"
+  };
+
+  const riskManagementData = riskManagement || defaultRiskManagement;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -350,7 +359,7 @@ const StrategyDetail = () => {
               />
               
               <RiskManagement 
-                riskManagement={strategy.riskManagement} 
+                riskManagement={riskManagementData} 
               />
             </TabsContent>
             

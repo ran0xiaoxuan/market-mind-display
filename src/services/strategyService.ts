@@ -1,4 +1,3 @@
-
 // Re-implement this file based on what's publicly available in the imports
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -32,6 +31,13 @@ export interface GeneratedStrategy {
     singleBuyVolume: string;
     maxBuyVolume: string;
   };
+}
+
+export interface RiskManagementData {
+  stopLoss: string;
+  takeProfit: string;
+  singleBuyVolume: string;
+  maxBuyVolume: string;
 }
 
 // Get all strategies
@@ -104,6 +110,40 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
     };
   } catch (error) {
     console.error(`Failed to fetch strategy with ID: ${id}`, error);
+    throw error;
+  }
+};
+
+// Get risk management data for a strategy
+export const getRiskManagementForStrategy = async (strategyId: string): Promise<RiskManagementData | null> => {
+  console.log(`Fetching risk management data for strategy ID: ${strategyId}`);
+  
+  try {
+    const { data, error } = await supabase
+      .from('risk_management')
+      .select('*')
+      .eq('strategy_id', strategyId)
+      .single();
+      
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        console.log(`No risk management data found for strategy id: ${strategyId}`);
+        return null;
+      }
+      console.error("Error fetching risk management data:", error);
+      throw error;
+    }
+    
+    // Convert to camelCase
+    return {
+      stopLoss: data.stop_loss,
+      takeProfit: data.take_profit,
+      singleBuyVolume: data.single_buy_volume,
+      maxBuyVolume: data.max_buy_volume
+    };
+  } catch (error) {
+    console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);
     throw error;
   }
 };

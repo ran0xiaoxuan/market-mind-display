@@ -3,11 +3,12 @@ import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 
 interface StrategyCardProps {
   name: string;
   description: string;
-  days: number;
+  updatedAt: Date; // Changed from days to actual date
   asset: string;
   status: "active" | "inactive";
   id?: string; // Add id for linking to strategy details page
@@ -16,11 +17,17 @@ interface StrategyCardProps {
 export function StrategyCard({
   name,
   description,
-  days,
+  updatedAt,
   asset,
   status,
   id
 }: StrategyCardProps) {
+  // Format the time distance with more precise units
+  const formatTimeAgo = (date: Date) => {
+    const timeAgo = formatDistanceToNow(date, { addSuffix: false });
+    return timeAgo;
+  };
+
   return (
     <Card className="overflow-hidden relative flex flex-col h-full">
       <div className="p-8 pb-20">
@@ -40,11 +47,11 @@ export function StrategyCard({
         <div className="absolute bottom-14 left-8 right-8 grid grid-cols-2 gap-2 my-0">
           <div>
             <p className="text-muted-foreground text-xs py-0 my-0">Last Updated</p>
-            <p className="text-sm font-medium">{days} days ago</p>
+            <p className="text-sm font-medium">{formatTimeAgo(updatedAt)} ago</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Target Asset</p>
-            <p className="text-sm font-medium">{asset}</p>
+            <p className="text-sm font-medium">{asset || "Unknown"}</p>
           </div>
         </div>
         

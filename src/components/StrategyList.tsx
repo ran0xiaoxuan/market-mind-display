@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 export function StrategyList() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
@@ -28,6 +29,17 @@ export function StrategyList() {
 
     fetchStrategies();
   }, []);
+
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      if (!dateString) return "Unknown";
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Unknown";
+    }
+  };
 
   return (
     <Card className="h-full flex flex-col">
@@ -56,6 +68,9 @@ export function StrategyList() {
                       </Badge>
                     )}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {strategy.targetAsset || "Unknown"} • Updated {formatTimeAgo(strategy.updatedAt)}
+                  </p>
                 </div>
                 <Link to={`/strategy/${strategy.id}`}>
                   <Button variant="ghost" size="icon">

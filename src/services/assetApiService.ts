@@ -39,6 +39,19 @@ export const getFmpApiKey = async (): Promise<string | null> => {
 };
 
 /**
+ * Creates a proxy URL for FMP API requests to bypass CORS issues
+ */
+const createProxyUrl = (endpoint: string, apiKey: string): string => {
+  // Encode the entire original URL to pass as a parameter
+  const originalUrl = encodeURIComponent(
+    `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`
+  );
+  
+  // Use the cors-anywhere service
+  return `https://cors-anywhere.herokuapp.com/https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`;
+};
+
+/**
  * Searches for stocks based on the query
  */
 export const searchStocks = async (query: string, apiKey: string): Promise<Asset[]> => {
@@ -47,14 +60,18 @@ export const searchStocks = async (query: string, apiKey: string): Promise<Asset
       throw new Error("API key is required");
     }
     
-    const url = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE&apikey=${apiKey}`;
+    const endpoint = `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`;
+    const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`;
+    
+    console.log("Calling FMP API for stocks with URL:", url.replace(apiKey, "API_KEY_HIDDEN"));
     
     const response = await fetch(url, { 
       headers: { 
-        'Cache-Control': 'no-cache',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+      mode: 'cors',
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
     
     if (!response.ok) {
@@ -86,14 +103,18 @@ export const searchCryptocurrencies = async (query: string, apiKey: string): Pro
     }
     
     // First get all available cryptocurrencies
-    const url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${apiKey}`;
+    const endpoint = `symbol/available-cryptocurrencies`;
+    const url = `https://financialmodelingprep.com/api/v3/${endpoint}?apikey=${apiKey}`;
+    
+    console.log("Calling FMP API for cryptos with URL:", url.replace(apiKey, "API_KEY_HIDDEN"));
     
     const response = await fetch(url, { 
       headers: { 
-        'Cache-Control': 'no-cache',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
-      signal: AbortSignal.timeout(10000) // 10 second timeout 
+      mode: 'cors',
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
     
     if (!response.ok) {

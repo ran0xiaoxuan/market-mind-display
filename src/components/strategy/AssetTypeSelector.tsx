@@ -22,8 +22,7 @@ import {
 } from "@/services/assetApiService";
 import { 
   popularStocks, 
-  popularCryptocurrencies, 
-  searchLocalAssets 
+  popularCryptocurrencies
 } from "@/data/assetData";
 
 interface AssetTypeSelectorProps {
@@ -45,10 +44,9 @@ export const AssetTypeSelector = ({
   const [isLoading, setIsLoading] = useState(false);
   const [popularAssets, setPopularAssets] = useState<Asset[]>([]);
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiRetries, setApiRetries] = useState(0);
-  const [useLocalData, setUseLocalData] = useState(false);
+  const [selectedAssetDetails, setSelectedAssetDetails] = useState<Asset | null>(null);
 
-  // Fetch API key on component mount and when component updates
+  // Fetch API key on component mount
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
@@ -57,27 +55,49 @@ export const AssetTypeSelector = ({
         
         if (key) {
           setApiKey(key);
-          setUseLocalData(false);
           console.log("API key retrieved successfully");
         } else {
           console.error("API key not found");
-          setUseLocalData(true);
+          toast({
+            title: "API Connection Issue",
+            description: "Unable to connect to financial data service",
+            variant: "destructive"
+          });
         }
       } catch (error) {
         console.error("Error fetching API key:", error);
-        setUseLocalData(true);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchApiKey();
-  }, [apiRetries]);
+  }, []);
 
   // Update popular assets when assetType changes
   useEffect(() => {
     setPopularAssets(assetType === "stocks" ? popularStocks : popularCryptocurrencies);
   }, [assetType]);
+  
+  // Set selected asset details when selectedAsset changes
+  useEffect(() => {
+    if (selectedAsset) {
+      // First check if the asset is in the popular assets
+      const assetDetails = popularAssets.find(asset => asset.symbol === selectedAsset);
+      
+      if (assetDetails) {
+        setSelectedAssetDetails(assetDetails);
+      } else if (searchResults.length > 0) {
+        // If not in popular assets, check search results
+        const assetFromResults = searchResults.find(asset => asset.symbol === selectedAsset);
+        if (assetFromResults) {
+          setSelectedAssetDetails(assetFromResults);
+        }
+      }
+    } else {
+      setSelectedAssetDetails(null);
+    }
+  }, [selectedAsset, popularAssets, searchResults]);
 
   // Search for assets with debounce
   const searchAssets = useCallback(
@@ -91,99 +111,79 @@ export const AssetTypeSelector = ({
 
       setIsLoading(true);
       
-      // Try to get API results directly
       try {
+        // If no API key, try to fetch it
         if (!apiKey) {
-          // If no API key, try to fetch it
           const key = await getFmpApiKey();
           if (key) {
             setApiKey(key);
-            setUseLocalData(false);
           } else {
-            throw new Error("Failed to retrieve API key");
+            throw new Error("No API key available");
           }
         }
         
-        let apiResults: Asset[] = [];
+        let results: Asset[] = [];
         
         if (assetType === "stocks") {
-          apiResults = await searchStocks(query, apiKey || "");
+          results = await searchStocks(query, apiKey || "");
         } else {
-          apiResults = await searchCryptocurrencies(query, apiKey || "");
+          results = await searchCryptocurrencies(query, apiKey || "");
         }
         
-        // If we got API results, use those
-        if (apiResults.length > 0) {
-          setSearchResults(apiResults);
-          setIsLoading(false);
-          return;
-        }
+        setSearchResults(results);
         
-        // If API returned no results, show message
-        setSearchResults([]);
-        if (query.length > 0) {
+        if (results.length === 0 && query.length > 0) {
           toast({
             title: "No Results Found",
             description: `No ${assetType} found matching "${query}"`
           });
         }
-        
       } catch (error) {
         console.error(`Error searching ${assetType}:`, error);
         
-        // Retry with new API key if possible
-        if (apiRetries < 2) {
-          setApiRetries(prev => prev + 1);
+        // Attempt to get a fresh API key and retry
+        try {
           const newKey = await getFmpApiKey();
           if (newKey && newKey !== apiKey) {
             setApiKey(newKey);
-            // Retry search with new key
+            
+            // Retry the search with the new key
+            let retryResults: Asset[] = [];
             if (assetType === "stocks") {
-              try {
-                const retryResults = await searchStocks(query, newKey);
-                setSearchResults(retryResults);
-                setIsLoading(false);
-                return;
-              } catch (retryError) {
-                console.error("Retry search failed:", retryError);
-                // Fall through to local data
-              }
+              retryResults = await searchStocks(query, newKey);
             } else {
-              try {
-                const retryResults = await searchCryptocurrencies(query, newKey);
-                setSearchResults(retryResults);
-                setIsLoading(false);
-                return;
-              } catch (retryError) {
-                console.error("Retry search failed:", retryError);
-                // Fall through to local data
-              }
+              retryResults = await searchCryptocurrencies(query, newKey);
+            }
+            
+            setSearchResults(retryResults);
+            
+            if (retryResults.length === 0 && query.length > 0) {
+              toast({
+                title: "No Results Found",
+                description: `No ${assetType} found matching "${query}"`
+              });
             }
           }
-        }
-        
-        // As a last resort, show local results
-        const localResults = searchLocalAssets(query, assetType);
-        setSearchResults(localResults);
-        
-        // Only show the toast if genuinely needed
-        if (localResults.length > 0) {
-          toast({
-            title: "API Search Failed",
-            description: "Using local data for search results"
-          });
-        } else if (query.length > 0) {
-          toast({
-            title: "Search Failed",
-            description: "No results found and API search failed",
-            variant: "destructive"
-          });
+        } catch (retryError) {
+          console.error("Retry search failed:", retryError);
+          
+          // Show error toast only if we have a query
+          if (query.length > 0) {
+            toast({
+              title: "Search Failed",
+              description: "Could not connect to financial data service",
+              variant: "destructive"
+            });
+          }
+          
+          // As a fallback, set popular assets
+          setSearchResults(popularAssets);
         }
       } finally {
         setIsLoading(false);
       }
     }, 300),
-    [assetType, apiKey, useLocalData, apiRetries, popularAssets]
+    [assetType, apiKey, popularAssets]
   );
 
   // Trigger search when query changes or search dialog opens
@@ -202,8 +202,8 @@ export const AssetTypeSelector = ({
   // Select asset and close dialog
   const handleSelectAsset = (asset: Asset) => {
     onAssetSelect(asset.symbol);
+    setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
-    setSearchQuery(""); // Clear the search query when an item is selected
   };
 
   return (
@@ -240,7 +240,7 @@ export const AssetTypeSelector = ({
         >
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           {selectedAsset 
-            ? `${selectedAsset} - ${popularAssets.find(a => a.symbol === selectedAsset)?.name || searchResults.find(a => a.symbol === selectedAsset)?.name || ''}`
+            ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}`
             : assetType === "stocks" 
               ? "Search for a stock..."
               : "Search for a cryptocurrency..."
@@ -252,7 +252,7 @@ export const AssetTypeSelector = ({
           onOpenChange={(open) => {
             setIsSearchOpen(open);
             if (!open) {
-              // Wait briefly before clearing the search query to allow selection to process
+              // Clear the search query when closing the dialog
               setTimeout(() => {
                 setSearchQuery("");
               }, 100);

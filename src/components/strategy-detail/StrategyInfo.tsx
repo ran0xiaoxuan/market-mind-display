@@ -1,14 +1,17 @@
+
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
+
 interface StrategyInfoProps {
   strategy: any;
   isActive: boolean;
   onStatusChange: (checked: boolean) => void;
 }
+
 export const StrategyInfo = ({
   strategy,
   isActive,
@@ -83,16 +86,12 @@ export const StrategyInfo = ({
           <p className="font-medium">{formatTimeAgo(strategy.updatedAt)}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">Market</p>
-          <p className="font-medium">{strategy.market || "Unknown"}</p>
-        </div>
-        <div>
           <p className="text-sm text-muted-foreground">Timeframe</p>
           <p className="font-medium">{strategy.timeframe || "Unknown"}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Target Asset</p>
-          <p>{strategy.targetAsset || "Unknown"}</p>
+          <p className="font-medium">{strategy.targetAsset || "Unknown"}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Status</p>

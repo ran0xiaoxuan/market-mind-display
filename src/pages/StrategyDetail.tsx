@@ -10,7 +10,14 @@ import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
-import { getStrategyById, Strategy, getRiskManagementForStrategy, RiskManagementData } from "@/services/strategyService";
+import { 
+  getStrategyById, 
+  Strategy, 
+  getRiskManagementForStrategy, 
+  RiskManagementData,
+  getTradingRulesForStrategy
+} from "@/services/strategyService";
+import { RuleGroupData } from "@/components/strategy-detail/types";
 
 const StrategyDetail = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
@@ -19,6 +26,10 @@ const StrategyDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isActive, setIsActive] = useState(false);
   const [riskManagement, setRiskManagement] = useState<RiskManagementData | null>(null);
+  const [tradingRules, setTradingRules] = useState<{ 
+    entryRules: RuleGroupData[],
+    exitRules: RuleGroupData[]
+  } | null>(null);
 
   useEffect(() => {
     const fetchStrategyData = async () => {
@@ -32,6 +43,10 @@ const StrategyDetail = () => {
           // Fetch risk management data
           const riskData = await getRiskManagementForStrategy(strategyId);
           setRiskManagement(riskData);
+          
+          // Fetch trading rules data
+          const rulesData = await getTradingRulesForStrategy(strategyId);
+          setTradingRules(rulesData);
           
           // Convert database strategy to UI strategy format
           setStrategy({
@@ -129,148 +144,14 @@ const StrategyDetail = () => {
               losingTrades: 8,
               avgProfit: "$320.45",
               avgLoss: "-$175.20"
-            },
-            entryRules: [{
-              id: 1,
-              logic: "AND",
-              inequalities: [{
-                id: 1,
-                left: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: {
-                    period: "20"
-                  }
-                },
-                condition: "Crosses Above",
-                right: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: {
-                    period: "50"
-                  }
-                }
-              }, {
-                id: 2,
-                left: {
-                  type: "price",
-                  value: "Close"
-                },
-                condition: "Greater Than",
-                right: {
-                  type: "value",
-                  value: "200"
-                }
-              }]
-            }, {
-              id: 2,
-              logic: "OR",
-              inequalities: [{
-                id: 1,
-                left: {
-                  type: "indicator",
-                  indicator: "RSI",
-                  parameters: {
-                    period: "14"
-                  }
-                },
-                condition: "Less Than",
-                right: {
-                  type: "value",
-                  value: "30"
-                }
-              }, {
-                id: 2,
-                left: {
-                  type: "indicator",
-                  indicator: "Volume",
-                  parameters: {
-                    period: "5"
-                  }
-                },
-                condition: "Greater Than",
-                right: {
-                  type: "indicator",
-                  indicator: "Volume MA",
-                  parameters: {
-                    period: "20"
-                  }
-                }
-              }]
-            }],
-            exitRules: [{
-              id: 1,
-              logic: "AND",
-              inequalities: [{
-                id: 1,
-                left: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: {
-                    period: "20"
-                  }
-                },
-                condition: "Crosses Below",
-                right: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: {
-                    period: "50"
-                  }
-                }
-              }, {
-                id: 2,
-                left: {
-                  type: "indicator",
-                  indicator: "MACD",
-                  parameters: {
-                    fast: "12",
-                    slow: "26",
-                    signal: "9"
-                  }
-                },
-                condition: "Crosses Below",
-                right: {
-                  type: "value",
-                  value: "0"
-                }
-              }]
-            }, {
-              id: 2,
-              logic: "OR",
-              inequalities: [{
-                id: 1,
-                left: {
-                  type: "price",
-                  value: "Close"
-                },
-                condition: "Less Than",
-                right: {
-                  type: "value",
-                  value: "145.50"
-                }
-              }, {
-                id: 2,
-                left: {
-                  type: "price",
-                  value: "Close"
-                },
-                condition: "Greater Than",
-                right: {
-                  type: "value",
-                  value: "175.25"
-                }
-              }]
-            }]
+            }
           });
           
           setIsActive(fetchedStrategy.isActive);
         }
       } catch (error) {
         console.error("Error fetching strategy:", error);
-        toast("Error", {
-          description: "Failed to load strategy details"
-        });
+        toast.error("Failed to load strategy details");
       } finally {
         setLoading(false);
       }
@@ -333,6 +214,48 @@ const StrategyDetail = () => {
 
   const riskManagementData = riskManagement || defaultRiskManagement;
 
+  // Use default values if trading rules data is not available
+  const defaultTradingRules = {
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "20" }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "50" }
+        }
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "20" }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "50" }
+        }
+      }]
+    }]
+  };
+
+  const tradingRulesData = tradingRules || defaultTradingRules;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -372,8 +295,8 @@ const StrategyDetail = () => {
             
             <TabsContent value="rules" className="pt-6">
               <TradingRules 
-                entryRules={strategy.entryRules}
-                exitRules={strategy.exitRules}
+                entryRules={tradingRulesData.entryRules}
+                exitRules={tradingRulesData.exitRules}
               />
             </TabsContent>
             

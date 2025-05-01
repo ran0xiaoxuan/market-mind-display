@@ -148,6 +148,84 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
   }
 };
 
+// Get trading rules for a strategy
+export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ entryRules: RuleGroupData[], exitRules: RuleGroupData[] } | null> => {
+  console.log(`Fetching trading rules for strategy ID: ${strategyId}`);
+  
+  try {
+    const { data, error } = await supabase
+      .from('trading_rules')
+      .select('*')
+      .eq('strategy_id', strategyId)
+      .order('rule_group', { ascending: true });
+      
+    if (error) {
+      console.error("Error fetching trading rules:", error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.log(`No trading rules found for strategy id: ${strategyId}`);
+      return null;
+    }
+    
+    // Process the rules and organize them into entry and exit rule groups
+    const entryRules: Map<number, RuleGroupData> = new Map();
+    const exitRules: Map<number, RuleGroupData> = new Map();
+    
+    for (const rule of data) {
+      const ruleType = rule.rule_type;
+      const ruleGroup = rule.rule_group;
+      const targetMap = ruleType === 'entry' ? entryRules : exitRules;
+      
+      if (!targetMap.has(ruleGroup)) {
+        targetMap.set(ruleGroup, {
+          id: ruleGroup,
+          logic: rule.logic || 'AND',
+          inequalities: []
+        });
+        
+        // If it's an OR group, add requiredConditions
+        if (rule.logic === 'OR') {
+          targetMap.get(ruleGroup)!.requiredConditions = 1;
+        }
+      }
+      
+      const group = targetMap.get(ruleGroup)!;
+      
+      // Create the inequality object
+      const inequality = {
+        id: group.inequalities.length + 1,
+        left: {
+          type: rule.left_type,
+          indicator: rule.left_indicator,
+          parameters: rule.left_parameters,
+          value: rule.left_value
+        },
+        condition: rule.condition,
+        right: {
+          type: rule.right_type,
+          indicator: rule.right_indicator,
+          parameters: rule.right_parameters,
+          value: rule.right_value
+        }
+      };
+      
+      // Add the inequality to the group
+      group.inequalities.push(inequality);
+    }
+    
+    // Convert Maps to arrays
+    return {
+      entryRules: Array.from(entryRules.values()),
+      exitRules: Array.from(exitRules.values())
+    };
+  } catch (error) {
+    console.error(`Failed to fetch trading rules for strategy: ${strategyId}`, error);
+    throw error;
+  }
+};
+
 // Generate a strategy using AI
 export const generateStrategy = async (
   assetType: "stocks" | "cryptocurrency", 

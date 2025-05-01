@@ -3,7 +3,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+// Import toast directly from the hooks file instead of the circular reference
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -31,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     // Set up auth state listener first
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {

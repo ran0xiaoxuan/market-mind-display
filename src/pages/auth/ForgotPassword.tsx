@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+// Import toast directly from the hooks file
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 

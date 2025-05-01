@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
 import { debounce } from "lodash";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
+import { getStrategyById, getRiskManagementForStrategy, getTradingRulesForStrategy, Strategy } from "@/services/strategyService";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const marketAssets = {
   Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
@@ -30,172 +33,187 @@ const marketAssets = {
 const EditStrategy = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { strategyId } = useParams<{ strategyId: string }>();
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Form state
   const [activeTab, setActiveTab] = useState("trading-rules");
-  const [strategyName, setStrategyName] = useState("Moving Average Crossover");
-  const [description, setDescription] = useState("A strategy that generates signals based on when a faster moving average crosses a slower moving average.");
-  const [market, setMarket] = useState("Stocks");
-  const [timeframe, setTimeframe] = useState("Daily");
-  const [targetAsset, setTargetAsset] = useState("AAPL");
-  const [targetAssetName, setTargetAssetName] = useState("Apple Inc.");
+  const [strategyName, setStrategyName] = useState("");
+  const [description, setDescription] = useState("");
+  const [market, setMarket] = useState("");
+  const [timeframe, setTimeframe] = useState("");
+  const [targetAsset, setTargetAsset] = useState("");
+  const [targetAssetName, setTargetAssetName] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [stopLoss, setStopLoss] = useState("5");
-  const [takeProfit, setTakeProfit] = useState("15");
-  const [singleBuyVolume, setSingleBuyVolume] = useState("1000");
-  const [maxBuyVolume, setMaxBuyVolume] = useState("5000");
+  const [stopLoss, setStopLoss] = useState("");
+  const [takeProfit, setTakeProfit] = useState("");
+  const [singleBuyVolume, setSingleBuyVolume] = useState("");
+  const [maxBuyVolume, setMaxBuyVolume] = useState("");
+  
+  // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  
+  // Define form with React Hook Form
   const form = useForm({
     defaultValues: {
-      strategyName: "Moving Average Crossover",
-      description: "A strategy that generates signals based on when a faster moving average crosses a slower moving average.",
-      market: "Stocks",
-      timeframe: "Daily",
-      targetAsset: "AAPL - Apple Inc.",
+      strategyName: "",
+      description: "",
+      market: "",
+      timeframe: "",
+      targetAsset: "",
       isActive: true,
-      stopLoss: "5",
-      takeProfit: "15",
-      singleBuyVolume: "1000",
-      maxBuyVolume: "5000"
+      stopLoss: "",
+      takeProfit: "",
+      singleBuyVolume: "",
+      maxBuyVolume: ""
     }
   });
   
-  // Define entryRules and exitRules state only once
-  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
-    id: 1,
-    logic: "AND",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Above",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
+  // Trading rules state
+  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([]);
+  const [exitRules, setExitRules] = useState<RuleGroupData[]>([]);
+
+  // Fetch strategy data when component mounts
+  useEffect(() => {
+    const fetchStrategyData = async () => {
+      if (!strategyId) {
+        toast({
+          title: "Error",
+          description: "No strategy ID provided",
+          variant: "destructive"
+        });
+        navigate('/strategies');
+        return;
       }
-    }, {
-      id: 2,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Greater Than",
-      right: {
-        type: "value",
-        value: "200"
-      }
-    }]
-  }, {
-    id: 2,
-    logic: "OR",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "indicator",
-        indicator: "RSI",
-        parameters: {
-          period: "14"
+      
+      try {
+        setLoading(true);
+        console.log(`Fetching strategy with ID: ${strategyId}`);
+        
+        // Fetch strategy basic data
+        const strategy = await getStrategyById(strategyId);
+        if (!strategy) {
+          toast({
+            title: "Strategy Not Found",
+            description: "The requested strategy could not be found",
+            variant: "destructive"
+          });
+          navigate('/strategies');
+          return;
         }
-      },
-      condition: "Less Than",
-      right: {
-        type: "value",
-        value: "30"
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "indicator",
-        indicator: "Volume",
-        parameters: {
-          period: "5"
+        
+        // Set basic strategy data to state
+        setStrategyName(strategy.name);
+        setDescription(strategy.description || "");
+        setMarket(strategy.market || "");
+        setTimeframe(strategy.timeframe || "");
+        setTargetAsset(strategy.targetAsset || "");
+        setIsActive(strategy.isActive);
+        
+        // Update form default values
+        form.reset({
+          strategyName: strategy.name,
+          description: strategy.description || "",
+          market: strategy.market,
+          timeframe: strategy.timeframe,
+          targetAsset: strategy.targetAsset || "",
+          isActive: strategy.isActive,
+          // Risk management values will be updated after fetching
+          stopLoss: "",
+          takeProfit: "",
+          singleBuyVolume: "",
+          maxBuyVolume: ""
+        });
+        
+        // Fetch risk management data
+        const riskData = await getRiskManagementForStrategy(strategyId);
+        if (riskData) {
+          setStopLoss(riskData.stopLoss || "5");
+          setTakeProfit(riskData.takeProfit || "15");
+          setSingleBuyVolume(riskData.singleBuyVolume || "1000");
+          setMaxBuyVolume(riskData.maxBuyVolume || "5000");
+          
+          // Update form with risk management data
+          form.setValue("stopLoss", riskData.stopLoss || "5");
+          form.setValue("takeProfit", riskData.takeProfit || "15");
+          form.setValue("singleBuyVolume", riskData.singleBuyVolume || "1000");
+          form.setValue("maxBuyVolume", riskData.maxBuyVolume || "5000");
         }
-      },
-      condition: "Greater Than",
-      right: {
-        type: "indicator",
-        indicator: "Volume MA",
-        parameters: {
-          period: "20"
+        
+        // Fetch trading rules
+        const rulesData = await getTradingRulesForStrategy(strategyId);
+        if (rulesData) {
+          setEntryRules(rulesData.entryRules);
+          setExitRules(rulesData.exitRules);
+        } else {
+          // Set default rules if none exist
+          setEntryRules([{
+            id: 1,
+            logic: "AND",
+            inequalities: [{
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: {
+                  period: "20"
+                }
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: {
+                  period: "50"
+                }
+              }
+            }]
+          }]);
+          
+          setExitRules([{
+            id: 1,
+            logic: "AND",
+            inequalities: [{
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: {
+                  period: "20"
+                }
+              },
+              condition: "Crosses Below",
+              right: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: {
+                  period: "50"
+                }
+              }
+            }]
+          }]);
         }
+        
+        console.log("Strategy data loaded successfully");
+      } catch (error) {
+        console.error("Error fetching strategy data:", error);
+        toast({
+          title: "Error Loading Strategy",
+          description: "Failed to load strategy details",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-    }]
-  }]);
-  
-  const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
-    id: 1,
-    logic: "AND",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Below",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "indicator",
-        indicator: "MACD",
-        parameters: {
-          fast: "12",
-          slow: "26",
-          signal: "9"
-        }
-      },
-      condition: "Crosses Below",
-      right: {
-        type: "value",
-        value: "0"
-      }
-    }]
-  }, {
-    id: 2,
-    logic: "OR",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Less Than",
-      right: {
-        type: "value",
-        value: "145.50"
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Greater Than",
-      right: {
-        type: "value",
-        value: "175.25"
-      }
-    }]
-  }]);
+    };
+    
+    fetchStrategyData();
+  }, [strategyId, navigate, toast, form]);
 
   // Fetch API key on component mount
   useEffect(() => {
@@ -335,12 +353,142 @@ const EditStrategy = () => {
     navigate(-1);
   };
   
-  const handleSave = () => {
-    toast({
-      title: "Strategy updated",
-      description: "Your strategy has been successfully updated."
-    });
-    navigate(-1);
+  const handleSave = async () => {
+    if (!strategyId) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Update basic strategy information
+      const { error: strategyError } = await supabase
+        .from('strategies')
+        .update({
+          name: strategyName,
+          description: description,
+          market: market,
+          timeframe: timeframe,
+          target_asset: targetAsset,
+          is_active: isActive,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', strategyId);
+
+      if (strategyError) {
+        throw new Error(`Error updating strategy: ${strategyError.message}`);
+      }
+
+      // Update risk management
+      const { error: riskError } = await supabase
+        .from('risk_management')
+        .upsert({
+          strategy_id: strategyId,
+          stop_loss: stopLoss,
+          take_profit: takeProfit,
+          single_buy_volume: singleBuyVolume,
+          max_buy_volume: maxBuyVolume,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'strategy_id'
+        });
+
+      if (riskError) {
+        throw new Error(`Error updating risk management: ${riskError.message}`);
+      }
+
+      // For trading rules, we'll delete existing ones and insert the new ones
+      // Delete existing entry rules for this strategy
+      const { error: deleteEntryError } = await supabase
+        .from('trading_rules')
+        .delete()
+        .eq('strategy_id', strategyId)
+        .eq('rule_type', 'entry');
+
+      if (deleteEntryError) {
+        throw new Error(`Error deleting entry rules: ${deleteEntryError.message}`);
+      }
+
+      // Delete existing exit rules for this strategy
+      const { error: deleteExitError } = await supabase
+        .from('trading_rules')
+        .delete()
+        .eq('strategy_id', strategyId)
+        .eq('rule_type', 'exit');
+
+      if (deleteExitError) {
+        throw new Error(`Error deleting exit rules: ${deleteExitError.message}`);
+      }
+
+      // Insert new entry rules
+      for (const group of entryRules) {
+        for (let i = 0; i < group.inequalities.length; i++) {
+          const inequality = group.inequalities[i];
+          
+          const { error: ruleError } = await supabase
+            .from('trading_rules')
+            .insert({
+              strategy_id: strategyId,
+              rule_group: group.id,
+              rule_type: 'entry',
+              left_type: inequality.left.type,
+              left_indicator: inequality.left.indicator,
+              left_parameters: inequality.left.parameters,
+              condition: inequality.condition,
+              right_type: inequality.right.type,
+              right_indicator: inequality.right.indicator,
+              right_parameters: inequality.right.parameters,
+              right_value: inequality.right.value,
+              logic: i === 0 ? group.logic : 'and'
+            });
+            
+          if (ruleError) {
+            throw new Error(`Error saving entry rule: ${ruleError.message}`);
+          }
+        }
+      }
+
+      // Insert new exit rules
+      for (const group of exitRules) {
+        for (let i = 0; i < group.inequalities.length; i++) {
+          const inequality = group.inequalities[i];
+          
+          const { error: ruleError } = await supabase
+            .from('trading_rules')
+            .insert({
+              strategy_id: strategyId,
+              rule_group: group.id,
+              rule_type: 'exit',
+              left_type: inequality.left.type,
+              left_indicator: inequality.left.indicator,
+              left_parameters: inequality.left.parameters,
+              condition: inequality.condition,
+              right_type: inequality.right.type,
+              right_indicator: inequality.right.indicator,
+              right_parameters: inequality.right.parameters,
+              right_value: inequality.right.value,
+              logic: i === 0 ? group.logic : 'and'
+            });
+            
+          if (ruleError) {
+            throw new Error(`Error saving exit rule: ${ruleError.message}`);
+          }
+        }
+      }
+
+      toast({
+        title: "Strategy updated",
+        description: "Your strategy has been successfully updated."
+      });
+      navigate(`/strategy/${strategyId}`);
+    } catch (error) {
+      console.error("Error saving strategy:", error);
+      toast({
+        title: "Error saving strategy",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handleStatusChange = (checked: boolean) => {
@@ -451,6 +599,21 @@ const EditStrategy = () => {
     setExitRules(rules);
   };
   
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-primary" />
+            <h2 className="text-xl font-semibold">Loading strategy...</h2>
+            <p className="text-muted-foreground">Please wait while we fetch the strategy details</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -469,8 +632,8 @@ const EditStrategy = () => {
               <Button variant="outline" onClick={handleCancel} className="gap-2">
                 <X className="h-4 w-4" /> Cancel
               </Button>
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="h-4 w-4" /> Save Changes
+              <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Changes
               </Button>
             </div>
           </div>

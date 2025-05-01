@@ -269,9 +269,8 @@ const StrategyDetail = () => {
         }
       } catch (error) {
         console.error("Error fetching strategy:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load strategy details",
+        toast("Error", {
+          description: "Failed to load strategy details"
         });
       } finally {
         setLoading(false);
@@ -283,8 +282,7 @@ const StrategyDetail = () => {
   
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
-    toast({
-      title: `Strategy ${checked ? 'activated' : 'deactivated'}`,
+    toast(`Strategy ${checked ? 'activated' : 'deactivated'}`, {
       description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
     });
   };

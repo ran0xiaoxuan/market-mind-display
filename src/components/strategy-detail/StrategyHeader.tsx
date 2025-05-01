@@ -1,11 +1,10 @@
 
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
 
 interface StrategyHeaderProps {
@@ -14,8 +13,6 @@ interface StrategyHeaderProps {
 }
 
 export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps) => {
-  const { toast } = useToast();
-
   return (
     <div className="mb-6">
       <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
@@ -41,8 +38,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
                 variant="outline" 
                 className="h-9 px-2.5 border border-input" 
                 onClick={() => {
-                  toast({
-                    title: "Backtest started",
+                  toast("Backtest started", {
                     description: "Running backtest for this strategy..."
                   });
                 }}
@@ -57,8 +53,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
               size="sm" 
               className="h-9 px-2.5 border border-input" 
               onClick={() => {
-                toast({
-                  title: "Strategy copied",
+                toast("Strategy copied", {
                   description: "A copy of this strategy has been created"
                 });
               }}
@@ -91,8 +86,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive" 
                   onClick={() => {
-                    toast({
-                      title: "Delete strategy?",
+                    toast("Delete strategy?", {
                       description: "This action cannot be undone."
                     });
                   }}

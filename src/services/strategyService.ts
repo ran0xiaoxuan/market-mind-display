@@ -1,6 +1,7 @@
 
 // Re-implement this file based on what's publicly available in the imports
 import { supabase } from "@/integrations/supabase/client";
+import { RuleGroupData } from "@/components/strategy-detail/types";
 
 // Strategy type definition
 export interface Strategy {
@@ -23,19 +24,13 @@ export interface GeneratedStrategy {
   market: string;
   timeframe: string;
   targetAsset?: string;
-  entryRules: {
-    description: string;
-    conditions: string[];
-  };
-  exitRules: {
-    description: string;
-    conditions: string[];
-  };
+  entryRules: RuleGroupData[];
+  exitRules: RuleGroupData[];
   riskManagement: {
-    stopLoss?: string;
-    takeProfit?: string;
-    positionSizing?: string;
-    riskPerTrade?: string;
+    stopLoss: string;
+    takeProfit: string;
+    singleBuyVolume: string;
+    maxBuyVolume: string;
   };
 }
 
@@ -129,34 +124,148 @@ export const generateStrategy = async (
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     // Return a mock generated strategy
+    const andGroup: RuleGroupData = {
+      id: 1,
+      logic: "AND",
+      inequalities: [
+        {
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: { period: "20" }
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "SMA",
+            parameters: { period: "50" }
+          }
+        },
+        {
+          id: 2,
+          left: {
+            type: "indicator",
+            indicator: "RSI",
+            parameters: { period: "14" }
+          },
+          condition: "Less Than",
+          right: {
+            type: "value",
+            value: "70"
+          }
+        },
+        {
+          id: 3,
+          left: {
+            type: "indicator",
+            indicator: "Volume",
+          },
+          condition: "Greater Than",
+          right: {
+            type: "indicator",
+            indicator: "Volume",
+            parameters: { period: "5" }
+          }
+        }
+      ]
+    };
+
+    const orGroup: RuleGroupData = {
+      id: 2,
+      logic: "OR",
+      requiredConditions: 1,
+      inequalities: [
+        {
+          id: 1,
+          left: {
+            type: "indicator",
+            indicator: "MACD",
+            parameters: { fast: "12", slow: "26", signal: "9" },
+            valueType: "Line"
+          },
+          condition: "Crosses Above",
+          right: {
+            type: "indicator",
+            indicator: "MACD",
+            parameters: { fast: "12", slow: "26", signal: "9" },
+            valueType: "Signal"
+          }
+        }
+      ]
+    };
+
+    const entryRules: RuleGroupData[] = [andGroup, orGroup];
+    
+    const exitRules: RuleGroupData[] = [
+      {
+        id: 1,
+        logic: "AND",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "20" }
+            },
+            condition: "Crosses Below",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "50" }
+            }
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        requiredConditions: 1,
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: { period: "14" }
+            },
+            condition: "Greater Than",
+            right: {
+              type: "value",
+              value: "80"
+            }
+          },
+          {
+            id: 2,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Less Than",
+            right: {
+              type: "indicator",
+              indicator: "ATR",
+              parameters: { period: "14" }
+            }
+          }
+        ]
+      }
+    ];
+
     return {
       name: `${selectedAsset || assetType} Trading Strategy`,
       description: strategyDescription,
       market: assetType === "stocks" ? "Equities" : "Crypto",
       timeframe: "Daily",
       targetAsset: selectedAsset || undefined,
-      entryRules: {
-        description: "Entry rules based on technical indicators",
-        conditions: [
-          "Price crosses above 20-day moving average",
-          "RSI is below 70",
-          "Volume is above 5-day average volume"
-        ]
-      },
-      exitRules: {
-        description: "Exit rules to secure profits and limit losses",
-        conditions: [
-          "Price crosses below 10-day moving average",
-          "RSI crosses above 80",
-          "Take profit at 15% gain",
-          "Stop loss at 5% loss"
-        ]
-      },
+      entryRules,
+      exitRules,
       riskManagement: {
-        stopLoss: "5% below entry price",
-        takeProfit: "15% above entry price",
-        positionSizing: "2% of portfolio per trade",
-        riskPerTrade: "1% maximum risk per trade"
+        stopLoss: "5",
+        takeProfit: "15",
+        singleBuyVolume: "2000",
+        maxBuyVolume: "10000"
       }
     };
   } catch (error) {
@@ -170,6 +279,12 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
   console.log("Saving generated strategy:", strategy);
   
   try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("No authenticated user found");
+    }
+    
     // First, save the basic strategy information
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
@@ -179,7 +294,8 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         market: strategy.market,
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
-        is_active: true
+        is_active: true,
+        user_id: user.id // Add the user_id here
       })
       .select()
       .single();
@@ -197,8 +313,8 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
           strategy_id: strategyData.id,
           stop_loss: strategy.riskManagement.stopLoss,
           take_profit: strategy.riskManagement.takeProfit,
-          single_buy_volume: strategy.riskManagement.positionSizing,
-          max_buy_volume: strategy.riskManagement.riskPerTrade
+          single_buy_volume: strategy.riskManagement.singleBuyVolume,
+          max_buy_volume: strategy.riskManagement.maxBuyVolume
         });
         
       if (riskError) {
@@ -207,48 +323,65 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
       }
     }
     
+    // Convert the rule group data format to the database format
     // Save entry rules
-    if (strategy.entryRules && strategy.entryRules.conditions) {
-      for (let i = 0; i < strategy.entryRules.conditions.length; i++) {
-        const { error: ruleError } = await supabase
-          .from('trading_rules')
-          .insert({
-            strategy_id: strategyData.id,
-            rule_group: i + 1,
-            rule_type: 'entry',
-            left_type: 'condition',
-            condition: 'equals',
-            right_type: 'value',
-            right_value: strategy.entryRules.conditions[i],
-            logic: i === 0 ? 'initial' : 'and'
-          });
+    if (strategy.entryRules) {
+      for (const group of strategy.entryRules) {
+        for (let i = 0; i < group.inequalities.length; i++) {
+          const inequality = group.inequalities[i];
           
-        if (ruleError) {
-          console.error("Error saving entry rule:", ruleError);
-          // Continue with other rules
+          const { error: ruleError } = await supabase
+            .from('trading_rules')
+            .insert({
+              strategy_id: strategyData.id,
+              rule_group: group.id,
+              rule_type: 'entry',
+              left_type: inequality.left.type,
+              left_indicator: inequality.left.indicator,
+              left_parameters: inequality.left.parameters,
+              condition: inequality.condition,
+              right_type: inequality.right.type,
+              right_indicator: inequality.right.indicator,
+              right_parameters: inequality.right.parameters,
+              right_value: inequality.right.value,
+              logic: i === 0 ? group.logic : 'and'
+            });
+            
+          if (ruleError) {
+            console.error("Error saving entry rule:", ruleError);
+            // Continue with other rules
+          }
         }
       }
     }
     
     // Save exit rules
-    if (strategy.exitRules && strategy.exitRules.conditions) {
-      for (let i = 0; i < strategy.exitRules.conditions.length; i++) {
-        const { error: ruleError } = await supabase
-          .from('trading_rules')
-          .insert({
-            strategy_id: strategyData.id,
-            rule_group: i + 1,
-            rule_type: 'exit',
-            left_type: 'condition',
-            condition: 'equals',
-            right_type: 'value',
-            right_value: strategy.exitRules.conditions[i],
-            logic: i === 0 ? 'initial' : 'and'
-          });
+    if (strategy.exitRules) {
+      for (const group of strategy.exitRules) {
+        for (let i = 0; i < group.inequalities.length; i++) {
+          const inequality = group.inequalities[i];
           
-        if (ruleError) {
-          console.error("Error saving exit rule:", ruleError);
-          // Continue with other rules
+          const { error: ruleError } = await supabase
+            .from('trading_rules')
+            .insert({
+              strategy_id: strategyData.id,
+              rule_group: group.id,
+              rule_type: 'exit',
+              left_type: inequality.left.type,
+              left_indicator: inequality.left.indicator,
+              left_parameters: inequality.left.parameters,
+              condition: inequality.condition,
+              right_type: inequality.right.type,
+              right_indicator: inequality.right.indicator,
+              right_parameters: inequality.right.parameters,
+              right_value: inequality.right.value,
+              logic: i === 0 ? group.logic : 'and'
+            });
+            
+          if (ruleError) {
+            console.error("Error saving exit rule:", ruleError);
+            // Continue with other rules
+          }
         }
       }
     }

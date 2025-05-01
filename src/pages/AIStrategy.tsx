@@ -6,7 +6,7 @@ import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
@@ -22,7 +22,6 @@ const AIStrategy = () => {
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleAssetTypeChange = (type: "stocks" | "cryptocurrency") => {
     setAssetType(type);
@@ -35,8 +34,7 @@ const AIStrategy = () => {
 
   const handleGenerateStrategy = async () => {
     if (!strategyDescription) {
-      toast({
-        title: "Strategy description required",
+      toast("Strategy description required", {
         description: "Please provide a description of your trading strategy",
         variant: "destructive",
       });
@@ -47,14 +45,12 @@ const AIStrategy = () => {
     try {
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
       setGeneratedStrategy(strategy);
-      toast({
-        title: "Strategy generated",
+      toast("Strategy generated", {
         description: "AI has successfully generated a trading strategy based on your description",
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
-      toast({
-        title: "Failed to generate strategy",
+      toast("Failed to generate strategy", {
         description: "Please try again with a different description",
         variant: "destructive",
       });
@@ -66,8 +62,7 @@ const AIStrategy = () => {
   const handleSaveStrategy = async () => {
     if (!generatedStrategy) return;
     if (!user) {
-      toast({
-        title: "Authentication required",
+      toast("Authentication required", {
         description: "Please log in to save your strategy",
         variant: "destructive",
       });
@@ -77,8 +72,7 @@ const AIStrategy = () => {
     setIsSaving(true);
     try {
       const strategyId = await saveGeneratedStrategy(generatedStrategy);
-      toast({
-        title: "Strategy saved",
+      toast("Strategy saved", {
         description: "Your strategy has been saved successfully",
       });
       
@@ -86,8 +80,7 @@ const AIStrategy = () => {
       navigate(`/strategy/${strategyId}`);
     } catch (error) {
       console.error("Error saving strategy:", error);
-      toast({
-        title: "Failed to save strategy",
+      toast("Failed to save strategy", {
         description: "Please try again later",
         variant: "destructive",
       });

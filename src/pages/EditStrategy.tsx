@@ -377,19 +377,47 @@ const EditStrategy = () => {
         throw new Error(`Error updating strategy: ${strategyError.message}`);
       }
 
-      // Update risk management
-      const { error: riskError } = await supabase
+      // Check if risk management data exists for this strategy
+      const { data: existingRiskData, error: checkError } = await supabase
         .from('risk_management')
-        .upsert({
-          strategy_id: strategyId,
-          stop_loss: stopLoss,
-          take_profit: takeProfit,
-          single_buy_volume: singleBuyVolume,
-          max_buy_volume: maxBuyVolume,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'strategy_id'
-        });
+        .select('*')
+        .eq('strategy_id', strategyId);
+
+      if (checkError) {
+        throw new Error(`Error checking risk management: ${checkError.message}`);
+      }
+
+      // If risk management data exists, update it; otherwise, insert new data
+      let riskError;
+      if (existingRiskData && existingRiskData.length > 0) {
+        // Update existing risk management record
+        const { error } = await supabase
+          .from('risk_management')
+          .update({
+            stop_loss: stopLoss,
+            take_profit: takeProfit,
+            single_buy_volume: singleBuyVolume,
+            max_buy_volume: maxBuyVolume,
+            updated_at: new Date().toISOString()
+          })
+          .eq('strategy_id', strategyId);
+        
+        riskError = error;
+      } else {
+        // Insert new risk management record
+        const { error } = await supabase
+          .from('risk_management')
+          .insert({
+            strategy_id: strategyId,
+            stop_loss: stopLoss,
+            take_profit: takeProfit,
+            single_buy_volume: singleBuyVolume,
+            max_buy_volume: maxBuyVolume,
+            updated_at: new Date().toISOString()
+          });
+        
+        riskError = error;
+      }
 
       if (riskError) {
         throw new Error(`Error updating risk management: ${riskError.message}`);

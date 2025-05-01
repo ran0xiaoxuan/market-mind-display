@@ -62,9 +62,13 @@ export function StrategyList() {
                 <div>
                   <div className="flex items-center">
                     <p className="font-medium">{strategy.name}</p>
-                    {strategy.isActive && (
+                    {strategy.isActive ? (
                       <Badge variant="outline" className="ml-2 bg-muted">
                         Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="ml-2 text-muted-foreground">
+                        Inactive
                       </Badge>
                     )}
                   </div>

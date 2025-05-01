@@ -61,6 +61,8 @@ const EditStrategy = () => {
       maxBuyVolume: "5000"
     }
   });
+  
+  // Define entryRules and exitRules state only once
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
     id: 1,
     logic: "AND",
@@ -129,6 +131,7 @@ const EditStrategy = () => {
       }
     }]
   }]);
+  
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
     id: 1,
     logic: "AND",
@@ -448,140 +451,6 @@ const EditStrategy = () => {
     setExitRules(rules);
   };
   
-  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
-    id: 1,
-    logic: "AND",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Above",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Greater Than",
-      right: {
-        type: "value",
-        value: "200"
-      }
-    }]
-  }, {
-    id: 2,
-    logic: "OR",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "indicator",
-        indicator: "RSI",
-        parameters: {
-          period: "14"
-        }
-      },
-      condition: "Less Than",
-      right: {
-        type: "value",
-        value: "30"
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "indicator",
-        indicator: "Volume",
-        parameters: {
-          period: "5"
-        }
-      },
-      condition: "Greater Than",
-      right: {
-        type: "indicator",
-        indicator: "Volume MA",
-        parameters: {
-          period: "20"
-        }
-      }
-    }]
-  }]);
-  
-  const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
-    id: 1,
-    logic: "AND",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Below",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "indicator",
-        indicator: "MACD",
-        parameters: {
-          fast: "12",
-          slow: "26",
-          signal: "9"
-        }
-      },
-      condition: "Crosses Below",
-      right: {
-        type: "value",
-        value: "0"
-      }
-    }]
-  }, {
-    id: 2,
-    logic: "OR",
-    inequalities: [{
-      id: 1,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Less Than",
-      right: {
-        type: "value",
-        value: "145.50"
-      }
-    }, {
-      id: 2,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Greater Than",
-      right: {
-        type: "value",
-        value: "175.25"
-      }
-    }]
-  }]);
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -86,8 +87,9 @@ export const AssetTypeSelector = ({
   // Search for assets with debounce
   const searchAssets = useCallback(
     debounce(async (query: string) => {
-      if (!query || query.length < 2) {
-        setSearchResults([]);
+      // Allow empty queries to show popular results
+      if (!query) {
+        setSearchResults(popularAssets);
         setIsLoading(false);
         return;
       }
@@ -95,12 +97,15 @@ export const AssetTypeSelector = ({
       setIsLoading(true);
       
       try {
-        // First check local data for immediate results
+        // Always check local data first for immediate feedback
         const localResults = searchLocalAssets(query, assetType);
         
         // If we have local results, show them immediately
         if (localResults.length > 0) {
           setSearchResults(localResults);
+        } else {
+          // If no local results, show popular assets until API results come in
+          setSearchResults(popularAssets);
         }
         
         // If using local data only, we're done
@@ -150,7 +155,7 @@ export const AssetTypeSelector = ({
         setIsLoading(false);
       }
     }, 300),
-    [assetType, apiKey, useLocalData, apiRetries]
+    [assetType, apiKey, useLocalData, apiRetries, popularAssets]
   );
 
   // Trigger search when query changes or search dialog opens
@@ -164,9 +169,7 @@ export const AssetTypeSelector = ({
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
     // If there's already a query, trigger search immediately
-    if (searchQuery) {
-      searchAssets(searchQuery);
-    }
+    searchAssets(searchQuery);
   };
 
   // Select asset and close dialog
@@ -222,8 +225,7 @@ export const AssetTypeSelector = ({
           onOpenChange={(open) => {
             setIsSearchOpen(open);
             if (!open) {
-              // When dialog closes, don't clear the search query immediately
-              // This allows the selected result to be properly processed
+              // Don't clear search query immediately to allow selection to process
             }
           }}
         >
@@ -243,9 +245,7 @@ export const AssetTypeSelector = ({
                 </div>
               ) : (
                 <p className="p-4 text-center text-sm text-muted-foreground">
-                  {searchQuery.length < 2 
-                    ? "Type at least 2 characters to search" 
-                    : "No assets found."}
+                  No assets found.
                 </p>
               )}
             </CommandEmpty>

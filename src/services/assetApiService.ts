@@ -32,8 +32,6 @@ export const getFmpApiKey = async (): Promise<string | null> => {
  * Searches for stocks based on the query
  */
 export const searchStocks = async (query: string, apiKey: string): Promise<Asset[]> => {
-  if (!query || query.length < 2) return [];
-  
   try {
     const url = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE&apikey=${apiKey}`;
     
@@ -47,6 +45,9 @@ export const searchStocks = async (query: string, apiKey: string): Promise<Asset
     }
     
     const data = await response.json();
+    
+    // Console log for debugging
+    console.log(`Stock search for "${query}" returned ${data.length} results`);
     
     return data.map((item: any) => ({
       symbol: item.symbol,
@@ -62,8 +63,6 @@ export const searchStocks = async (query: string, apiKey: string): Promise<Asset
  * Searches for cryptocurrencies based on the query
  */
 export const searchCryptocurrencies = async (query: string, apiKey: string): Promise<Asset[]> => {
-  if (!query || query.length < 2) return [];
-  
   try {
     // First get all available cryptocurrencies
     const url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${apiKey}`;
@@ -79,8 +78,8 @@ export const searchCryptocurrencies = async (query: string, apiKey: string): Pro
     
     const data = await response.json();
     
-    // Filter results by query
-    return data
+    // Filter results by query - case insensitive matching on any part of symbol or name
+    const results = data
       .filter((item: any) => 
         item.symbol?.toLowerCase().includes(query.toLowerCase()) || 
         item.name?.toLowerCase().includes(query.toLowerCase())
@@ -90,6 +89,11 @@ export const searchCryptocurrencies = async (query: string, apiKey: string): Pro
         symbol: item.symbol,
         name: item.name || item.symbol
       }));
+      
+    // Console log for debugging  
+    console.log(`Crypto search for "${query}" returned ${results.length} results`);
+    
+    return results;
   } catch (error) {
     console.error("Error searching cryptocurrencies:", error);
     throw error;

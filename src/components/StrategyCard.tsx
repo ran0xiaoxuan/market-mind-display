@@ -1,4 +1,3 @@
-
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -22,9 +21,15 @@ export function StrategyCard({
   status,
   id
 }: StrategyCardProps) {
-  // Format the time distance with more precise units
+  // Format the time distance with more precise units and capitalize if starts with "about"
   const formatTimeAgo = (date: Date) => {
     const timeAgo = formatDistanceToNow(date, { addSuffix: false });
+    
+    // Capitalize first letter if the string starts with "about"
+    if (timeAgo.toLowerCase().startsWith('about')) {
+      return timeAgo.charAt(0).toUpperCase() + timeAgo.slice(1);
+    }
+    
     return timeAgo;
   };
 

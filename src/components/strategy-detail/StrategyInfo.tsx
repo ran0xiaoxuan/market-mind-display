@@ -2,6 +2,9 @@
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface StrategyInfoProps {
   strategy: any;
@@ -14,15 +17,55 @@ export const StrategyInfo = ({
   isActive,
   onStatusChange
 }: StrategyInfoProps) => {
-  // Format the time distance with more precise units
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Format the time distance with more precise units and capitalize first letter
   const formatTimeAgo = (dateString: string) => {
     try {
       if (!dateString) return "Unknown";
       const date = new Date(dateString);
-      return formatDistanceToNow(date, { addSuffix: true });
+      const timeAgo = formatDistanceToNow(date, { addSuffix: true });
+      
+      // Capitalize the first letter
+      return timeAgo.charAt(0).toUpperCase() + timeAgo.slice(1);
     } catch (error) {
       console.error("Error formatting date:", error);
       return dateString || "Unknown";
+    }
+  };
+
+  // Handle the status change and update it in the database
+  const handleStatusChange = async (checked: boolean) => {
+    setIsSaving(true);
+    
+    try {
+      // Update the strategy status in the database
+      const { error } = await supabase
+        .from('strategies')
+        .update({ is_active: checked })
+        .eq('id', strategy.id);
+      
+      if (error) {
+        console.error("Error updating strategy status:", error);
+        toast("Error updating status", {
+          description: "There was a problem updating the strategy status"
+        });
+        return;
+      }
+      
+      // Call the parent component's handler to update local state
+      onStatusChange(checked);
+      
+      toast("Status updated", {
+        description: `The strategy is now ${checked ? 'active' : 'inactive'}`
+      });
+    } catch (error) {
+      console.error("Error in status change:", error);
+      toast("Update failed", {
+        description: "Could not update strategy status"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -58,7 +101,15 @@ export const StrategyInfo = ({
         <div>
           <p className="text-sm text-muted-foreground">Status</p>
           <div className="flex items-center gap-2">
-            <Switch id="strategy-status" checked={isActive} onCheckedChange={onStatusChange} />
+            <Switch 
+              id="strategy-status" 
+              checked={isActive} 
+              onCheckedChange={handleStatusChange} 
+              disabled={isSaving}
+            />
+            <span className="text-sm">
+              {isSaving ? 'Saving...' : isActive ? 'Active' : 'Inactive'}
+            </span>
           </div>
         </div>
       </div>

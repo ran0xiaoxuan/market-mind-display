@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -35,8 +34,7 @@ const AIStrategy = () => {
   const handleGenerateStrategy = async () => {
     if (!strategyDescription) {
       toast("Strategy description required", {
-        description: "Please provide a description of your trading strategy",
-        variant: "destructive",
+        description: "Please provide a description of your trading strategy"
       });
       return;
     }
@@ -46,13 +44,12 @@ const AIStrategy = () => {
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
       setGeneratedStrategy(strategy);
       toast("Strategy generated", {
-        description: "AI has successfully generated a trading strategy based on your description",
+        description: "AI has successfully generated a trading strategy based on your description"
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
       toast("Failed to generate strategy", {
-        description: "Please try again with a different description",
-        variant: "destructive",
+        description: "Please try again with a different description"
       });
     } finally {
       setIsLoading(false);
@@ -63,8 +60,7 @@ const AIStrategy = () => {
     if (!generatedStrategy) return;
     if (!user) {
       toast("Authentication required", {
-        description: "Please log in to save your strategy",
-        variant: "destructive",
+        description: "Please log in to save your strategy"
       });
       return;
     }
@@ -73,7 +69,7 @@ const AIStrategy = () => {
     try {
       const strategyId = await saveGeneratedStrategy(generatedStrategy);
       toast("Strategy saved", {
-        description: "Your strategy has been saved successfully",
+        description: "Your strategy has been saved successfully"
       });
       
       // Navigate to the strategy details page
@@ -81,8 +77,7 @@ const AIStrategy = () => {
     } catch (error) {
       console.error("Error saving strategy:", error);
       toast("Failed to save strategy", {
-        description: "Please try again later",
-        variant: "destructive",
+        description: "Please try again later"
       });
     } finally {
       setIsSaving(false);

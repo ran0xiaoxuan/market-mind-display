@@ -280,11 +280,18 @@ const StrategyDetail = () => {
     fetchStrategy();
   }, [strategyId]);
   
-  const handleStatusChange = (checked: boolean) => {
+  const handleStatusChange = async (checked: boolean) => {
     setIsActive(checked);
-    toast(`Strategy ${checked ? 'activated' : 'deactivated'}`, {
-      description: `The strategy is now ${checked ? 'active' : 'inactive'} and will ${checked ? '' : 'not'} generate trading signals.`
-    });
+    
+    // No need to toast here as it's handled in the StrategyInfo component
+    
+    // Update the strategy object to reflect the new status
+    if (strategy) {
+      setStrategy({
+        ...strategy,
+        status: checked ? "active" : "inactive"
+      });
+    }
   };
 
   if (loading) {

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Save, X, Plus } from "lucide-react";
+import { ArrowLeft, Save, X, Plus, Search, Loader2 } from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
@@ -16,26 +16,37 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
+import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { DialogTitle } from "@/components/ui/dialog";
+import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
+import { debounce } from "lodash";
+import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
+
 const marketAssets = {
   Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
   Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"]
 };
+
 const EditStrategy = () => {
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trading-rules");
   const [strategyName, setStrategyName] = useState("Moving Average Crossover");
   const [description, setDescription] = useState("A strategy that generates signals based on when a faster moving average crosses a slower moving average.");
   const [market, setMarket] = useState("Stocks");
   const [timeframe, setTimeframe] = useState("Daily");
-  const [targetAsset, setTargetAsset] = useState("AAPL - Apple Inc.");
+  const [targetAsset, setTargetAsset] = useState("AAPL");
+  const [targetAssetName, setTargetAssetName] = useState("Apple Inc.");
   const [isActive, setIsActive] = useState(true);
   const [stopLoss, setStopLoss] = useState("5");
   const [takeProfit, setTakeProfit] = useState("15");
   const [singleBuyVolume, setSingleBuyVolume] = useState("1000");
   const [maxBuyVolume, setMaxBuyVolume] = useState("5000");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Asset[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const form = useForm({
     defaultValues: {
       strategyName: "Moving Average Crossover",
@@ -182,14 +193,145 @@ const EditStrategy = () => {
       }
     }]
   }]);
+
+  // Fetch API key on component mount
   useEffect(() => {
-    if (marketAssets[market] && marketAssets[market].length > 0) {
-      setTargetAsset(marketAssets[market][0]);
+    const fetchApiKey = async () => {
+      try {
+        setIsLoading(true);
+        const key = await getFmpApiKey();
+        
+        if (key) {
+          setApiKey(key);
+          console.log("API key retrieved successfully for EditStrategy");
+        } else {
+          console.error("API key not found in EditStrategy");
+          toast({
+            title: "API Connection Issue",
+            description: "Unable to connect to financial data service",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching API key in EditStrategy:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchApiKey();
+  }, [toast]);
+
+  // Search for assets with debounce
+  const searchAssets = debounce(async (query: string) => {
+    if (!query) {
+      setSearchResults([]);
+      setIsLoading(false);
+      return;
     }
-  }, [market]);
+
+    setIsLoading(true);
+    
+    try {
+      // If no API key, try to fetch it
+      if (!apiKey) {
+        const key = await getFmpApiKey();
+        if (key) {
+          setApiKey(key);
+          console.log("Retrieved API key during search");
+        } else {
+          throw new Error("No API key available");
+        }
+      }
+      
+      let results: Asset[] = [];
+      
+      if (market === "Stocks") {
+        results = await searchStocks(query, apiKey || "");
+      } else {
+        results = await searchCryptocurrencies(query, apiKey || "");
+      }
+      
+      console.log(`Search returned ${results.length} results for "${query}"`);
+      setSearchResults(results);
+      
+      if (results.length === 0 && query.length > 0) {
+        toast({
+          title: "No Results Found",
+          description: `No ${market.toLowerCase()} found matching "${query}"`
+        });
+      }
+    } catch (error) {
+      console.error(`Error searching ${market}:`, error);
+      
+      // Attempt to get a fresh API key and retry
+      try {
+        console.log("Attempting to refresh API key and retry search");
+        const newKey = await getFmpApiKey();
+        if (newKey && newKey !== apiKey) {
+          setApiKey(newKey);
+          
+          // Retry the search with the new key
+          let retryResults: Asset[] = [];
+          if (market === "Stocks") {
+            retryResults = await searchStocks(query, newKey);
+          } else {
+            retryResults = await searchCryptocurrencies(query, newKey);
+          }
+          
+          setSearchResults(retryResults);
+          console.log(`Retry search returned ${retryResults.length} results for "${query}"`);
+          
+          if (retryResults.length === 0 && query.length > 0) {
+            toast({
+              title: "No Results Found",
+              description: `No ${market.toLowerCase()} found matching "${query}"`
+            });
+          }
+        }
+      } catch (retryError) {
+        console.error("Retry search failed:", retryError);
+        
+        // Show error toast only if we have a query
+        if (query.length > 0) {
+          toast({
+            title: "Search Failed",
+            description: "Could not connect to financial data service",
+            variant: "destructive"
+          });
+        }
+        
+        // Set empty results
+        setSearchResults([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, 300);
+
+  // Trigger search when query changes or search dialog opens
+  useEffect(() => {
+    if (isSearchOpen && searchQuery) {
+      searchAssets(searchQuery);
+    }
+  }, [searchQuery, isSearchOpen, searchAssets]);
+
+  // Handle search dialog open
+  const handleSearchOpen = () => {
+    setIsSearchOpen(true);
+  };
+
+  // Select asset and close dialog
+  const handleSelectAsset = (asset: Asset) => {
+    setTargetAsset(asset.symbol);
+    setTargetAssetName(asset.name || "");
+    setIsSearchOpen(false);
+  };
+
   const handleCancel = () => {
     navigate(-1);
   };
+  
   const handleSave = () => {
     toast({
       title: "Strategy updated",
@@ -197,6 +339,7 @@ const EditStrategy = () => {
     });
     navigate(-1);
   };
+  
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     toast({
@@ -204,6 +347,7 @@ const EditStrategy = () => {
       description: `The strategy is now ${checked ? "active" : "inactive"} and will ${checked ? "" : "not"} generate trading signals.`
     });
   };
+  
   const addEntryRule = () => {
     const updatedRules = [...entryRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -230,6 +374,7 @@ const EditStrategy = () => {
       setEntryRules(updatedRules);
     }
   };
+  
   const addExitRule = () => {
     const updatedRules = [...exitRules];
     if (updatedRules[0] && updatedRules[0].inequalities) {
@@ -256,6 +401,7 @@ const EditStrategy = () => {
       setExitRules(updatedRules);
     }
   };
+  
   const removeEntryRule = (id: number) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -263,6 +409,7 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
+  
   const removeExitRule = (id: number) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -270,6 +417,7 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
+  
   const updateEntryRule = (id: number, field: string, value: string) => {
     const updatedRules = entryRules.map(group => ({
       ...group,
@@ -280,6 +428,7 @@ const EditStrategy = () => {
     }));
     setEntryRules(updatedRules);
   };
+  
   const updateExitRule = (id: number, field: string, value: string) => {
     const updatedRules = exitRules.map(group => ({
       ...group,
@@ -290,13 +439,151 @@ const EditStrategy = () => {
     }));
     setExitRules(updatedRules);
   };
+  
   const handleEntryRulesChange = (rules: RuleGroupData[]) => {
     setEntryRules(rules);
   };
+  
   const handleExitRulesChange = (rules: RuleGroupData[]) => {
     setExitRules(rules);
   };
-  return <div className="min-h-screen flex flex-col bg-background">
+  
+  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
+    id: 1,
+    logic: "AND",
+    inequalities: [{
+      id: 1,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "20"
+        }
+      },
+      condition: "Crosses Above",
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "50"
+        }
+      }
+    }, {
+      id: 2,
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Greater Than",
+      right: {
+        type: "value",
+        value: "200"
+      }
+    }]
+  }, {
+    id: 2,
+    logic: "OR",
+    inequalities: [{
+      id: 1,
+      left: {
+        type: "indicator",
+        indicator: "RSI",
+        parameters: {
+          period: "14"
+        }
+      },
+      condition: "Less Than",
+      right: {
+        type: "value",
+        value: "30"
+      }
+    }, {
+      id: 2,
+      left: {
+        type: "indicator",
+        indicator: "Volume",
+        parameters: {
+          period: "5"
+        }
+      },
+      condition: "Greater Than",
+      right: {
+        type: "indicator",
+        indicator: "Volume MA",
+        parameters: {
+          period: "20"
+        }
+      }
+    }]
+  }]);
+  
+  const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
+    id: 1,
+    logic: "AND",
+    inequalities: [{
+      id: 1,
+      left: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "20"
+        }
+      },
+      condition: "Crosses Below",
+      right: {
+        type: "indicator",
+        indicator: "SMA",
+        parameters: {
+          period: "50"
+        }
+      }
+    }, {
+      id: 2,
+      left: {
+        type: "indicator",
+        indicator: "MACD",
+        parameters: {
+          fast: "12",
+          slow: "26",
+          signal: "9"
+        }
+      },
+      condition: "Crosses Below",
+      right: {
+        type: "value",
+        value: "0"
+      }
+    }]
+  }, {
+    id: 2,
+    logic: "OR",
+    inequalities: [{
+      id: 1,
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Less Than",
+      right: {
+        type: "value",
+        value: "145.50"
+      }
+    }, {
+      id: 2,
+      left: {
+        type: "price",
+        value: "Close"
+      },
+      condition: "Greater Than",
+      right: {
+        type: "value",
+        value: "175.25"
+      }
+    }]
+  }]);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
@@ -371,19 +658,71 @@ const EditStrategy = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="asset">Target Asset</Label>
-                  <Select value={targetAsset} onValueChange={setTargetAsset}>
-                    <SelectTrigger id="asset" className="mt-1">
-                      <SelectValue placeholder="Select Target Asset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {marketAssets[market]?.map(asset => <SelectItem key={asset} value={asset}>
-                          {asset}
-                        </SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="asset" className="block text-sm font-medium mb-2">Target Asset</Label>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal h-10"
+                    onClick={handleSearchOpen}
+                  >
+                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                    {targetAsset 
+                      ? `${targetAsset}${targetAssetName ? ` - ${targetAssetName}` : ''}`
+                      : market === "Stocks" 
+                        ? "Search for a stock..."
+                        : "Search for a cryptocurrency..."
+                    }
+                  </Button>
+                  
+                  <CommandDialog 
+                    open={isSearchOpen} 
+                    onOpenChange={(open) => {
+                      setIsSearchOpen(open);
+                      if (!open) {
+                        // Clear the search query when closing the dialog
+                        setTimeout(() => {
+                          setSearchQuery("");
+                        }, 100);
+                      }
+                    }}
+                  >
+                    <DialogTitle className="sr-only">
+                      {market === "Stocks" ? "Search Stocks" : "Search Cryptocurrencies"}
+                    </DialogTitle>
+                    <CommandInput 
+                      placeholder={market === "Stocks" ? "Search all US stocks..." : "Search cryptocurrencies..."} 
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                      autoFocus={true}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {isLoading ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (
+                          <p className="p-4 text-center text-sm text-muted-foreground">
+                            No assets found.
+                          </p>
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup heading="Search Results">
+                        {searchResults.map((asset) => (
+                          <CommandItem
+                            key={asset.symbol}
+                            value={`${asset.symbol} ${asset.name}`}
+                            onSelect={() => handleSelectAsset(asset)}
+                          >
+                            <div className="flex flex-col">
+                              <span>{asset.symbol}</span>
+                              <span className="text-xs text-muted-foreground">{asset.name}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </CommandDialog>
                 </div>
-                
                 
               </div>
             </Form>
@@ -422,12 +761,11 @@ const EditStrategy = () => {
             
             <TradingRules entryRules={entryRules} exitRules={exitRules} editable={true} onEntryRulesChange={handleEntryRulesChange} onExitRulesChange={handleExitRulesChange} />
             
-            
-            
-            
           </Card>
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default EditStrategy;

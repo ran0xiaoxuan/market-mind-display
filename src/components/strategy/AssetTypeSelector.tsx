@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Asset {
   symbol: string;
@@ -37,6 +38,7 @@ export const AssetTypeSelector = ({
   const [searchResults, setSearchResults] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [popularAssets, setPopularAssets] = useState<Asset[]>([]);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
   // Define the initial popular assets
   const popularStocks = [
@@ -105,8 +107,35 @@ export const AssetTypeSelector = ({
     { symbol: "NEAR/USDT", name: "NEAR Protocol/USDT" }
   ];
 
-  // API key for Financial Modeling Prep
-  const FMP_API_KEY = "demo"; // Replace with actual API key for production use
+  // Get API key from Supabase
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        const { data } = await supabase.functions.invoke('get-fmp-key', {
+          method: 'GET',
+        });
+        
+        if (data?.apiKey) {
+          setApiKey(data.apiKey);
+          console.log("API key retrieved successfully");
+        } else {
+          console.error("API key not found");
+          toast({
+            title: "API Key Error",
+            description: "Could not retrieve API key, using fallback data",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching API key:", error);
+        toast({
+          title: "API Key Error",
+          description: "Could not retrieve API key, using fallback data",
+        });
+      }
+    };
+    
+    fetchApiKey();
+  }, []);
 
   // Update popular assets when assetType changes
   useEffect(() => {
@@ -126,11 +155,12 @@ export const AssetTypeSelector = ({
       
       try {
         let url = "";
+        const fmpApiKey = apiKey || "demo"; // Use actual API key or fall back to demo
         
         if (assetType === "stocks") {
-          url = `https://financialmodelingprep.com/api/v3/search?query=${query}&limit=20&exchange=NASDAQ,NYSE&apikey=${FMP_API_KEY}`;
+          url = `https://financialmodelingprep.com/api/v3/search?query=${query}&limit=20&exchange=NASDAQ,NYSE&apikey=${fmpApiKey}`;
         } else {
-          url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${FMP_API_KEY}`;
+          url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${fmpApiKey}`;
         }
         
         const response = await fetch(url);
@@ -205,7 +235,7 @@ export const AssetTypeSelector = ({
         setIsLoading(false);
       }
     }, 300),
-    [assetType, FMP_API_KEY, allStocks, allCryptos]
+    [assetType, apiKey, allStocks, allCryptos]
   );
 
   useEffect(() => {

@@ -4,13 +4,11 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
-
 interface StrategyInfoProps {
   strategy: any;
   isActive: boolean;
   onStatusChange: (checked: boolean) => void;
 }
-
 export const StrategyInfo = ({
   strategy,
   isActive,
@@ -23,8 +21,10 @@ export const StrategyInfo = ({
     try {
       if (!dateString) return "Unknown";
       const date = new Date(dateString);
-      const timeAgo = formatDistanceToNow(date, { addSuffix: true });
-      
+      const timeAgo = formatDistanceToNow(date, {
+        addSuffix: true
+      });
+
       // Capitalize the first letter
       return timeAgo.charAt(0).toUpperCase() + timeAgo.slice(1);
     } catch (error) {
@@ -36,14 +36,13 @@ export const StrategyInfo = ({
   // Handle the status change and update it in the database
   const handleStatusChange = async (checked: boolean) => {
     setIsSaving(true);
-    
     try {
       // Update the strategy status in the database
-      const { error } = await supabase
-        .from('strategies')
-        .update({ is_active: checked })
-        .eq('id', strategy.id);
-      
+      const {
+        error
+      } = await supabase.from('strategies').update({
+        is_active: checked
+      }).eq('id', strategy.id);
       if (error) {
         console.error("Error updating strategy status:", error);
         toast("Error updating status", {
@@ -51,10 +50,9 @@ export const StrategyInfo = ({
         });
         return;
       }
-      
+
       // Call the parent component's handler to update local state
       onStatusChange(checked);
-      
       toast("Status updated", {
         description: `The strategy is now ${checked ? 'active' : 'inactive'}`
       });
@@ -67,13 +65,12 @@ export const StrategyInfo = ({
       setIsSaving(false);
     }
   };
-
   return <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
       
       <div className="mb-8">
         <h3 className="text-sm text-muted-foreground">Strategy Introduction</h3>
-        <p className="text-muted-foreground">{strategy.description || "No description provided"}</p>
+        <p className="font-medium text-inherit">{strategy.description || "No description provided"}</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
@@ -100,12 +97,7 @@ export const StrategyInfo = ({
         <div>
           <p className="text-sm text-muted-foreground">Status</p>
           <div className="flex items-center gap-2">
-            <Switch 
-              id="strategy-status" 
-              checked={isActive} 
-              onCheckedChange={handleStatusChange} 
-              disabled={isSaving}
-            />
+            <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} disabled={isSaving} />
             <span className="text-sm">
               {isSaving ? 'Saving...' : isActive ? 'Active' : 'Inactive'}
             </span>

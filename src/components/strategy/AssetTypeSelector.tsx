@@ -1,19 +1,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Search } from "lucide-react";
 import { debounce } from "lodash";
-import { 
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 import { 
   CommandDialog, 
   CommandInput, 
@@ -70,13 +60,55 @@ export const AssetTypeSelector = ({
     { symbol: "LINK/USDT", name: "Chainlink/USDT" }
   ];
 
+  // Additional stock options to simulate search results
+  const allStocks = [
+    ...popularStocks,
+    { symbol: "NFLX", name: "Netflix" },
+    { symbol: "DIS", name: "Walt Disney" },
+    { symbol: "INTC", name: "Intel Corporation" },
+    { symbol: "AMD", name: "Advanced Micro Devices" },
+    { symbol: "PYPL", name: "PayPal" },
+    { symbol: "SBUX", name: "Starbucks" },
+    { symbol: "QCOM", name: "Qualcomm" },
+    { symbol: "CSCO", name: "Cisco Systems" },
+    { symbol: "T", name: "AT&T" },
+    { symbol: "VZ", name: "Verizon" },
+    { symbol: "WMT", name: "Walmart" },
+    { symbol: "KO", name: "Coca-Cola" },
+    { symbol: "PEP", name: "PepsiCo" },
+    { symbol: "MCD", name: "McDonald's" },
+    { symbol: "BA", name: "Boeing" },
+    { symbol: "GE", name: "General Electric" },
+    { symbol: "IBM", name: "IBM" },
+    { symbol: "XOM", name: "Exxon Mobil" },
+    { symbol: "CVX", name: "Chevron" },
+    { symbol: "JNJ", name: "Johnson & Johnson" }
+  ];
+
+  // Additional crypto options to simulate search results
+  const allCryptos = [
+    ...popularCryptocurrencies,
+    { symbol: "AVAX/USDT", name: "Avalanche/USDT" },
+    { symbol: "MATIC/USDT", name: "Polygon/USDT" },
+    { symbol: "DOT/USDT", name: "Polkadot/USDT" },
+    { symbol: "UNI/USDT", name: "Uniswap/USDT" },
+    { symbol: "ATOM/USDT", name: "Cosmos/USDT" },
+    { symbol: "LTC/USDT", name: "Litecoin/USDT" },
+    { symbol: "BCH/USDT", name: "Bitcoin Cash/USDT" },
+    { symbol: "XLM/USDT", name: "Stellar/USDT" },
+    { symbol: "EOS/USDT", name: "EOS/USDT" },
+    { symbol: "TRX/USDT", name: "TRON/USDT" },
+    { symbol: "FIL/USDT", name: "Filecoin/USDT" },
+    { symbol: "ALGO/USDT", name: "Algorand/USDT" },
+    { symbol: "VET/USDT", name: "VeChain/USDT" },
+    { symbol: "XTZ/USDT", name: "Tezos/USDT" },
+    { symbol: "NEAR/USDT", name: "NEAR Protocol/USDT" }
+  ];
+
   // Update popular assets when assetType changes
   useEffect(() => {
     setPopularAssets(assetType === "stocks" ? popularStocks : popularCryptocurrencies);
   }, [assetType]);
-
-  // API key for Financial Modeling Prep API
-  const FMP_API_KEY = "demo"; // Replace with actual API key for production
 
   // Search for assets with debounce
   const searchAssets = useCallback(
@@ -90,37 +122,14 @@ export const AssetTypeSelector = ({
       setIsLoading(true);
       
       try {
-        let url = "";
+        // Instead of API call, filter the local assets list
+        const localAssetsList = assetType === "stocks" ? allStocks : allCryptos;
         
-        if (assetType === "stocks") {
-          url = `https://financialmodelingprep.com/api/v3/search?query=${query}&limit=20&exchange=NASDAQ,NYSE&apikey=${FMP_API_KEY}`;
-        } else {
-          url = `https://financialmodelingprep.com/api/v3/symbol/available-cryptocurrencies?apikey=${FMP_API_KEY}`;
-        }
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        let results: Asset[] = [];
-        
-        if (assetType === "stocks") {
-          results = data.map((item: any) => ({
-            symbol: item.symbol,
-            name: item.name
-          }));
-        } else {
-          // Filter crypto results by query
-          results = data
-            .filter((item: any) => 
-              item.symbol.toLowerCase().includes(query.toLowerCase()) || 
-              item.name.toLowerCase().includes(query.toLowerCase())
-            )
-            .slice(0, 20)
-            .map((item: any) => ({
-              symbol: `${item.symbol}/USDT`,
-              name: `${item.name}/USDT`
-            }));
-        }
+        // Filter by query
+        const results = localAssetsList.filter(asset => 
+          asset.symbol.toLowerCase().includes(query.toLowerCase()) || 
+          asset.name.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 20); // Limit results to 20
         
         setSearchResults(results);
       } catch (error) {

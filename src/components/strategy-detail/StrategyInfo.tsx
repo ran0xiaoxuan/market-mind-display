@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
@@ -96,7 +95,7 @@ export const StrategyInfo = ({
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Target Asset</p>
-          <p className="font-medium">{strategy.targetAsset || "Unknown"}</p>
+          <p>{strategy.targetAsset || "Unknown"}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Status</p>

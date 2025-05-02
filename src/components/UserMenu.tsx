@@ -4,23 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
-import { LogOut, Moon, Settings, Sun, UserRound } from "lucide-react";
+import { LogOut, Settings, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTheme } from "./ThemeProvider";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   
   const handleClose = () => setOpen(false);
-  
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
   
   const handleLogout = async () => {
     try {
@@ -68,26 +62,8 @@ export function UserMenu() {
           
           <Button 
             variant="ghost" 
-            className="w-full justify-start px-4 py-2 h-auto"
-            onClick={toggleTheme}
-          >
-            {theme === "dark" ? (
-              <>
-                <Sun className="mr-2 h-4 w-4" />
-                Light Mode
-              </>
-            ) : (
-              <>
-                <Moon className="mr-2 h-4 w-4" />
-                Dark Mode
-              </>
-            )}
-          </Button>
-          
-          <Button 
-            variant="ghost" 
             onClick={handleLogout} 
-            className="w-full justify-start px-4 py-2 h-auto text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+            className="w-full justify-start px-4 py-2 h-auto text-red-500 hover:text-red-500 hover:bg-red-50"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Log out

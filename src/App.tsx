@@ -17,7 +17,6 @@ import Settings from "./pages/Settings";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
-import { ThemeProvider } from "./components/ThemeProvider";
 import EditHistory from "./pages/EditHistory";
 import BacktestHistory from "./pages/BacktestHistory";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -29,73 +28,71 @@ const App = () => (
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <TooltipProvider>
-            <AuthProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                {/* Auth Routes */}
-                <Route path="/auth/login" element={<Login />} />
-                <Route path="/auth/signup" element={<Signup />} />
-                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-                
-                {/* Protected App Routes */}
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } />
-                <Route path="/strategies" element={
-                  <ProtectedRoute>
-                    <Strategies />
-                  </ProtectedRoute>
-                } />
-                <Route path="/strategy/:strategyId" element={
-                  <ProtectedRoute>
-                    <StrategyDetail />
-                  </ProtectedRoute>
-                } />
-                <Route path="/strategy/:strategyId/edit" element={
-                  <ProtectedRoute>
-                    <EditStrategy />
-                  </ProtectedRoute>
-                } />
-                <Route path="/strategy/:strategyId/history" element={
-                  <ProtectedRoute>
-                    <EditHistory />
-                  </ProtectedRoute>
-                } />
-                <Route path="/strategy/:strategyId/backtests" element={
-                  <ProtectedRoute>
-                    <BacktestHistory />
-                  </ProtectedRoute>
-                } />
-                <Route path="/backtest" element={
-                  <ProtectedRoute>
-                    <Backtest />
-                  </ProtectedRoute>
-                } />
-                <Route path="/analytics" element={
-                  <ProtectedRoute>
-                    <Analytics />
-                  </ProtectedRoute>
-                } />
-                <Route path="/ai-strategy" element={
-                  <ProtectedRoute>
-                    <AIStrategy />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AuthProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Auth Routes */}
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/signup" element={<Signup />} />
+              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              
+              {/* Protected App Routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategies" element={
+                <ProtectedRoute>
+                  <Strategies />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId" element={
+                <ProtectedRoute>
+                  <StrategyDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId/edit" element={
+                <ProtectedRoute>
+                  <EditStrategy />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId/history" element={
+                <ProtectedRoute>
+                  <EditHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="/strategy/:strategyId/backtests" element={
+                <ProtectedRoute>
+                  <BacktestHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="/backtest" element={
+                <ProtectedRoute>
+                  <Backtest />
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-strategy" element={
+                <ProtectedRoute>
+                  <AIStrategy />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </TooltipProvider>
       </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>

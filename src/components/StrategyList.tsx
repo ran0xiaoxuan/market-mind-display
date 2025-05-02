@@ -33,6 +33,20 @@ export function StrategyList() {
 
   useEffect(() => {
     fetchStrategies();
+
+    // Add listener for strategy deletion
+    const handleStrategyUpdate = () => {
+      fetchStrategies();
+    };
+
+    // Event listeners for navigation - when user navigates back to a page after strategy deletion
+    window.addEventListener('popstate', handleStrategyUpdate);
+    window.addEventListener('focus', handleStrategyUpdate);
+
+    return () => {
+      window.removeEventListener('popstate', handleStrategyUpdate);
+      window.removeEventListener('focus', handleStrategyUpdate);
+    };
   }, []);
 
   const formatTimeAgo = (dateString: string) => {

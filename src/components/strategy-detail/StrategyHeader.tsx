@@ -1,3 +1,4 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { deleteStrategy } from "@/services/strategyService";
 
 interface StrategyHeaderProps {
@@ -35,23 +35,22 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
     try {
       setIsDeleting(true);
       
-      // Use the service function for deleting rather than inline DB calls
+      // Use the service function for deleting
       await deleteStrategy(strategyId);
       
       toast.success("Strategy deleted", {
         description: "The strategy has been successfully deleted"
       });
       
-      // Redirect to the strategies page
+      // Redirect to the strategies page after successful deletion
       navigate('/strategies');
     } catch (error) {
       console.error("Error deleting strategy:", error);
       toast.error("Failed to delete strategy", {
         description: "An error occurred while trying to delete the strategy"
       });
-    } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
+      setIsDeleting(false); // Only reset if there's an error
+      setDeleteDialogOpen(false); // Close the dialog on error
     }
   };
 

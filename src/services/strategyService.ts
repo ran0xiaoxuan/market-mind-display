@@ -248,8 +248,29 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw new Error("Strategy not found");
     }
     
-    // Delete associated backtest trades (if they exist)
-    // First find all backtest IDs related to this strategy
+    // Delete trading rules first
+    const { error: rulesError } = await supabase
+      .from('trading_rules')
+      .delete()
+      .eq('strategy_id', strategyId);
+      
+    if (rulesError) {
+      console.warn("Error deleting trading rules:", rulesError);
+      // Continue with deletion process
+    }
+    
+    // Delete risk management data next
+    const { error: riskError } = await supabase
+      .from('risk_management')
+      .delete()
+      .eq('strategy_id', strategyId);
+      
+    if (riskError) {
+      console.warn("Error deleting risk management:", riskError);
+      // Continue with deletion process
+    }
+    
+    // Find and delete backtest data
     const { data: backtests } = await supabase
       .from('backtests')
       .select('id')
@@ -279,29 +300,6 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       .delete()
       .eq('strategy_id', strategyId);
     
-    // Delete associated records with separate calls (to handle potential failures individually)
-    // Risk management
-    const { error: riskError } = await supabase
-      .from('risk_management')
-      .delete()
-      .eq('strategy_id', strategyId);
-      
-    if (riskError) {
-      console.warn("Error deleting risk management:", riskError);
-      // Continue with deletion process
-    }
-    
-    // Trading rules
-    const { error: rulesError } = await supabase
-      .from('trading_rules')
-      .delete()
-      .eq('strategy_id', strategyId);
-      
-    if (rulesError) {
-      console.warn("Error deleting trading rules:", rulesError);
-      // Continue with deletion process
-    }
-    
     // Finally delete the strategy itself
     const { error: strategyError } = await supabase
       .from('strategies')
@@ -309,6 +307,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       .eq('id', strategyId);
       
     if (strategyError) {
+      console.error("Error deleting strategy:", strategyError);
       throw strategyError;
     }
     

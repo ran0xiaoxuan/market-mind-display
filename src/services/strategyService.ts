@@ -205,7 +205,8 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: leftParams,
-          value: rule.left_value
+          // Fix: Use rule.right_value instead of accessing left_value which doesn't exist
+          value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.right_value : undefined
         },
         condition: rule.condition,
         right: {

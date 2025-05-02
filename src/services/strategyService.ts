@@ -151,7 +151,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
       singleBuyVolume: data.single_buy_volume,
-      maxBuyVolume: data.max_buyVolume
+      maxBuyVolume: data.max_buy_volume
     };
   } catch (error) {
     console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);
@@ -190,16 +190,26 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
       const targetMap = ruleType === 'entry' ? entryRules : exitRules;
       
       if (!targetMap.has(ruleGroup)) {
+        // Check if metadata is an object
+        const metadata = typeof rule.metadata === 'object' && rule.metadata !== null 
+          ? rule.metadata 
+          : {};
+        
+        // Get requiredConditions safely from metadata
+        const requiredConditions = metadata && typeof metadata === 'object' && 'requiredConditions' in metadata
+          ? Number(metadata.requiredConditions)
+          : undefined;
+          
         targetMap.set(ruleGroup, {
           id: ruleGroup,
           logic: rule.logic || 'AND',
           inequalities: [],
           // Add requiredConditions if this is an OR logic group and we have the value in metadata
-          ...(rule.logic === 'OR' && rule.metadata && typeof rule.metadata === 'object' && 'requiredConditions' in rule.metadata && {
-            requiredConditions: Number(rule.metadata.requiredConditions)
+          ...(rule.logic === 'OR' && requiredConditions !== undefined && {
+            requiredConditions
           }),
           // Default to 1 if not specified but it is an OR group
-          ...(rule.logic === 'OR' && (!rule.metadata || typeof rule.metadata !== 'object' || !('requiredConditions' in rule.metadata)) && {
+          ...(rule.logic === 'OR' && requiredConditions === undefined && {
             requiredConditions: 1
           })
         });
@@ -211,6 +221,11 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
       const leftParams = rule.left_parameters ? convertJsonToIndicatorParams(rule.left_parameters) : undefined;
       const rightParams = rule.right_parameters ? convertJsonToIndicatorParams(rule.right_parameters) : undefined;
       
+      // Get the metadata object safely
+      const metadata = typeof rule.metadata === 'object' && rule.metadata !== null 
+        ? rule.metadata 
+        : {};
+        
       // Create the inequality object with proper types
       const inequality = {
         id: group.inequalities.length + 1,
@@ -218,8 +233,8 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: leftParams,
-          // Only include value if the type is price or value
-          value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.left_value || undefined : undefined,
+          // Safely access left_value with a fallback to undefined
+          value: (rule.left_type === 'value' || rule.left_type === 'price') && 'left_value' in rule ? rule.left_value : undefined,
           // Use undefined for valueType if it doesn't exist in the database
           valueType: undefined
         },
@@ -233,8 +248,8 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           valueType: undefined
         },
         // Extract explanation from metadata if it exists and is an object, otherwise use empty string
-        explanation: (rule.metadata && typeof rule.metadata === 'object' && 'explanation' in rule.metadata) 
-          ? String(rule.metadata.explanation) 
+        explanation: metadata && typeof metadata === 'object' && 'explanation' in metadata 
+          ? String(metadata.explanation) 
           : ""
       };
       

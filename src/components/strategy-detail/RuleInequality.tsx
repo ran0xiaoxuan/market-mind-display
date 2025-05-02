@@ -2,7 +2,7 @@ import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Check, X, Info } from "lucide-react";
+import { Pencil, Trash2, Check, X, Info, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getSupportedIndicators } from "@/services/taapiService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface RuleInequalityProps {
   inequality: Inequality;
@@ -31,6 +32,7 @@ export const RuleInequality = ({
   const [showExplanation, setShowExplanation] = useState(false);
   const [editedInequality, setEditedInequality] = useState<Inequality>(inequality);
   const [availableIndicators, setAvailableIndicators] = useState<string[]>([]);
+  const [indicatorSearch, setIndicatorSearch] = useState('');
   
   // Fetch available indicators from TAAPI
   useEffect(() => {
@@ -68,6 +70,13 @@ export const RuleInequality = ({
     
     fetchIndicators();
   }, []);
+  
+  // Filter indicators based on search query
+  const filteredIndicators = indicatorSearch
+    ? availableIndicators.filter(indicator => 
+        indicator.toLowerCase().includes(indicatorSearch.toLowerCase())
+      )
+    : availableIndicators;
   
   const conditions = [
     "Greater Than", "Less Than", 
@@ -111,6 +120,7 @@ export const RuleInequality = ({
   
   const cancelEditing = () => {
     setIsEditing(false);
+    setIndicatorSearch('');
   };
   
   const saveChanges = () => {
@@ -118,6 +128,7 @@ export const RuleInequality = ({
       onChange(editedInequality);
     }
     setIsEditing(false);
+    setIndicatorSearch('');
   };
   
   const updateLeft = (field: string, value: string) => {
@@ -242,18 +253,37 @@ export const RuleInequality = ({
         
         {side.type === "indicator" && (
           <>
-            <Select value={side.indicator} onValueChange={(val) => updateSide("indicator", val)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Indicator" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableIndicators.map(indicator => (
-                  <SelectItem key={indicator} value={indicator}>
-                    {indicator}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={side.indicator} onValueChange={(val) => updateSide("indicator", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Indicator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="flex items-center px-2 pb-1 sticky top-0 bg-white z-10">
+                    <Search className="h-4 w-4 mr-2 opacity-50" />
+                    <Input
+                      placeholder="Search indicators..."
+                      value={indicatorSearch}
+                      onChange={(e) => setIndicatorSearch(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  <ScrollArea className="h-60">
+                    {filteredIndicators.length > 0 ? (
+                      filteredIndicators.map(indicator => (
+                        <SelectItem key={indicator} value={indicator}>
+                          {indicator}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="text-center py-2 text-muted-foreground">
+                        No indicators found
+                      </div>
+                    )}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+            </div>
             
             {getValueTypeOptions(side.indicator).length > 0 && (
               <Select 

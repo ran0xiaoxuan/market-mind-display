@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -152,7 +151,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
       singleBuyVolume: data.single_buy_volume,
-      maxBuyVolume: data.max_buy_volume
+      maxBuyVolume: data.max_buyVolume
     };
   } catch (error) {
     console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);
@@ -219,7 +218,8 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: leftParams,
-          value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.left_value : undefined,
+          // Only include value if the type is price or value
+          value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.left_value || undefined : undefined,
           // Use undefined for valueType if it doesn't exist in the database
           valueType: undefined
         },

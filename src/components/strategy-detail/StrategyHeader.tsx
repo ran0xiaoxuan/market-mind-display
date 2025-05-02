@@ -30,8 +30,6 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
   const [isDeleting, setIsDeleting] = useState(false);
   
   const handleDeleteStrategy = async () => {
-    if (!strategyId) return;
-    
     try {
       setIsDeleting(true);
       
@@ -49,8 +47,8 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
         description: "An error occurred while trying to delete the strategy"
       });
     } finally {
-      setIsDeleting(false); // Reset loading state
-      setDeleteDialogOpen(false); // Close the dialog
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -147,15 +145,10 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive hover:bg-destructive/90"
-              onClick={(e) => {
-                e.preventDefault(); // Prevent default action
-                handleDeleteStrategy();
-              }}
+              onClick={handleDeleteStrategy}
               disabled={isDeleting}
             >
               {isDeleting ? "Deleting..." : "Delete"}

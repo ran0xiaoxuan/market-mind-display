@@ -34,18 +34,22 @@ export function StrategyList() {
   useEffect(() => {
     fetchStrategies();
 
-    // Add listener for strategy deletion
+    // Add listeners to ensure we update when a strategy is deleted or updated
     const handleStrategyUpdate = () => {
       fetchStrategies();
     };
 
-    // Event listeners for navigation - when user navigates back to a page after strategy deletion
+    // Event listeners for navigation and focus - useful when user navigates back to a page after strategy deletion
     window.addEventListener('popstate', handleStrategyUpdate);
     window.addEventListener('focus', handleStrategyUpdate);
+    
+    // Listen for custom event that might be dispatched when strategies are updated or deleted
+    window.addEventListener('strategy-updated', handleStrategyUpdate);
 
     return () => {
       window.removeEventListener('popstate', handleStrategyUpdate);
       window.removeEventListener('focus', handleStrategyUpdate);
+      window.removeEventListener('strategy-updated', handleStrategyUpdate);
     };
   }, []);
 

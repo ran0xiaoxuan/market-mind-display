@@ -35,14 +35,13 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
     try {
       setIsDeleting(true);
       
-      // Use the service function for deleting
       await deleteStrategy(strategyId);
       
       toast.success("Strategy deleted", {
         description: "The strategy has been successfully deleted"
       });
       
-      // Redirect to the strategies page after successful deletion
+      // Immediately redirect to the strategies page after successful deletion
       navigate('/strategies');
     } catch (error) {
       console.error("Error deleting strategy:", error);

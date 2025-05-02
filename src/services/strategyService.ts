@@ -1,4 +1,3 @@
-
 // Re-implement this file based on what's publicly available in the imports
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -248,62 +247,73 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       console.error("Strategy not found or error fetching:", fetchError);
       throw new Error("Strategy not found");
     }
-    
-    // IMPORTANT: Delete in the correct order to respect foreign key constraints
-    
-    // 1. First delete any backtest_trades related to backtests of this strategy
-    const { data: backtests } = await supabase
-      .from('backtests')
-      .select('id')
-      .eq('strategy_id', strategyId);
-      
-    if (backtests && backtests.length > 0) {
-      const backtestIds = backtests.map(b => b.id);
-      
-      // Delete trades for these backtests
-      for (const backtestId of backtestIds) {
-        await supabase
-          .from('backtest_trades')
-          .delete()
-          .eq('backtest_id', backtestId);
-      }
-      
-      // 2. Delete the backtests themselves
-      await supabase
-        .from('backtests')
-        .delete()
-        .eq('strategy_id', strategyId);
-    }
-    
-    // 3. Delete strategy versions if they exist
-    await supabase
-      .from('strategy_versions')
+
+    // CRITICAL: Delete risk management data first - this is the key to resolving the constraint violation
+    const { error: riskError } = await supabase
+      .from('risk_management')
       .delete()
       .eq('strategy_id', strategyId);
     
-    // 4. Delete trading rules
+    if (riskError) {
+      console.error("Error deleting risk management:", riskError);
+      throw riskError;
+    }
+
+    // Delete trading rules
     const { error: rulesError } = await supabase
       .from('trading_rules')
       .delete()
       .eq('strategy_id', strategyId);
-      
+    
     if (rulesError) {
       console.error("Error deleting trading rules:", rulesError);
       throw rulesError;
     }
     
-    // 5. Delete risk management data - THIS MUST HAPPEN BEFORE DELETING THE STRATEGY
-    const { error: riskError } = await supabase
-      .from('risk_management')
+    // Get all backtests for this strategy
+    const { data: backtests } = await supabase
+      .from('backtests')
+      .select('id')
+      .eq('strategy_id', strategyId);
+      
+    // Delete backtest trades for each backtest
+    if (backtests && backtests.length > 0) {
+      for (const backtest of backtests) {
+        const { error: tradeError } = await supabase
+          .from('backtest_trades')
+          .delete()
+          .eq('backtest_id', backtest.id);
+          
+        if (tradeError) {
+          console.error(`Error deleting backtest trades for backtest ${backtest.id}:`, tradeError);
+          // Continue with other deletions
+        }
+      }
+      
+      // Delete the backtests
+      const { error: backtestError } = await supabase
+        .from('backtests')
+        .delete()
+        .eq('strategy_id', strategyId);
+        
+      if (backtestError) {
+        console.error("Error deleting backtests:", backtestError);
+        // Continue with strategy deletion
+      }
+    }
+    
+    // Delete strategy versions
+    const { error: versionError } = await supabase
+      .from('strategy_versions')
       .delete()
       .eq('strategy_id', strategyId);
       
-    if (riskError) {
-      console.error("Error deleting risk management:", riskError);
-      throw riskError;
+    if (versionError) {
+      console.error("Error deleting strategy versions:", versionError);
+      // Continue with strategy deletion
     }
     
-    // 6. Finally delete the strategy itself
+    // Finally delete the strategy itself
     const { error: strategyError } = await supabase
       .from('strategies')
       .delete()

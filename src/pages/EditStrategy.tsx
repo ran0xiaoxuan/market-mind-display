@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -14,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
-import { Inequality, RuleGroupData } from "@/components/strategy-detail/types";
+import { Inequality, RuleGroupData, RuleGroup, TradingRule } from "@/components/strategy-detail/types";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
@@ -353,54 +352,84 @@ const EditStrategy = () => {
         throw new Error(`Error updating strategy: ${strategyError.message}`);
       }
 
-      // For trading rules, we'll delete existing ones and insert the new ones
-      // Delete existing entry rules for this strategy
-      const { error: deleteEntryError } = await supabase
-        .from('trading_rules')
-        .delete()
-        .eq('strategy_id', strategyId)
-        .eq('rule_type', 'entry');
+      // Get all existing rule groups for this strategy
+      const { data: existingRuleGroups, error: ruleGroupsError } = await supabase
+        .from('rule_groups')
+        .select('id, rule_type')
+        .eq('strategy_id', strategyId);
 
-      if (deleteEntryError) {
-        throw new Error(`Error deleting entry rules: ${deleteEntryError.message}`);
+      if (ruleGroupsError) {
+        throw new Error(`Error fetching rule groups: ${ruleGroupsError.message}`);
       }
 
-      // Delete existing exit rules for this strategy
-      const { error: deleteExitError } = await supabase
-        .from('trading_rules')
-        .delete()
-        .eq('strategy_id', strategyId)
-        .eq('rule_type', 'exit');
+      // Delete existing rule groups and their associated trading rules
+      if (existingRuleGroups && existingRuleGroups.length > 0) {
+        // Get the IDs of all rule groups
+        const ruleGroupIds = existingRuleGroups.map(group => group.id);
 
-      if (deleteExitError) {
-        throw new Error(`Error deleting exit rules: ${deleteExitError.message}`);
+        // Delete trading rules first (foreign key constraint)
+        const { error: deleteRulesError } = await supabase
+          .from('trading_rules')
+          .delete()
+          .in('rule_group_id', ruleGroupIds);
+
+        if (deleteRulesError) {
+          throw new Error(`Error deleting trading rules: ${deleteRulesError.message}`);
+        }
+
+        // Delete rule groups
+        const { error: deleteGroupsError } = await supabase
+          .from('rule_groups')
+          .delete()
+          .eq('strategy_id', strategyId);
+
+        if (deleteGroupsError) {
+          throw new Error(`Error deleting rule groups: ${deleteGroupsError.message}`);
+        }
       }
 
-      // Insert new entry rules
-      for (const group of entryRules) {
+      // Create new entry rule groups and rules
+      for (let groupIndex = 0; groupIndex < entryRules.length; groupIndex++) {
+        const group = entryRules[groupIndex];
+        
+        // Insert the rule group
+        const { data: entryGroup, error: entryGroupError } = await supabase
+          .from('rule_groups')
+          .insert({
+            strategy_id: strategyId,
+            rule_type: 'entry',
+            group_order: groupIndex + 1,
+            logic: group.logic,
+            required_conditions: group.logic === 'OR' ? group.requiredConditions : null
+          })
+          .select()
+          .single();
+          
+        if (entryGroupError) {
+          throw new Error(`Error creating entry rule group: ${entryGroupError.message}`);
+        }
+
+        // Add each inequality as a trading rule
         for (let i = 0; i < group.inequalities.length; i++) {
           const inequality = group.inequalities[i];
           
           const { error: ruleError } = await supabase
             .from('trading_rules')
             .insert({
-              strategy_id: strategyId,
-              rule_group: group.id,
-              rule_type: 'entry',
+              rule_group_id: entryGroup.id,
+              inequality_order: i + 1,
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
               left_value: inequality.left.value,
+              left_value_type: inequality.left.valueType,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and',
-              metadata: {
-                explanation: inequality.explanation || "",
-                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
-              }
+              right_value_type: inequality.right.valueType,
+              explanation: inequality.explanation
             });
             
           if (ruleError) {
@@ -409,31 +438,48 @@ const EditStrategy = () => {
         }
       }
 
-      // Insert new exit rules
-      for (const group of exitRules) {
+      // Create new exit rule groups and rules
+      for (let groupIndex = 0; groupIndex < exitRules.length; groupIndex++) {
+        const group = exitRules[groupIndex];
+        
+        // Insert the rule group
+        const { data: exitGroup, error: exitGroupError } = await supabase
+          .from('rule_groups')
+          .insert({
+            strategy_id: strategyId,
+            rule_type: 'exit',
+            group_order: groupIndex + 1,
+            logic: group.logic,
+            required_conditions: group.logic === 'OR' ? group.requiredConditions : null
+          })
+          .select()
+          .single();
+          
+        if (exitGroupError) {
+          throw new Error(`Error creating exit rule group: ${exitGroupError.message}`);
+        }
+
+        // Add each inequality as a trading rule
         for (let i = 0; i < group.inequalities.length; i++) {
           const inequality = group.inequalities[i];
           
           const { error: ruleError } = await supabase
             .from('trading_rules')
             .insert({
-              strategy_id: strategyId,
-              rule_group: group.id,
-              rule_type: 'exit',
+              rule_group_id: exitGroup.id,
+              inequality_order: i + 1,
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
               left_value: inequality.left.value,
+              left_value_type: inequality.left.valueType,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and',
-              metadata: {
-                explanation: inequality.explanation || "",
-                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
-              }
+              right_value_type: inequality.right.valueType,
+              explanation: inequality.explanation
             });
             
           if (ruleError) {

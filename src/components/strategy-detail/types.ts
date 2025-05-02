@@ -100,3 +100,35 @@ export type RuleGroupData = {
   inequalities: Inequality[];
   requiredConditions?: number; // Number of conditions that must be met for OR groups
 };
+
+// New type definitions for the DB schema
+export type RuleGroup = {
+  id: string;
+  strategy_id: string;
+  rule_type: 'entry' | 'exit';
+  group_order: number;
+  logic: 'AND' | 'OR';
+  required_conditions?: number;
+  explanation?: string;
+  created_at: string;
+};
+
+export type TradingRule = {
+  id: string;
+  rule_group_id: string;
+  inequality_order: number;
+  left_type: string;
+  left_indicator?: string;
+  left_parameters?: IndicatorParameters;
+  left_value?: string;
+  left_value_type?: string;
+  condition: string;
+  right_type: string;
+  right_indicator?: string;
+  right_parameters?: IndicatorParameters;
+  right_value?: string;
+  right_value_type?: string;
+  explanation?: string;
+  created_at: string;
+  updated_at: string;
+};

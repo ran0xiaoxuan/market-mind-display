@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
+import { RuleGroupData, Inequality, RuleGroup, TradingRule, IndicatorParameters } from "@/components/strategy-detail/types";
 
 // Strategy type definition
 export interface Strategy {
@@ -126,7 +125,7 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
   }
 };
 
-// Get risk management data for a strategy - now directly from strategies table
+// Get risk management data for a strategy - directly from strategies table
 export const getRiskManagementForStrategy = async (strategyId: string): Promise<RiskManagementData | null> => {
   console.log(`Fetching risk management data for strategy ID: ${strategyId}`);
   
@@ -160,104 +159,111 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
   }
 };
 
-// Get trading rules for a strategy
+// Updated to work with the new database schema
 export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ entryRules: RuleGroupData[], exitRules: RuleGroupData[] } | null> => {
   console.log(`Fetching trading rules for strategy ID: ${strategyId}`);
   
   try {
-    const { data, error } = await supabase
-      .from('trading_rules')
+    // First fetch the rule groups for this strategy
+    const { data: ruleGroupsData, error: ruleGroupsError } = await supabase
+      .from('rule_groups')
       .select('*')
       .eq('strategy_id', strategyId)
-      .order('rule_group', { ascending: true });
+      .order('group_order', { ascending: true });
       
-    if (error) {
-      console.error("Error fetching trading rules:", error);
-      throw error;
+    if (ruleGroupsError) {
+      console.error("Error fetching rule groups:", ruleGroupsError);
+      throw ruleGroupsError;
     }
     
-    if (!data || data.length === 0) {
+    if (!ruleGroupsData || ruleGroupsData.length === 0) {
       console.log(`No trading rules found for strategy id: ${strategyId}`);
       return null;
+    }
+    
+    // Now fetch all trading rules related to these rule groups
+    const ruleGroupIds = ruleGroupsData.map(group => group.id);
+    const { data: rulesData, error: rulesError } = await supabase
+      .from('trading_rules')
+      .select('*')
+      .in('rule_group_id', ruleGroupIds)
+      .order('inequality_order', { ascending: true });
+      
+    if (rulesError) {
+      console.error("Error fetching trading rules:", rulesError);
+      throw rulesError;
     }
     
     // Process the rules and organize them into entry and exit rule groups
     const entryRules: Map<number, RuleGroupData> = new Map();
     const exitRules: Map<number, RuleGroupData> = new Map();
     
-    for (const rule of data) {
-      const ruleType = rule.rule_type;
-      const ruleGroup = rule.rule_group;
+    for (const group of ruleGroupsData) {
+      const groupId = group.id;
+      const groupOrder = group.group_order;
+      const ruleType = group.rule_type;
       const targetMap = ruleType === 'entry' ? entryRules : exitRules;
       
-      if (!targetMap.has(ruleGroup)) {
-        // Check if metadata is an object
-        const metadata = typeof rule.metadata === 'object' && rule.metadata !== null 
-          ? rule.metadata 
-          : {};
+      // Create rule group object
+      targetMap.set(groupOrder, {
+        id: groupOrder,
+        logic: group.logic || 'AND',
+        inequalities: [],
+        // Add requiredConditions if this is an OR logic group
+        ...(group.logic === 'OR' && group.required_conditions !== undefined && {
+          requiredConditions: group.required_conditions
+        }),
+        // Default to 1 if not specified but it is an OR group
+        ...(group.logic === 'OR' && group.required_conditions === undefined && {
+          requiredConditions: 1
+        })
+      });
+      
+      // Find all rules for this group
+      const groupRules = rulesData.filter(rule => rule.rule_group_id === groupId);
+      
+      // Sort rules by inequality_order
+      groupRules.sort((a, b) => a.inequality_order - b.inequality_order);
+      
+      // Process each rule in the group
+      for (const rule of groupRules) {
+        const ruleGroupData = targetMap.get(groupOrder);
         
-        // Get requiredConditions safely from metadata
-        const requiredConditions = metadata && typeof metadata === 'object' && 'requiredConditions' in metadata
-          ? Number(metadata.requiredConditions)
-          : undefined;
+        if (ruleGroupData) {
+          // Convert parameters from JSON to objects if needed
+          const leftParams = rule.left_parameters 
+            ? convertJsonToIndicatorParams(rule.left_parameters) 
+            : undefined;
+            
+          const rightParams = rule.right_parameters 
+            ? convertJsonToIndicatorParams(rule.right_parameters) 
+            : undefined;
           
-        targetMap.set(ruleGroup, {
-          id: ruleGroup,
-          logic: rule.logic || 'AND',
-          inequalities: [],
-          // Add requiredConditions if this is an OR logic group and we have the value in metadata
-          ...(rule.logic === 'OR' && requiredConditions !== undefined && {
-            requiredConditions
-          }),
-          // Default to 1 if not specified but it is an OR group
-          ...(rule.logic === 'OR' && requiredConditions === undefined && {
-            requiredConditions: 1
-          })
-        });
+          // Create the inequality object
+          const inequality: Inequality = {
+            id: rule.inequality_order,
+            left: {
+              type: rule.left_type,
+              indicator: rule.left_indicator,
+              parameters: leftParams,
+              value: rule.left_value,
+              valueType: rule.left_value_type
+            },
+            condition: rule.condition,
+            right: {
+              type: rule.right_type,
+              indicator: rule.right_indicator,
+              parameters: rightParams,
+              value: rule.right_value,
+              valueType: rule.right_value_type
+            },
+            explanation: rule.explanation
+          };
+          
+          // Add to the rules array
+          ruleGroupData.inequalities.push(inequality);
+        }
       }
-      
-      const group = targetMap.get(ruleGroup)!;
-      
-      // Convert JSON parameters to IndicatorParameters type
-      const leftParams = rule.left_parameters ? convertJsonToIndicatorParams(rule.left_parameters) : undefined;
-      const rightParams = rule.right_parameters ? convertJsonToIndicatorParams(rule.right_parameters) : undefined;
-      
-      // Get the metadata object safely
-      const metadata = typeof rule.metadata === 'object' && rule.metadata !== null 
-        ? rule.metadata 
-        : {};
-        
-      // Create the inequality object with proper types
-      const inequality: Inequality = {
-        id: group.inequalities.length + 1,
-        left: {
-          type: rule.left_type,
-          indicator: rule.left_indicator,
-          parameters: leftParams,
-          // Safely access left_value with a fallback to undefined and ensure it's a string
-          value: (rule.left_type === 'value' || rule.left_type === 'price') && 'left_value' in rule 
-            ? String(rule.left_value || '') 
-            : undefined,
-          // Use undefined for valueType if it doesn't exist in the database
-          valueType: undefined
-        },
-        condition: rule.condition,
-        right: {
-          type: rule.right_type,
-          indicator: rule.right_indicator,
-          parameters: rightParams,
-          value: rule.right_value ? String(rule.right_value) : undefined,
-          // Use undefined for valueType if it doesn't exist in the database
-          valueType: undefined
-        },
-        // Extract explanation from metadata if it exists and is an object, otherwise use empty string
-        explanation: metadata && typeof metadata === 'object' && 'explanation' in metadata 
-          ? String(metadata.explanation) 
-          : ""
-      };
-      
-      // Add the inequality to the group
-      group.inequalities.push(inequality);
     }
     
     // Convert Maps to arrays
@@ -289,14 +295,36 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     }
 
     // 1. Delete trading rules
-    const { error: rulesError } = await supabase
-      .from('trading_rules')
-      .delete()
+    // First get all rule groups
+    const { data: ruleGroups } = await supabase
+      .from('rule_groups')
+      .select('id')
       .eq('strategy_id', strategyId);
-    
-    if (rulesError) {
-      console.error("Error deleting trading rules:", rulesError);
-      throw rulesError;
+      
+    if (ruleGroups && ruleGroups.length > 0) {
+      const ruleGroupIds = ruleGroups.map(group => group.id);
+      
+      // Delete trading rules for these rule groups
+      const { error: tradingRulesError } = await supabase
+        .from('trading_rules')
+        .delete()
+        .in('rule_group_id', ruleGroupIds);
+        
+      if (tradingRulesError) {
+        console.error("Error deleting trading rules:", tradingRulesError);
+        throw tradingRulesError;
+      }
+      
+      // Delete the rule groups
+      const { error: ruleGroupsError } = await supabase
+        .from('rule_groups')
+        .delete()
+        .eq('strategy_id', strategyId);
+        
+      if (ruleGroupsError) {
+        console.error("Error deleting rule groups:", ruleGroupsError);
+        throw ruleGroupsError;
+      }
     }
     
     // 2. Get all backtests for this strategy to delete related backtest trades
@@ -366,7 +394,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
 };
 
 // Helper function to convert JSON to IndicatorParameters type
-function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } {
+function convertJsonToIndicatorParams(jsonParams: any): IndicatorParameters {
   if (typeof jsonParams === 'string') {
     try {
       jsonParams = JSON.parse(jsonParams);
@@ -377,17 +405,14 @@ function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?
   }
   
   // Extract only the properties we need for IndicatorParameters
-  const result: { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } = {};
+  const result: IndicatorParameters = {};
   
-  if (jsonParams.period) result.period = String(jsonParams.period);
-  if (jsonParams.fast) result.fast = String(jsonParams.fast);
-  if (jsonParams.slow) result.slow = String(jsonParams.slow);
-  if (jsonParams.signal) result.signal = String(jsonParams.signal);
-  if (jsonParams.deviation) result.deviation = String(jsonParams.deviation);
-  if (jsonParams.k) result.k = String(jsonParams.k);
-  if (jsonParams.d) result.d = String(jsonParams.d);
-  if (jsonParams.conversionPeriod) result.conversionPeriod = String(jsonParams.conversionPeriod);
-  if (jsonParams.basePeriod) result.basePeriod = String(jsonParams.basePeriod);
+  // Map all properties from jsonParams to result
+  Object.entries(jsonParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      result[key] = String(value);
+    }
+  });
   
   return result;
 }
@@ -634,7 +659,7 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
   };
 }
 
-// Save a generated strategy to the database
+// Save a generated strategy to the database - updated for the new schema
 export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promise<string> => {
   console.log("Saving generated strategy:", strategy);
   
@@ -669,34 +694,51 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
       throw strategyError;
     }
     
-    // Convert the rule group data format to the database format
-    // Save entry rules
-    if (strategy.entryRules) {
-      for (const group of strategy.entryRules) {
+    // Save entry rules - first create rule groups, then individual rules
+    if (strategy.entryRules && strategy.entryRules.length > 0) {
+      for (let groupIndex = 0; groupIndex < strategy.entryRules.length; groupIndex++) {
+        const group = strategy.entryRules[groupIndex];
+        
+        // Create the rule group first
+        const { data: ruleGroupData, error: ruleGroupError } = await supabase
+          .from('rule_groups')
+          .insert({
+            strategy_id: strategyData.id,
+            rule_type: 'entry',
+            group_order: groupIndex + 1,
+            logic: group.logic,
+            required_conditions: group.logic === 'OR' ? group.requiredConditions : null,
+            explanation: null // Could add group level explanation in the future
+          })
+          .select()
+          .single();
+        
+        if (ruleGroupError) {
+          console.error("Error creating entry rule group:", ruleGroupError);
+          continue;
+        }
+        
+        // Now create each trading rule in this group
         for (let i = 0; i < group.inequalities.length; i++) {
           const inequality = group.inequalities[i];
           
           const { error: ruleError } = await supabase
             .from('trading_rules')
             .insert({
-              strategy_id: strategyData.id,
-              rule_group: group.id,
-              rule_type: 'entry',
+              rule_group_id: ruleGroupData.id,
+              inequality_order: i + 1,
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
               left_value: inequality.left.value,
+              left_value_type: inequality.left.valueType,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and',
-              // Store additional metadata in the JSON column
-              metadata: {
-                explanation: inequality.explanation || "",
-                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
-              }
+              right_value_type: inequality.right.valueType,
+              explanation: inequality.explanation
             });
             
           if (ruleError) {
@@ -707,33 +749,51 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
       }
     }
     
-    // Save exit rules
-    if (strategy.exitRules) {
-      for (const group of strategy.exitRules) {
+    // Save exit rules - similar process as entry rules
+    if (strategy.exitRules && strategy.exitRules.length > 0) {
+      for (let groupIndex = 0; groupIndex < strategy.exitRules.length; groupIndex++) {
+        const group = strategy.exitRules[groupIndex];
+        
+        // Create the rule group first
+        const { data: ruleGroupData, error: ruleGroupError } = await supabase
+          .from('rule_groups')
+          .insert({
+            strategy_id: strategyData.id,
+            rule_type: 'exit',
+            group_order: groupIndex + 1,
+            logic: group.logic,
+            required_conditions: group.logic === 'OR' ? group.requiredConditions : null,
+            explanation: null // Could add group level explanation in the future
+          })
+          .select()
+          .single();
+        
+        if (ruleGroupError) {
+          console.error("Error creating exit rule group:", ruleGroupError);
+          continue;
+        }
+        
+        // Now create each trading rule in this group
         for (let i = 0; i < group.inequalities.length; i++) {
           const inequality = group.inequalities[i];
           
           const { error: ruleError } = await supabase
             .from('trading_rules')
             .insert({
-              strategy_id: strategyData.id,
-              rule_group: group.id,
-              rule_type: 'exit',
+              rule_group_id: ruleGroupData.id,
+              inequality_order: i + 1,
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
               left_value: inequality.left.value,
+              left_value_type: inequality.left.valueType,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and',
-              // Store additional metadata in the JSON column
-              metadata: {
-                explanation: inequality.explanation || "",
-                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
-              }
+              right_value_type: inequality.right.valueType,
+              explanation: inequality.explanation
             });
             
           if (ruleError) {

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -14,18 +15,12 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const AIStrategy = () => {
   const { user } = useAuth();
-  const [assetType, setAssetType] = useState<"stocks" | "cryptocurrency">("stocks");
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [strategyDescription, setStrategyDescription] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const navigate = useNavigate();
-
-  const handleAssetTypeChange = (type: "stocks" | "cryptocurrency") => {
-    setAssetType(type);
-    setSelectedAsset(""); // Clear selection when changing asset type
-  };
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
@@ -41,6 +36,8 @@ const AIStrategy = () => {
 
     setIsLoading(true);
     try {
+      // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
+      const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
       setGeneratedStrategy(strategy);
       toast("Strategy generated", {
@@ -98,14 +95,12 @@ const AIStrategy = () => {
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">AI Strategy Generator</h1>
               <p className="text-muted-foreground">
-                Select your asset type and describe your ideal trading strategy
+                Select your asset and describe your ideal trading strategy
               </p>
             </div>
 
             <AssetTypeSelector
-              assetType={assetType}
               selectedAsset={selectedAsset}
-              onAssetTypeChange={handleAssetTypeChange}
               onAssetSelect={handleAssetSelect}
             />
 

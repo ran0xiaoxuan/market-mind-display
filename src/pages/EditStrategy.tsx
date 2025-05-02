@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -7,9 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Save, X, Plus, Search, Loader2 } from "lucide-react";
-import { Badge } from "@/components/Badge";
+import { ArrowLeft, Save, X, Search, Loader2 } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -20,15 +19,9 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { DialogTitle } from "@/components/ui/dialog";
 import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
 import { debounce } from "lodash";
-import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { getStrategyById, getRiskManagementForStrategy, getTradingRulesForStrategy, Strategy } from "@/services/strategyService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const marketAssets = {
-  Stocks: ["AAPL - Apple Inc.", "MSFT - Microsoft Corporation", "GOOGL - Alphabet Inc.", "AMZN - Amazon.com Inc.", "META - Meta Platforms Inc.", "TSLA - Tesla Inc.", "NVDA - NVIDIA Corporation", "JPM - JPMorgan Chase & Co."],
-  Crypto: ["BTC/USD - Bitcoin / US Dollar", "ETH/USD - Ethereum / US Dollar", "XRP/USD - Ripple / US Dollar", "SOL/USD - Solana / US Dollar", "ADA/USD - Cardano / US Dollar", "DOT/USD - Polkadot / US Dollar", "LINK/USD - Chainlink / US Dollar"]
-};
 
 const EditStrategy = () => {
   const navigate = useNavigate();
@@ -41,7 +34,6 @@ const EditStrategy = () => {
   const [activeTab, setActiveTab] = useState("trading-rules");
   const [strategyName, setStrategyName] = useState("");
   const [description, setDescription] = useState("");
-  // Remove market state since we're combining assets
   const [timeframe, setTimeframe] = useState("");
   const [targetAsset, setTargetAsset] = useState("");
   const [targetAssetName, setTargetAssetName] = useState("");
@@ -119,7 +111,7 @@ const EditStrategy = () => {
         setSingleBuyVolume(strategy.singleBuyVolume || "1000");
         setMaxBuyVolume(strategy.maxBuyVolume || "5000");
         
-        // Update form default values (removed market field)
+        // Update form default values
         form.reset({
           strategyName: strategy.name,
           description: strategy.description || "",
@@ -252,25 +244,22 @@ const EditStrategy = () => {
         }
       }
       
-      let results: Asset[] = [];
+      // Search both stocks and crypto simultaneously and combine results
+      const stockResults = await searchStocks(query, apiKey || "");
+      const cryptoResults = await searchCryptocurrencies(query, apiKey || "");
+      const combinedResults = [...stockResults, ...cryptoResults];
       
-      if (market === "Stocks") {
-        results = await searchStocks(query, apiKey || "");
-      } else {
-        results = await searchCryptocurrencies(query, apiKey || "");
-      }
+      console.log(`Search returned ${combinedResults.length} results for "${query}"`);
+      setSearchResults(combinedResults);
       
-      console.log(`Search returned ${results.length} results for "${query}"`);
-      setSearchResults(results);
-      
-      if (results.length === 0 && query.length > 0) {
+      if (combinedResults.length === 0 && query.length > 0) {
         toast({
           title: "No Results Found",
-          description: `No ${market.toLowerCase()} found matching "${query}"`
+          description: `No assets found matching "${query}"`
         });
       }
     } catch (error) {
-      console.error(`Error searching ${market}:`, error);
+      console.error(`Error searching assets:`, error);
       
       // Attempt to get a fresh API key and retry
       try {
@@ -280,20 +269,17 @@ const EditStrategy = () => {
           setApiKey(newKey);
           
           // Retry the search with the new key
-          let retryResults: Asset[] = [];
-          if (market === "Stocks") {
-            retryResults = await searchStocks(query, newKey);
-          } else {
-            retryResults = await searchCryptocurrencies(query, newKey);
-          }
+          const retryStockResults = await searchStocks(query, newKey);
+          const retryCryptoResults = await searchCryptocurrencies(query, newKey);
+          const retryCombinedResults = [...retryStockResults, ...retryCryptoResults];
           
-          setSearchResults(retryResults);
-          console.log(`Retry search returned ${retryResults.length} results for "${query}"`);
+          setSearchResults(retryCombinedResults);
+          console.log(`Retry search returned ${retryCombinedResults.length} results for "${query}"`);
           
-          if (retryResults.length === 0 && query.length > 0) {
+          if (retryCombinedResults.length === 0 && query.length > 0) {
             toast({
               title: "No Results Found",
-              description: `No ${market.toLowerCase()} found matching "${query}"`
+              description: `No assets found matching "${query}"`
             });
           }
         }
@@ -346,7 +332,7 @@ const EditStrategy = () => {
     try {
       setIsSaving(true);
       
-      // Update strategy information (removed market field)
+      // Update strategy information
       const { error: strategyError } = await supabase
         .from('strategies')
         .update({
@@ -636,39 +622,24 @@ const EditStrategy = () => {
                   <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="mt-1 resize-none" rows={3} />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="market">Market</Label>
-                    <Select value={market} onValueChange={setMarket}>
-                      <SelectTrigger id="market" className="mt-1">
-                        <SelectValue placeholder="Select Market" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Stocks">Stocks</SelectItem>
-                        <SelectItem value="Crypto">Crypto</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="timeframe">Timeframe</Label>
-                    <Select value={timeframe} onValueChange={setTimeframe}>
-                      <SelectTrigger id="timeframe" className="mt-1">
-                        <SelectValue placeholder="Select Timeframe" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1m">1 Minute</SelectItem>
-                        <SelectItem value="5m">5 Minutes</SelectItem>
-                        <SelectItem value="15m">15 Minutes</SelectItem>
-                        <SelectItem value="30m">30 Minutes</SelectItem>
-                        <SelectItem value="1h">1 Hour</SelectItem>
-                        <SelectItem value="4h">4 Hours</SelectItem>
-                        <SelectItem value="Daily">Daily</SelectItem>
-                        <SelectItem value="Weekly">Weekly</SelectItem>
-                        <SelectItem value="Monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label htmlFor="timeframe">Timeframe</Label>
+                  <Select value={timeframe} onValueChange={setTimeframe}>
+                    <SelectTrigger id="timeframe" className="mt-1">
+                      <SelectValue placeholder="Select Timeframe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1m">1 Minute</SelectItem>
+                      <SelectItem value="5m">5 Minutes</SelectItem>
+                      <SelectItem value="15m">15 Minutes</SelectItem>
+                      <SelectItem value="30m">30 Minutes</SelectItem>
+                      <SelectItem value="1h">1 Hour</SelectItem>
+                      <SelectItem value="4h">4 Hours</SelectItem>
+                      <SelectItem value="Daily">Daily</SelectItem>
+                      <SelectItem value="Weekly">Weekly</SelectItem>
+                      <SelectItem value="Monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>
@@ -681,9 +652,7 @@ const EditStrategy = () => {
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                     {targetAsset 
                       ? `${targetAsset}${targetAssetName ? ` - ${targetAssetName}` : ''}`
-                      : market === "Stocks" 
-                        ? "Search for a stock..."
-                        : "Search for a cryptocurrency..."
+                      : "Search for stocks or cryptocurrencies..."
                     }
                   </Button>
                   
@@ -700,10 +669,10 @@ const EditStrategy = () => {
                     }}
                   >
                     <DialogTitle className="sr-only">
-                      {market === "Stocks" ? "Search Stocks" : "Search Cryptocurrencies"}
+                      Search Assets
                     </DialogTitle>
                     <CommandInput 
-                      placeholder={market === "Stocks" ? "Search all US stocks..." : "Search cryptocurrencies..."} 
+                      placeholder="Search for stocks or cryptocurrencies..." 
                       value={searchQuery}
                       onValueChange={setSearchQuery}
                       autoFocus={true}

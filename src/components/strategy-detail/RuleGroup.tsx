@@ -1,4 +1,3 @@
-
 import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
@@ -94,8 +93,7 @@ export const RuleGroup = ({
     }
   };
   
-  // Ensure we show "At least 1 of X conditions must be met." for OR groups
-  // where X is the actual number of inequalities (minimum 2)
+  // When extracting OR group description, ensure we use requiredConditions property
   const effectiveInequalitiesCount = Math.max(2, inequalities?.length || 0);
   const orGroupDescription = title === "OR Group"
     ? `At least ${requiredConditions || 1} of ${effectiveInequalitiesCount} conditions must be met.`

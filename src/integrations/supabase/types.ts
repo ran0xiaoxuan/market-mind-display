@@ -288,6 +288,7 @@ export type Database = {
           left_parameters: Json | null
           left_type: string
           logic: string
+          metadata: Json | null
           right_indicator: string | null
           right_parameters: Json | null
           right_type: string
@@ -305,6 +306,7 @@ export type Database = {
           left_parameters?: Json | null
           left_type: string
           logic: string
+          metadata?: Json | null
           right_indicator?: string | null
           right_parameters?: Json | null
           right_type: string
@@ -322,6 +324,7 @@ export type Database = {
           left_parameters?: Json | null
           left_type?: string
           logic?: string
+          metadata?: Json | null
           right_indicator?: string | null
           right_parameters?: Json | null
           right_type?: string

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -409,12 +408,17 @@ const EditStrategy = () => {
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
+              left_value: inequality.left.value,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and'
+              logic: i === 0 ? group.logic : 'and',
+              metadata: {
+                explanation: inequality.explanation || "",
+                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
+              }
             });
             
           if (ruleError) {
@@ -437,12 +441,17 @@ const EditStrategy = () => {
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
+              left_value: inequality.left.value,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and'
+              logic: i === 0 ? group.logic : 'and',
+              metadata: {
+                explanation: inequality.explanation || "",
+                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
+              }
             });
             
           if (ruleError) {

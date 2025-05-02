@@ -1,32 +1,12 @@
 
 project_id = "lqfhhqhswdqpsliskxrr"
-
 [api]
 enabled = true
-port = 54321
-schemas = ["public", "storage", "graphql_public"]
-
 [db]
-port = 54322
-
-[studio]
-port = 54323
-
-[inbucket]
-port = 54324
-
-[auth]
 enabled = true
-site_url = "http://localhost:5173"
-
-[storage]
-enabled = true
-
 [realtime]
 enabled = true
-
-[functions.generate-strategy]
-verify_jwt = true
-
-[functions.get-fmp-key]
-verify_jwt = true
+[storage]
+enabled = true
+[edge_functions]
+enabled = true

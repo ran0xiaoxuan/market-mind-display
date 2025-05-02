@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -195,9 +194,13 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           id: ruleGroup,
           logic: rule.logic || 'AND',
           inequalities: [],
-          // Add requiredConditions if this is an OR logic group and we have the value
-          ...(rule.logic === 'OR' && {
-            requiredConditions: 1  // Default to 1 if not specified
+          // Add requiredConditions if this is an OR logic group and we have the value in metadata
+          ...(rule.logic === 'OR' && rule.metadata?.requiredConditions && {
+            requiredConditions: rule.metadata.requiredConditions
+          }),
+          // Default to 1 if not specified but it is an OR group
+          ...(rule.logic === 'OR' && !rule.metadata?.requiredConditions && {
+            requiredConditions: 1
           })
         });
       }
@@ -226,7 +229,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           value: rule.right_value,
           valueType: rule.right_value_type
         },
-        explanation: "" // Default empty explanation
+        explanation: rule.metadata?.explanation || "" // Get explanation from metadata or use empty string
       };
       
       // Add the inequality to the group
@@ -658,12 +661,18 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
+              left_value: inequality.left.value,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and'
+              logic: i === 0 ? group.logic : 'and',
+              // Store additional metadata in the JSON column
+              metadata: {
+                explanation: inequality.explanation || "",
+                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
+              }
             });
             
           if (ruleError) {
@@ -689,12 +698,18 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
               left_type: inequality.left.type,
               left_indicator: inequality.left.indicator,
               left_parameters: inequality.left.parameters,
+              left_value: inequality.left.value,
               condition: inequality.condition,
               right_type: inequality.right.type,
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and'
+              logic: i === 0 ? group.logic : 'and',
+              // Store additional metadata in the JSON column
+              metadata: {
+                explanation: inequality.explanation || "",
+                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
+              }
             });
             
           if (ruleError) {

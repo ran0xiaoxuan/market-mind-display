@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 export function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -9,13 +10,16 @@ export function NotificationSettings() {
   const [performanceAlerts, setPerformanceAlerts] = useState(true);
   const [platformUpdates, setPlatformUpdates] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
-  const [tradingSignals, setTradingSignals] = useState(false);
   const [priceAlerts, setPriceAlerts] = useState(true);
+  
+  const handleSave = () => {
+    toast.success("Notification preferences saved successfully");
+  };
 
   return (
     <div>
-      <h2 className="text-xl font-medium mb-4">Notification Preferences</h2>
-      <p className="text-sm text-muted-foreground mb-6">Choose how you want to be notified</p>
+      <h2 className="text-xl font-medium mb-4">Platform Notification Preferences</h2>
+      <p className="text-sm text-muted-foreground mb-6">Choose how you want to be notified about platform events</p>
       
       <div className="space-y-8">
         <div className="pb-4 border-b">
@@ -63,17 +67,6 @@ export function NotificationSettings() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Trading Signals</p>
-                <p className="text-sm text-muted-foreground">Receive notifications for new trading signals</p>
-              </div>
-              <Switch 
-                checked={tradingSignals}
-                onCheckedChange={setTradingSignals}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
                 <p className="font-medium">Price Alerts</p>
                 <p className="text-sm text-muted-foreground">Receive notifications for price alerts</p>
               </div>
@@ -85,7 +78,7 @@ export function NotificationSettings() {
           </div>
         </div>
         
-        <Button className="mt-4">Save Preferences</Button>
+        <Button className="mt-4" onClick={handleSave}>Save Preferences</Button>
       </div>
     </div>
   );

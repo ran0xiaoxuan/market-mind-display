@@ -157,47 +157,6 @@ export type Database = {
         }
         Relationships: []
       }
-      risk_management: {
-        Row: {
-          created_at: string
-          id: string
-          max_buy_volume: string | null
-          single_buy_volume: string | null
-          stop_loss: string | null
-          strategy_id: string
-          take_profit: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          max_buy_volume?: string | null
-          single_buy_volume?: string | null
-          stop_loss?: string | null
-          strategy_id: string
-          take_profit?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          max_buy_volume?: string | null
-          single_buy_volume?: string | null
-          stop_loss?: string | null
-          strategy_id?: string
-          take_profit?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "risk_management_strategy_id_fkey"
-            columns: ["strategy_id"]
-            isOneToOne: false
-            referencedRelation: "strategies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       strategies: {
         Row: {
           created_at: string
@@ -205,7 +164,11 @@ export type Database = {
           id: string
           is_active: boolean
           market: string
+          max_buy_volume: string | null
           name: string
+          single_buy_volume: string | null
+          stop_loss: string | null
+          take_profit: string | null
           target_asset: string | null
           timeframe: string
           updated_at: string
@@ -217,7 +180,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           market: string
+          max_buy_volume?: string | null
           name: string
+          single_buy_volume?: string | null
+          stop_loss?: string | null
+          take_profit?: string | null
           target_asset?: string | null
           timeframe: string
           updated_at?: string
@@ -229,7 +196,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           market?: string
+          max_buy_volume?: string | null
           name?: string
+          single_buy_volume?: string | null
+          stop_loss?: string | null
+          take_profit?: string | null
           target_asset?: string | null
           timeframe?: string
           updated_at?: string

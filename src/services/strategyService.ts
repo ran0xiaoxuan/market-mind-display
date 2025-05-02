@@ -14,6 +14,10 @@ export interface Strategy {
   timeframe: string;
   targetAsset?: string;
   userId?: string;
+  stopLoss?: string;
+  takeProfit?: string;
+  singleBuyVolume?: string;
+  maxBuyVolume?: string;
 }
 
 // Generated Strategy type for AI-generated strategies
@@ -66,7 +70,11 @@ export const getStrategies = async (): Promise<Strategy[]> => {
       market: item.market,
       timeframe: item.timeframe,
       targetAsset: item.target_asset,
-      userId: item.user_id
+      userId: item.user_id,
+      stopLoss: item.stop_loss,
+      takeProfit: item.take_profit,
+      singleBuyVolume: item.single_buy_volume,
+      maxBuyVolume: item.max_buy_volume
     }));
   } catch (error) {
     console.error("Failed to fetch strategies:", error);
@@ -106,7 +114,11 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
       market: data.market,
       timeframe: data.timeframe,
       targetAsset: data.target_asset,
-      userId: data.user_id
+      userId: data.user_id,
+      stopLoss: data.stop_loss,
+      takeProfit: data.take_profit,
+      singleBuyVolume: data.single_buy_volume,
+      maxBuyVolume: data.max_buy_volume
     };
   } catch (error) {
     console.error(`Failed to fetch strategy with ID: ${id}`, error);
@@ -114,15 +126,15 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
   }
 };
 
-// Get risk management data for a strategy
+// Get risk management data for a strategy - now directly from strategies table
 export const getRiskManagementForStrategy = async (strategyId: string): Promise<RiskManagementData | null> => {
   console.log(`Fetching risk management data for strategy ID: ${strategyId}`);
   
   try {
     const { data, error } = await supabase
-      .from('risk_management')
-      .select('*')
-      .eq('strategy_id', strategyId)
+      .from('strategies')
+      .select('stop_loss, take_profit, single_buy_volume, max_buy_volume')
+      .eq('id', strategyId)
       .single();
       
     if (error) {
@@ -135,7 +147,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       throw error;
     }
     
-    // Convert to camelCase
+    // Return data directly from strategies table
     return {
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
@@ -248,18 +260,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw new Error("Strategy not found");
     }
 
-    // 1. Delete risk management data first (to resolve foreign key constraint)
-    const { error: riskError } = await supabase
-      .from('risk_management')
-      .delete()
-      .eq('strategy_id', strategyId);
-    
-    if (riskError) {
-      console.error("Error deleting risk management:", riskError);
-      throw riskError;
-    }
-
-    // 2. Delete trading rules
+    // 1. Delete trading rules
     const { error: rulesError } = await supabase
       .from('trading_rules')
       .delete()
@@ -270,13 +271,13 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw rulesError;
     }
     
-    // 3. Get all backtests for this strategy to delete related backtest trades
+    // 2. Get all backtests for this strategy to delete related backtest trades
     const { data: backtests } = await supabase
       .from('backtests')
       .select('id')
       .eq('strategy_id', strategyId);
       
-    // 4. Delete backtest trades for each backtest
+    // 3. Delete backtest trades for each backtest
     if (backtests && backtests.length > 0) {
       for (const backtest of backtests) {
         const { error: tradeError } = await supabase
@@ -290,7 +291,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
         }
       }
       
-      // 5. Delete the backtests themselves
+      // 4. Delete the backtests themselves
       const { error: backtestError } = await supabase
         .from('backtests')
         .delete()
@@ -302,7 +303,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       }
     }
     
-    // 6. Delete strategy versions
+    // 5. Delete strategy versions
     const { error: versionError } = await supabase
       .from('strategy_versions')
       .delete()
@@ -313,7 +314,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw versionError;
     }
     
-    // 7. Finally delete the strategy itself
+    // 6. Finally delete the strategy itself
     const { error: strategyError } = await supabase
       .from('strategies')
       .delete()
@@ -633,7 +634,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
       throw new Error("No authenticated user found");
     }
     
-    // First, save the basic strategy information
+    // Save the strategy with risk management data directly in the strategies table
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
       .insert({
@@ -643,7 +644,11 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
         is_active: true,
-        user_id: user.id
+        user_id: user.id,
+        stop_loss: strategy.riskManagement.stopLoss,
+        take_profit: strategy.riskManagement.takeProfit,
+        single_buy_volume: strategy.riskManagement.singleBuyVolume,
+        max_buy_volume: strategy.riskManagement.maxBuyVolume
       })
       .select()
       .single();
@@ -651,24 +656,6 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     if (strategyError) {
       console.error("Error saving strategy:", strategyError);
       throw strategyError;
-    }
-    
-    // Now save the risk management data
-    if (strategy.riskManagement) {
-      const { error: riskError } = await supabase
-        .from('risk_management')
-        .insert({
-          strategy_id: strategyData.id,
-          stop_loss: strategy.riskManagement.stopLoss,
-          take_profit: strategy.riskManagement.takeProfit,
-          single_buy_volume: strategy.riskManagement.singleBuyVolume,
-          max_buy_volume: strategy.riskManagement.maxBuyVolume
-        });
-        
-      if (riskError) {
-        console.error("Error saving risk management:", riskError);
-        // We don't throw here, we can still continue with partial save
-      }
     }
     
     // Convert the rule group data format to the database format

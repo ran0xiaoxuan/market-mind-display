@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -40,8 +41,13 @@ const StrategyDetail = () => {
         const fetchedStrategy = await getStrategyById(strategyId);
         
         if (fetchedStrategy) {
-          // Fetch risk management data
-          const riskData = await getRiskManagementForStrategy(strategyId);
+          // Get risk management data directly from the strategy
+          const riskData = {
+            stopLoss: fetchedStrategy.stopLoss || "5",
+            takeProfit: fetchedStrategy.takeProfit || "15",
+            singleBuyVolume: fetchedStrategy.singleBuyVolume || "1000",
+            maxBuyVolume: fetchedStrategy.maxBuyVolume || "5000"
+          };
           setRiskManagement(riskData);
           
           // Fetch trading rules data
@@ -204,15 +210,13 @@ const StrategyDetail = () => {
     );
   }
 
-  // Use default values if risk management data is not available
-  const defaultRiskManagement = {
+  // Use risk management data directly from strategy
+  const riskManagementData = riskManagement || {
     stopLoss: "5",
     takeProfit: "15", 
     singleBuyVolume: "1000",
     maxBuyVolume: "5000"
   };
-
-  const riskManagementData = riskManagement || defaultRiskManagement;
 
   // Use default values if trading rules data is not available
   const defaultTradingRules = {

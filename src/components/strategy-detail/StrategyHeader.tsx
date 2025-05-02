@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,26 +7,24 @@ import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { deleteStrategy } from "@/services/strategyService";
-
 interface StrategyHeaderProps {
   strategyId: string;
   strategyName: string;
 }
-
-export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps) => {
+export const StrategyHeader = ({
+  strategyId,
+  strategyName
+}: StrategyHeaderProps) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
-  
   const handleDeleteStrategy = async () => {
     try {
       setIsDeleting(true);
-      
       await deleteStrategy(strategyId);
-      
       toast.success("Strategy deleted", {
         description: "The strategy has been successfully deleted"
       });
-      
+
       // Navigate to strategies page after successful deletion
       navigate('/strategies');
     } catch (error) {
@@ -39,9 +36,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
       setIsDeleting(false);
     }
   };
-
-  return (
-    <div className="mb-6">
+  return <div className="mb-6">
       <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Back
       </Link>
@@ -61,33 +56,17 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
             </Link>
             
             <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
-              <Button 
-                variant="outline" 
-                className="h-9 px-2.5 border border-input" 
-                onClick={() => {
-                  toast("Backtest started", {
-                    description: "Running backtest for this strategy..."
-                  });
-                }}
-              >
+              <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={() => {
+              toast("Backtest started", {
+                description: "Running backtest for this strategy..."
+              });
+            }}>
                 <PlayIcon className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Backtest</span>
               </Button>
             </ToggleGroupItem>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-9 px-2.5 border border-input" 
-              onClick={() => {
-                toast("Strategy copied", {
-                  description: "A copy of this strategy has been created"
-                });
-              }}
-            >
-              <Copy className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Copy</span>
-            </Button>
+            
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -110,11 +89,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
                   </DropdownMenuItem>
                 </Link>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive" 
-                  onClick={handleDeleteStrategy}
-                  disabled={isDeleting}
-                >
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDeleteStrategy} disabled={isDeleting}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   {isDeleting ? "Deleting..." : "Delete Strategy"}
                 </DropdownMenuItem>
@@ -123,6 +98,5 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
           </ToggleGroup>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };

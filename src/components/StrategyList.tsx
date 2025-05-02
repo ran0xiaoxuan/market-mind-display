@@ -12,21 +12,26 @@ import { formatDistanceToNow } from "date-fns";
 export function StrategyList() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStrategies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getStrategies();
+      setStrategies(data.slice(0, 4)); // Get top 4 strategies
+    } catch (err) {
+      console.error("Error fetching strategies:", err);
+      setError("Failed to load strategies");
+      toast.error("Failed to load strategies", {
+        description: "Please refresh to try again"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStrategies = async () => {
-      try {
-        setLoading(true);
-        const data = await getStrategies();
-        setStrategies(data.slice(0, 4)); // Get top 4 strategies
-      } catch (error) {
-        console.error("Error fetching strategies:", error);
-        toast.error("Failed to load strategies");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStrategies();
   }, []);
 
@@ -56,6 +61,18 @@ export function StrategyList() {
                 <div className="animate-pulse w-8 h-8 rounded-full bg-muted"></div>
               </div>
             ))
+          ) : error ? (
+            <div className="px-6 py-4 text-center text-destructive">
+              {error}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 mx-auto block"
+                onClick={() => fetchStrategies()}
+              >
+                Retry
+              </Button>
+            </div>
           ) : strategies.length > 0 ? (
             strategies.map((strategy) => (
               <div key={strategy.id} className="flex items-center justify-between px-6 py-4">

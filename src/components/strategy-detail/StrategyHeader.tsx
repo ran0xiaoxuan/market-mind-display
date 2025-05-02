@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteStrategy } from "@/services/strategyService";
 
 interface StrategyHeaderProps {
   strategyId: string;
@@ -35,16 +35,8 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
     try {
       setIsDeleting(true);
       
-      // Delete associated records first (to maintain referential integrity)
-      await supabase.from('risk_management').delete().eq('strategy_id', strategyId);
-      await supabase.from('trading_rules').delete().eq('strategy_id', strategyId);
-      
-      // Delete the strategy
-      const { error } = await supabase.from('strategies').delete().eq('id', strategyId);
-      
-      if (error) {
-        throw error;
-      }
+      // Use the service function for deleting rather than inline DB calls
+      await deleteStrategy(strategyId);
       
       toast.success("Strategy deleted", {
         description: "The strategy has been successfully deleted"

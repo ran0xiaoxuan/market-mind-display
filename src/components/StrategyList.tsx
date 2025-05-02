@@ -45,11 +45,13 @@ export function StrategyList() {
     
     // Listen for custom event that might be dispatched when strategies are updated or deleted
     window.addEventListener('strategy-updated', handleStrategyUpdate);
+    window.addEventListener('strategy-deleted', handleStrategyUpdate);
 
     return () => {
       window.removeEventListener('popstate', handleStrategyUpdate);
       window.removeEventListener('focus', handleStrategyUpdate);
       window.removeEventListener('strategy-updated', handleStrategyUpdate);
+      window.removeEventListener('strategy-deleted', handleStrategyUpdate);
     };
   }, []);
 

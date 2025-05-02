@@ -248,7 +248,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw new Error("Strategy not found");
     }
 
-    // CRITICAL: Delete risk management data first - this is the key to resolving the constraint violation
+    // 1. Delete risk management data first (to resolve foreign key constraint)
     const { error: riskError } = await supabase
       .from('risk_management')
       .delete()
@@ -259,7 +259,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw riskError;
     }
 
-    // Delete trading rules
+    // 2. Delete trading rules
     const { error: rulesError } = await supabase
       .from('trading_rules')
       .delete()
@@ -270,13 +270,13 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       throw rulesError;
     }
     
-    // Get all backtests for this strategy
+    // 3. Get all backtests for this strategy to delete related backtest trades
     const { data: backtests } = await supabase
       .from('backtests')
       .select('id')
       .eq('strategy_id', strategyId);
       
-    // Delete backtest trades for each backtest
+    // 4. Delete backtest trades for each backtest
     if (backtests && backtests.length > 0) {
       for (const backtest of backtests) {
         const { error: tradeError } = await supabase
@@ -286,11 +286,11 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
           
         if (tradeError) {
           console.error(`Error deleting backtest trades for backtest ${backtest.id}:`, tradeError);
-          // Continue with other deletions
+          throw tradeError;
         }
       }
       
-      // Delete the backtests
+      // 5. Delete the backtests themselves
       const { error: backtestError } = await supabase
         .from('backtests')
         .delete()
@@ -298,11 +298,11 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
         
       if (backtestError) {
         console.error("Error deleting backtests:", backtestError);
-        // Continue with strategy deletion
+        throw backtestError;
       }
     }
     
-    // Delete strategy versions
+    // 6. Delete strategy versions
     const { error: versionError } = await supabase
       .from('strategy_versions')
       .delete()
@@ -310,10 +310,10 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
       
     if (versionError) {
       console.error("Error deleting strategy versions:", versionError);
-      // Continue with strategy deletion
+      throw versionError;
     }
     
-    // Finally delete the strategy itself
+    // 7. Finally delete the strategy itself
     const { error: strategyError } = await supabase
       .from('strategies')
       .delete()
@@ -325,6 +325,11 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     }
     
     console.log("Strategy and all associated data successfully deleted");
+    
+    // Dispatch a custom event that listeners can use to refresh their data
+    window.dispatchEvent(new CustomEvent('strategy-deleted', { 
+      detail: { strategyId } 
+    }));
   } catch (error) {
     console.error("Error in deleteStrategy:", error);
     throw error;

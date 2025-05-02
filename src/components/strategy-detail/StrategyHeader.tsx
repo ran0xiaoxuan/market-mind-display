@@ -48,8 +48,9 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
       toast.error("Failed to delete strategy", {
         description: "An error occurred while trying to delete the strategy"
       });
-      setIsDeleting(false); // Reset loading state on error
-      setDeleteDialogOpen(false); // Close the dialog on error
+    } finally {
+      setIsDeleting(false); // Reset loading state
+      setDeleteDialogOpen(false); // Close the dialog
     }
   };
 

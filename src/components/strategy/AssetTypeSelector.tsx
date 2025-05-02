@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,16 +26,12 @@ import {
 } from "@/data/assetData";
 
 interface AssetTypeSelectorProps {
-  assetType: "stocks" | "cryptocurrency";
   selectedAsset: string;
-  onAssetTypeChange: (type: "stocks" | "cryptocurrency") => void;
   onAssetSelect: (symbol: string) => void;
 }
 
 export const AssetTypeSelector = ({
-  assetType,
   selectedAsset,
-  onAssetTypeChange,
   onAssetSelect,
 }: AssetTypeSelectorProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -74,10 +71,10 @@ export const AssetTypeSelector = ({
     fetchApiKey();
   }, []);
 
-  // Update popular assets when assetType changes
+  // Initialize popular assets with both stocks and cryptocurrencies
   useEffect(() => {
-    setPopularAssets(assetType === "stocks" ? popularStocks : popularCryptocurrencies);
-  }, [assetType]);
+    setPopularAssets([...popularStocks, ...popularCryptocurrencies]);
+  }, []);
   
   // Set selected asset details when selectedAsset changes
   useEffect(() => {
@@ -123,24 +120,21 @@ export const AssetTypeSelector = ({
           }
         }
         
-        let results: Asset[] = [];
+        // Search both stocks and crypto and combine results
+        const stockResults = await searchStocks(query, apiKey || "");
+        const cryptoResults = await searchCryptocurrencies(query, apiKey || "");
+        const combinedResults = [...stockResults, ...cryptoResults];
         
-        if (assetType === "stocks") {
-          results = await searchStocks(query, apiKey || "");
-        } else {
-          results = await searchCryptocurrencies(query, apiKey || "");
-        }
+        setSearchResults(combinedResults);
         
-        setSearchResults(results);
-        
-        if (results.length === 0 && query.length > 0 && !isSearchError) {
+        if (combinedResults.length === 0 && query.length > 0 && !isSearchError) {
           toast({
             title: "No Results Found",
-            description: `No ${assetType} found matching "${query}"`
+            description: `No assets found matching "${query}"`
           });
         }
       } catch (error) {
-        console.error(`Error searching ${assetType}:`, error);
+        console.error(`Error searching assets:`, error);
         
         if (isSearchError) {
           // Skip showing another error toast if we already showed one
@@ -156,19 +150,16 @@ export const AssetTypeSelector = ({
             setApiKey(newKey);
             
             // Retry the search with the new key
-            let retryResults: Asset[] = [];
-            if (assetType === "stocks") {
-              retryResults = await searchStocks(query, newKey);
-            } else {
-              retryResults = await searchCryptocurrencies(query, newKey);
-            }
+            const retryStockResults = await searchStocks(query, newKey);
+            const retryCryptoResults = await searchCryptocurrencies(query, newKey);
+            const retryCombinedResults = [...retryStockResults, ...retryCryptoResults];
             
-            setSearchResults(retryResults);
+            setSearchResults(retryCombinedResults);
             
-            if (retryResults.length === 0 && query.length > 0) {
+            if (retryCombinedResults.length === 0 && query.length > 0) {
               toast({
                 title: "No Results Found",
-                description: `No ${assetType} found matching "${query}"`
+                description: `No assets found matching "${query}"`
               });
             }
           }
@@ -191,7 +182,7 @@ export const AssetTypeSelector = ({
         setIsLoading(false);
       }
     }, 300),
-    [assetType, apiKey, popularAssets, isSearchError]
+    [apiKey, popularAssets, isSearchError]
   );
 
   // Reset search error state when query changes
@@ -221,29 +212,12 @@ export const AssetTypeSelector = ({
 
   return (
     <Card className="p-6 mb-10 border">
-      <h2 className="text-xl font-semibold mb-2">Select Asset Type</h2>
-      <p className="text-sm text-muted-foreground mb-4">Choose the type of asset you want to trade</p>
-      
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <Button 
-          variant={assetType === "stocks" ? "default" : "outline"} 
-          className="justify-center h-12"
-          onClick={() => onAssetTypeChange("stocks")}
-        >
-          Stocks
-        </Button>
-        <Button 
-          variant={assetType === "cryptocurrency" ? "default" : "outline"} 
-          className="justify-center h-12"
-          onClick={() => onAssetTypeChange("cryptocurrency")}
-        >
-          Cryptocurrency
-        </Button>
-      </div>
+      <h2 className="text-xl font-semibold mb-2">Select Asset</h2>
+      <p className="text-sm text-muted-foreground mb-4">Choose the asset you want to trade</p>
       
       <div className="mb-6 relative">
         <label htmlFor="asset-select" className="block text-sm font-medium mb-2">
-          {assetType === "stocks" ? "Select a stock" : "Select a cryptocurrency pair"}
+          Select an asset (stocks or cryptocurrencies)
         </label>
 
         <Button
@@ -254,9 +228,7 @@ export const AssetTypeSelector = ({
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           {selectedAsset 
             ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}`
-            : assetType === "stocks" 
-              ? "Search for a stock..."
-              : "Search for a cryptocurrency..."
+            : "Search for stocks or cryptocurrencies..."
           }
         </Button>
         
@@ -274,10 +246,10 @@ export const AssetTypeSelector = ({
           }}
         >
           <DialogTitle className="sr-only">
-            {assetType === "stocks" ? "Search Stocks" : "Search Cryptocurrencies"}
+            Search Assets
           </DialogTitle>
           <CommandInput 
-            placeholder={assetType === "stocks" ? "Search all US stocks..." : "Search cryptocurrencies..."} 
+            placeholder="Search for stocks or cryptocurrencies..." 
             value={searchQuery}
             onValueChange={setSearchQuery}
             autoFocus={true}
@@ -313,11 +285,9 @@ export const AssetTypeSelector = ({
       </div>
       
       <div>
-        <p className="text-sm font-medium mb-2">
-          {assetType === "stocks" ? "Popular Stocks" : "Popular Cryptocurrencies"}
-        </p>
+        <p className="text-sm font-medium mb-2">Popular Assets</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {popularAssets.map((asset) => (
+          {popularAssets.slice(0, 8).map((asset) => (
             <Button 
               key={asset.symbol} 
               variant={selectedAsset === asset.symbol ? "default" : "outline"} 

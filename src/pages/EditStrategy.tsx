@@ -41,7 +41,7 @@ const EditStrategy = () => {
   const [activeTab, setActiveTab] = useState("trading-rules");
   const [strategyName, setStrategyName] = useState("");
   const [description, setDescription] = useState("");
-  const [market, setMarket] = useState("");
+  // Remove market state since we're combining assets
   const [timeframe, setTimeframe] = useState("");
   const [targetAsset, setTargetAsset] = useState("");
   const [targetAssetName, setTargetAssetName] = useState("");
@@ -63,7 +63,6 @@ const EditStrategy = () => {
     defaultValues: {
       strategyName: "",
       description: "",
-      market: "",
       timeframe: "",
       targetAsset: "",
       isActive: true,
@@ -110,7 +109,6 @@ const EditStrategy = () => {
         // Set basic strategy data to state
         setStrategyName(strategy.name);
         setDescription(strategy.description || "");
-        setMarket(strategy.market || "");
         setTimeframe(strategy.timeframe || "");
         setTargetAsset(strategy.targetAsset || "");
         setIsActive(strategy.isActive);
@@ -121,11 +119,10 @@ const EditStrategy = () => {
         setSingleBuyVolume(strategy.singleBuyVolume || "1000");
         setMaxBuyVolume(strategy.maxBuyVolume || "5000");
         
-        // Update form default values
+        // Update form default values (removed market field)
         form.reset({
           strategyName: strategy.name,
           description: strategy.description || "",
-          market: strategy.market,
           timeframe: strategy.timeframe,
           targetAsset: strategy.targetAsset || "",
           isActive: strategy.isActive,
@@ -349,13 +346,12 @@ const EditStrategy = () => {
     try {
       setIsSaving(true);
       
-      // Update strategy information including risk management data
+      // Update strategy information (removed market field)
       const { error: strategyError } = await supabase
         .from('strategies')
         .update({
           name: strategyName,
           description: description,
-          market: market,
           timeframe: timeframe,
           target_asset: targetAsset,
           is_active: isActive,

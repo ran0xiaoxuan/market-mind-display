@@ -205,7 +205,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: leftParams,
-          value: rule.right_value // Fixed: Changed from non-existent left_value to right_value
+          value: rule.left_value
         },
         condition: rule.condition,
         right: {
@@ -259,7 +259,7 @@ export const generateStrategy = async (
   selectedAsset: string, 
   strategyDescription: string
 ): Promise<GeneratedStrategy> => {
-  console.log("Generating strategy...", { assetType, selectedAsset, strategyDescription });
+  console.log("Generating strategy with AI service...", { assetType, selectedAsset, strategyDescription });
   
   try {
     // Call the Supabase Edge Function to generate strategy using Bailian AI
@@ -276,132 +276,246 @@ export const generateStrategy = async (
       throw new Error(`Failed to generate strategy: ${error.message}`);
     }
     
-    // The edge function should return data in the required format
+    if (!data) {
+      throw new Error("No data returned from strategy generation service");
+    }
+    
     console.log("Strategy generated successfully:", data);
-    return data;
+    
+    // Ensure data has the required structure
+    const strategy: GeneratedStrategy = {
+      name: data.name || `${selectedAsset} Trading Strategy`,
+      description: data.description || strategyDescription,
+      market: data.market || (assetType === "stocks" ? "Equities" : "Crypto"),
+      timeframe: data.timeframe || "Daily",
+      targetAsset: data.targetAsset || selectedAsset,
+      entryRules: ensureRuleGroups(data.entryRules),
+      exitRules: ensureRuleGroups(data.exitRules),
+      riskManagement: {
+        stopLoss: data.riskManagement?.stopLoss || "5",
+        takeProfit: data.riskManagement?.takeProfit || "15",
+        singleBuyVolume: data.riskManagement?.singleBuyVolume || "2000",
+        maxBuyVolume: data.riskManagement?.maxBuyVolume || "10000"
+      }
+    };
+    
+    return strategy;
   } catch (error) {
     console.error("Error generating strategy:", error);
     
     // Provide fallback mock data if the API call fails
-    console.warn("Using fallback mock strategy data");
+    console.warn("Using fallback mock strategy data due to error:", error);
     
-    // Return a mock generated strategy as fallback
-    const andGroup: RuleGroupData = {
-      id: 1,
-      logic: "AND",
-      inequalities: [
-        {
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: { period: "20" }
-          },
-          condition: "Crosses Above",
-          right: {
-            type: "indicator",
-            indicator: "SMA",
-            parameters: { period: "50" }
-          }
-        },
-        {
-          id: 2,
-          left: {
-            type: "indicator",
-            indicator: "RSI",
-            parameters: { period: "14" }
-          },
-          condition: "Less Than",
-          right: {
-            type: "value",
-            value: "70"
-          }
-        }
-      ]
-    };
-
-    const orGroup: RuleGroupData = {
-      id: 2,
-      logic: "OR",
-      requiredConditions: 1,
-      inequalities: [
-        {
-          id: 1,
-          left: {
-            type: "indicator",
-            indicator: "MACD",
-            parameters: { fast: "12", slow: "26", signal: "9" },
-            valueType: "Line"
-          },
-          condition: "Crosses Above",
-          right: {
-            type: "indicator",
-            indicator: "MACD",
-            parameters: { fast: "12", slow: "26", signal: "9" },
-            valueType: "Signal"
-          }
-        }
-      ]
-    };
-
-    return {
-      name: `${selectedAsset || assetType} Trading Strategy`,
-      description: `${strategyDescription} (Fallback mock data due to API error)`,
-      market: assetType === "stocks" ? "Equities" : "Crypto",
-      timeframe: "Daily",
-      targetAsset: selectedAsset || undefined,
-      entryRules: [andGroup, orGroup],
-      exitRules: [
-        {
-          id: 1,
-          logic: "AND",
-          inequalities: [
-            {
-              id: 1,
-              left: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: { period: "20" }
-              },
-              condition: "Crosses Below",
-              right: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: { period: "50" }
-              }
-            }
-          ]
-        },
-        {
-          id: 2,
-          logic: "OR",
-          requiredConditions: 1,
-          inequalities: [
-            {
-              id: 1,
-              left: {
-                type: "indicator",
-                indicator: "RSI",
-                parameters: { period: "14" }
-              },
-              condition: "Greater Than",
-              right: {
-                type: "value",
-                value: "70"
-              }
-            }
-          ]
-        }
-      ],
-      riskManagement: {
-        stopLoss: "5",
-        takeProfit: "15",
-        singleBuyVolume: "2000",
-        maxBuyVolume: "10000"
-      }
-    };
+    return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
   }
 };
+
+// Helper function to ensure rule groups are properly formatted
+function ensureRuleGroups(rules: any[]): RuleGroupData[] {
+  if (!rules || !Array.isArray(rules) || rules.length === 0) {
+    // Create default rule groups if none provided
+    return [
+      {
+        id: 1,
+        logic: "AND",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "20" }
+            },
+            condition: "Crosses Above",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "50" }
+            }
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        requiredConditions: 1,
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: { period: "14" }
+            },
+            condition: "Less Than",
+            right: {
+              type: "value",
+              value: "30"
+            }
+          },
+          {
+            id: 2,
+            left: {
+              type: "indicator",
+              indicator: "MACD",
+              parameters: { fast: "12", slow: "26", signal: "9" }
+            },
+            condition: "Crosses Above",
+            right: {
+              type: "value",
+              value: "0"
+            }
+          }
+        ]
+      }
+    ];
+  }
+  
+  // Ensure each rule group has required fields
+  return rules.map((group, index) => {
+    return {
+      id: group.id || index + 1,
+      logic: group.logic || "AND",
+      requiredConditions: group.logic === "OR" ? (group.requiredConditions || 1) : undefined,
+      inequalities: Array.isArray(group.inequalities) ? group.inequalities.map((ineq, i) => ({
+        id: ineq.id || i + 1,
+        left: {
+          type: ineq.left?.type || "indicator",
+          indicator: ineq.left?.indicator,
+          parameters: ineq.left?.parameters,
+          value: ineq.left?.value
+        },
+        condition: ineq.condition || "Crosses Above",
+        right: {
+          type: ineq.right?.type || "value",
+          indicator: ineq.right?.indicator,
+          parameters: ineq.right?.parameters,
+          value: ineq.right?.value || "0"
+        }
+      })) : []
+    };
+  });
+}
+
+// Generate a fallback strategy when AI service fails
+function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", selectedAsset: string, strategyDescription: string): GeneratedStrategy {
+  console.log("Generating fallback strategy", { assetType, selectedAsset, strategyDescription });
+  
+  const andGroup: RuleGroupData = {
+    id: 1,
+    logic: "AND",
+    inequalities: [
+      {
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "20" }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "50" }
+        }
+      },
+      {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: { period: "14" }
+        },
+        condition: "Less Than",
+        right: {
+          type: "value",
+          value: "70"
+        }
+      }
+    ]
+  };
+
+  const orGroup: RuleGroupData = {
+    id: 2,
+    logic: "OR",
+    requiredConditions: 1,
+    inequalities: [
+      {
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "MACD",
+          parameters: { fast: "12", slow: "26", signal: "9" },
+          valueType: "Line"
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "MACD",
+          parameters: { fast: "12", slow: "26", signal: "9" },
+          valueType: "Signal"
+        }
+      }
+    ]
+  };
+
+  return {
+    name: `${selectedAsset || assetType} Trading Strategy`,
+    description: `${strategyDescription} (Fallback data due to AI service error)`,
+    market: assetType === "stocks" ? "Equities" : "Crypto",
+    timeframe: "Daily",
+    targetAsset: selectedAsset || undefined,
+    entryRules: [andGroup, orGroup],
+    exitRules: [
+      {
+        id: 1,
+        logic: "AND",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "20" }
+            },
+            condition: "Crosses Below",
+            right: {
+              type: "indicator",
+              indicator: "SMA",
+              parameters: { period: "50" }
+            }
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        requiredConditions: 1,
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: { period: "14" }
+            },
+            condition: "Greater Than",
+            right: {
+              type: "value",
+              value: "70"
+            }
+          }
+        ]
+      }
+    ],
+    riskManagement: {
+      stopLoss: "5",
+      takeProfit: "15",
+      singleBuyVolume: "2000",
+      maxBuyVolume: "10000"
+    }
+  };
+}
 
 // Save a generated strategy to the database
 export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promise<string> => {
@@ -424,7 +538,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
         is_active: true,
-        user_id: user.id // Add the user_id here
+        user_id: user.id
       })
       .select()
       .single();

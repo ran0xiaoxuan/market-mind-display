@@ -1,6 +1,4 @@
-
 import { Card } from "@/components/ui/card";
-
 interface PerformanceMetricsCardProps {
   performanceMetrics: {
     totalReturn: string;
@@ -17,17 +15,13 @@ interface PerformanceMetricsCardProps {
     avgLoss: string;
   };
 }
-
-export const PerformanceMetricsCard = ({ 
-  performanceMetrics, 
-  tradeStats 
+export const PerformanceMetricsCard = ({
+  performanceMetrics,
+  tradeStats
 }: PerformanceMetricsCardProps) => {
-  return (
-    <Card className="p-6">
+  return <Card className="p-6">
       <h2 className="text-xl font-semibold mb-2">Performance Metrics</h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        Detailed performance analysis (Only trades that generated trading signals are included.)
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">Detailed performance analysis</p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -100,6 +94,5 @@ export const PerformanceMetricsCard = ({
           </div>
         </div>
       </div>
-    </Card>
-  );
+    </Card>;
 };

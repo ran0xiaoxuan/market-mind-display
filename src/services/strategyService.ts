@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -166,7 +167,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
   try {
     const { data, error } = await supabase
       .from('trading_rules')
-      .select('*, metadata')
+      .select('*')
       .eq('strategy_id', strategyId)
       .order('rule_group', { ascending: true });
       
@@ -194,8 +195,9 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           id: ruleGroup,
           logic: rule.logic || 'AND',
           inequalities: [],
-          ...(rule.logic === 'OR' && rule.metadata?.requiredConditions && {
-            requiredConditions: rule.metadata.requiredConditions
+          // Add requiredConditions if this is an OR logic group and we have the value
+          ...(rule.logic === 'OR' && {
+            requiredConditions: 1  // Default to 1 if not specified
           })
         });
       }
@@ -224,9 +226,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           value: rule.right_value,
           valueType: rule.right_value_type
         },
-        ...(rule.metadata?.explanation && {
-          explanation: rule.metadata.explanation
-        })
+        explanation: "" // Default empty explanation
       };
       
       // Add the inequality to the group
@@ -663,12 +663,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and',
-              // Store additional metadata in the JSON parameters
-              metadata: {
-                explanation: inequality.explanation,
-                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
-              }
+              logic: i === 0 ? group.logic : 'and'
             });
             
           if (ruleError) {
@@ -699,12 +694,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and',
-              // Store additional metadata in the JSON parameters
-              metadata: {
-                explanation: inequality.explanation,
-                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
-              }
+              logic: i === 0 ? group.logic : 'and'
             });
             
           if (ruleError) {
@@ -721,30 +711,3 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     throw new Error("Failed to save strategy. Please try again.");
   }
 };
-
-// Helper function to convert JSON to IndicatorParameters type
-function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } {
-  if (typeof jsonParams === 'string') {
-    try {
-      jsonParams = JSON.parse(jsonParams);
-    } catch (e) {
-      console.error("Error parsing parameter string:", e);
-      return {};
-    }
-  }
-  
-  // Extract only the properties we need for IndicatorParameters
-  const result: { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } = {};
-  
-  if (jsonParams.period) result.period = String(jsonParams.period);
-  if (jsonParams.fast) result.fast = String(jsonParams.fast);
-  if (jsonParams.slow) result.slow = String(jsonParams.slow);
-  if (jsonParams.signal) result.signal = String(jsonParams.signal);
-  if (jsonParams.deviation) result.deviation = String(jsonParams.deviation);
-  if (jsonParams.k) result.k = String(jsonParams.k);
-  if (jsonParams.d) result.d = String(jsonParams.d);
-  if (jsonParams.conversionPeriod) result.conversionPeriod = String(jsonParams.conversionPeriod);
-  if (jsonParams.basePeriod) result.basePeriod = String(jsonParams.basePeriod);
-  
-  return result;
-}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon } from "lucide-react";
@@ -14,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
+import { getStrategies, Strategy } from "@/services/strategyService";
+import { toast } from "sonner";
 
 const Backtest = () => {
   const location = useLocation();
@@ -23,9 +26,32 @@ const Backtest = () => {
   const [initialCapital, setInitialCapital] = useState<string>("10000");
   const [positionSize, setPositionSize] = useState<string>("10");
   const [hasResults, setHasResults] = useState<boolean>(false);
-  const {
-    toast
-  } = useToast();
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  const { toast } = useToast();
+
+  // Fetch strategies from database
+  useEffect(() => {
+    const fetchStrategies = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getStrategies();
+        setStrategies(data);
+      } catch (error) {
+        console.error("Error fetching strategies:", error);
+        toast({
+          title: "Error loading strategies",
+          description: "Failed to load your strategies for selection",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStrategies();
+  }, []);
 
   // Parse URL search parameters to get strategy ID if present
   useEffect(() => {
@@ -126,16 +152,22 @@ const Backtest = () => {
                   <label htmlFor="strategy" className="text-sm font-medium">
                     Strategy
                   </label>
-                  <Select value={strategy} onValueChange={setStrategy}>
+                  <Select value={strategy} onValueChange={setStrategy} disabled={isLoading}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select strategy" />
+                      <SelectValue placeholder={isLoading ? "Loading strategies..." : "Select strategy"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="moving-average-crossover">Moving Average Crossover</SelectItem>
-                      <SelectItem value="rsi-divergence">RSI Divergence</SelectItem>
-                      <SelectItem value="macd-strategy">MACD Strategy</SelectItem>
-                      <SelectItem value="bollinger-bands">Bollinger Bands</SelectItem>
-                      <SelectItem value="5b964c01-5309-42b5-906e-6debe6123c78">Sample Strategy</SelectItem>
+                      {strategies.length > 0 ? (
+                        strategies.map((strategyItem) => (
+                          <SelectItem key={strategyItem.id} value={strategyItem.id}>
+                            {strategyItem.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          {isLoading ? "Loading strategies..." : "No strategies available"}
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

@@ -1,90 +1,152 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { HelpCircle } from "lucide-react";
-import { toast } from "sonner";
+import { CheckCircle } from "lucide-react";
 
 export function AccountSettings() {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [newsLetters, setNewsLetters] = useState(true);
-
-  const handleSave = () => {
-    toast.success("Account settings saved successfully");
+  const [name, setName] = useState("ranxiaoxuan");
+  const [email, setEmail] = useState("ran0xiaoxuan@gmail.com");
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR_URL);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAvatarUrl(url);
+    }
   };
-
-  return (
-    <div className="space-y-8">
+  return <div className="space-y-12">
+      {/* Subscription Plan */}
       <div>
-        <h2 className="text-xl font-semibold mb-2">Personal Information</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">Full Name</label>
-            <Input id="name" defaultValue="John Smith" />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
-            <Input id="email" defaultValue="john@example.com" type="email" />
-          </div>
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-1">Username</label>
-            <Input id="username" defaultValue="johnsmith" />
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t pt-6">
-        <h2 className="text-xl font-semibold mb-2">Subscription</h2>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="font-medium">Advanced Plan</p>
-            <p className="text-sm text-muted-foreground">Get trading signals delivered to your email, Discord, and Telegram in real time.</p>
-          </div>
-          <Badge>Active</Badge>
-        </div>
-        <Button>Manage Subscription</Button>
-      </div>
-
-      <div className="border-t pt-6">
-        <h2 className="text-xl font-semibold mb-2">Security</h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Two-factor Authentication</p>
-              <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+        <h2 className="text-xl font-medium">Subscription Plan</h2>
+        <p className="text-sm text-muted-foreground mb-4">Your current plan and subscription details</p>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs px-2 py-0.5">Free</Badge>
+              </div>
+              <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
             </div>
-            <Switch 
-              checked={twoFactorEnabled}
-              onCheckedChange={setTwoFactorEnabled}
-            />
+            
+            <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
+              <p className="text-amber-800 text-sm font-medium">Pro Plan feature:</p>
+              <div className="mt-2 text-amber-700 text-sm flex gap-2 items-center">
+                <CheckCircle className="h-4 w-4 text-amber-700" />
+                Live trading via API connection.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Profile */}
+      <div>
+        <h2 className="text-xl font-medium">Profile</h2>
+        <p className="text-sm text-muted-foreground mb-4">Update your personal information</p>
+        
+        <div className="grid gap-4">
+          <div>
+            <label htmlFor="name" className="block text-sm mb-2">Name</label>
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} />
           </div>
           
           <div>
-            <Button variant="outline">Change Password</Button>
+            <label htmlFor="email" className="block text-sm mb-2">Email</label>
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+          
+          <div>
+            <Button variant="default" className="bg-black text-white mt-2">Save Changes</Button>
           </div>
         </div>
       </div>
-
-      <div className="border-t pt-6">
-        <h2 className="text-xl font-semibold mb-2">Email Preferences</h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">News and Updates</p>
-              <p className="text-sm text-muted-foreground">Receive news about product updates and feature releases</p>
+      
+      {/* Profile Picture */}
+      <div>
+        <h2 className="text-xl font-medium">Profile Picture</h2>
+        <p className="text-sm text-muted-foreground mb-4">Update your profile picture</p>
+        
+        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+          <Avatar className="h-20 w-20">
+            <AvatarImage src={avatarUrl} alt="Profile" />
+            <AvatarFallback className="bg-red-500 text-white text-lg">RA</AvatarFallback>
+          </Avatar>
+          
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="avatar-upload" className="cursor-pointer">
+                <Button variant="outline" className="gap-2" asChild>
+                  <span>
+                    <Upload className="h-4 w-4" />
+                    Choose File
+                  </span>
+                </Button>
+              </label>
+              <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              <p className="text-xs text-muted-foreground">
+                Recommended size: 200 x 200 pixels. Max file size: 1MB.
+              </p>
             </div>
-            <Switch 
-              checked={newsLetters}
-              onCheckedChange={setNewsLetters}
-            />
+            <Button variant="default">Update Avatar</Button>
           </div>
         </div>
       </div>
-
-      <Button onClick={handleSave}>Save Changes</Button>
-    </div>
-  );
+      
+      {/* Password */}
+      <div>
+        <h2 className="text-xl font-medium">Password</h2>
+        <p className="text-sm text-muted-foreground mb-4">Change your password</p>
+        
+        <div className="grid gap-4">
+          <div>
+            <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
+            <Input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+          </div>
+          
+          <div>
+            <label htmlFor="new-password" className="block text-sm mb-2">New Password</label>
+            <Input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+          </div>
+          
+          <div>
+            <label htmlFor="confirm-password" className="block text-sm mb-2">Confirm New Password</label>
+            <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+          </div>
+          
+          <div>
+            <Button variant="default" className="bg-black text-white mt-2">Update Password</Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Danger Zone */}
+      <div>
+        <h2 className="text-xl font-medium text-destructive">Danger Zone</h2>
+        <p className="text-sm text-muted-foreground mb-4">Irreversible account actions</p>
+        
+        <Card className="border-destructive">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="font-medium">Delete Account</div>
+                <div className="text-sm text-muted-foreground">Permanently delete your account and all your data</div>
+              </div>
+              <Button variant="destructive">Delete Account</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>;
 }

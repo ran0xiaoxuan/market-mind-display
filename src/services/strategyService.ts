@@ -1,6 +1,5 @@
-// Re-implement this file based on what's publicly available in the imports
 import { supabase } from "@/integrations/supabase/client";
-import { RuleGroupData } from "@/components/strategy-detail/types";
+import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
 // Strategy type definition
 export interface Strategy {
@@ -20,7 +19,7 @@ export interface Strategy {
   maxBuyVolume?: string;
 }
 
-// Generated Strategy type for AI-generated strategies
+// Enhanced the GeneratedStrategy type to include explanations and requiredConditions
 export interface GeneratedStrategy {
   name: string;
   description: string;
@@ -167,7 +166,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
   try {
     const { data, error } = await supabase
       .from('trading_rules')
-      .select('*')
+      .select('*, metadata')
       .eq('strategy_id', strategyId)
       .order('rule_group', { ascending: true });
       
@@ -194,13 +193,11 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
         targetMap.set(ruleGroup, {
           id: ruleGroup,
           logic: rule.logic || 'AND',
-          inequalities: []
+          inequalities: [],
+          ...(rule.logic === 'OR' && rule.metadata?.requiredConditions && {
+            requiredConditions: rule.metadata.requiredConditions
+          })
         });
-        
-        // If it's an OR group, add requiredConditions
-        if (rule.logic === 'OR') {
-          targetMap.get(ruleGroup)!.requiredConditions = 1;
-        }
       }
       
       const group = targetMap.get(ruleGroup)!;
@@ -216,16 +213,20 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: leftParams,
-          // Fix: Use rule.right_value instead of accessing left_value which doesn't exist
-          value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.right_value : undefined
+          value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.left_value : undefined,
+          valueType: rule.left_value_type
         },
         condition: rule.condition,
         right: {
           type: rule.right_type,
           indicator: rule.right_indicator,
           parameters: rightParams,
-          value: rule.right_value
-        }
+          value: rule.right_value,
+          valueType: rule.right_value_type
+        },
+        ...(rule.metadata?.explanation && {
+          explanation: rule.metadata.explanation
+        })
       };
       
       // Add the inequality to the group
@@ -338,7 +339,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
 };
 
 // Helper function to convert JSON to IndicatorParameters type
-function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?: string; slow?: string; signal?: string } {
+function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } {
   if (typeof jsonParams === 'string') {
     try {
       jsonParams = JSON.parse(jsonParams);
@@ -349,12 +350,17 @@ function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?
   }
   
   // Extract only the properties we need for IndicatorParameters
-  const result: { period?: string; fast?: string; slow?: string; signal?: string } = {};
+  const result: { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } = {};
   
   if (jsonParams.period) result.period = String(jsonParams.period);
   if (jsonParams.fast) result.fast = String(jsonParams.fast);
   if (jsonParams.slow) result.slow = String(jsonParams.slow);
   if (jsonParams.signal) result.signal = String(jsonParams.signal);
+  if (jsonParams.deviation) result.deviation = String(jsonParams.deviation);
+  if (jsonParams.k) result.k = String(jsonParams.k);
+  if (jsonParams.d) result.d = String(jsonParams.d);
+  if (jsonParams.conversionPeriod) result.conversionPeriod = String(jsonParams.conversionPeriod);
+  if (jsonParams.basePeriod) result.basePeriod = String(jsonParams.basePeriod);
   
   return result;
 }
@@ -437,7 +443,8 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
               type: "indicator",
               indicator: "SMA",
               parameters: { period: "50" }
-            }
+            },
+            explanation: "When a faster moving average crosses above a slower one, it indicates a potential uptrend beginning."
           }
         ]
       },
@@ -457,20 +464,8 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
             right: {
               type: "value",
               value: "30"
-            }
-          },
-          {
-            id: 2,
-            left: {
-              type: "indicator",
-              indicator: "MACD",
-              parameters: { fast: "12", slow: "26", signal: "9" }
             },
-            condition: "Crosses Above",
-            right: {
-              type: "value",
-              value: "0"
-            }
+            explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity."
           }
         ]
       }
@@ -497,7 +492,8 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
           indicator: ineq.right?.indicator,
           parameters: ineq.right?.parameters,
           value: ineq.right?.value || "0"
-        }
+        },
+        explanation: ineq.explanation || ""
       })) : []
     };
   });
@@ -523,20 +519,8 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
           type: "indicator",
           indicator: "SMA",
           parameters: { period: "50" }
-        }
-      },
-      {
-        id: 2,
-        left: {
-          type: "indicator",
-          indicator: "RSI",
-          parameters: { period: "14" }
         },
-        condition: "Less Than",
-        right: {
-          type: "value",
-          value: "70"
-        }
+        explanation: "When a faster moving average crosses above a slower one, it indicates a potential uptrend beginning."
       }
     ]
   };
@@ -550,17 +534,15 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
         id: 1,
         left: {
           type: "indicator",
-          indicator: "MACD",
-          parameters: { fast: "12", slow: "26", signal: "9" },
-          valueType: "Line"
+          indicator: "RSI",
+          parameters: { period: "14" }
         },
-        condition: "Crosses Above",
+        condition: "Less Than",
         right: {
-          type: "indicator",
-          indicator: "MACD",
-          parameters: { fast: "12", slow: "26", signal: "9" },
-          valueType: "Signal"
-        }
+          type: "value",
+          value: "30"
+        },
+        explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity."
       }
     ]
   };
@@ -589,7 +571,8 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
               type: "indicator",
               indicator: "SMA",
               parameters: { period: "50" }
-            }
+            },
+            explanation: "When a faster moving average crosses below a slower one, it indicates a potential downtrend beginning."
           }
         ]
       },
@@ -609,7 +592,8 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
             right: {
               type: "value",
               value: "70"
-            }
+            },
+            explanation: "RSI above 70 indicates an overbought condition, suggesting it's time to take profits."
           }
         ]
       }
@@ -679,7 +663,12 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and'
+              logic: i === 0 ? group.logic : 'and',
+              // Store additional metadata in the JSON parameters
+              metadata: {
+                explanation: inequality.explanation,
+                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
+              }
             });
             
           if (ruleError) {
@@ -710,7 +699,12 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
               right_indicator: inequality.right.indicator,
               right_parameters: inequality.right.parameters,
               right_value: inequality.right.value,
-              logic: i === 0 ? group.logic : 'and'
+              logic: i === 0 ? group.logic : 'and',
+              // Store additional metadata in the JSON parameters
+              metadata: {
+                explanation: inequality.explanation,
+                requiredConditions: group.logic === "OR" ? group.requiredConditions : undefined
+              }
             });
             
           if (ruleError) {
@@ -727,3 +721,30 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     throw new Error("Failed to save strategy. Please try again.");
   }
 };
+
+// Helper function to convert JSON to IndicatorParameters type
+function convertJsonToIndicatorParams(jsonParams: any): { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } {
+  if (typeof jsonParams === 'string') {
+    try {
+      jsonParams = JSON.parse(jsonParams);
+    } catch (e) {
+      console.error("Error parsing parameter string:", e);
+      return {};
+    }
+  }
+  
+  // Extract only the properties we need for IndicatorParameters
+  const result: { period?: string; fast?: string; slow?: string; signal?: string; deviation?: string; k?: string; d?: string; conversionPeriod?: string; basePeriod?: string; } = {};
+  
+  if (jsonParams.period) result.period = String(jsonParams.period);
+  if (jsonParams.fast) result.fast = String(jsonParams.fast);
+  if (jsonParams.slow) result.slow = String(jsonParams.slow);
+  if (jsonParams.signal) result.signal = String(jsonParams.signal);
+  if (jsonParams.deviation) result.deviation = String(jsonParams.deviation);
+  if (jsonParams.k) result.k = String(jsonParams.k);
+  if (jsonParams.d) result.d = String(jsonParams.d);
+  if (jsonParams.conversionPeriod) result.conversionPeriod = String(jsonParams.conversionPeriod);
+  if (jsonParams.basePeriod) result.basePeriod = String(jsonParams.basePeriod);
+  
+  return result;
+}

@@ -4,7 +4,14 @@ import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
 
 interface RuleGroupProps {
   title: "AND Group" | "OR Group";
@@ -33,6 +40,7 @@ export const RuleGroup = ({
 }: RuleGroupProps) => {
   
   const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
+  const [showSlider, setShowSlider] = useState<boolean>(false);
 
   useEffect(() => {
     if (requiredConditions !== undefined) {
@@ -46,6 +54,16 @@ export const RuleGroup = ({
       setConditionsCount(value);
       if (onRequiredConditionsChange) {
         onRequiredConditionsChange(value);
+      }
+    }
+  };
+  
+  const handleSliderChange = (value: number[]) => {
+    if (value.length > 0) {
+      const newValue = value[0];
+      setConditionsCount(newValue);
+      if (onRequiredConditionsChange) {
+        onRequiredConditionsChange(newValue);
       }
     }
   };
@@ -65,6 +83,15 @@ export const RuleGroup = ({
     
     const updatedInequalities = inequalities.filter(inequality => inequality.id !== id);
     onInequitiesChange(updatedInequalities);
+    
+    // Adjust required conditions if needed
+    if (title === "OR Group" && conditionsCount > updatedInequalities.length) {
+      const newCount = Math.max(1, updatedInequalities.length);
+      setConditionsCount(newCount);
+      if (onRequiredConditionsChange) {
+        onRequiredConditionsChange(newCount);
+      }
+    }
   };
   
   // Ensure we show "At least 1 of X conditions must be met." for OR groups
@@ -74,28 +101,64 @@ export const RuleGroup = ({
     ? `At least ${requiredConditions || 1} of ${effectiveInequalitiesCount} conditions must be met.`
     : description;
   
-  // Debug log to check inequalities in OR groups
-  if (title === "OR Group") {
-    console.log("OR Group Inequalities:", inequalities);
-  }
+  // Calculate max possible required conditions based on available inequalities
+  const maxRequiredConditions = inequalities?.length || 1;
   
   return (
     <div className={`mb-6 ${className || ''}`}>
-      <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-2 rounded-md mb-3`}>
+      <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-3 rounded-md mb-3`}>
         <h4 className={`text-sm font-semibold mb-1 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
           {title}
         </h4>
         {title === "OR Group" && editable ? (
-          <p className="text-xs text-muted-foreground mb-2">
-            At least <Input 
-              type="number" 
-              min={1} 
-              max={inequalities.length}
-              value={conditionsCount} 
-              onChange={handleConditionsCountChange}
-              className="w-16 h-6 px-2 py-0 inline-block mx-1 text-xs" 
-            /> of {effectiveInequalitiesCount} conditions must be met.
-          </p>
+          <div className="text-xs text-muted-foreground mb-2 flex items-center flex-wrap gap-2">
+            <span>At least</span> 
+            <div className="flex items-center">
+              <Input 
+                type="number" 
+                min={1} 
+                max={maxRequiredConditions}
+                value={conditionsCount} 
+                onChange={handleConditionsCountChange}
+                className="w-16 h-6 px-2 py-0 inline-block mx-1 text-xs" 
+              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0"
+                      onClick={() => setShowSlider(!showSlider)}
+                    >
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Specify how many conditions from the OR group must be true for the rule to trigger.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <span>of {effectiveInequalitiesCount} conditions must be met.</span>
+            
+            {showSlider && inequalities.length > 0 && (
+              <div className="w-full mt-2 px-2">
+                <Slider 
+                  defaultValue={[conditionsCount]} 
+                  max={maxRequiredConditions}
+                  min={1}
+                  step={1}
+                  onValueChange={handleSliderChange}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs mt-1">
+                  <span>More flexible (1)</span>
+                  <span>More strict ({maxRequiredConditions})</span>
+                </div>
+              </div>
+            )}
+          </div>
         ) : title === "OR Group" ? (
           <p className="text-xs text-muted-foreground mb-2">
             {orGroupDescription}

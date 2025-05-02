@@ -4,6 +4,11 @@ export type IndicatorParameters = {
   fast?: string;
   slow?: string;
   signal?: string;
+  deviation?: string; // For Bollinger Bands
+  k?: string; // For Stochastic
+  d?: string; // For Stochastic
+  conversionPeriod?: string; // For Ichimoku
+  basePeriod?: string; // For Ichimoku
 };
 
 export type InequalitySide = {
@@ -11,7 +16,7 @@ export type InequalitySide = {
   indicator?: string;
   parameters?: IndicatorParameters;
   value?: string;
-  valueType?: string; // Added for MACD value type (MACD Line, Signal, Histogram)
+  valueType?: string; // Added for specific components of indicators (MACD Line, Signal, Lower Band, etc.)
 };
 
 export type Inequality = {
@@ -19,6 +24,7 @@ export type Inequality = {
   left: InequalitySide;
   condition: string;
   right: InequalitySide;
+  explanation?: string; // Added to store AI's explanation for each rule
 };
 
 export type RuleGroupData = {

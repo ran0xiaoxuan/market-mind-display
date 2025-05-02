@@ -42,8 +42,9 @@ interface GeneratedStrategy {
         value?: string;
         valueType?: string;
       };
+      explanation?: string; // Added explanation field for each rule
     }[];
-    requiredConditions?: number;
+    requiredConditions?: number; // Explicitly defined for OR groups
   }[];
   exitRules: {
     id: number;
@@ -65,8 +66,9 @@ interface GeneratedStrategy {
         value?: string;
         valueType?: string;
       };
+      explanation?: string; // Added explanation field for each rule
     }[];
-    requiredConditions?: number;
+    requiredConditions?: number; // Explicitly defined for OR groups
   }[];
 }
 
@@ -110,7 +112,7 @@ serve(async (req) => {
       );
     }
 
-    // Prepare the prompt for Bailian AI
+    // Enhanced prompt for Bailian AI with more detailed instructions
     const prompt = `Generate a detailed trading strategy with the following specifications:
     - Asset type: ${assetType}
     - Target asset: ${selectedAsset || "Any suitable asset for this strategy"}
@@ -120,12 +122,33 @@ serve(async (req) => {
     1. A clear name and description
     2. Appropriate timeframe
     3. Risk management parameters (stop loss, take profit, position sizing)
-    4. Entry rules with technical indicators and conditions
-    5. Exit rules with technical indicators and conditions
+    
+    For the trading rules part, please follow these specific requirements:
+    
+    1. Entry Rules:
+       - Create an AND group where ALL conditions must be met
+       - Create an OR group where a SPECIFIC number of conditions must be met (specify this number as 'requiredConditions')
+       - Use a diverse set of technical indicators (SMA, EMA, RSI, MACD, Bollinger Bands, etc.)
+       - Include price action conditions when appropriate
+       - Mix different types of conditions (crossovers, threshold comparisons, etc.)
+       
+    2. Exit Rules:
+       - Follow the same structure as Entry Rules
+       - Include take profit and stop loss conditions
+       - Consider different market conditions for exit strategies
+    
+    3. For EACH rule, include:
+       - A brief explanation of why this rule is effective
+       - What market condition it's designed to identify
+       
+    4. For OR groups specifically:
+       - Create at least 2-3 conditions
+       - Specify how many conditions must be met (requiredConditions value)
+       - Ensure OR conditions complement each other to catch different market scenarios
     
     Format the response as a structured JSON object that can be parsed by a trading system.`;
 
-    console.log("Sending request to Bailian API with prompt:", prompt);
+    console.log("Sending enhanced request to Bailian API with prompt:", prompt);
     
     // Connect to Bailian API for strategy generation
     try {
@@ -138,7 +161,7 @@ serve(async (req) => {
         body: JSON.stringify({
           prompt: prompt,
           temperature: 0.7,
-          max_tokens: 1500,
+          max_tokens: 2000, // Increased to accommodate more detailed responses
           model: "bailian-strategy-v1"
         })
       });
@@ -147,10 +170,10 @@ serve(async (req) => {
         // If Bailian API fails, fall back to mock response for demo purposes
         console.warn(`Bailian API returned ${bailianResponse.status}, using mock response`);
         
-        // Return mock response as fallback
+        // Return enhanced mock response as fallback
         const mockResponse: GeneratedStrategy = {
           name: `${assetType === "stocks" ? "Stock" : "Crypto"} ${selectedAsset || "Asset"} Strategy`,
-          description: `A strategy for ${assetType} markets based on momentum indicators. ${strategyDescription}`,
+          description: `A strategy for ${assetType} markets based on multiple technical indicators. ${strategyDescription}`,
           market: assetType === "stocks" ? "Stocks" : "Cryptocurrency",
           timeframe: "1h",
           targetAsset: selectedAsset || (assetType === "stocks" ? "SPY" : "BTC"),
@@ -176,7 +199,8 @@ serve(async (req) => {
                   right: {
                     type: "value",
                     value: "30"
-                  }
+                  },
+                  explanation: "RSI crossing above 30 indicates potential reversal from oversold conditions, suggesting a good entry point as momentum shifts bullish."
                 },
                 {
                   id: 2,
@@ -190,7 +214,23 @@ serve(async (req) => {
                     type: "indicator",
                     indicator: "SMA",
                     parameters: { period: "50" }
-                  }
+                  },
+                  explanation: "When the shorter-term SMA crosses above the longer-term SMA, it signals an uptrend and confirms bullish momentum."
+                },
+                {
+                  id: 3,
+                  left: {
+                    type: "indicator",
+                    indicator: "Bollinger Bands",
+                    parameters: { period: "20", deviation: "2" },
+                    valueType: "Lower Band"
+                  },
+                  condition: "Less Than",
+                  right: {
+                    type: "price",
+                    value: "Close"
+                  },
+                  explanation: "Price moving above the lower Bollinger Band after touching or breaking below it indicates a potential bounce and reversal."
                 }
               ]
             },
@@ -199,7 +239,7 @@ serve(async (req) => {
               logic: "OR",
               inequalities: [
                 {
-                  id: 3,
+                  id: 1,
                   left: {
                     type: "indicator",
                     indicator: "MACD",
@@ -212,10 +252,43 @@ serve(async (req) => {
                     indicator: "MACD",
                     parameters: { fast: "12", slow: "26", signal: "9" },
                     valueType: "Signal"
-                  }
+                  },
+                  explanation: "MACD line crossing above the signal line indicates increasing momentum and potential for upward movement."
+                },
+                {
+                  id: 2,
+                  left: {
+                    type: "indicator",
+                    indicator: "Volume",
+                    parameters: { period: "5" }
+                  },
+                  condition: "Greater Than",
+                  right: {
+                    type: "indicator",
+                    indicator: "Volume MA",
+                    parameters: { period: "20" }
+                  },
+                  explanation: "Volume increasing above its moving average suggests strong interest in the current price movement, validating the trend."
+                },
+                {
+                  id: 3,
+                  left: {
+                    type: "indicator",
+                    indicator: "Ichimoku Cloud",
+                    parameters: { conversionPeriod: "9", basePeriod: "26" },
+                    valueType: "Price"
+                  },
+                  condition: "Crosses Above",
+                  right: {
+                    type: "indicator",
+                    indicator: "Ichimoku Cloud",
+                    parameters: { conversionPeriod: "9", basePeriod: "26" },
+                    valueType: "Cloud"
+                  },
+                  explanation: "Price breaking above the Ichimoku Cloud indicates a shift from bearish to bullish sentiment and potential for continued upward movement."
                 }
               ],
-              requiredConditions: 1
+              requiredConditions: 2
             }
           ],
           exitRules: [
@@ -234,7 +307,25 @@ serve(async (req) => {
                   right: {
                     type: "value",
                     value: "70"
-                  }
+                  },
+                  explanation: "RSI above 70 indicates overbought conditions, suggesting it may be time to take profits as a reversal could be imminent."
+                },
+                {
+                  id: 2,
+                  left: {
+                    type: "indicator",
+                    indicator: "Stochastic",
+                    parameters: { k: "14", d: "3" },
+                    valueType: "K Line"
+                  },
+                  condition: "Crosses Below",
+                  right: {
+                    type: "indicator",
+                    indicator: "Stochastic",
+                    parameters: { k: "14", d: "3" },
+                    valueType: "D Line"
+                  },
+                  explanation: "Stochastic K line crossing below D line in overbought territory signals momentum is shifting downward and a potential reversal."
                 }
               ]
             },
@@ -243,7 +334,7 @@ serve(async (req) => {
               logic: "OR",
               inequalities: [
                 {
-                  id: 2,
+                  id: 1,
                   left: {
                     type: "indicator",
                     indicator: "SMA",
@@ -254,23 +345,35 @@ serve(async (req) => {
                     type: "indicator",
                     indicator: "SMA",
                     parameters: { period: "50" }
-                  }
+                  },
+                  explanation: "Short-term SMA crossing below long-term SMA signals a potential trend reversal to the downside."
+                },
+                {
+                  id: 2,
+                  left: {
+                    type: "price",
+                    value: "Close"
+                  },
+                  condition: "Less Than",
+                  right: {
+                    type: "value",
+                    value: "Stop Loss"
+                  },
+                  explanation: "Price hitting the predetermined stop loss level indicates the trade is moving against expectations and should be closed to limit losses."
                 },
                 {
                   id: 3,
                   left: {
                     type: "indicator",
-                    indicator: "MACD",
-                    parameters: { fast: "12", slow: "26", signal: "9" },
-                    valueType: "MACD Line"
+                    indicator: "ATR",
+                    parameters: { period: "14" }
                   },
-                  condition: "Crosses Below",
+                  condition: "Multiplied By",
                   right: {
-                    type: "indicator",
-                    indicator: "MACD",
-                    parameters: { fast: "12", slow: "26", signal: "9" },
-                    valueType: "Signal"
-                  }
+                    type: "value",
+                    value: "2"
+                  },
+                  explanation: "When price moves more than 2 ATR from entry, volatility has increased significantly, suggesting taking profits or cutting losses."
                 }
               ],
               requiredConditions: 1
@@ -308,10 +411,10 @@ serve(async (req) => {
     } catch (apiError) {
       console.error("Error calling Bailian API:", apiError);
       
-      // Return mock response as fallback if API call fails
+      // Return enhanced mock response as fallback if API call fails
       const mockResponse: GeneratedStrategy = {
         name: `${assetType === "stocks" ? "Stock" : "Crypto"} ${selectedAsset || "Asset"} Strategy`,
-        description: `A strategy for ${assetType} markets based on momentum indicators. ${strategyDescription}`,
+        description: `A strategy for ${assetType} markets based on multiple technical indicators. ${strategyDescription}`,
         market: assetType === "stocks" ? "Stocks" : "Cryptocurrency",
         timeframe: "1h",
         targetAsset: selectedAsset || (assetType === "stocks" ? "SPY" : "BTC"),
@@ -337,7 +440,8 @@ serve(async (req) => {
                 right: {
                   type: "value",
                   value: "30"
-                }
+                },
+                explanation: "RSI crossing above 30 indicates potential reversal from oversold conditions, suggesting a good entry point as momentum shifts bullish."
               },
               {
                 id: 2,
@@ -351,7 +455,8 @@ serve(async (req) => {
                   type: "indicator",
                   indicator: "SMA",
                   parameters: { period: "50" }
-                }
+                },
+                explanation: "When the shorter-term SMA crosses above the longer-term SMA, it signals an uptrend and confirms bullish momentum."
               }
             ]
           },
@@ -360,7 +465,7 @@ serve(async (req) => {
             logic: "OR",
             inequalities: [
               {
-                id: 3,
+                id: 1,
                 left: {
                   type: "indicator",
                   indicator: "MACD",
@@ -373,7 +478,23 @@ serve(async (req) => {
                   indicator: "MACD",
                   parameters: { fast: "12", slow: "26", signal: "9" },
                   valueType: "Signal"
-                }
+                },
+                explanation: "MACD line crossing above the signal line indicates increasing momentum and potential for upward movement."
+              },
+              {
+                id: 2,
+                left: {
+                  type: "indicator",
+                  indicator: "Volume",
+                  parameters: { period: "5" }
+                },
+                condition: "Greater Than",
+                right: {
+                  type: "indicator",
+                  indicator: "Volume MA",
+                  parameters: { period: "20" }
+                },
+                explanation: "Volume increasing above its moving average suggests strong interest in the current price movement, validating the trend."
               }
             ],
             requiredConditions: 1
@@ -395,7 +516,8 @@ serve(async (req) => {
                 right: {
                   type: "value",
                   value: "70"
-                }
+                },
+                explanation: "RSI above 70 indicates overbought conditions, suggesting it may be time to take profits as a reversal could be imminent."
               }
             ]
           },
@@ -404,7 +526,7 @@ serve(async (req) => {
             logic: "OR",
             inequalities: [
               {
-                id: 2,
+                id: 1,
                 left: {
                   type: "indicator",
                   indicator: "SMA",
@@ -415,23 +537,21 @@ serve(async (req) => {
                   type: "indicator",
                   indicator: "SMA",
                   parameters: { period: "50" }
-                }
+                },
+                explanation: "Short-term SMA crossing below long-term SMA signals a potential trend reversal to the downside."
               },
               {
-                id: 3,
+                id: 2,
                 left: {
-                  type: "indicator",
-                  indicator: "MACD",
-                  parameters: { fast: "12", slow: "26", signal: "9" },
-                  valueType: "MACD Line"
+                  type: "price",
+                  value: "Close"
                 },
-                condition: "Crosses Below",
+                condition: "Less Than",
                 right: {
-                  type: "indicator",
-                  indicator: "MACD",
-                  parameters: { fast: "12", slow: "26", signal: "9" },
-                  valueType: "Signal"
-                }
+                  type: "value",
+                  value: "Stop Loss"
+                },
+                explanation: "Price hitting the predetermined stop loss level indicates the trade is moving against expectations and should be closed to limit losses."
               }
             ],
             requiredConditions: 1

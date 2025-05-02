@@ -1,6 +1,7 @@
 
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
+import { Card } from "@/components/ui/card";
 
 interface BacktestRulesProps {
   entryRules: RuleGroupData[];
@@ -40,7 +41,8 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
           right: {
             type: "value",
             value: "30"
-          }
+          },
+          explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity."
         });
       } else {
         processedEntryRules[1].inequalities.push({
@@ -58,9 +60,15 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
           right: {
             type: "value",
             value: "0"
-          }
+          },
+          explanation: "MACD crossing above zero indicates increasing upward momentum."
         });
       }
+    }
+    
+    // Ensure requiredConditions is set
+    if (processedEntryRules[1].requiredConditions === undefined) {
+      processedEntryRules[1].requiredConditions = 1;
     }
   }
   
@@ -92,7 +100,8 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
           right: {
             type: "value",
             value: "70"
-          }
+          },
+          explanation: "RSI above 70 indicates an overbought condition, suggesting it's time to take profits."
         });
       } else {
         processedExitRules[1].inequalities.push({
@@ -105,9 +114,15 @@ export function BacktestRules({ entryRules, exitRules }: BacktestRulesProps) {
           right: {
             type: "value",
             value: "Stop Loss"
-          }
+          },
+          explanation: "Price falling below stop loss level protects capital from further losses."
         });
       }
+    }
+    
+    // Ensure requiredConditions is set
+    if (processedExitRules[1].requiredConditions === undefined) {
+      processedExitRules[1].requiredConditions = 1;
     }
   }
 

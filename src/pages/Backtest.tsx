@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -13,8 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
 
 const Backtest = () => {
+  const location = useLocation();
   const [strategy, setStrategy] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -24,6 +26,20 @@ const Backtest = () => {
   const {
     toast
   } = useToast();
+
+  // Parse URL search parameters to get strategy ID if present
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const strategyId = searchParams.get("strategyId");
+    
+    if (strategyId) {
+      setStrategy(strategyId);
+      toast({
+        title: "Strategy selected",
+        description: "Strategy has been automatically selected for backtest"
+      });
+    }
+  }, [location.search, toast]);
 
   const performanceMetrics = [{
     name: "Total Return",
@@ -119,6 +135,7 @@ const Backtest = () => {
                       <SelectItem value="rsi-divergence">RSI Divergence</SelectItem>
                       <SelectItem value="macd-strategy">MACD Strategy</SelectItem>
                       <SelectItem value="bollinger-bands">Bollinger Bands</SelectItem>
+                      <SelectItem value="5b964c01-5309-42b5-906e-6debe6123c78">Sample Strategy</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

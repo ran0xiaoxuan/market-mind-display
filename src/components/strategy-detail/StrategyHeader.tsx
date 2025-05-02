@@ -1,3 +1,4 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,15 @@ export const StrategyHeader = ({
       setIsDeleting(false);
     }
   };
+
+  const handleBacktestClick = () => {
+    // Navigate to backtest page with strategy ID in URL search params
+    navigate(`/backtest?strategyId=${strategyId}`);
+    toast("Backtest preparation", {
+      description: "Loading backtest page for this strategy..."
+    });
+  };
+
   return <div className="mb-6">
       <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -56,17 +66,11 @@ export const StrategyHeader = ({
             </Link>
             
             <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
-              <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={() => {
-              toast("Backtest started", {
-                description: "Running backtest for this strategy..."
-              });
-            }}>
+              <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={handleBacktestClick}>
                 <PlayIcon className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Backtest</span>
               </Button>
             </ToggleGroupItem>
-            
-            
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

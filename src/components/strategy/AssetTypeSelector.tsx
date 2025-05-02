@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,6 +44,7 @@ export const AssetTypeSelector = ({
   const [popularAssets, setPopularAssets] = useState<Asset[]>([]);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [selectedAssetDetails, setSelectedAssetDetails] = useState<Asset | null>(null);
+  const [isSearchError, setIsSearchError] = useState(false);
 
   // Fetch API key on component mount
   useEffect(() => {
@@ -110,6 +110,7 @@ export const AssetTypeSelector = ({
       }
 
       setIsLoading(true);
+      setIsSearchError(false);
       
       try {
         // If no API key, try to fetch it
@@ -132,7 +133,7 @@ export const AssetTypeSelector = ({
         
         setSearchResults(results);
         
-        if (results.length === 0 && query.length > 0) {
+        if (results.length === 0 && query.length > 0 && !isSearchError) {
           toast({
             title: "No Results Found",
             description: `No ${assetType} found matching "${query}"`
@@ -140,6 +141,13 @@ export const AssetTypeSelector = ({
         }
       } catch (error) {
         console.error(`Error searching ${assetType}:`, error);
+        
+        if (isSearchError) {
+          // Skip showing another error toast if we already showed one
+          return;
+        }
+        
+        setIsSearchError(true);
         
         // Attempt to get a fresh API key and retry
         try {
@@ -183,8 +191,13 @@ export const AssetTypeSelector = ({
         setIsLoading(false);
       }
     }, 300),
-    [assetType, apiKey, popularAssets]
+    [assetType, apiKey, popularAssets, isSearchError]
   );
+
+  // Reset search error state when query changes
+  useEffect(() => {
+    setIsSearchError(false);
+  }, [searchQuery]);
 
   // Trigger search when query changes or search dialog opens
   useEffect(() => {
@@ -255,6 +268,7 @@ export const AssetTypeSelector = ({
               // Clear the search query when closing the dialog
               setTimeout(() => {
                 setSearchQuery("");
+                setIsSearchError(false);
               }, 100);
             }
           }}

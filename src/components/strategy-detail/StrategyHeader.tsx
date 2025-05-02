@@ -1,21 +1,22 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { History, LineChart, Trash2, AlertTriangle } from "lucide-react";
+import { History, LineChart, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { deleteStrategy } from "@/services/strategyService";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle
-} from "@/components/ui/sheet";
 
 interface StrategyHeaderProps {
   strategyId: string;
@@ -24,7 +25,7 @@ interface StrategyHeaderProps {
 
 export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps) => {
   const navigate = useNavigate();
-  const [deleteSheetOpen, setDeleteSheetOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const handleDeleteStrategy = async () => {
@@ -48,7 +49,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
       });
     } finally {
       setIsDeleting(false); // Reset loading state
-      setDeleteSheetOpen(false); // Close the sheet
+      setDeleteDialogOpen(false); // Close the dialog
     }
   };
 
@@ -124,7 +125,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive" 
-                  onClick={() => setDeleteSheetOpen(true)}
+                  onClick={() => setDeleteDialogOpen(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Strategy
@@ -135,65 +136,42 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
         </div>
       </div>
       
-      {/* Delete Confirmation Sheet - New implementation */}
-      <Sheet open={deleteSheetOpen} onOpenChange={setDeleteSheetOpen}>
-        <SheetContent>
-          <SheetHeader className="pb-4">
-            <SheetTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Delete Strategy
-            </SheetTitle>
-            <SheetDescription>
+      {/* Delete Confirmation Dialog - Fixed implementation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete strategy?</AlertDialogTitle>
+            <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              strategy "{strategyName}" and all its associated data including:
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="py-4">
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                • All trading rules and conditions
-              </li>
-              <li className="flex items-center gap-2">
-                • Risk management parameters
-              </li>
-              <li className="flex items-center gap-2">
-                • Backtest history and results
-              </li>
-              <li className="flex items-center gap-2">
-                • Performance metrics and statistics
-              </li>
-            </ul>
-          </div>
-          
-          <SheetFooter className="flex flex-col gap-3 sm:flex-row pt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteSheetOpen(false)}
+              strategy "{strategyName}" and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
               disabled={isDeleting}
-              className="sm:flex-1"
+              onClick={() => {
+                if (!isDeleting) {
+                  setDeleteDialogOpen(false);
+                }
+              }}
             >
               Cancel
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleDeleteStrategy}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                if (!isDeleting) {
+                  handleDeleteStrategy();
+                }
+              }}
               disabled={isDeleting}
-              className="sm:flex-1"
             >
-              {isDeleting ? (
-                <>
-                  <span className="animate-pulse">Deleting...</span>
-                </>
-              ) : (
-                <>
-                  Permanently Delete
-                </>
-              )}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

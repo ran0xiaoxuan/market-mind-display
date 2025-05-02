@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -195,11 +196,11 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           logic: rule.logic || 'AND',
           inequalities: [],
           // Add requiredConditions if this is an OR logic group and we have the value in metadata
-          ...(rule.logic === 'OR' && rule.metadata?.requiredConditions && {
-            requiredConditions: rule.metadata.requiredConditions
+          ...(rule.logic === 'OR' && rule.metadata && typeof rule.metadata === 'object' && 'requiredConditions' in rule.metadata && {
+            requiredConditions: Number(rule.metadata.requiredConditions)
           }),
           // Default to 1 if not specified but it is an OR group
-          ...(rule.logic === 'OR' && !rule.metadata?.requiredConditions && {
+          ...(rule.logic === 'OR' && (!rule.metadata || typeof rule.metadata !== 'object' || !('requiredConditions' in rule.metadata)) && {
             requiredConditions: 1
           })
         });
@@ -219,7 +220,8 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           indicator: rule.left_indicator,
           parameters: leftParams,
           value: rule.left_type === 'value' || rule.left_type === 'price' ? rule.left_value : undefined,
-          valueType: rule.left_value_type
+          // Use undefined for valueType if it doesn't exist in the database
+          valueType: undefined
         },
         condition: rule.condition,
         right: {
@@ -227,9 +229,13 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           indicator: rule.right_indicator,
           parameters: rightParams,
           value: rule.right_value,
-          valueType: rule.right_value_type
+          // Use undefined for valueType if it doesn't exist in the database
+          valueType: undefined
         },
-        explanation: rule.metadata?.explanation || "" // Get explanation from metadata or use empty string
+        // Extract explanation from metadata if it exists and is an object, otherwise use empty string
+        explanation: (rule.metadata && typeof rule.metadata === 'object' && 'explanation' in rule.metadata) 
+          ? String(rule.metadata.explanation) 
+          : ""
       };
       
       // Add the inequality to the group

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -95,7 +96,7 @@ const EditStrategy = () => {
         setLoading(true);
         console.log(`Fetching strategy with ID: ${strategyId}`);
         
-        // Fetch strategy basic data
+        // Fetch strategy basic data (now including risk management data)
         const strategy = await getStrategyById(strategyId);
         if (!strategy) {
           toast({
@@ -115,6 +116,12 @@ const EditStrategy = () => {
         setTargetAsset(strategy.targetAsset || "");
         setIsActive(strategy.isActive);
         
+        // Set risk management data directly from strategy object
+        setStopLoss(strategy.stopLoss || "5");
+        setTakeProfit(strategy.takeProfit || "15");
+        setSingleBuyVolume(strategy.singleBuyVolume || "1000");
+        setMaxBuyVolume(strategy.maxBuyVolume || "5000");
+        
         // Update form default values
         form.reset({
           strategyName: strategy.name,
@@ -123,27 +130,11 @@ const EditStrategy = () => {
           timeframe: strategy.timeframe,
           targetAsset: strategy.targetAsset || "",
           isActive: strategy.isActive,
-          // Risk management values will be updated after fetching
-          stopLoss: "",
-          takeProfit: "",
-          singleBuyVolume: "",
-          maxBuyVolume: ""
+          stopLoss: strategy.stopLoss || "5",
+          takeProfit: strategy.takeProfit || "15",
+          singleBuyVolume: strategy.singleBuyVolume || "1000",
+          maxBuyVolume: strategy.maxBuyVolume || "5000"
         });
-        
-        // Fetch risk management data
-        const riskData = await getRiskManagementForStrategy(strategyId);
-        if (riskData) {
-          setStopLoss(riskData.stopLoss || "5");
-          setTakeProfit(riskData.takeProfit || "15");
-          setSingleBuyVolume(riskData.singleBuyVolume || "1000");
-          setMaxBuyVolume(riskData.maxBuyVolume || "5000");
-          
-          // Update form with risk management data
-          form.setValue("stopLoss", riskData.stopLoss || "5");
-          form.setValue("takeProfit", riskData.takeProfit || "15");
-          form.setValue("singleBuyVolume", riskData.singleBuyVolume || "1000");
-          form.setValue("maxBuyVolume", riskData.maxBuyVolume || "5000");
-        }
         
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(strategyId);
@@ -359,7 +350,7 @@ const EditStrategy = () => {
     try {
       setIsSaving(true);
       
-      // Update basic strategy information
+      // Update strategy information including risk management data
       const { error: strategyError } = await supabase
         .from('strategies')
         .update({
@@ -369,58 +360,16 @@ const EditStrategy = () => {
           timeframe: timeframe,
           target_asset: targetAsset,
           is_active: isActive,
+          stop_loss: stopLoss,
+          take_profit: takeProfit,
+          single_buy_volume: singleBuyVolume,
+          max_buy_volume: maxBuyVolume,
           updated_at: new Date().toISOString()
         })
         .eq('id', strategyId);
 
       if (strategyError) {
         throw new Error(`Error updating strategy: ${strategyError.message}`);
-      }
-
-      // Check if risk management data exists for this strategy
-      const { data: existingRiskData, error: checkError } = await supabase
-        .from('risk_management')
-        .select('*')
-        .eq('strategy_id', strategyId);
-
-      if (checkError) {
-        throw new Error(`Error checking risk management: ${checkError.message}`);
-      }
-
-      // If risk management data exists, update it; otherwise, insert new data
-      let riskError;
-      if (existingRiskData && existingRiskData.length > 0) {
-        // Update existing risk management record
-        const { error } = await supabase
-          .from('risk_management')
-          .update({
-            stop_loss: stopLoss,
-            take_profit: takeProfit,
-            single_buy_volume: singleBuyVolume,
-            max_buy_volume: maxBuyVolume,
-            updated_at: new Date().toISOString()
-          })
-          .eq('strategy_id', strategyId);
-        
-        riskError = error;
-      } else {
-        // Insert new risk management record
-        const { error } = await supabase
-          .from('risk_management')
-          .insert({
-            strategy_id: strategyId,
-            stop_loss: stopLoss,
-            take_profit: takeProfit,
-            single_buy_volume: singleBuyVolume,
-            max_buy_volume: maxBuyVolume,
-            updated_at: new Date().toISOString()
-          });
-        
-        riskError = error;
-      }
-
-      if (riskError) {
-        throw new Error(`Error updating risk management: ${riskError.message}`);
       }
 
       // For trading rules, we'll delete existing ones and insert the new ones

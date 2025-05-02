@@ -1,11 +1,23 @@
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StrategyHeaderProps {
   strategyId: string;
@@ -13,6 +25,44 @@ interface StrategyHeaderProps {
 }
 
 export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps) => {
+  const navigate = useNavigate();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleDeleteStrategy = async () => {
+    if (!strategyId) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      // Delete associated records first (to maintain referential integrity)
+      await supabase.from('risk_management').delete().eq('strategy_id', strategyId);
+      await supabase.from('trading_rules').delete().eq('strategy_id', strategyId);
+      
+      // Delete the strategy
+      const { error } = await supabase.from('strategies').delete().eq('id', strategyId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Strategy deleted", {
+        description: "The strategy has been successfully deleted"
+      });
+      
+      // Redirect to the strategies page
+      navigate('/strategies');
+    } catch (error) {
+      console.error("Error deleting strategy:", error);
+      toast.error("Failed to delete strategy", {
+        description: "An error occurred while trying to delete the strategy"
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
   return (
     <div className="mb-6">
       <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
@@ -85,11 +135,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive" 
-                  onClick={() => {
-                    toast("Delete strategy?", {
-                      description: "This action cannot be undone."
-                    });
-                  }}
+                  onClick={() => setDeleteDialogOpen(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Strategy
@@ -99,6 +145,32 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
           </ToggleGroup>
         </div>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete strategy?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              strategy "{strategyName}" and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteStrategy();
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

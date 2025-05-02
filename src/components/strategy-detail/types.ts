@@ -1,32 +1,79 @@
 
 export type IndicatorParameters = {
+  // Basic parameters
   period?: string;
+  interval?: string;
+  source?: string;
+  backtracks?: string;
+  
+  // Moving Averages
+  optInTimePeriod?: string;
+  
+  // MACD parameters
   fast?: string;
   slow?: string;
   signal?: string;
-  deviation?: string; // For Bollinger Bands
-  k?: string; // For Stochastic
-  d?: string; // For Stochastic
-  conversionPeriod?: string; // For Ichimoku
-  basePeriod?: string; // For Ichimoku
-  laggingSpan?: string; // For Ichimoku
-  displacement?: string; // For Ichimoku
-  maType?: string; // Moving Average Type
-  length?: string; // Generic period parameter
-  multiplier?: string; // For ATR-based indicators
-  source?: string; // Price source (close, open, high, low)
-  upperDeviation?: string; // Upper deviation for bands
-  lowerDeviation?: string; // Lower deviation for bands
-  atrPeriod?: string; // ATR period for indicators like Keltner
-  channelPeriod?: string; // For channel indicators like Donchian
-  fastK?: string; // Fast %K for advanced stochastics
-  slowK?: string; // Slow %K for advanced stochastics
-  slowD?: string; // Slow %D for advanced stochastics
-  smoothK?: string; // Smoothing for K line
-  smoothD?: string; // Smoothing for D line
-  fastLength?: string; // Alternative naming for fast period
-  slowLength?: string; // Alternative naming for slow period
-  signalLength?: string; // Alternative naming for signal period
+  fastPeriod?: string;
+  slowPeriod?: string;
+  signalPeriod?: string;
+  
+  // Bollinger Bands parameters
+  deviation?: string;
+  nbDevUp?: string;
+  nbDevDn?: string;
+  maType?: string;
+  
+  // Stochastic parameters
+  k?: string; 
+  d?: string;
+  fastK?: string;
+  fastD?: string;
+  slowK?: string;
+  slowD?: string;
+  smoothK?: string;
+  smoothD?: string;
+  kPeriod?: string;
+  dPeriod?: string;
+  slowing?: string;
+  
+  // Ichimoku parameters
+  conversionPeriod?: string;
+  basePeriod?: string;
+  laggingSpan?: string;
+  displacement?: string;
+  
+  // Generic parameters
+  length?: string;
+  timeperiod?: string;
+  multiplier?: string;
+  
+  // ATR and derived indicators
+  atrPeriod?: string;
+  
+  // Channel indicators
+  channelPeriod?: string;
+  upperDeviation?: string;
+  lowerDeviation?: string;
+  
+  // Awesome Oscillator parameters
+  fastLength?: string;
+  slowLength?: string;
+  signalLength?: string;
+  
+  // RSI/Momentum parameters
+  rsiPeriod?: string;
+  
+  // Candle formations parameters
+  optInPenetration?: string;
+  
+  // Heikin Ashi parameters
+  wicks?: string;
+  
+  // Specific TAAPI parameters
+  chart?: string;
+  exchange?: string;
+  symbol?: string;
+  
   // Dynamic parameters for future indicators
   [key: string]: string | undefined;
 };

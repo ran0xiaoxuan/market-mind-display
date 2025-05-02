@@ -42,7 +42,16 @@ serve(async (req) => {
 
     // Return the API key
     return new Response(
-      JSON.stringify({ key: apiKey }),
+      JSON.stringify({ 
+        key: apiKey,
+        // Include metadata about the TAAPI service capabilities to help the client
+        meta: {
+          supportedIndicators: 80,
+          supportedTimeframes: ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d", "1w"],
+          supportedExchanges: ["binance", "coinbase", "kucoin", "kraken", "ftx"],
+          documentation: "https://taapi.io/documentation/"
+        }
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

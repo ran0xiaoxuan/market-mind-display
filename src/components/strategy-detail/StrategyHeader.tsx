@@ -49,7 +49,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
       toast.error("Failed to delete strategy", {
         description: "An error occurred while trying to delete the strategy"
       });
-      setIsDeleting(false); // Only reset if there's an error
+      setIsDeleting(false); // Reset loading state on error
       setDeleteDialogOpen(false); // Close the dialog on error
     }
   };
@@ -148,7 +148,7 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive hover:bg-destructive/90"
               onClick={(e) => {

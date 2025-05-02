@@ -157,6 +157,47 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_groups: {
+        Row: {
+          created_at: string
+          explanation: string | null
+          group_order: number
+          id: string
+          logic: string
+          required_conditions: number | null
+          rule_type: string
+          strategy_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          explanation?: string | null
+          group_order: number
+          id?: string
+          logic: string
+          required_conditions?: number | null
+          rule_type: string
+          strategy_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          explanation?: string | null
+          group_order?: number
+          id?: string
+          logic?: string
+          required_conditions?: number | null
+          rule_type?: string
+          strategy_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_groups_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategies: {
         Row: {
           created_at: string
@@ -280,6 +321,74 @@ export type Database = {
         Relationships: []
       }
       trading_rules: {
+        Row: {
+          condition: string
+          created_at: string
+          explanation: string | null
+          id: string
+          inequality_order: number
+          left_indicator: string | null
+          left_parameters: Json | null
+          left_type: string
+          left_value: string | null
+          left_value_type: string | null
+          right_indicator: string | null
+          right_parameters: Json | null
+          right_type: string
+          right_value: string | null
+          right_value_type: string | null
+          rule_group_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          inequality_order: number
+          left_indicator?: string | null
+          left_parameters?: Json | null
+          left_type: string
+          left_value?: string | null
+          left_value_type?: string | null
+          right_indicator?: string | null
+          right_parameters?: Json | null
+          right_type: string
+          right_value?: string | null
+          right_value_type?: string | null
+          rule_group_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          inequality_order?: number
+          left_indicator?: string | null
+          left_parameters?: Json | null
+          left_type?: string
+          left_value?: string | null
+          left_value_type?: string | null
+          right_indicator?: string | null
+          right_parameters?: Json | null
+          right_type?: string
+          right_value?: string | null
+          right_value_type?: string | null
+          rule_group_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_trading_rules_rule_group_id_fkey"
+            columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "rule_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trading_rules_old: {
         Row: {
           condition: string
           created_at: string

@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Backtest = () => {
   const location = useLocation();
@@ -28,6 +29,8 @@ const Backtest = () => {
   const [hasResults, setHasResults] = useState<boolean>(false);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [backtestResults, setBacktestResults] = useState<any>(null);
+  const [runningBacktest, setRunningBacktest] = useState<boolean>(false);
   
   const { toast } = useToast();
 
@@ -104,7 +107,7 @@ const Backtest = () => {
     value: "-$175.20"
   }];
 
-  const handleRunBacktest = () => {
+  const runBacktest = async () => {
     if (!strategy) {
       toast({
         title: "Strategy is required",
@@ -121,17 +124,70 @@ const Backtest = () => {
       });
       return;
     }
+    
+    setRunningBacktest(true);
     toast({
       title: "Backtest running",
       description: "Your backtest is being processed..."
     });
-    setTimeout(() => {
-      setHasResults(true);
+    
+    try {
+      // Fetch strategy trading rules using the new database structure
+      const { data: ruleGroups, error: ruleGroupsError } = await supabase
+        .from('rule_groups')
+        .select('*')
+        .eq('strategy_id', strategy);
+        
+      if (ruleGroupsError) {
+        throw new Error(`Failed to fetch rule groups: ${ruleGroupsError.message}`);
+      }
+      
+      // For each rule group, fetch the associated trading rules
+      let allRules = [];
+      
+      for (const group of ruleGroups || []) {
+        const { data: rules, error: rulesError } = await supabase
+          .from('trading_rules')
+          .select('*')
+          .eq('rule_group_id', group.id);
+          
+        if (rulesError) {
+          throw new Error(`Failed to fetch trading rules: ${rulesError.message}`);
+        }
+        
+        allRules.push({
+          ...group,
+          rules: rules || []
+        });
+      }
+      
+      console.log('Fetched rule groups and rules:', allRules);
+      
+      // For this example, we'll just simulate a backtest result
+      // In a real implementation, you would use the rules to run a backtest
+      setTimeout(() => {
+        setHasResults(true);
+        setBacktestResults({
+          performanceMetrics,
+          tradeStatistics
+        });
+        
+        toast({
+          title: "Backtest complete",
+          description: "Your backtest results are ready to view"
+        });
+        setRunningBacktest(false);
+      }, 1500);
+      
+    } catch (error) {
+      console.error("Backtest error:", error);
       toast({
-        title: "Backtest complete",
-        description: "Your backtest results are ready to view"
+        title: "Backtest error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
       });
-    }, 1500);
+      setRunningBacktest(false);
+    }
   };
 
   return <div className="min-h-screen flex flex-col bg-background">
@@ -152,7 +208,7 @@ const Backtest = () => {
                   <label htmlFor="strategy" className="text-sm font-medium">
                     Strategy
                   </label>
-                  <Select value={strategy} onValueChange={setStrategy} disabled={isLoading}>
+                  <Select value={strategy} onValueChange={setStrategy} disabled={isLoading || runningBacktest}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={isLoading ? "Loading strategies..." : "Select strategy"} />
                     </SelectTrigger>
@@ -179,7 +235,11 @@ const Backtest = () => {
                       <label className="text-xs text-muted-foreground">Start Date</label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                          <Button 
+                            variant="outline" 
+                            className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+                            disabled={runningBacktest}
+                          >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {startDate ? format(startDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                           </Button>
@@ -193,7 +253,11 @@ const Backtest = () => {
                       <label className="text-xs text-muted-foreground">End Date</label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                          <Button 
+                            variant="outline" 
+                            className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}
+                            disabled={runningBacktest}
+                          >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {endDate ? format(endDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                           </Button>
@@ -210,11 +274,31 @@ const Backtest = () => {
                   <label htmlFor="initialCapital" className="text-sm font-medium">
                     Initial Capital
                   </label>
-                  <Input id="initialCapital" type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} placeholder="10000" />
+                  <Input 
+                    id="initialCapital" 
+                    type="number" 
+                    value={initialCapital} 
+                    onChange={e => setInitialCapital(e.target.value)} 
+                    placeholder="10000" 
+                    disabled={runningBacktest}
+                  />
                 </div>
 
-                <Button onClick={handleRunBacktest} className="w-full bg-zinc-950 hover:bg-zinc-800">
-                  <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
+                <Button 
+                  onClick={runBacktest} 
+                  className="w-full bg-zinc-950 hover:bg-zinc-800" 
+                  disabled={runningBacktest}
+                >
+                  {runningBacktest ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent" /> 
+                      Running Backtest...
+                    </>
+                  ) : (
+                    <>
+                      <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -315,7 +399,14 @@ const Backtest = () => {
                     </TabsContent>
                   </Tabs>
                 </div> : <div className="flex flex-col items-center justify-center h-64">
-                  <p className="text-muted-foreground">No backtest results to display. Click "Run Backtest" to start.</p>
+                  {runningBacktest ? (
+                    <div className="flex flex-col items-center">
+                      <div className="h-8 w-8 mb-4 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" /> 
+                      <p className="text-muted-foreground">Processing your backtest...</p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No backtest results to display. Click "Run Backtest" to start.</p>
+                  )}
                 </div>}
             </CardContent>
           </Card>

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Bell, Discord, Mail, Telegram } from "lucide-react";
+import { Bell, Mail, MessageSquare, Send } from "lucide-react";
 
 interface NotificationPreferences {
   email: boolean;
@@ -85,7 +85,7 @@ export function TradingSettings() {
                 <div className="space-y-4 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Discord className="h-5 w-5 text-muted-foreground" />
+                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">Discord Notifications</p>
                         <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
@@ -130,7 +130,7 @@ export function TradingSettings() {
                 <div className="space-y-4 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Telegram className="h-5 w-5 text-muted-foreground" />
+                      <Send className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">Telegram Notifications</p>
                         <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>

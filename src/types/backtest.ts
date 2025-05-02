@@ -9,6 +9,26 @@ export interface IndicatorParameters {
   d?: string;
   conversionPeriod?: string;
   basePeriod?: string;
+  laggingSpan?: string;
+  displacement?: string;
+  maType?: string;
+  length?: string;
+  multiplier?: string;
+  source?: string;
+  upperDeviation?: string;
+  lowerDeviation?: string;
+  atrPeriod?: string;
+  channelPeriod?: string;
+  fastK?: string;
+  slowK?: string;
+  slowD?: string;
+  smoothK?: string;
+  smoothD?: string;
+  fastLength?: string;
+  slowLength?: string;
+  signalLength?: string;
+  // Dynamic parameters for future indicators
+  [key: string]: string | undefined;
 }
 
 export interface BacktestData {

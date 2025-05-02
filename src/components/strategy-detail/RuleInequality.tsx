@@ -1,10 +1,9 @@
-
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Check, X, Info } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -13,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getSupportedIndicators } from "@/services/taapiService";
 
 interface RuleInequalityProps {
   inequality: Inequality;
@@ -30,11 +30,45 @@ export const RuleInequality = ({
   const [isEditing, setIsEditing] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [editedInequality, setEditedInequality] = useState<Inequality>(inequality);
+  const [availableIndicators, setAvailableIndicators] = useState<string[]>([]);
   
-  const indicators = [
-    "SMA", "EMA", "RSI", "MACD", "Volume", "Volume MA", 
-    "Bollinger Bands", "ATR", "Stochastic", "Ichimoku Cloud"
-  ];
+  // Fetch available indicators from TAAPI
+  useEffect(() => {
+    const fetchIndicators = async () => {
+      try {
+        const indicators = await getSupportedIndicators();
+        // Convert to proper case and sort
+        const formattedIndicators = indicators
+          .map(ind => ind.charAt(0).toUpperCase() + ind.slice(1))
+          .sort();
+        
+        // Add our standard set of indicators as well
+        const standardIndicators = [
+          "SMA", "EMA", "RSI", "MACD", "Volume", "Volume MA", 
+          "Bollinger Bands", "ATR", "Stochastic", "Ichimoku Cloud",
+          "CCI", "Williams %R", "OBV", "DMI", "Parabolic SAR",
+          "SuperTrend", "Keltner Channel", "Donchian Channel",
+          "MFI", "Stochastic RSI", "ADX", "Awesome Oscillator"
+        ];
+        
+        const allIndicators = Array.from(new Set([...standardIndicators, ...formattedIndicators])).sort();
+        setAvailableIndicators(allIndicators);
+      } catch (error) {
+        console.error("Failed to fetch indicators:", error);
+        // Fallback to standard indicators
+        setAvailableIndicators([
+          "SMA", "EMA", "RSI", "MACD", "Volume", "Volume MA", 
+          "Bollinger Bands", "ATR", "Stochastic", "Ichimoku Cloud",
+          "CCI", "Williams %R", "OBV", "DMI", "Parabolic SAR",
+          "SuperTrend", "Keltner Channel", "Donchian Channel",
+          "MFI", "Stochastic RSI", "ADX", "Awesome Oscillator"
+        ]);
+      }
+    };
+    
+    fetchIndicators();
+  }, []);
+  
   const conditions = [
     "Greater Than", "Less Than", 
     "Crosses Above", "Crosses Below",
@@ -43,10 +77,32 @@ export const RuleInequality = ({
   ];
   const valueTypes = ["indicator", "price", "value"];
   const priceValues = ["Open", "High", "Low", "Close", "Volume"];
-  const macdValueTypes = ["MACD Line", "Signal", "Histogram"];
-  const bollingerBandValueTypes = ["Upper Band", "Middle Band", "Lower Band"];
-  const stochasticValueTypes = ["K Line", "D Line"];
-  const ichimokuValueTypes = ["Conversion Line", "Base Line", "Leading Span A", "Leading Span B", "Cloud", "Price"];
+  
+  // Get value type options based on the selected indicator
+  const getValueTypeOptions = (indicator: string | undefined) => {
+    if (!indicator) return [];
+    
+    switch (indicator) {
+      case "MACD":
+        return ["MACD Line", "Signal", "Histogram"];
+      case "Bollinger Bands":
+        return ["Upper Band", "Middle Band", "Lower Band"];
+      case "Stochastic":
+      case "Stochastic RSI":
+        return ["K Line", "D Line"];
+      case "Ichimoku Cloud":
+        return ["Conversion Line", "Base Line", "Leading Span A", "Leading Span B", "Lagging Span", "Cloud"];
+      case "Keltner Channel":
+      case "Donchian Channel":
+        return ["Upper Band", "Middle Line", "Lower Band"];
+      case "DMI":
+        return ["DI+", "DI-", "ADX"];
+      case "SuperTrend":
+        return ["Trend Line", "Direction"];
+      default:
+        return [];
+    }
+  };
   
   const startEditing = () => {
     setEditedInequality({...inequality});
@@ -115,23 +171,6 @@ export const RuleInequality = ({
         }
       }
     }));
-  };
-  
-  const getValueTypeOptions = (indicator: string | undefined) => {
-    if (!indicator) return [];
-    
-    switch (indicator) {
-      case "MACD":
-        return macdValueTypes;
-      case "Bollinger Bands":
-        return bollingerBandValueTypes;
-      case "Stochastic":
-        return stochasticValueTypes;
-      case "Ichimoku Cloud":
-        return ichimokuValueTypes;
-      default:
-        return [];
-    }
   };
   
   const renderReadOnlySide = (side: InequalitySide) => {
@@ -208,7 +247,7 @@ export const RuleInequality = ({
                 <SelectValue placeholder="Indicator" />
               </SelectTrigger>
               <SelectContent>
-                {indicators.map(indicator => (
+                {availableIndicators.map(indicator => (
                   <SelectItem key={indicator} value={indicator}>
                     {indicator}
                   </SelectItem>
@@ -289,7 +328,7 @@ export const RuleInequality = ({
               </div>
             )}
 
-            {side.indicator === "Stochastic" && (
+            {(side.indicator === "Stochastic" || side.indicator === "Stochastic RSI") && (
               <div className="grid grid-cols-2 gap-1">
                 <div>
                   <span className="text-xs">K</span>
@@ -332,11 +371,117 @@ export const RuleInequality = ({
                     className="h-8 text-sm"
                   />
                 </div>
+                <div>
+                  <span className="text-xs">Lagging</span>
+                  <Input 
+                    type="text" 
+                    value={side.parameters?.laggingSpan || '52'} 
+                    onChange={(e) => updateParameter("laggingSpan", e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <span className="text-xs">Displacement</span>
+                  <Input 
+                    type="text" 
+                    value={side.parameters?.displacement || '26'} 
+                    onChange={(e) => updateParameter("displacement", e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {(side.indicator === "ATR" || side.indicator === "SuperTrend") && (
+              <div className="grid grid-cols-2 gap-1">
+                <div>
+                  <span className="text-xs">Period</span>
+                  <Input 
+                    type="text" 
+                    value={side.parameters?.period || '14'} 
+                    onChange={(e) => updateParameter("period", e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                {side.indicator === "SuperTrend" && (
+                  <div>
+                    <span className="text-xs">Multiplier</span>
+                    <Input 
+                      type="text" 
+                      value={side.parameters?.multiplier || '3'} 
+                      onChange={(e) => updateParameter("multiplier", e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {(side.indicator === "Keltner Channel" || side.indicator === "Donchian Channel") && (
+              <div className="grid grid-cols-2 gap-1">
+                <div>
+                  <span className="text-xs">Period</span>
+                  <Input 
+                    type="text" 
+                    value={side.parameters?.period || '20'} 
+                    onChange={(e) => updateParameter("period", e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                {side.indicator === "Keltner Channel" && (
+                  <>
+                    <div>
+                      <span className="text-xs">ATR Period</span>
+                      <Input 
+                        type="text" 
+                        value={side.parameters?.atrPeriod || '10'} 
+                        onChange={(e) => updateParameter("atrPeriod", e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs">Multiplier</span>
+                      <Input 
+                        type="text" 
+                        value={side.parameters?.multiplier || '2'} 
+                        onChange={(e) => updateParameter("multiplier", e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            
+            {["Awesome Oscillator", "AccelerationOscillator"].includes(side.indicator || "") && (
+              <div className="grid grid-cols-2 gap-1">
+                <div>
+                  <span className="text-xs">Fast</span>
+                  <Input 
+                    type="text" 
+                    value={side.parameters?.fast || '5'} 
+                    onChange={(e) => updateParameter("fast", e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <span className="text-xs">Slow</span>
+                  <Input 
+                    type="text" 
+                    value={side.parameters?.slow || '34'} 
+                    onChange={(e) => updateParameter("slow", e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
             )}
             
             {side.indicator !== "MACD" && side.indicator !== "Bollinger Bands" && 
-             side.indicator !== "Stochastic" && side.indicator !== "Ichimoku Cloud" && (
+             side.indicator !== "Stochastic" && side.indicator !== "Stochastic RSI" && 
+             side.indicator !== "Ichimoku Cloud" && side.indicator !== "ATR" && 
+             side.indicator !== "SuperTrend" && side.indicator !== "Keltner Channel" && 
+             side.indicator !== "Donchian Channel" && side.indicator !== "Awesome Oscillator" && 
+             side.indicator !== "AccelerationOscillator" && (
               <div>
                 <span className="text-xs">Period</span>
                 <Input 

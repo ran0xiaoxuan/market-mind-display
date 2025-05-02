@@ -9,6 +9,26 @@ export type IndicatorParameters = {
   d?: string; // For Stochastic
   conversionPeriod?: string; // For Ichimoku
   basePeriod?: string; // For Ichimoku
+  laggingSpan?: string; // For Ichimoku
+  displacement?: string; // For Ichimoku
+  maType?: string; // Moving Average Type
+  length?: string; // Generic period parameter
+  multiplier?: string; // For ATR-based indicators
+  source?: string; // Price source (close, open, high, low)
+  upperDeviation?: string; // Upper deviation for bands
+  lowerDeviation?: string; // Lower deviation for bands
+  atrPeriod?: string; // ATR period for indicators like Keltner
+  channelPeriod?: string; // For channel indicators like Donchian
+  fastK?: string; // Fast %K for advanced stochastics
+  slowK?: string; // Slow %K for advanced stochastics
+  slowD?: string; // Slow %D for advanced stochastics
+  smoothK?: string; // Smoothing for K line
+  smoothD?: string; // Smoothing for D line
+  fastLength?: string; // Alternative naming for fast period
+  slowLength?: string; // Alternative naming for slow period
+  signalLength?: string; // Alternative naming for signal period
+  // Dynamic parameters for future indicators
+  [key: string]: string | undefined;
 };
 
 export type InequalitySide = {

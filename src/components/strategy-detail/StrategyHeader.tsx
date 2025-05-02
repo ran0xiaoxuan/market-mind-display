@@ -1,3 +1,4 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -136,7 +137,6 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
         </div>
       </div>
       
-      {/* Delete Confirmation Dialog - Fixed implementation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -147,23 +147,14 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
-              disabled={isDeleting}
-              onClick={() => {
-                if (!isDeleting) {
-                  setDeleteDialogOpen(false);
-                }
-              }}
-            >
+            <AlertDialogCancel disabled={isDeleting}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive hover:bg-destructive/90"
               onClick={(e) => {
-                e.preventDefault();
-                if (!isDeleting) {
-                  handleDeleteStrategy();
-                }
+                e.preventDefault(); // Prevent default action
+                handleDeleteStrategy();
               }}
               disabled={isDeleting}
             >

@@ -7,16 +7,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle 
-} from "@/components/ui/alert-dialog";
 import { deleteStrategy } from "@/services/strategyService";
 
 interface StrategyHeaderProps {
@@ -26,7 +16,6 @@ interface StrategyHeaderProps {
 
 export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps) => {
   const navigate = useNavigate();
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const handleDeleteStrategy = async () => {
@@ -48,7 +37,6 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
       });
     } finally {
       setIsDeleting(false);
-      setDeleteDialogOpen(false);
     }
   };
 
@@ -124,38 +112,17 @@ export const StrategyHeader = ({ strategyId, strategyName }: StrategyHeaderProps
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive" 
-                  onClick={() => setDeleteDialogOpen(true)}
+                  onClick={handleDeleteStrategy}
+                  disabled={isDeleting}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Strategy
+                  {isDeleting ? "Deleting..." : "Delete Strategy"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </ToggleGroup>
         </div>
       </div>
-      
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete strategy?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              strategy "{strategyName}" and all its associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={handleDeleteStrategy}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

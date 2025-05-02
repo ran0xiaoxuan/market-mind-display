@@ -4,6 +4,11 @@ export interface IndicatorParameters {
   fast?: string;
   slow?: string;
   signal?: string;
+  deviation?: string;
+  k?: string; 
+  d?: string;
+  conversionPeriod?: string;
+  basePeriod?: string;
 }
 
 export interface BacktestData {

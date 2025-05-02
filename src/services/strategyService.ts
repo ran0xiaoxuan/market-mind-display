@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -227,14 +228,16 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
         : {};
         
       // Create the inequality object with proper types
-      const inequality = {
+      const inequality: Inequality = {
         id: group.inequalities.length + 1,
         left: {
           type: rule.left_type,
           indicator: rule.left_indicator,
           parameters: leftParams,
-          // Safely access left_value with a fallback to undefined
-          value: (rule.left_type === 'value' || rule.left_type === 'price') && 'left_value' in rule ? rule.left_value : undefined,
+          // Safely access left_value with a fallback to undefined and ensure it's a string
+          value: (rule.left_type === 'value' || rule.left_type === 'price') && 'left_value' in rule 
+            ? String(rule.left_value || '') 
+            : undefined,
           // Use undefined for valueType if it doesn't exist in the database
           valueType: undefined
         },
@@ -243,7 +246,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
           type: rule.right_type,
           indicator: rule.right_indicator,
           parameters: rightParams,
-          value: rule.right_value,
+          value: rule.right_value ? String(rule.right_value) : undefined,
           // Use undefined for valueType if it doesn't exist in the database
           valueType: undefined
         },

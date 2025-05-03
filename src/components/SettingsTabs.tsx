@@ -1,5 +1,5 @@
 
-import { User, BarChart2 } from "lucide-react";
+import { User, Bell } from "lucide-react";
 
 type SettingsTab = "account" | "trading";
 
@@ -11,7 +11,7 @@ interface SettingsTabsProps {
 export function SettingsTabs({ activeTab, setActiveTab }: SettingsTabsProps) {
   const tabs = [
     { id: "account" as const, label: "Account", icon: <User className="h-4 w-4" /> },
-    { id: "trading" as const, label: "Trading", icon: <BarChart2 className="h-4 w-4" /> },
+    { id: "trading" as const, label: "Notifications", icon: <Bell className="h-4 w-4" /> },
   ];
 
   return (

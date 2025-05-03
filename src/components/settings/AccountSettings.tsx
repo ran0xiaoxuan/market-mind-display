@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Bell } from "lucide-react";
 
 export function AccountSettings() {
   const [name, setName] = useState("ranxiaoxuan");
@@ -37,14 +36,21 @@ export function AccountSettings() {
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs px-2 py-0.5">Free</Badge>
               </div>
-              <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
+              <Button variant="default" className="bg-purple-600 hover:bg-purple-700">Upgrade to Pro</Button>
             </div>
             
-            <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100">
-              <p className="text-amber-800 text-sm font-medium">Pro Plan feature:</p>
-              <div className="mt-2 text-amber-700 text-sm flex gap-2 items-center">
-                <CheckCircle className="h-4 w-4 text-amber-700" />
-                Live trading via API connection.
+            <div className="mt-4 p-4 bg-purple-50 rounded-md border border-purple-100 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Bell className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-purple-800 text-sm font-medium mb-2">Pro Plan Feature:</p>
+                  <p className="text-purple-700 text-sm">Get real-time trading signals delivered directly to your preferred platforms.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Email Notifications</Badge>
+                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Discord Alerts</Badge>
+                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Telegram Signals</Badge>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

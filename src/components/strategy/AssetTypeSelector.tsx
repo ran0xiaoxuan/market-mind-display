@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,10 +9,12 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
 import { popularStocks, popularCryptocurrencies } from "@/data/assetData";
+
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
+
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -77,12 +80,13 @@ export const AssetTypeSelector = ({
 
   // Search for assets with debounce
   const searchAssets = useCallback(debounce(async (query: string) => {
-    // Allow empty queries to show popular results
-    if (!query) {
-      setSearchResults(popularAssets);
+    // Only search if query is not empty
+    if (!query || query.trim() === "") {
+      setSearchResults([]);
       setIsLoading(false);
       return;
     }
+    
     setIsLoading(true);
     setIsSearchError(false);
     try {
@@ -101,6 +105,7 @@ export const AssetTypeSelector = ({
       const cryptoResults = await searchCryptocurrencies(query, apiKey || "");
       const combinedResults = [...stockResults, ...cryptoResults];
       setSearchResults(combinedResults);
+      
       if (combinedResults.length === 0 && query.length > 0 && !isSearchError) {
         toast({
           title: "No Results Found",
@@ -145,8 +150,8 @@ export const AssetTypeSelector = ({
           });
         }
 
-        // As a fallback, set popular assets
-        setSearchResults(popularAssets);
+        // Don't set popular assets as fallback anymore
+        setSearchResults([]);
       }
     } finally {
       setIsLoading(false);
@@ -158,7 +163,7 @@ export const AssetTypeSelector = ({
     setIsSearchError(false);
   }, [searchQuery]);
 
-  // Trigger search when query changes or search dialog opens
+  // Trigger search when query changes
   useEffect(() => {
     if (isSearchOpen) {
       searchAssets(searchQuery);
@@ -168,7 +173,8 @@ export const AssetTypeSelector = ({
   // Handle search dialog open
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
-    searchAssets(searchQuery);
+    // Don't auto-search on open anymore
+    setSearchResults([]);
   };
 
   // Select asset and close dialog
@@ -177,6 +183,7 @@ export const AssetTypeSelector = ({
     setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
   };
+  
   return <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Select Asset</h2>
       <p className="text-sm text-muted-foreground mb-4">Choose the asset you want to trade</p>
@@ -204,27 +211,46 @@ export const AssetTypeSelector = ({
           <DialogTitle className="sr-only">
             Search Assets
           </DialogTitle>
-          <CommandInput placeholder="Search for stocks or cryptocurrencies..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
+          <CommandInput 
+            placeholder="Type to search for stocks or cryptocurrencies..." 
+            value={searchQuery} 
+            onValueChange={setSearchQuery} 
+            autoFocus={true} 
+          />
           <CommandList>
             <CommandEmpty>
-              {isLoading ? <div className="flex items-center justify-center p-4">
+              {isLoading ? (
+                <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div> : <p className="p-4 text-center text-sm text-muted-foreground">
-                  No assets found.
-                </p>}
+                </div>
+              ) : searchQuery.trim() === "" ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  Type to search for assets
+                </p>
+              ) : (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  No assets found
+                </p>
+              )}
             </CommandEmpty>
-            <CommandGroup heading="Search Results">
-              {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
-                  <div className="flex flex-col">
-                    <span>{asset.symbol}</span>
-                    <span className="text-xs text-muted-foreground">{asset.name}</span>
-                  </div>
-                </CommandItem>)}
-            </CommandGroup>
+            {searchResults.length > 0 && (
+              <CommandGroup heading="Search Results">
+                {searchResults.map(asset => (
+                  <CommandItem 
+                    key={asset.symbol} 
+                    value={`${asset.symbol} ${asset.name}`} 
+                    onSelect={() => handleSelectAsset(asset)}
+                  >
+                    <div className="flex flex-col">
+                      <span>{asset.symbol}</span>
+                      <span className="text-xs text-muted-foreground">{asset.name}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </CommandDialog>
       </div>
-      
-      
     </Card>;
 };

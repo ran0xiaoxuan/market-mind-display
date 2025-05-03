@@ -4,9 +4,8 @@ import { Navbar } from "@/components/Navbar";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { AccountSettings } from "@/components/settings/AccountSettings";
 import { TradingSettings } from "@/components/settings/TradingSettings";
-import { NotificationSettings } from "@/components/settings/NotificationSettings";
 
-type SettingsTab = "account" | "notifications" | "trading";
+type SettingsTab = "account" | "trading";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
@@ -25,7 +24,6 @@ export default function Settings() {
           
           <div className="mt-10">
             {activeTab === "account" && <AccountSettings />}
-            {activeTab === "notifications" && <NotificationSettings />}
             {activeTab === "trading" && <TradingSettings />}
           </div>
         </div>

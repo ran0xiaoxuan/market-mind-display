@@ -21,10 +21,10 @@ interface NotificationPreferences {
 export function TradingSettings() {
   const [isLoading, setIsLoading] = useState(false);
   
-  // Form with default values
+  // Form with default values - all set to false for free users
   const form = useForm<NotificationPreferences>({
     defaultValues: {
-      email: true,
+      email: false,
       discord: false,
       telegram: false,
       discordWebhook: "",
@@ -238,7 +238,7 @@ export function TradingSettings() {
                     <p className="font-medium">Entry Signals</p>
                     <p className="text-sm text-muted-foreground">Notify when a new trade opportunity is detected</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch defaultChecked={false} />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -246,7 +246,7 @@ export function TradingSettings() {
                     <p className="font-medium">Exit Signals</p>
                     <p className="text-sm text-muted-foreground">Notify when a position should be closed</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch defaultChecked={false} />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -254,7 +254,7 @@ export function TradingSettings() {
                     <p className="font-medium">Stop Loss Alerts</p>
                     <p className="text-sm text-muted-foreground">Notify when stop loss is triggered</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch defaultChecked={false} />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ export function TradingSettings() {
                     <p className="font-medium">Take Profit Alerts</p>
                     <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch defaultChecked={false} />
                 </div>
               </div>
             </div>

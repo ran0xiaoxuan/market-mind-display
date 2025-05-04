@@ -176,6 +176,15 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
     // Log that we're about to make the API call
     console.log("Calling Bailian AI API...");
     
+    // Add DNS resolution check
+    try {
+      await Deno.resolveDns("api.bailian.tech", "A");
+      console.log("DNS resolution successful for api.bailian.tech");
+    } catch (dnsError) {
+      console.error("DNS resolution failed:", dnsError);
+      throw new Error("Network connectivity issue: Failed to resolve API hostname");
+    }
+    
     // Call the AI API with timeout
     const response = await fetch("https://api.bailian.tech/openapi/api/v1/text/generation", {
       method: "POST",
@@ -277,6 +286,15 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
       }
       
       throw new Error("Strategy generation timed out after multiple attempts");
+    }
+    
+    // Check if this is a network connectivity issue
+    if (error.message?.includes("Failed to fetch") || 
+        error.message?.includes("NetworkError") ||
+        error.message?.includes("Failed to resolve") ||
+        error.message?.includes("error sending request")) {
+      console.error("Network connectivity issue:", error);
+      throw new Error("Failed to connect to AI service. Please check your network connection.");
     }
     
     console.error(`Error generating strategy (attempt ${retryCount + 1}):`, error);
@@ -391,6 +409,12 @@ serve(async (req) => {
     } else if (errorMessage.includes("rate limit")) {
       statusCode = 429;
       errorCode = "RATE_LIMIT";
+    } else if (errorMessage.includes("Failed to connect") || 
+               errorMessage.includes("NetworkError") || 
+               errorMessage.includes("error sending request") ||
+               errorMessage.includes("Failed to resolve")) {
+      errorCode = "CONNECTION_ERROR";
+      errorMessage = "Failed to connect to AI service. Please check network connectivity.";
     }
     
     // Don't expose potential API keys or sensitive info in error messages

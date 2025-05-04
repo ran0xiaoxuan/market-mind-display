@@ -25,12 +25,14 @@ const AIStrategy = () => {
   const [usingFallback, setUsingFallback] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
   const [connectionChecked, setConnectionChecked] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<'success' | 'error' | 'checking' | null>(null);
   const navigate = useNavigate();
 
   // Check connection to Supabase and verify API key on component mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
+        setConnectionStatus('checking');
         // We'll just check if we can make a simple request to Supabase
         const { data, error } = await fetch('/api/health-check', { method: 'HEAD' })
           .then(res => ({ data: res.ok, error: null }))
@@ -39,11 +41,15 @@ const AIStrategy = () => {
         setConnectionChecked(true);
         
         if (error) {
+          setConnectionStatus('error');
           console.warn("Network connectivity issue detected:", error);
+        } else {
+          setConnectionStatus('success');
         }
       } catch (error) {
         console.error("Error checking connection:", error);
         setConnectionChecked(true);
+        setConnectionStatus('error');
       }
     };
     
@@ -94,13 +100,11 @@ const AIStrategy = () => {
       
       if (isFallback) {
         toast("Strategy generated with fallback", {
-          description: "We used our built-in template as the AI service was unavailable",
-          icon: <AlertTriangle className="h-4 w-4" />
+          description: "We used our built-in template as the AI service was unavailable"
         });
       } else {
         toast("Strategy generated", {
-          description: "AI has successfully generated a trading strategy based on your description",
-          icon: <CheckCircle2 className="h-4 w-4" />
+          description: "AI has successfully generated a trading strategy based on your description"
         });
       }
     } catch (error) {
@@ -122,9 +126,7 @@ const AIStrategy = () => {
       setError(errorMessage);
       
       toast("Failed to generate strategy", {
-        description: errorMessage,
-        // Remove the variant property as it's not supported in the ExternalToast type
-        // variant: "destructive"
+        description: errorMessage
       });
     } finally {
       setIsLoading(false);
@@ -183,6 +185,17 @@ const AIStrategy = () => {
                 Select your asset and describe your ideal trading strategy
               </p>
             </div>
+
+            {connectionStatus === 'error' && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Connection issue detected</AlertTitle>
+                <AlertDescription>
+                  There may be network connectivity issues that could affect AI strategy generation.
+                  The system will automatically use a fallback if needed.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <AssetTypeSelector
               selectedAsset={selectedAsset}
@@ -268,8 +281,19 @@ const AIStrategy = () => {
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 <AlertTitle>Using fallback template</AlertTitle>
                 <AlertDescription>
-                  We're using a template strategy as our AI service is currently unavailable.
-                  You can still customize this strategy after saving.
+                  We're using a template strategy because our AI service is currently unavailable.
+                  You can customize this strategy after saving or try again later.
+                  <div className="mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-amber-700 bg-amber-100 border-amber-300 hover:bg-amber-200"
+                      onClick={handleRegenerate}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Retry AI Generation
+                    </Button>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}

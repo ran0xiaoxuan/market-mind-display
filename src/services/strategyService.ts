@@ -427,7 +427,6 @@ export const generateStrategy = async (
   
   try {
     // Call the Supabase Edge Function to generate strategy using Bailian AI
-    console.log("Invoking Supabase Edge Function: generate-strategy");
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: { 
         assetType, 
@@ -442,17 +441,13 @@ export const generateStrategy = async (
     }
     
     if (!data) {
-      console.error("No data returned from strategy generation service");
       throw new Error("No data returned from strategy generation service");
     }
     
     console.log("Strategy generated successfully:", data);
     
-    // Validate the received data
-    validateStrategyData(data);
-    
-    // Return the validated strategy data
-    return {
+    // Ensure data has the required structure
+    const strategy: GeneratedStrategy = {
       name: data.name || `${selectedAsset} Trading Strategy`,
       description: data.description || strategyDescription,
       market: data.market || (assetType === "stocks" ? "Equities" : "Crypto"),
@@ -467,49 +462,21 @@ export const generateStrategy = async (
         maxBuyVolume: data.riskManagement?.maxBuyVolume || "10000"
       }
     };
+    
+    return strategy;
   } catch (error) {
     console.error("Error generating strategy:", error);
-    console.warn("Using fallback mock strategy data due to error:", error);
     
     // Provide fallback mock data if the API call fails
+    console.warn("Using fallback mock strategy data due to error:", error);
+    
     return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
   }
 };
 
-// Helper function to validate strategy data received from the API
-function validateStrategyData(data: any): void {
-  // Check for required properties
-  const requiredProps = ['name', 'market', 'timeframe'];
-  const missingProps = requiredProps.filter(prop => !data[prop]);
-  
-  if (missingProps.length > 0) {
-    console.error("Strategy data is missing required properties:", missingProps);
-    throw new Error(`Strategy data is missing required properties: ${missingProps.join(', ')}`);
-  }
-  
-  // Check for entry and exit rules
-  if (!Array.isArray(data.entryRules) || data.entryRules.length === 0) {
-    console.error("Strategy data is missing valid entryRules");
-    throw new Error("Strategy data is missing valid entryRules");
-  }
-  
-  if (!Array.isArray(data.exitRules) || data.exitRules.length === 0) {
-    console.error("Strategy data is missing valid exitRules");
-    throw new Error("Strategy data is missing valid exitRules");
-  }
-  
-  // Check if risk management data exists
-  if (!data.riskManagement) {
-    console.error("Strategy data is missing riskManagement section");
-    throw new Error("Strategy data is missing riskManagement section");
-  }
-}
-
 // Helper function to ensure rule groups are properly formatted
 function ensureRuleGroups(rules: any[]): RuleGroupData[] {
   if (!rules || !Array.isArray(rules) || rules.length === 0) {
-    console.warn("No valid rule groups provided, using default rule groups");
-    
     // Create default rule groups if none provided
     return [
       {
@@ -557,78 +524,36 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
     ];
   }
   
-  console.log(`Processing ${rules.length} rule groups`);
-  
   // Ensure each rule group has required fields
   return rules.map((group, index) => {
-    if (!group) {
-      console.warn(`Rule group at index ${index} is undefined, creating default group`);
-      return {
-        id: index + 1,
-        logic: "AND",
-        inequalities: []
-      };
-    }
-    
-    // Validate and provide defaults for the group data
-    const processedGroup = {
+    return {
       id: group.id || index + 1,
       logic: group.logic || "AND",
       requiredConditions: group.logic === "OR" ? (group.requiredConditions || 1) : undefined,
-      inequalities: Array.isArray(group.inequalities) ? group.inequalities.map((ineq: any, i: number) => {
-        if (!ineq) {
-          console.warn(`Inequality at index ${i} in group ${index} is undefined, creating default inequality`);
-          return {
-            id: i + 1,
-            left: {
-              type: "indicator",
-              indicator: "SMA",
-              parameters: { period: "20" }
-            },
-            condition: "Crosses Above",
-            right: {
-              type: "value",
-              value: "0"
-            },
-            explanation: "Default rule created due to missing data"
-          };
-        }
-        
-        return {
-          id: ineq.id || i + 1,
-          left: {
-            type: ineq.left?.type || "indicator",
-            indicator: ineq.left?.indicator,
-            parameters: ineq.left?.parameters,
-            value: ineq.left?.value
-          },
-          condition: ineq.condition || "Crosses Above",
-          right: {
-            type: ineq.right?.type || "value",
-            indicator: ineq.right?.indicator,
-            parameters: ineq.right?.parameters,
-            value: ineq.right?.value || "0"
-          },
-          explanation: ineq.explanation || ""
-        };
-      }) : []
+      inequalities: Array.isArray(group.inequalities) ? group.inequalities.map((ineq, i) => ({
+        id: ineq.id || i + 1,
+        left: {
+          type: ineq.left?.type || "indicator",
+          indicator: ineq.left?.indicator,
+          parameters: ineq.left?.parameters,
+          value: ineq.left?.value
+        },
+        condition: ineq.condition || "Crosses Above",
+        right: {
+          type: ineq.right?.type || "value",
+          indicator: ineq.right?.indicator,
+          parameters: ineq.right?.parameters,
+          value: ineq.right?.value || "0"
+        },
+        explanation: ineq.explanation || ""
+      })) : []
     };
-    
-    // Log if group has no inequalities
-    if (processedGroup.inequalities.length === 0) {
-      console.warn(`Group ${index} has no inequalities, this may cause rendering issues`);
-    }
-    
-    return processedGroup;
   });
 }
 
 // Generate a fallback strategy when AI service fails
 function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", selectedAsset: string, strategyDescription: string): GeneratedStrategy {
   console.log("Generating fallback strategy", { assetType, selectedAsset, strategyDescription });
-  
-  const strategyName = `${selectedAsset || (assetType === "stocks" ? "Stock" : "Crypto")} Trading Strategy`;
-  console.log(`Using fallback strategy name: ${strategyName}`);
   
   const andGroup: RuleGroupData = {
     id: 1,
@@ -675,7 +600,7 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
   };
 
   return {
-    name: strategyName,
+    name: `${selectedAsset || assetType} Trading Strategy`,
     description: `${strategyDescription} (Fallback data due to AI service error)`,
     market: assetType === "stocks" ? "Equities" : "Crypto",
     timeframe: "Daily",

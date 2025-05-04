@@ -5,13 +5,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Define the function that will generate strategies based on AI input
 const generateStrategy = async (assetType: string, selectedAsset: string, strategyDescription: string) => {
-  console.log("Starting generateStrategy function with:", { assetType, selectedAsset, strategyDescription });
-  
   const BAILIAN_API_KEY = Deno.env.get("BAILIAN_API_KEY");
   
   if (!BAILIAN_API_KEY) {
-    console.error("BAILIAN_API_KEY environment variable is not set");
-    throw new Error("API key configuration error: BAILIAN_API_KEY is not set");
+    throw new Error("BAILIAN_API_KEY is not set");
   }
   
   // Create a careful, structured prompt for the AI
@@ -161,8 +158,6 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   `;
 
   try {
-    console.log("Calling Bailian AI API...");
-    
     // Call the AI API
     const response = await fetch("https://api.bailian.tech/openapi/api/v1/text/generation", {
       method: "POST",
@@ -184,51 +179,34 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("AI API Error Response Status:", response.status);
-      console.error("AI API Error Response Body:", errorData);
+      console.error("AI API Error:", errorData);
       throw new Error(`API Error: ${response.status} - ${errorData}`);
     }
 
-    console.log("Received successful response from Bailian AI");
     const data = await response.json();
+    console.log("AI API Response:", JSON.stringify(data));
     
     // Extract the content from the response
     const content = data.result || "";
-    console.log("AI response content preview:", content.substring(0, 200) + "...");
     
     // Extract the JSON from the content
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("No valid JSON found in AI response:", content);
       throw new Error("No valid JSON found in the AI response");
     }
     
-    try {
-      const strategyJson = JSON.parse(jsonMatch[0]);
-      console.log("Successfully parsed strategy JSON");
-      
-      // Validate the required fields
-      if (!strategyJson.name || !strategyJson.market || !strategyJson.timeframe) {
-        console.error("Strategy JSON is missing required fields:", strategyJson);
-        throw new Error("Generated strategy is missing required fields");
-      }
-      
-      return strategyJson;
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      console.error("Raw JSON content:", jsonMatch[0]);
-      throw new Error("Failed to parse JSON from AI response");
-    }
+    const strategyJson = JSON.parse(jsonMatch[0]);
+    console.log("Parsed strategy:", JSON.stringify(strategyJson));
+    
+    return strategyJson;
   } catch (error) {
-    console.error("Error in generateStrategy function:", error);
+    console.error("Error generating strategy:", error);
     throw error;
   }
 };
 
 // Define the serving function for the edge function
 serve(async (req) => {
-  console.log("Edge function request received:", req.method);
-  
   // Set CORS headers for browser clients
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -238,7 +216,6 @@ serve(async (req) => {
 
   // Handle OPTIONS request
   if (req.method === "OPTIONS") {
-    console.log("Responding to OPTIONS request with CORS headers");
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
@@ -247,7 +224,6 @@ serve(async (req) => {
   
   // Only accept POST requests
   if (req.method !== "POST") {
-    console.error(`Invalid request method: ${req.method}`);
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -257,22 +233,12 @@ serve(async (req) => {
   try {
     // Parse request body
     const requestData = await req.json();
-    console.log("Request data:", requestData);
-    
     const { assetType, selectedAsset, strategyDescription } = requestData;
     
     // Validate input
     if (!assetType || !selectedAsset || !strategyDescription) {
-      console.error("Missing required parameters:", { assetType, selectedAsset, strategyDescription });
       return new Response(
-        JSON.stringify({ 
-          error: "Missing required parameters",
-          details: {
-            assetType: assetType ? "✓" : "✗",
-            selectedAsset: selectedAsset ? "✓" : "✗",
-            strategyDescription: strategyDescription ? "✓" : "✗"
-          }
-        }),
+        JSON.stringify({ error: "Missing required parameters" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -283,7 +249,6 @@ serve(async (req) => {
     // Generate strategy
     console.log("Generating strategy for:", { assetType, selectedAsset, strategyDescription });
     const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
-    console.log("Strategy generated successfully");
     
     // Return the generated strategy
     return new Response(JSON.stringify(strategy), {
@@ -293,11 +258,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in edge function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Unknown error occurred",
-        timestamp: new Date().toISOString(),
-        path: "generate-strategy"
-      }),
+      JSON.stringify({ error: error.message || "Unknown error occurred" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,7 +1,6 @@
 
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
-import { ModeToggle } from "./ModeToggle";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -12,9 +11,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="p-4 border-b flex items-center justify-between">
+      <header className="p-4 border-b">
         <Logo />
-        <ModeToggle />
       </header>
       
       <main className="flex-1 flex items-center justify-center p-4">

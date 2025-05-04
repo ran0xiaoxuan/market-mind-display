@@ -167,6 +167,15 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
     
+    // Check API key length to validate it's potentially valid (simple validation)
+    if (BAILIAN_API_KEY.length < 10) {
+      console.error("BAILIAN_API_KEY appears to be invalid (too short)");
+      throw new Error("API configuration error: Invalid API key format");
+    }
+    
+    // Log that we're about to make the API call
+    console.log("Calling Bailian AI API...");
+    
     // Call the AI API with timeout
     const response = await fetch("https://api.bailian.tech/openapi/api/v1/text/generation", {
       method: "POST",
@@ -188,6 +197,9 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
     });
     
     clearTimeout(timeoutId);
+    
+    // Log response status
+    console.log(`AI API response status: ${response.status}`);
 
     // Check for HTTP errors
     if (!response.ok) {
@@ -223,7 +235,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
       console.warn("Warning: API returned unusually short content:", content);
     }
     
-    // Extract the JSON from the content
+    // Try to extract a JSON object from the content
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error("No valid JSON found in the AI response:", content);
@@ -280,7 +292,7 @@ serve(async (req) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
   };
 
   // Handle OPTIONS request
@@ -369,7 +381,7 @@ serve(async (req) => {
     
     // Extract and sanitize the error message
     let errorMessage = error.message || "Unknown error occurred";
-    const errorCode = error.code || "UNKNOWN_ERROR";
+    let errorCode = error.code || "UNKNOWN_ERROR";
     
     // Determine appropriate status code based on error
     let statusCode = 500;

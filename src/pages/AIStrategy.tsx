@@ -24,7 +24,31 @@ const AIStrategy = () => {
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [connectionChecked, setConnectionChecked] = useState<boolean>(false);
   const navigate = useNavigate();
+
+  // Check connection to Supabase and verify API key on component mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        // We'll just check if we can make a simple request to Supabase
+        const { data, error } = await fetch('/api/health-check', { method: 'HEAD' })
+          .then(res => ({ data: res.ok, error: null }))
+          .catch(err => ({ data: null, error: err }));
+        
+        setConnectionChecked(true);
+        
+        if (error) {
+          console.warn("Network connectivity issue detected:", error);
+        }
+      } catch (error) {
+        console.error("Error checking connection:", error);
+        setConnectionChecked(true);
+      }
+    };
+    
+    checkConnection();
+  }, []);
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
@@ -59,9 +83,16 @@ const AIStrategy = () => {
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
       
       setGeneratedStrategy(strategy);
-      setUsingFallback(strategy.description.includes("Fallback") || strategy.description.includes("fallback"));
+      // Check if this is a fallback strategy based on the description or name
+      const isFallback = 
+        strategy.description.includes("Fallback") || 
+        strategy.description.includes("fallback") ||
+        strategy.name.includes("[AI Unavailable]") ||
+        strategy.description.includes("AI service currently unavailable");
+        
+      setUsingFallback(isFallback);
       
-      if (usingFallback) {
+      if (isFallback) {
         toast("Strategy generated with fallback", {
           description: "We used our built-in template as the AI service was unavailable",
           icon: <AlertTriangle className="h-4 w-4" />
@@ -84,6 +115,8 @@ const AIStrategy = () => {
         errorMessage = "AI service is currently busy. Please try again in a few minutes.";
       } else if (error.message?.includes("timed out")) {
         errorMessage = "Request timed out. Please try again or use a shorter description.";
+      } else if (error.message?.includes("Failed to connect")) {
+        errorMessage = "Connection issue. Please check your internet connection and try again.";
       }
       
       setError(errorMessage);

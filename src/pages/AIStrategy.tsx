@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
@@ -8,10 +8,11 @@ import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AIStrategy = () => {
   const { user } = useAuth();
@@ -20,10 +21,21 @@ const AIStrategy = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState<number>(0);
   const navigate = useNavigate();
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
+    // Clear any previous errors when user makes changes
+    setError(null);
+  };
+
+  const handleDescriptionChange = (description: string) => {
+    setStrategyDescription(description);
+    // Clear any previous errors when user makes changes
+    setError(null);
   };
 
   const handleGenerateStrategy = async () => {
@@ -34,23 +46,60 @@ const AIStrategy = () => {
       return;
     }
 
+    // Reset state
     setIsLoading(true);
+    setError(null);
+    setUsingFallback(false);
+    
     try {
       // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
       const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
+      console.log(`Generating strategy for ${assetType}: ${selectedAsset}`);
+      
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
+      
       setGeneratedStrategy(strategy);
-      toast("Strategy generated", {
-        description: "AI has successfully generated a trading strategy based on your description"
-      });
+      setUsingFallback(strategy.description.includes("Fallback") || strategy.description.includes("fallback"));
+      
+      if (usingFallback) {
+        toast("Strategy generated with fallback", {
+          description: "We used our built-in template as the AI service was unavailable",
+          icon: <AlertTriangle className="h-4 w-4" />
+        });
+      } else {
+        toast("Strategy generated", {
+          description: "AI has successfully generated a trading strategy based on your description",
+          icon: <CheckCircle2 className="h-4 w-4" />
+        });
+      }
     } catch (error) {
       console.error("Error generating strategy:", error);
+      
+      // Set human-readable error message
+      let errorMessage = "Please try again with a different description";
+      
+      if (error.message?.includes("API key") || error.message?.includes("authentication")) {
+        errorMessage = "AI service authentication issue. Please contact support.";
+      } else if (error.message?.includes("rate limit")) {
+        errorMessage = "AI service is currently busy. Please try again in a few minutes.";
+      } else if (error.message?.includes("timed out")) {
+        errorMessage = "Request timed out. Please try again or use a shorter description.";
+      }
+      
+      setError(errorMessage);
+      
       toast("Failed to generate strategy", {
-        description: "Please try again with a different description"
+        description: errorMessage,
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRegenerate = () => {
+    setRetryCount(prev => prev + 1);
+    handleGenerateStrategy();
   };
 
   const handleSaveStrategy = async () => {
@@ -84,6 +133,8 @@ const AIStrategy = () => {
   const handleReset = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
+    setError(null);
+    setUsingFallback(false);
   };
 
   return (
@@ -106,14 +157,22 @@ const AIStrategy = () => {
 
             <StrategyDescription
               description={strategyDescription}
-              onDescriptionChange={setStrategyDescription}
+              onDescriptionChange={handleDescriptionChange}
             />
+
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Generation failed</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="flex justify-end">
               <Button
                 className="w-full"
                 onClick={handleGenerateStrategy}
-                disabled={isLoading || !strategyDescription}
+                disabled={isLoading || !strategyDescription || !selectedAsset}
               >
                 {isLoading ? (
                   <>
@@ -130,13 +189,26 @@ const AIStrategy = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  className="mb-4"
-                >
-                  Generate Another Strategy
-                </Button>
+                <div className="flex items-center gap-2 mb-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleReset}
+                  >
+                    Generate Another Strategy
+                  </Button>
+                  
+                  {usingFallback && (
+                    <Button
+                      variant="secondary"
+                      onClick={handleRegenerate}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Retry with AI
+                    </Button>
+                  )}
+                </div>
+                
                 <h1 className="text-3xl font-bold">{generatedStrategy.name}</h1>
                 <p className="text-muted-foreground mt-2">
                   {generatedStrategy.description}
@@ -156,6 +228,17 @@ const AIStrategy = () => {
                 )}
               </Button>
             </div>
+
+            {usingFallback && (
+              <Alert className="mb-6 bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <AlertTitle>Using fallback template</AlertTitle>
+                <AlertDescription>
+                  We're using a template strategy as our AI service is currently unavailable.
+                  You can still customize this strategy after saving.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Card className="p-6 mb-6">
               <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>

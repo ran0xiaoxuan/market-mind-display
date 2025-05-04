@@ -426,6 +426,8 @@ export const generateStrategy = async (
   console.log("Generating strategy with AI service...", { assetType, selectedAsset, strategyDescription });
   
   try {
+    console.time("strategy-generation");
+    
     // Call the Supabase Edge Function to generate strategy using Bailian AI
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: { 
@@ -435,13 +437,36 @@ export const generateStrategy = async (
       }
     });
     
+    console.timeEnd("strategy-generation");
+    
     if (error) {
       console.error("Error calling generate-strategy function:", error);
+      
+      // Error categorization for better analytics and user feedback
+      let errorCode = "UNKNOWN_ERROR";
+      if (error.message?.includes("timed out")) {
+        errorCode = "TIMEOUT_ERROR";
+      } else if (error.message?.includes("rate limit")) {
+        errorCode = "RATE_LIMIT_ERROR";
+      } else if (error.status === 401 || error.status === 403) {
+        errorCode = "AUTH_ERROR";
+      }
+      
+      // Log detailed error for monitoring
+      console.error(`Strategy generation failed [${errorCode}]:`, error);
+      
       throw new Error(`Failed to generate strategy: ${error.message}`);
     }
     
     if (!data) {
+      console.error("No data returned from strategy generation service");
       throw new Error("No data returned from strategy generation service");
+    }
+    
+    // Check if data has the expected structure
+    if (!data.name || !data.market || !data.timeframe) {
+      console.error("Incomplete data structure returned:", data);
+      throw new Error("Invalid strategy format returned from service");
     }
     
     console.log("Strategy generated successfully:", data);
@@ -467,8 +492,14 @@ export const generateStrategy = async (
   } catch (error) {
     console.error("Error generating strategy:", error);
     
-    // Provide fallback mock data if the API call fails
-    console.warn("Using fallback mock strategy data due to error:", error);
+    // Check if we can retry
+    if (error.message?.includes("timed out") || error.message?.includes("rate limit")) {
+      // In a more complex implementation, we could add retry logic here
+      console.warn("Strategy generation error that might benefit from retry:", error);
+    }
+    
+    // Provide fallback mock data if the API call fails - with clear notification this is a fallback
+    console.warn("Using fallback strategy data due to error:", error);
     
     return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
   }
@@ -555,6 +586,9 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
 function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", selectedAsset: string, strategyDescription: string): GeneratedStrategy {
   console.log("Generating fallback strategy", { assetType, selectedAsset, strategyDescription });
   
+  const isCrypto = assetType === "cryptocurrency";
+  
+  // Make the fallback strategy more specific based on input
   const andGroup: RuleGroupData = {
     id: 1,
     logic: "AND",
@@ -577,6 +611,7 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
     ]
   };
 
+  // Add more suitable indicators based on asset type
   const orGroup: RuleGroupData = {
     id: 2,
     logic: "OR",
@@ -592,19 +627,45 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
         condition: "Less Than",
         right: {
           type: "value",
-          value: "30"
+          value: isCrypto ? "35" : "30" // Crypto tends to be more volatile
         },
-        explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity."
+        explanation: `RSI below ${isCrypto ? "35" : "30"} indicates an oversold condition, suggesting a potential buying opportunity.`
+      },
+      {
+        id: 2,
+        left: {
+          type: "indicator",
+          indicator: isCrypto ? "MACD" : "Stochastic",
+          parameters: isCrypto ? 
+            { fast: "12", slow: "26", signal: "9" } : 
+            { k: "14", d: "3", slowing: "3" }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "value",
+          value: isCrypto ? "0" : "20"
+        },
+        explanation: isCrypto ? 
+          "MACD crossing above zero indicates a potential shift in momentum to the upside." :
+          "Stochastic crossing above 20 from oversold territory can signal an upcoming bullish move."
       }
     ]
   };
 
+  // Custom risk parameters based on asset type
+  const riskParams = {
+    stopLoss: isCrypto ? "8" : "5", // Wider stop for crypto
+    takeProfit: isCrypto ? "20" : "15", // Higher target for crypto
+    singleBuyVolume: "2000",
+    maxBuyVolume: "10000"
+  };
+
   return {
-    name: `${selectedAsset || assetType} Trading Strategy`,
-    description: `${strategyDescription} (Fallback data due to AI service error)`,
-    market: assetType === "stocks" ? "Equities" : "Crypto",
+    name: `${selectedAsset} ${isCrypto ? "Cryptocurrency" : "Stock"} Trading Strategy [Fallback]`,
+    description: `A basic ${isCrypto ? "cryptocurrency" : "stock"} trading strategy for ${selectedAsset} based on moving averages and ${isCrypto ? "momentum" : "oscillator"} indicators. (Fallback template due to AI service being unavailable)`,
+    market: isCrypto ? "Cryptocurrency" : "Equities",
     timeframe: "Daily",
-    targetAsset: selectedAsset || undefined,
+    targetAsset: selectedAsset,
     entryRules: [andGroup, orGroup],
     exitRules: [
       {
@@ -643,19 +704,27 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
             condition: "Greater Than",
             right: {
               type: "value",
-              value: "70"
+              value: isCrypto ? "75" : "70"
             },
-            explanation: "RSI above 70 indicates an overbought condition, suggesting it's time to take profits."
+            explanation: `RSI above ${isCrypto ? "75" : "70"} indicates an overbought condition, suggesting it's time to take profits.`
+          },
+          {
+            id: 2,
+            left: {
+              type: "price",
+              value: "Close"
+            },
+            condition: "Less Than",
+            right: {
+              type: "value",
+              value: "Stop Loss"
+            },
+            explanation: "Exit position if price closes below the stop loss threshold to manage risk."
           }
         ]
       }
     ],
-    riskManagement: {
-      stopLoss: "5",
-      takeProfit: "15",
-      singleBuyVolume: "2000",
-      maxBuyVolume: "10000"
-    }
+    riskManagement: riskParams
   };
 }
 

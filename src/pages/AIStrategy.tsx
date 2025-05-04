@@ -90,7 +90,8 @@ const AIStrategy = () => {
       
       toast("Failed to generate strategy", {
         description: errorMessage,
-        variant: "destructive"
+        // Remove the variant property as it's not supported in the ExternalToast type
+        // variant: "destructive"
       });
     } finally {
       setIsLoading(false);

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality, RuleGroup, TradingRule, IndicatorParameters } from "@/components/strategy-detail/types";
 
@@ -427,15 +426,8 @@ export const generateStrategy = async (
   console.log("Generating strategy with AI service...", { assetType, selectedAsset, strategyDescription });
   
   try {
-    console.time("strategy-generation");
-    
-    // Add a local timeout to prevent hanging requests
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Request timed out after 20 seconds")), 20000);
-    });
-
     // Call the Supabase Edge Function to generate strategy using Bailian AI
-    const functionCallPromise = supabase.functions.invoke('generate-strategy', {
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: { 
         assetType, 
         selectedAsset, 
@@ -443,47 +435,13 @@ export const generateStrategy = async (
       }
     });
     
-    // Race between the function call and timeout
-    const { data, error } = await Promise.race([functionCallPromise, timeoutPromise]) as any;
-    
-    console.timeEnd("strategy-generation");
-    
     if (error) {
       console.error("Error calling generate-strategy function:", error);
-      
-      // Enhanced error categorization for better analytics and user feedback
-      let errorCode = "UNKNOWN_ERROR";
-      let errorMessage = error.message || "An unknown error occurred";
-      
-      if (errorMessage.includes("timed out") || errorMessage === "Request timed out after 20 seconds") {
-        errorCode = "TIMEOUT_ERROR";
-        errorMessage = "The request timed out. Please try again with a shorter description.";
-      } else if (errorMessage.includes("rate limit")) {
-        errorCode = "RATE_LIMIT_ERROR";
-        errorMessage = "AI service is currently busy. Please try again in a few minutes.";
-      } else if (error.status === 401 || error.status === 403 || errorMessage.includes("authentication")) {
-        errorCode = "AUTH_ERROR";
-        errorMessage = "AI service authentication issue. Please contact support.";
-      } else if (errorMessage.includes("Failed to send") || errorMessage.includes("Failed to fetch")) {
-        errorCode = "CONNECTION_ERROR";
-        errorMessage = "Failed to connect to the AI service. Please check your internet connection and try again.";
-      }
-      
-      // Log detailed error for monitoring with the error code
-      console.error(`Strategy generation failed [${errorCode}]:`, error);
-      
-      throw new Error(`Failed to generate strategy: ${errorMessage}`);
+      throw new Error(`Failed to generate strategy: ${error.message}`);
     }
     
     if (!data) {
-      console.error("No data returned from strategy generation service");
       throw new Error("No data returned from strategy generation service");
-    }
-    
-    // Check if data has the expected structure
-    if (!data.name || !data.market || !data.timeframe) {
-      console.error("Incomplete data structure returned:", data);
-      throw new Error("Invalid strategy format returned from service");
     }
     
     console.log("Strategy generated successfully:", data);
@@ -509,23 +467,8 @@ export const generateStrategy = async (
   } catch (error) {
     console.error("Error generating strategy:", error);
     
-    // Check if we can retry automatically for specific errors
-    const errorMsg = error.message || "";
-    if ((errorMsg.includes("timed out") || errorMsg.includes("CONNECTION_ERROR") || errorMsg.includes("Failed to fetch")) && !errorMsg.includes("after multiple attempts")) {
-      console.warn("Attempting to retry strategy generation due to connection issue");
-      try {
-        // Wait a moment before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Generate a fallback strategy instead of retrying to improve user experience
-        return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
-      } catch (retryError) {
-        console.error("Retry also failed:", retryError);
-      }
-    }
-    
-    // Provide fallback mock data if the API call fails - with clear notification this is a fallback
-    console.warn("Using fallback strategy data due to error:", error);
+    // Provide fallback mock data if the API call fails
+    console.warn("Using fallback mock strategy data due to error:", error);
     
     return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
   }
@@ -612,12 +555,6 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
 function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", selectedAsset: string, strategyDescription: string): GeneratedStrategy {
   console.log("Generating fallback strategy", { assetType, selectedAsset, strategyDescription });
   
-  const isCrypto = assetType === "cryptocurrency";
-  
-  // Create a more descriptive fallback strategy name to clearly indicate it's a fallback
-  const strategyName = `${selectedAsset} ${isCrypto ? "Cryptocurrency" : "Stock"} Strategy [AI Unavailable]`;
-  
-  // Make the fallback strategy more specific based on input
   const andGroup: RuleGroupData = {
     id: 1,
     logic: "AND",
@@ -640,33 +577,6 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
     ]
   };
 
-  // Try to parse the strategy description for keywords to make the fallback more relevant
-  let rsiThreshold = isCrypto ? "35" : "30";
-  let useMACD = false;
-  let useBollingerBands = false;
-  
-  // Simple keyword matching to customize the fallback strategy
-  if (strategyDescription) {
-    const lowerDesc = strategyDescription.toLowerCase();
-    if (lowerDesc.includes("rsi")) {
-      // Strategy specifically mentioned RSI
-      if (lowerDesc.includes("rsi") && lowerDesc.match(/\brsi\D*(\d+)/)) {
-        const match = lowerDesc.match(/\brsi\D*(\d+)/);
-        if (match && match[1]) {
-          const value = parseInt(match[1]);
-          if (value > 0 && value < 50) {
-            rsiThreshold = match[1];
-          }
-        }
-      }
-    }
-    
-    // Check for other indicators
-    useMACD = lowerDesc.includes("macd");
-    useBollingerBands = lowerDesc.includes("bollinger");
-  }
-
-  // Add more suitable indicators based on asset type and user description
   const orGroup: RuleGroupData = {
     id: 2,
     logic: "OR",
@@ -682,63 +592,19 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
         condition: "Less Than",
         right: {
           type: "value",
-          value: rsiThreshold
+          value: "30"
         },
-        explanation: `RSI below ${rsiThreshold} indicates an oversold condition, suggesting a potential buying opportunity.`
+        explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity."
       }
     ]
   };
-  
-  // Add MACD if mentioned or for crypto
-  if (useMACD || isCrypto) {
-    orGroup.inequalities.push({
-      id: orGroup.inequalities.length + 1,
-      left: {
-        type: "indicator",
-        indicator: "MACD",
-        parameters: { fast: "12", slow: "26", signal: "9" }
-      },
-      condition: "Crosses Above",
-      right: {
-        type: "value",
-        value: "0"
-      },
-      explanation: "MACD crossing above zero indicates a potential shift in momentum to the upside."
-    });
-  }
-  
-  // Add Bollinger Bands if mentioned
-  if (useBollingerBands) {
-    orGroup.inequalities.push({
-      id: orGroup.inequalities.length + 1,
-      left: {
-        type: "price",
-        value: "Close"
-      },
-      condition: "Less Than",
-      right: {
-        type: "indicator",
-        indicator: "Bollinger Bands",
-        parameters: { period: "20", stdDev: "2" }
-      },
-      explanation: "Price touching the lower Bollinger Band may indicate an oversold condition and potential reversal point."
-    });
-  }
-
-  // Custom risk parameters based on asset type
-  const riskParams = {
-    stopLoss: isCrypto ? "8" : "5", // Wider stop for crypto
-    takeProfit: isCrypto ? "20" : "15", // Higher target for crypto
-    singleBuyVolume: "2000",
-    maxBuyVolume: "10000"
-  };
 
   return {
-    name: strategyName,
-    description: `A basic ${isCrypto ? "cryptocurrency" : "stock"} trading strategy for ${selectedAsset} based on ${useMACD ? "MACD, " : ""}${useBollingerBands ? "Bollinger Bands, " : ""}moving averages and oscillator indicators. (Fallback template - AI service currently unavailable)`,
-    market: isCrypto ? "Cryptocurrency" : "Equities",
+    name: `${selectedAsset || assetType} Trading Strategy`,
+    description: `${strategyDescription} (Fallback data due to AI service error)`,
+    market: assetType === "stocks" ? "Equities" : "Crypto",
     timeframe: "Daily",
-    targetAsset: selectedAsset,
+    targetAsset: selectedAsset || undefined,
     entryRules: [andGroup, orGroup],
     exitRules: [
       {
@@ -777,27 +643,19 @@ function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", select
             condition: "Greater Than",
             right: {
               type: "value",
-              value: isCrypto ? "75" : "70"
+              value: "70"
             },
-            explanation: `RSI above ${isCrypto ? "75" : "70"} indicates an overbought condition, suggesting it's time to take profits.`
-          },
-          {
-            id: 2,
-            left: {
-              type: "price",
-              value: "Close"
-            },
-            condition: "Less Than",
-            right: {
-              type: "value",
-              value: "Stop Loss"
-            },
-            explanation: "Exit position if price closes below the stop loss threshold to manage risk."
+            explanation: "RSI above 70 indicates an overbought condition, suggesting it's time to take profits."
           }
         ]
       }
     ],
-    riskManagement: riskParams
+    riskManagement: {
+      stopLoss: "5",
+      takeProfit: "15",
+      singleBuyVolume: "2000",
+      maxBuyVolume: "10000"
+    }
   };
 }
 

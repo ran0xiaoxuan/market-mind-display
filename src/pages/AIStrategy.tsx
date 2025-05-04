@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
@@ -8,10 +8,11 @@ import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const AIStrategy = () => {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ const AIStrategy = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isUsingFallback, setIsUsingFallback] = useState<boolean>(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleAssetSelect = (symbol: string) => {
@@ -34,17 +37,34 @@ const AIStrategy = () => {
       return;
     }
 
+    // Reset states
     setIsLoading(true);
+    setGenerationError(null);
+    setIsUsingFallback(false);
+
     try {
+      console.log("Starting strategy generation for:", { asset: selectedAsset, description: strategyDescription });
+      
       // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
       const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
+      console.log(`Determined asset type: ${assetType}`);
+      
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
+      console.log("Strategy generation result:", strategy);
+      
+      // Check if we're using fallback data (this is set in the service)
+      if (strategy.description?.includes('Fallback data')) {
+        console.log("Using fallback data due to API service error");
+        setIsUsingFallback(true);
+      }
+      
       setGeneratedStrategy(strategy);
       toast("Strategy generated", {
         description: "AI has successfully generated a trading strategy based on your description"
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
+      setGenerationError(error instanceof Error ? error.message : "Unknown error occurred");
       toast("Failed to generate strategy", {
         description: "Please try again with a different description"
       });
@@ -84,7 +104,16 @@ const AIStrategy = () => {
   const handleReset = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
+    setGenerationError(null);
+    setIsUsingFallback(false);
   };
+
+  // Log current state for debugging
+  useEffect(() => {
+    if (generatedStrategy) {
+      console.log("Current generated strategy state:", generatedStrategy);
+    }
+  }, [generatedStrategy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,6 +138,14 @@ const AIStrategy = () => {
               onDescriptionChange={setStrategyDescription}
             />
 
+            {generationError && (
+              <Alert className="mb-6 border-red-200 bg-red-50 text-red-800">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error generating strategy</AlertTitle>
+                <AlertDescription>{generationError}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex justify-end">
               <Button
                 className="w-full"
@@ -128,6 +165,16 @@ const AIStrategy = () => {
           </>
         ) : (
           <div className="space-y-6">
+            {isUsingFallback && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="h-4 w-4 text-amber-800" />
+                <AlertTitle className="text-amber-800">Using Fallback Data</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  The AI service is currently unavailable. We're displaying a sample strategy based on your inputs.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex items-center justify-between mb-8">
               <div>
                 <Button
@@ -139,7 +186,7 @@ const AIStrategy = () => {
                 </Button>
                 <h1 className="text-3xl font-bold">{generatedStrategy.name}</h1>
                 <p className="text-muted-foreground mt-2">
-                  {generatedStrategy.description}
+                  {generatedStrategy.description?.replace(' (Fallback data due to AI service error)', '')}
                 </p>
               </div>
               <Button

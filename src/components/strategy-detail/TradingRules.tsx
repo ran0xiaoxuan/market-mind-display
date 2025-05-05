@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -7,9 +6,6 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AvailableIndicators } from "./AvailableIndicators";
-import { Button } from "@/components/ui/button";
-import { PlusCircle, Plus } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
@@ -104,26 +100,9 @@ export const TradingRules = ({
   };
 
   const handleAddEntryRuleOR = () => {
-    if (!onEntryRulesChange) return;
+    if (!onEntryRulesChange || entryRules.length < 2) return;
     const updatedRules = [...entryRules];
-    
-    // If OR group doesn't exist, create it
-    let orGroupIndex = updatedRules.findIndex(group => group.logic === 'OR');
-    
-    if (orGroupIndex === -1) {
-      // Create new OR group
-      const newOrGroup: RuleGroupData = {
-        id: updatedRules.length > 0 ? Math.max(...updatedRules.map(rule => rule.id)) + 1 : 2,
-        logic: 'OR',
-        requiredConditions: 1,
-        inequalities: []
-      };
-      updatedRules.push(newOrGroup);
-      orGroupIndex = updatedRules.length - 1;
-    }
-    
-    // Add new rule to OR group
-    const orGroup = updatedRules[orGroupIndex];
+    const orGroup = updatedRules[1];
     const newRuleId = orGroup.inequalities.length > 0 ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1 : 1;
     const newRule: Inequality = {
       id: newRuleId,
@@ -141,7 +120,7 @@ export const TradingRules = ({
       },
       explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity as the asset may be undervalued."
     };
-    updatedRules[orGroupIndex] = {
+    updatedRules[1] = {
       ...orGroup,
       inequalities: [...orGroup.inequalities, newRule]
     };
@@ -180,26 +159,9 @@ export const TradingRules = ({
   };
 
   const handleAddExitRuleOR = () => {
-    if (!onExitRulesChange) return;
+    if (!onExitRulesChange || exitRules.length < 2) return;
     const updatedRules = [...exitRules];
-    
-    // If OR group doesn't exist, create it
-    let orGroupIndex = updatedRules.findIndex(group => group.logic === 'OR');
-    
-    if (orGroupIndex === -1) {
-      // Create new OR group
-      const newOrGroup: RuleGroupData = {
-        id: updatedRules.length > 0 ? Math.max(...updatedRules.map(rule => rule.id)) + 1 : 2,
-        logic: 'OR',
-        requiredConditions: 1,
-        inequalities: []
-      };
-      updatedRules.push(newOrGroup);
-      orGroupIndex = updatedRules.length - 1;
-    }
-    
-    // Add new rule to OR group
-    const orGroup = updatedRules[orGroupIndex];
+    const orGroup = updatedRules[1];
     const newRuleId = orGroup.inequalities.length > 0 ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1 : 1;
     const newRule: Inequality = {
       id: newRuleId,
@@ -214,37 +176,17 @@ export const TradingRules = ({
       },
       explanation: "Price falling below the stop loss level protects capital by exiting the position before further losses occur."
     };
-    updatedRules[orGroupIndex] = {
+    updatedRules[1] = {
       ...orGroup,
       inequalities: [...orGroup.inequalities, newRule]
     };
     onExitRulesChange(updatedRules);
   };
 
-  const handleAddRuleGroup = (ruleType: "entry" | "exit", logic: "AND" | "OR") => {
-    const onRulesChange = ruleType === "entry" ? onEntryRulesChange : onExitRulesChange;
-    const currentRules = ruleType === "entry" ? entryRules : exitRules;
-    
-    if (!onRulesChange) return;
-    
-    const updatedRules = [...currentRules];
-    const newGroupId = updatedRules.length > 0 ? Math.max(...updatedRules.map(group => group.id)) + 1 : 1;
-    
-    const newGroup: RuleGroupData = {
-      id: newGroupId,
-      logic: logic,
-      requiredConditions: logic === "OR" ? 1 : undefined,
-      inequalities: []
-    };
-    
-    updatedRules.push(newGroup);
-    onRulesChange(updatedRules);
-  };
-
   return (
-    <Card className="mb-6">
+    <Card className="p-6 mb-6">
       <Tabs defaultValue="entry" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex items-center justify-between p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Trading Rules</h2>
           <TabsList>
             <TabsTrigger value="entry" className="relative">
@@ -262,145 +204,75 @@ export const TradingRules = ({
           </TabsList>
         </div>
         
-        <Separator />
+        <Separator className="mb-6" />
         
-        <div className="p-6 pt-0">
-          <TabsContent value="entry" className="mt-6 space-y-6">
-            {editable && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                <ToggleGroup type="single" value={activeTab === "entry" ? "entry" : "exit"}>
-                  <ToggleGroupItem value="entry" aria-label="Add Group">
-                    <div className="flex items-center gap-1 font-medium">Add Rule Group:</div>
-                  </ToggleGroupItem>
-                </ToggleGroup>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-700"
-                  onClick={() => handleAddRuleGroup("entry", "AND")}
-                >
-                  <Plus className="mr-1 h-4 w-4" /> AND Group
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-amber-50 border-amber-200 hover:bg-amber-100 text-amber-700"
-                  onClick={() => handleAddRuleGroup("entry", "OR")}
-                >
-                  <Plus className="mr-1 h-4 w-4" /> OR Group
-                </Button>
-              </div>
-            )}
-            
-            <div className="space-y-6">
-              {entryRules.map((group, index) => (
-                <RuleGroup
-                  key={`entry-group-${index}`}
-                  title={group.logic === "AND" ? "AND Group" : "OR Group"}
-                  color={group.logic === "AND" ? "blue" : "amber"}
-                  description={group.logic === "AND" ? "All conditions must be met." : `At least ${group.requiredConditions || 1} of ${Math.max(2, group.inequalities.length)} conditions must be met.`}
-                  inequalities={group.inequalities}
-                  editable={editable}
-                  onInequitiesChange={inequalities => handleEntryRuleChange(index, inequalities)}
-                  requiredConditions={group.requiredConditions}
-                  onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(index, count)}
-                  onAddRule={() => {
-                    if (group.logic === "AND") {
-                      handleAddEntryRuleAND();
-                    } else {
-                      handleAddEntryRuleOR();
-                    }
-                  }}
-                  className={`bg-${group.logic === "AND" ? "blue" : "amber"}-50/50 border border-${group.logic === "AND" ? "blue" : "amber"}-100`}
+        <TabsContent value="entry" className="mt-0">
+          <div className="space-y-6">
+            {entryRules.length > 0 && (
+              <>
+                <RuleGroup 
+                  title="AND Group" 
+                  color="blue" 
+                  description="All conditions must be met." 
+                  inequalities={entryRules[0].inequalities} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
+                  onAddRule={editable ? handleAddEntryRuleAND : undefined} 
+                  className="bg-blue-50/50 border border-blue-100" 
                 />
-              ))}
-              
-              {entryRules.length === 0 && (
-                <div className="text-center p-6 bg-gray-50 rounded-md">
-                  <p className="text-muted-foreground">No entry rules defined</p>
-                  {editable && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => handleAddRuleGroup("entry", "AND")}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add your first rule group
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="exit" className="mt-6 space-y-6">
-            {editable && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                <ToggleGroup type="single" value={activeTab === "entry" ? "entry" : "exit"}>
-                  <ToggleGroupItem value="exit" aria-label="Add Group">
-                    <div className="flex items-center gap-1 font-medium">Add Rule Group:</div>
-                  </ToggleGroupItem>
-                </ToggleGroup>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-700"
-                  onClick={() => handleAddRuleGroup("exit", "AND")}
-                >
-                  <Plus className="mr-1 h-4 w-4" /> AND Group
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-amber-50 border-amber-200 hover:bg-amber-100 text-amber-700"
-                  onClick={() => handleAddRuleGroup("exit", "OR")}
-                >
-                  <Plus className="mr-1 h-4 w-4" /> OR Group
-                </Button>
-              </div>
+                
+                {entryRules.length > 1 && (
+                  <RuleGroup 
+                    title="OR Group" 
+                    color="amber" 
+                    description={`At least ${entryRules[1].requiredConditions || 1} of ${Math.max(2, entryRules[1].inequalities.length)} conditions must be met.`}
+                    inequalities={entryRules[1].inequalities} 
+                    editable={editable} 
+                    onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 
+                    requiredConditions={entryRules[1].requiredConditions} 
+                    onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
+                    onAddRule={editable ? handleAddEntryRuleOR : undefined} 
+                    className="bg-amber-50/50 border border-amber-100" 
+                  />
+                )}
+              </>
             )}
-            
-            <div className="space-y-6">
-              {exitRules.map((group, index) => (
-                <RuleGroup
-                  key={`exit-group-${index}`}
-                  title={group.logic === "AND" ? "AND Group" : "OR Group"}
-                  color={group.logic === "AND" ? "blue" : "amber"}
-                  description={group.logic === "AND" ? "All conditions must be met." : `At least ${group.requiredConditions || 1} of ${Math.max(2, group.inequalities.length)} conditions must be met.`}
-                  inequalities={group.inequalities}
-                  editable={editable}
-                  onInequitiesChange={inequalities => handleExitRuleChange(index, inequalities)}
-                  requiredConditions={group.requiredConditions}
-                  onRequiredConditionsChange={count => handleExitRequiredConditionsChange(index, count)}
-                  onAddRule={() => {
-                    if (group.logic === "AND") {
-                      handleAddExitRuleAND();
-                    } else {
-                      handleAddExitRuleOR();
-                    }
-                  }}
-                  className={`bg-${group.logic === "AND" ? "blue" : "amber"}-50/50 border border-${group.logic === "AND" ? "blue" : "amber"}-100`}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="exit" className="mt-0">
+          <div className="space-y-6">
+            {exitRules.length > 0 && (
+              <>
+                <RuleGroup 
+                  title="AND Group" 
+                  color="blue" 
+                  description="All conditions must be met." 
+                  inequalities={exitRules[0].inequalities} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
+                  onAddRule={editable ? handleAddExitRuleAND : undefined} 
+                  className="bg-blue-50/50 border border-blue-100" 
                 />
-              ))}
-              
-              {exitRules.length === 0 && (
-                <div className="text-center p-6 bg-gray-50 rounded-md">
-                  <p className="text-muted-foreground">No exit rules defined</p>
-                  {editable && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => handleAddRuleGroup("exit", "AND")}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add your first rule group
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </div>
+                
+                {exitRules.length > 1 && (
+                  <RuleGroup 
+                    title="OR Group" 
+                    color="amber" 
+                    description={`At least ${exitRules[1].requiredConditions || 1} of ${Math.max(2, exitRules[1].inequalities.length)} conditions must be met.`}
+                    inequalities={exitRules[1].inequalities} 
+                    editable={editable} 
+                    onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} 
+                    requiredConditions={exitRules[1].requiredConditions} 
+                    onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
+                    onAddRule={editable ? handleAddExitRuleOR : undefined} 
+                    className="bg-amber-50/50 border border-amber-100" 
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
     </Card>
   );

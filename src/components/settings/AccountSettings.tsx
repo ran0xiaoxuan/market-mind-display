@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,9 @@ import { v4 as uuidv4 } from 'uuid';
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
 export function AccountSettings() {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [name, setName] = useState(user?.user_metadata?.username || user?.email?.split('@')[0] || "");
   const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState("");
@@ -32,11 +33,10 @@ export function AccountSettings() {
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const initialsForAvatar = username.charAt(0).toUpperCase();
-
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(""); // Clear any previous errors
-    
+
     if (file) {
       // Check file size
       if (file.size > MAX_FILE_SIZE) {
@@ -48,16 +48,15 @@ export function AccountSettings() {
         });
         return;
       }
-      
+
       // Create a temporary URL for preview
       const previewUrl = URL.createObjectURL(file);
       setAvatarUrl(previewUrl);
-      
+
       // Automatically upload the file when selected
       await uploadAvatar(file);
     }
   };
-
   const uploadAvatar = async (file: File) => {
     setIsUpdating(true);
     try {
@@ -65,35 +64,34 @@ export function AccountSettings() {
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
       const filePath = `avatars/${user?.id}/${fileName}`;
-      
+
       // Upload the file to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-      
+      const {
+        error: uploadError,
+        data
+      } = await supabase.storage.from('avatars').upload(filePath, file);
       if (uploadError) {
         console.error("Upload error:", uploadError);
         throw uploadError;
       }
-      
+
       // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-      
+      const {
+        data: urlData
+      } = supabase.storage.from('avatars').getPublicUrl(filePath);
       if (!urlData.publicUrl) throw new Error("Failed to get public URL");
-      
       console.log("Avatar uploaded successfully:", urlData.publicUrl);
-      
+
       // Update user metadata with the new avatar URL
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: urlData.publicUrl }
+      const {
+        error: updateError
+      } = await supabase.auth.updateUser({
+        data: {
+          avatar_url: urlData.publicUrl
+        }
       });
-      
       if (updateError) throw updateError;
-      
       setAvatarUrl(urlData.publicUrl);
-      
       toast({
         title: "Avatar uploaded",
         description: "Your avatar has been updated successfully."
@@ -110,18 +108,18 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const handleResetAvatar = async () => {
     setIsUpdating(true);
     try {
       setAvatarUrl(DEFAULT_AVATAR_URL);
-      
-      const { error } = await supabase.auth.updateUser({
-        data: { avatar_url: DEFAULT_AVATAR_URL }
+      const {
+        error
+      } = await supabase.auth.updateUser({
+        data: {
+          avatar_url: DEFAULT_AVATAR_URL
+        }
       });
-      
       if (error) throw error;
-      
       toast({
         title: "Avatar reset",
         description: "Your avatar has been reset to the default image."
@@ -137,7 +135,6 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const handleUpdateAvatar = async () => {
     // This function is now redundant as we upload automatically on selection
     // We'll keep it for backward compatibility
@@ -146,16 +143,17 @@ export function AccountSettings() {
       description: "Your avatar has been updated successfully."
     });
   };
-
   const handleSaveProfile = async () => {
     setIsUpdating(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { username: name }
+      const {
+        error
+      } = await supabase.auth.updateUser({
+        data: {
+          username: name
+        }
       });
-      
       if (error) throw error;
-      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully."
@@ -171,7 +169,6 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const handleUpdatePassword = async () => {
     if (newPassword !== confirmPassword) {
       toast({
@@ -181,20 +178,19 @@ export function AccountSettings() {
       });
       return;
     }
-
     setIsUpdating(true);
     try {
-      const { error } = await supabase.auth.updateUser({ 
-        password: newPassword 
+      const {
+        error
+      } = await supabase.auth.updateUser({
+        password: newPassword
       });
-      
       if (error) throw error;
-      
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully."
       });
-      
+
       // Clear password fields
       setCurrentPassword("");
       setNewPassword("");
@@ -210,7 +206,6 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -262,12 +257,7 @@ export function AccountSettings() {
           </div>
           
           <div>
-            <Button 
-              variant="default" 
-              className="bg-black text-white mt-2"
-              onClick={handleSaveProfile}
-              disabled={isUpdating}
-            >
+            <Button variant="default" className="bg-black text-white mt-2" onClick={handleSaveProfile} disabled={isUpdating}>
               {isUpdating ? "Saving..." : "Save Changes"}
             </Button>
           </div>
@@ -275,57 +265,7 @@ export function AccountSettings() {
       </div>
       
       {/* Profile Picture */}
-      <div>
-        <h2 className="text-xl font-medium">Profile Picture</h2>
-        <p className="text-sm text-muted-foreground mb-4">Update your profile picture</p>
-        
-        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={avatarUrl} alt={username} />
-            <AvatarFallback className="bg-primary text-primary-foreground">{initialsForAvatar}</AvatarFallback>
-          </Avatar>
-          
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="avatar-upload" className="cursor-pointer">
-                <Button variant="outline" className="gap-2" asChild>
-                  <span>
-                    <Upload className="h-4 w-4" />
-                    Choose File
-                  </span>
-                </Button>
-              </label>
-              <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-              <p className="text-xs text-muted-foreground">
-                Recommended size: 200 x 200 pixels. Max file size: 1MB.
-              </p>
-              {uploadError && (
-                <p className="text-xs text-destructive">
-                  Error: {uploadError}
-                </p>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <Button 
-                variant="default"
-                onClick={handleUpdateAvatar}
-                disabled={isUpdating}
-              >
-                {isUpdating ? "Updating..." : "Update Avatar"}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleResetAvatar}
-                disabled={isUpdating}
-                className="gap-2"
-              >
-                <Undo className="h-4 w-4" />
-                Reset to Default
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      
       
       {/* Password */}
       <div>
@@ -349,12 +289,7 @@ export function AccountSettings() {
           </div>
           
           <div>
-            <Button 
-              variant="default" 
-              className="bg-black text-white mt-2"
-              onClick={handleUpdatePassword}
-              disabled={isUpdating}
-            >
+            <Button variant="default" className="bg-black text-white mt-2" onClick={handleUpdatePassword} disabled={isUpdating}>
               {isUpdating ? "Updating..." : "Update Password"}
             </Button>
           </div>

@@ -6,8 +6,10 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -16,7 +18,6 @@ import { useLocation } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { SearchableSelect, SelectOption } from "@/components/SearchableSelect";
 
 const Backtest = () => {
   const location = useLocation();
@@ -27,7 +28,6 @@ const Backtest = () => {
   const [positionSize, setPositionSize] = useState<string>("10");
   const [hasResults, setHasResults] = useState<boolean>(false);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [strategyOptions, setStrategyOptions] = useState<SelectOption[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [backtestResults, setBacktestResults] = useState<any>(null);
   const [runningBacktest, setRunningBacktest] = useState<boolean>(false);
@@ -40,16 +40,7 @@ const Backtest = () => {
       try {
         setIsLoading(true);
         const data = await getStrategies();
-        setStrategies(data || []);
-        
-        // Convert strategies to select options format and ensure it's an array
-        const options = Array.isArray(data) 
-          ? data.map(strategy => ({
-              value: strategy.id,
-              label: strategy.name
-            }))
-          : [];
-        setStrategyOptions(options);
+        setStrategies(data);
       } catch (error) {
         console.error("Error fetching strategies:", error);
         toast({
@@ -57,8 +48,6 @@ const Backtest = () => {
           description: "Failed to load your strategies for selection",
           variant: "destructive"
         });
-        // Set empty array on error to prevent undefined
-        setStrategyOptions([]);
       } finally {
         setIsLoading(false);
       }
@@ -219,14 +208,24 @@ const Backtest = () => {
                   <label htmlFor="strategy" className="text-sm font-medium">
                     Strategy
                   </label>
-                  <SearchableSelect
-                    options={strategyOptions || []} 
-                    value={strategy}
-                    onChange={setStrategy}
-                    placeholder={isLoading ? "Loading strategies..." : "Select strategy"}
-                    emptyMessage={strategyOptions.length === 0 ? "No strategies available" : "No matching strategies found"}
-                    disabled={isLoading || runningBacktest}
-                  />
+                  <Select value={strategy} onValueChange={setStrategy} disabled={isLoading || runningBacktest}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={isLoading ? "Loading strategies..." : "Select strategy"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {strategies.length > 0 ? (
+                        strategies.map((strategyItem) => (
+                          <SelectItem key={strategyItem.id} value={strategyItem.id}>
+                            {strategyItem.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          {isLoading ? "Loading strategies..." : "No strategies available"}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

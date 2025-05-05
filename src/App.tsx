@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -82,6 +83,11 @@ const App = () => (
               <Route path="/ai-strategy" element={
                 <ProtectedRoute>
                   <AIStrategy />
+                </ProtectedRoute>
+              } />
+              <Route path="/manual-strategy" element={
+                <ProtectedRoute>
+                  <ManualStrategy />
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={

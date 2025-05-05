@@ -92,143 +92,165 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   try {
     // Add more detailed logging
     console.log(`Starting Moonshot API request for ${selectedAsset} (${assetType})`);
-    console.log("Using API key (first 5 chars):", MOONSHOT_API_KEY.substring(0, 5) + "...");
+    console.log("Strategy description:", strategyDescription.substring(0, 100) + (strategyDescription.length > 100 ? "..." : ""));
     
-    // Call the Moonshot AI API with improved error handling
-    const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${MOONSHOT_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "moonshot-v1-8k", // Using Moonshot's primary model
-        messages: [{
-          role: "user",
-          content: prompt
-        }],
-        temperature: 0.7,
-        max_tokens: 4000,
-        response_format: { type: "json_object" }
-      })
-    });
-
-    // Log response status for debugging
-    console.log(`Moonshot API response status: ${response.status}`);
+    // Call the Moonshot AI API with improved error handling and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Moonshot API Error (${response.status}):`, errorText);
-      
-      // Provide more detailed error message based on status code
-      if (response.status === 401) {
-        throw new Error("Invalid API key. Please verify your MOONSHOT_API_KEY is correct and not expired.");
-      } else if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again later or check your API plan limits.");
-      } else if (response.status >= 500) {
-        throw new Error("Moonshot API server error. This is likely temporary, please try again later.");
-      } else {
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-    }
-
-    // Parse the JSON response
-    const data = await response.json();
-    console.log("Moonshot API response received successfully");
-    
-    // Check if the data has the expected structure
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error("Unexpected API response structure:", JSON.stringify(data));
-      throw new Error("Unexpected response format from Moonshot API. The response doesn't contain the expected fields.");
-    }
-    
-    // Extract the content from the response
-    const content = data.choices?.[0]?.message?.content || "";
-    console.log("Content extracted (first 100 chars):", content.substring(0, 100) + "...");
-    
-    // Parse JSON from content
     try {
-      // Try parsing the content directly
-      const strategyJson = JSON.parse(content);
-      console.log("Successfully parsed strategy JSON");
-      return strategyJson;
-    } catch (parseError) {
-      console.error("Error parsing JSON from Moonshot response:", parseError);
-      console.log("Raw content received:", content);
+      const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${MOONSHOT_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "moonshot-v1-8k", // Using Moonshot's primary model
+          messages: [{
+            role: "user",
+            content: prompt
+          }],
+          temperature: 0.7,
+          max_tokens: 4000,
+          response_format: { type: "json_object" }
+        }),
+        signal: controller.signal
+      });
       
-      // Try to extract JSON if it's surrounded by markdown code blocks or other text
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const extractedJson = JSON.parse(jsonMatch[0]);
-          console.log("Successfully extracted JSON from response using regex");
-          return extractedJson;
-        } catch (extractError) {
-          console.error("Failed to extract JSON using regex:", extractError);
-          
-          // As a last resort, try to build a minimal valid response
-          console.log("Attempting to create fallback response");
-          return {
-            name: `${selectedAsset} Trading Strategy`,
-            description: strategyDescription,
-            market: assetType === "stocks" ? "Equities" : "Crypto",
-            timeframe: "Daily",
-            targetAsset: selectedAsset,
-            entryRules: [{
-              id: 1,
-              logic: "AND",
-              inequalities: [{
-                id: 1,
-                left: { 
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: { period: "20" }
-                },
-                condition: "Crosses Above",
-                right: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: { period: "50" }
-                },
-                explanation: "When the short-term moving average crosses above the long-term moving average, it indicates a potential uptrend."
-              }]
-            }],
-            exitRules: [{
-              id: 1,
-              logic: "AND",
-              inequalities: [{
-                id: 1,
-                left: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: { period: "20" }
-                },
-                condition: "Crosses Below",
-                right: {
-                  type: "indicator",
-                  indicator: "SMA",
-                  parameters: { period: "50" }
-                },
-                explanation: "When the short-term moving average crosses below the long-term moving average, it indicates a potential downtrend."
-              }]
-            }],
-            riskManagement: {
-              stopLoss: "5",
-              takeProfit: "15",
-              singleBuyVolume: "2000",
-              maxBuyVolume: "10000"
-            }
-          };
+      clearTimeout(timeoutId);
+
+      // Log response status for debugging
+      console.log(`Moonshot API response status: ${response.status}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Moonshot API Error (${response.status}):`, errorText);
+        
+        // Provide more detailed error message based on status code
+        if (response.status === 401) {
+          throw new Error("Invalid API key. Please verify your MOONSHOT_API_KEY is correct and not expired.");
+        } else if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please try again later or check your API plan limits.");
+        } else if (response.status >= 500) {
+          throw new Error("Moonshot API server error. This is likely temporary, please try again later.");
+        } else {
+          throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
       }
+
+      // Parse the JSON response
+      const data = await response.json();
+      console.log("Moonshot API response received successfully");
       
-      throw new Error("Failed to parse JSON from Moonshot response. The API may be experiencing issues.");
+      // Check if the data has the expected structure
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error("Unexpected API response structure:", JSON.stringify(data));
+        throw new Error("Unexpected response format from Moonshot API. The response doesn't contain the expected fields.");
+      }
+      
+      // Extract the content from the response
+      const content = data.choices?.[0]?.message?.content || "";
+      console.log("Content received length:", content.length);
+      console.log("Content excerpt:", content.substring(0, 100) + "...");
+      
+      // Parse JSON from content
+      try {
+        // Try parsing the content directly
+        const strategyJson = JSON.parse(content);
+        console.log("Successfully parsed strategy JSON");
+        return strategyJson;
+      } catch (parseError) {
+        console.error("Error parsing JSON from Moonshot response:", parseError);
+        
+        // Try to extract JSON if it's surrounded by markdown code blocks or other text
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const extractedJson = JSON.parse(jsonMatch[0]);
+            console.log("Successfully extracted JSON from response using regex");
+            return extractedJson;
+          } catch (extractError) {
+            console.error("Failed to extract JSON using regex:", extractError);
+            
+            // As a last resort, try to build a minimal valid response based on user inputs
+            console.log("Creating fallback response with user inputs");
+            return createFallbackStrategy(assetType, selectedAsset, strategyDescription);
+          }
+        }
+        
+        throw new Error("Failed to parse JSON from Moonshot response. The API may be experiencing issues.");
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error("Request timeout after 30 seconds");
+        throw new Error("The AI service request timed out. Please try again later.");
+      }
+      
+      throw fetchError;
     }
   } catch (error) {
     console.error("Error generating strategy with Moonshot:", error);
     throw error;
   }
 };
+
+// Helper function to create a fallback strategy when all parsing attempts fail
+function createFallbackStrategy(assetType: string, selectedAsset: string, strategyDescription: string) {
+  return {
+    name: `${selectedAsset} Trading Strategy`,
+    description: strategyDescription,
+    market: assetType === "stocks" ? "Equities" : "Crypto",
+    timeframe: "Daily",
+    targetAsset: selectedAsset,
+    entryRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: { 
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "20" }
+        },
+        condition: "Crosses Above",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "50" }
+        },
+        explanation: "When the short-term moving average crosses above the long-term moving average, it indicates a potential uptrend."
+      }]
+    }],
+    exitRules: [{
+      id: 1,
+      logic: "AND",
+      inequalities: [{
+        id: 1,
+        left: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "20" }
+        },
+        condition: "Crosses Below",
+        right: {
+          type: "indicator",
+          indicator: "SMA",
+          parameters: { period: "50" }
+        },
+        explanation: "When the short-term moving average crosses below the long-term moving average, it indicates a potential downtrend."
+      }]
+    }],
+    riskManagement: {
+      stopLoss: "5",
+      takeProfit: "15",
+      singleBuyVolume: "2000",
+      maxBuyVolume: "10000"
+    }
+  };
+}
 
 // Define the serving function for the edge function
 serve(async (req) => {
@@ -256,8 +278,21 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body
-    const requestData = await req.json();
+    // Parse request body with proper error handling
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return new Response(JSON.stringify({ 
+        error: "Invalid request body", 
+        details: "The request body could not be parsed as JSON." 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
     const { assetType, selectedAsset, strategyDescription } = requestData;
     
     // Validate input
@@ -278,15 +313,36 @@ serve(async (req) => {
       );
     }
     
-    // Generate strategy
+    // Generate strategy with timeout handling
     console.log("Generating strategy for:", { assetType, selectedAsset, strategyDescription });
-    const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
     
-    // Return the generated strategy
-    return new Response(JSON.stringify(strategy), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    try {
+      const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
+      
+      // Return the generated strategy
+      return new Response(JSON.stringify(strategy), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (genError) {
+      // Handle specific timeout errors
+      if (genError.message && genError.message.includes("timed out")) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Request timed out",
+            details: "The AI service took too long to respond. Please try again with a simpler request.",
+            type: "timeout_error"
+          }),
+          {
+            status: 504,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      // Re-throw for general error handling
+      throw genError;
+    }
   } catch (error) {
     console.error("Error in edge function:", error);
     

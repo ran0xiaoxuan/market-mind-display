@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Loader2, AlertCircle, ExternalLink, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,22 +22,20 @@ const AIStrategy = () => {
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [edgeFunctionError, setEdgeFunctionError] = useState<boolean>(false);
-  const [useFallbackData, setUseFallbackData] = useState<boolean>(false);
+  const [errorType, setErrorType] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
   const navigate = useNavigate();
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     setError(null);
-    setEdgeFunctionError(false);
-    setUseFallbackData(false);
+    setErrorType(null);
   };
 
   const handleStrategyDescriptionChange = (value: string) => {
     setStrategyDescription(value);
     setError(null);
-    setEdgeFunctionError(false);
-    setUseFallbackData(false);
+    setErrorType(null);
   };
 
   const handleGenerateStrategy = async () => {
@@ -58,43 +57,57 @@ const AIStrategy = () => {
     // Clear previous errors and set loading state
     setIsLoading(true);
     setError(null);
-    setEdgeFunctionError(false);
-    setUseFallbackData(false);
+    setErrorType(null);
     
     try {
       // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
       const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
-      console.log("Generating strategy with parameters:", { assetType, selectedAsset, strategyDescription });
+      console.log("Generating strategy with parameters:", { assetType, selectedAsset, strategyDescription, retryAttempt: retryCount });
       
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
       console.log("Strategy generated successfully:", strategy);
       
       setGeneratedStrategy(strategy);
+      setRetryCount(0); // Reset retry count on success
+      
       toast("Strategy generated", {
-        description: "Moonshot AI has successfully generated a trading strategy based on your description",
+        description: "AI has successfully generated a trading strategy based on your description",
         icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
       const errorMessage = error.response?.data?.error || error.message || "Unknown error";
+      const errorType = error.response?.data?.type || "unknown_error";
       
-      // Check if this is an edge function communication error
-      const isEdgeFunctionError = errorMessage.includes("Edge Function") || 
-                                 errorMessage.includes("Failed to fetch") ||
-                                 errorMessage.includes("Failed to send");
-      
-      setEdgeFunctionError(isEdgeFunctionError);
       setError(`Failed to generate strategy: ${errorMessage}`);
+      setErrorType(errorType);
+      
+      // Check if this is a connection error
+      const isConnectionError = errorMessage.includes("Failed to fetch") || 
+                                errorMessage.includes("Network error") ||
+                                errorMessage.includes("connection") ||
+                                !navigator.onLine;
       
       toast("Failed to generate strategy", {
-        description: isEdgeFunctionError 
-          ? "There was an error connecting to our AI service. Please check your connection and try again."
-          : "There was an error generating your strategy. Please try again.",
+        description: isConnectionError 
+          ? "There was an error connecting to the AI service. Please check your connection and try again."
+          : "There was an error generating your strategy. Please try again with a simpler description.",
         icon: <AlertCircle className="h-4 w-4 text-destructive" />
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetryGeneration = () => {
+    setRetryCount(prev => prev + 1);
+    // If we've tried 3+ times, suggest using a simpler description
+    if (retryCount >= 2) {
+      toast("Consider simplifying your description", {
+        description: "Try using fewer requirements or simpler language for better results"
+      });
+    }
+    handleGenerateStrategy();
   };
 
   const handleUseFallbackData = () => {
@@ -110,9 +123,8 @@ const AIStrategy = () => {
       );
       
       setGeneratedStrategy(fallbackStrategy);
-      setUseFallbackData(true);
       
-      toast("Using fallback strategy", {
+      toast("Using template strategy", {
         description: "Using a template strategy since the AI service is unavailable",
         icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
@@ -151,8 +163,8 @@ const AIStrategy = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
     setError(null);
-    setEdgeFunctionError(false);
-    setUseFallbackData(false);
+    setErrorType(null);
+    setRetryCount(0);
   };
 
   const openSupabaseDocs = () => {
@@ -162,6 +174,12 @@ const AIStrategy = () => {
   const openSupabaseDashboard = () => {
     window.open("https://supabase.com/dashboard/project/lqfhhqhswdqpsliskxrr/functions", "_blank");
   };
+
+  const isAPIKeyError = errorType === "api_key_error";
+  const isConnectionError = error?.includes("Failed to fetch") || 
+                           error?.includes("Network error") ||
+                           errorType === "connection_error";
+  const isTimeoutError = errorType === "timeout_error" || error?.includes("timed out");
 
   return (
     <div className="min-h-screen bg-background">
@@ -191,22 +209,24 @@ const AIStrategy = () => {
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-medium">
-                    {edgeFunctionError ? "AI Service Connection Error" : "AI Service Error"}
+                    {isAPIKeyError ? "API Key Error" : 
+                     isConnectionError ? "Connection Error" : 
+                     isTimeoutError ? "Request Timeout" : 
+                     "AI Service Error"}
                   </h4>
                   <p className="text-sm">{error}</p>
                   
-                  {edgeFunctionError && (
+                  {isAPIKeyError && (
                     <div className="mt-3">
                       <Alert variant="destructive" className="bg-destructive/5">
                         <AlertTitle className="flex items-center gap-2">
-                          Supabase Edge Function Error
+                          Supabase Edge Function Configuration Error
                         </AlertTitle>
                         <AlertDescription>
-                          <p className="mb-2">The AI service is currently unavailable. This might be due to:</p>
+                          <p className="mb-2">The AI service could not authenticate. This is due to:</p>
                           <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>Supabase Edge Function not deployed correctly</li>
                             <li>Missing MOONSHOT_API_KEY in the project settings</li>
-                            <li>Network connectivity issues</li>
+                            <li>Invalid or expired API key</li>
                           </ul>
                           <div className="flex flex-col sm:flex-row gap-2 mt-3">
                             <Button 
@@ -228,22 +248,67 @@ const AIStrategy = () => {
                               View Edge Functions
                             </Button>
                           </div>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                  
+                  {(isConnectionError || isTimeoutError) && (
+                    <div className="mt-3">
+                      <Alert variant="destructive" className="bg-destructive/5">
+                        <AlertTitle className="flex items-center gap-2">
+                          {isConnectionError ? "Connection Error" : "Request Timeout"}
+                        </AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">We couldn't reach the AI service. This might be due to:</p>
+                          <ul className="list-disc pl-5 space-y-1 text-sm">
+                            <li>Network connectivity issues</li>
+                            <li>Supabase Edge Function not responding</li>
+                            {isTimeoutError && <li>Request was too complex and timed out</li>}
+                          </ul>
                           
-                          <div className="mt-4">
+                          <div className="mt-4 flex gap-2">
                             <Button
                               variant="default"
                               size="sm"
-                              onClick={handleUseFallbackData}
-                              className="w-full"
+                              onClick={handleRetryGeneration}
+                              className="flex items-center gap-1"
                             >
-                              Use Fallback Strategy Template
+                              <RefreshCcw className="w-3 h-3" />
+                              Retry Generation
                             </Button>
-                            <p className="text-xs mt-1 text-center text-muted-foreground">
-                              Continue with a predefined template instead of AI generation
-                            </p>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleUseFallbackData}
+                            >
+                              Use Template Strategy
+                            </Button>
                           </div>
                         </AlertDescription>
                       </Alert>
+                    </div>
+                  )}
+                  
+                  {!isAPIKeyError && !isConnectionError && !isTimeoutError && (
+                    <div className="mt-4">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleRetryGeneration}
+                        className="mr-2 flex items-center gap-1"
+                      >
+                        <RefreshCcw className="w-3 h-3" />
+                        Retry
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUseFallbackData}
+                      >
+                        Use Template Strategy
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -281,7 +346,6 @@ const AIStrategy = () => {
                 <h1 className="text-3xl font-bold">{generatedStrategy.name}</h1>
                 <p className="text-muted-foreground mt-2">
                   {generatedStrategy.description}
-                  {useFallbackData && <span className="text-amber-600 ml-2 font-medium">(Template Strategy)</span>}
                 </p>
               </div>
               <Button

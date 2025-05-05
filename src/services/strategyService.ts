@@ -151,7 +151,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
       singleBuyVolume: data.single_buy_volume,
-      maxBuyVolume: data.max_buy_volume
+      maxBuyVolume: data.max_buyVolume
     };
   } catch (error) {
     console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);
@@ -427,45 +427,77 @@ export const generateStrategy = async (
   
   try {
     // Call the Supabase Edge Function to generate strategy using Moonshot AI
-    const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: { 
-        assetType, 
-        selectedAsset, 
-        strategyDescription 
+    // Add timeout handling for the fetch call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-strategy', {
+        body: { 
+          assetType, 
+          selectedAsset, 
+          strategyDescription 
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error("Error calling generate-strategy function:", error);
+        // Check if this is a timeout error
+        if (error.message && error.message.includes("aborted")) {
+          throw new Error("Request timed out. The generation process took too long, please try again with a simpler description.");
+        }
+        throw new Error(`Failed to generate strategy: ${error.message}`);
       }
-    });
-    
-    if (error) {
-      console.error("Error calling generate-strategy function:", error);
-      throw new Error(`Failed to generate strategy: ${error.message}`);
-    }
-    
-    if (!data) {
-      throw new Error("No data returned from strategy generation service");
-    }
-    
-    console.log("Strategy generated successfully:", data);
-    
-    // Ensure data has the required structure
-    const strategy: GeneratedStrategy = {
-      name: data.name || `${selectedAsset} Trading Strategy`,
-      description: data.description || strategyDescription,
-      market: data.market || (assetType === "stocks" ? "Equities" : "Crypto"),
-      timeframe: data.timeframe || "Daily",
-      targetAsset: data.targetAsset || selectedAsset,
-      entryRules: ensureRuleGroups(data.entryRules),
-      exitRules: ensureRuleGroups(data.exitRules),
-      riskManagement: {
-        stopLoss: data.riskManagement?.stopLoss || "5",
-        takeProfit: data.riskManagement?.takeProfit || "15",
-        singleBuyVolume: data.riskManagement?.singleBuyVolume || "2000",
-        maxBuyVolume: data.riskManagement?.maxBuyVolume || "10000"
+      
+      if (!data) {
+        throw new Error("No data returned from strategy generation service");
       }
-    };
-    
-    return strategy;
+      
+      console.log("Strategy generated successfully:", data);
+      
+      // Ensure data has the required structure
+      const strategy: GeneratedStrategy = {
+        name: data.name || `${selectedAsset} Trading Strategy`,
+        description: data.description || strategyDescription,
+        market: data.market || (assetType === "stocks" ? "Equities" : "Crypto"),
+        timeframe: data.timeframe || "Daily",
+        targetAsset: data.targetAsset || selectedAsset,
+        entryRules: ensureRuleGroups(data.entryRules),
+        exitRules: ensureRuleGroups(data.exitRules),
+        riskManagement: {
+          stopLoss: data.riskManagement?.stopLoss || "5",
+          takeProfit: data.riskManagement?.takeProfit || "15",
+          singleBuyVolume: data.riskManagement?.singleBuyVolume || "2000",
+          maxBuyVolume: data.riskManagement?.maxBuyVolume || "10000"
+        }
+      };
+      
+      return strategy;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error("Request timeout after 60 seconds");
+        const error = new Error("The strategy generation request timed out. Please try again with a simpler description.");
+        error.response = { data: { type: "timeout_error" } };
+        throw error;
+      }
+      
+      throw fetchError;
+    }
   } catch (error) {
     console.error("Error generating strategy:", error);
+    
+    // Add network connectivity check
+    if (!navigator.onLine) {
+      const networkError = new Error("Your device appears to be offline. Please check your internet connection and try again.");
+      networkError.response = { data: { type: "connection_error" } };
+      throw networkError;
+    }
+    
     throw error;
   }
 };

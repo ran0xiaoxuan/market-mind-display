@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 export function AccountSettings() {
   const { user } = useAuth();
@@ -31,8 +31,59 @@ export function AccountSettings() {
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarUrl(url);
+      // Create a temporary URL for preview
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarUrl(previewUrl);
+      
+      // Automatically upload the file when selected
+      await uploadAvatar(file);
+    }
+  };
+
+  const uploadAvatar = async (file: File) => {
+    setIsUpdating(true);
+    try {
+      // Generate a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExt}`;
+      const filePath = `avatars/${user?.id}/${fileName}`;
+      
+      // Upload the file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      if (!data.publicUrl) throw new Error("Failed to get public URL");
+      
+      // Update user metadata with the new avatar URL
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: data.publicUrl }
+      });
+      
+      if (updateError) throw updateError;
+      
+      setAvatarUrl(data.publicUrl);
+      
+      toast({
+        title: "Avatar uploaded",
+        description: "Your avatar has been updated successfully."
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload your avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -64,28 +115,12 @@ export function AccountSettings() {
   };
 
   const handleUpdateAvatar = async () => {
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: { avatar_url: avatarUrl }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Avatar updated",
-        description: "Your avatar has been updated successfully."
-      });
-    } catch (error) {
-      console.error("Error updating avatar:", error);
-      toast({
-        title: "Update failed",
-        description: "Failed to update your avatar. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
+    // This function is now redundant as we upload automatically on selection
+    // We'll keep it for backward compatibility
+    toast({
+      title: "Avatar updated",
+      description: "Your avatar has been updated successfully."
+    });
   };
 
   const handleSaveProfile = async () => {

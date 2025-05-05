@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { Upload } from "lucide-react";
+import { Upload, Undo } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +33,33 @@ export function AccountSettings() {
     if (file) {
       const url = URL.createObjectURL(file);
       setAvatarUrl(url);
+    }
+  };
+
+  const handleResetAvatar = async () => {
+    setIsUpdating(true);
+    try {
+      setAvatarUrl(DEFAULT_AVATAR_URL);
+      
+      const { error } = await supabase.auth.updateUser({
+        data: { avatar_url: DEFAULT_AVATAR_URL }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Avatar reset",
+        description: "Your avatar has been reset to the default image."
+      });
+    } catch (error) {
+      console.error("Error resetting avatar:", error);
+      toast({
+        title: "Reset failed",
+        description: "Failed to reset your avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -214,13 +241,24 @@ export function AccountSettings() {
                 Recommended size: 200 x 200 pixels. Max file size: 1MB.
               </p>
             </div>
-            <Button 
-              variant="default"
-              onClick={handleUpdateAvatar}
-              disabled={isUpdating}
-            >
-              {isUpdating ? "Updating..." : "Update Avatar"}
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="default"
+                onClick={handleUpdateAvatar}
+                disabled={isUpdating}
+              >
+                {isUpdating ? "Updating..." : "Update Avatar"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleResetAvatar}
+                disabled={isUpdating}
+                className="gap-2"
+              >
+                <Undo className="h-4 w-4" />
+                Reset to Default
+              </Button>
+            </div>
           </div>
         </div>
       </div>

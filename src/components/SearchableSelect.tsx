@@ -42,9 +42,12 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   
+  // Ensure options is always an array
+  const safeOptions = Array.isArray(options) ? options : [];
+  
   const selectedOption = React.useMemo(
-    () => options.find((option) => option.value === value),
-    [options, value]
+    () => safeOptions.find((option) => option.value === value),
+    [safeOptions, value]
   );
 
   return (
@@ -69,7 +72,7 @@ export function SearchableSelect({
           </div>
           <CommandEmpty>{emptyMessage}</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">
-            {options.map((option) => (
+            {safeOptions.map((option) => (
               <CommandItem
                 key={option.value}
                 value={option.value}

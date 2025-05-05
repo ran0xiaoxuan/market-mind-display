@@ -6,10 +6,8 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -42,13 +40,15 @@ const Backtest = () => {
       try {
         setIsLoading(true);
         const data = await getStrategies();
-        setStrategies(data);
+        setStrategies(data || []);
         
-        // Convert strategies to select options format
-        const options = data.map(strategy => ({
-          value: strategy.id,
-          label: strategy.name
-        }));
+        // Convert strategies to select options format and ensure it's an array
+        const options = Array.isArray(data) 
+          ? data.map(strategy => ({
+              value: strategy.id,
+              label: strategy.name
+            }))
+          : [];
         setStrategyOptions(options);
       } catch (error) {
         console.error("Error fetching strategies:", error);
@@ -57,6 +57,8 @@ const Backtest = () => {
           description: "Failed to load your strategies for selection",
           variant: "destructive"
         });
+        // Set empty array on error to prevent undefined
+        setStrategyOptions([]);
       } finally {
         setIsLoading(false);
       }
@@ -217,13 +219,12 @@ const Backtest = () => {
                   <label htmlFor="strategy" className="text-sm font-medium">
                     Strategy
                   </label>
-                  {/* Replace the Select with SearchableSelect */}
                   <SearchableSelect
-                    options={strategyOptions}
+                    options={strategyOptions || []} 
                     value={strategy}
                     onChange={setStrategy}
                     placeholder={isLoading ? "Loading strategies..." : "Select strategy"}
-                    emptyMessage={strategies.length === 0 ? "No strategies available" : "No matching strategies found"}
+                    emptyMessage={strategyOptions.length === 0 ? "No strategies available" : "No matching strategies found"}
                     disabled={isLoading || runningBacktest}
                   />
                 </div>

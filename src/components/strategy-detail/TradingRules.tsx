@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -6,6 +7,8 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AvailableIndicators } from "./AvailableIndicators";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
@@ -68,10 +71,33 @@ export const TradingRules = ({
     onExitRulesChange(updatedRules);
   };
 
+  // Create rule group if none exists
+  const ensureRuleGroups = (isEntryRules: boolean) => {
+    if (isEntryRules && onEntryRulesChange) {
+      if (entryRules.length === 0) {
+        onEntryRulesChange([
+          { id: 1, logic: "AND", inequalities: [] },
+          { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+        ]);
+      }
+    } else if (!isEntryRules && onExitRulesChange) {
+      if (exitRules.length === 0) {
+        onExitRulesChange([
+          { id: 1, logic: "AND", inequalities: [] },
+          { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+        ]);
+      }
+    }
+  };
+
   const handleAddEntryRuleAND = () => {
-    if (!onEntryRulesChange || entryRules.length === 0) return;
+    if (!onEntryRulesChange) return;
+    
+    // Ensure we have rule groups first
+    ensureRuleGroups(true);
+    
     const updatedRules = [...entryRules];
-    const andGroup = updatedRules[0];
+    const andGroup = updatedRules[0] || { id: 1, logic: "AND", inequalities: [] };
     const newRuleId = andGroup.inequalities.length > 0 ? Math.max(...andGroup.inequalities.map(rule => rule.id)) + 1 : 1;
     const newRule: Inequality = {
       id: newRuleId,
@@ -92,17 +118,28 @@ export const TradingRules = ({
       },
       explanation: "When a faster moving average crosses above a slower one, it indicates a potential uptrend beginning."
     };
-    updatedRules[0] = {
-      ...andGroup,
-      inequalities: [...andGroup.inequalities, newRule]
-    };
+    
+    if (updatedRules.length === 0) {
+      updatedRules.push({ id: 1, logic: "AND", inequalities: [newRule] });
+    } else {
+      updatedRules[0] = {
+        ...andGroup,
+        inequalities: [...andGroup.inequalities, newRule]
+      };
+    }
+    
     onEntryRulesChange(updatedRules);
   };
 
   const handleAddEntryRuleOR = () => {
-    if (!onEntryRulesChange || entryRules.length < 2) return;
+    if (!onEntryRulesChange) return;
+    
+    // Ensure we have rule groups first
+    ensureRuleGroups(true);
+    
     const updatedRules = [...entryRules];
-    const orGroup = updatedRules[1];
+    const orGroupIndex = updatedRules.findIndex(group => group.logic === "OR") || 1;
+    const orGroup = updatedRules[orGroupIndex] || { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] };
     const newRuleId = orGroup.inequalities.length > 0 ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1 : 1;
     const newRule: Inequality = {
       id: newRuleId,
@@ -120,17 +157,27 @@ export const TradingRules = ({
       },
       explanation: "RSI below 30 indicates an oversold condition, suggesting a potential buying opportunity as the asset may be undervalued."
     };
-    updatedRules[1] = {
-      ...orGroup,
-      inequalities: [...orGroup.inequalities, newRule]
-    };
+    
+    if (orGroupIndex === -1 || updatedRules.length <= orGroupIndex) {
+      updatedRules.push({ id: 2, logic: "OR", requiredConditions: 1, inequalities: [newRule] });
+    } else {
+      updatedRules[orGroupIndex] = {
+        ...orGroup,
+        inequalities: [...orGroup.inequalities, newRule]
+      };
+    }
+    
     onEntryRulesChange(updatedRules);
   };
 
   const handleAddExitRuleAND = () => {
-    if (!onExitRulesChange || exitRules.length === 0) return;
+    if (!onExitRulesChange) return;
+    
+    // Ensure we have rule groups first
+    ensureRuleGroups(false);
+    
     const updatedRules = [...exitRules];
-    const andGroup = updatedRules[0];
+    const andGroup = updatedRules[0] || { id: 1, logic: "AND", inequalities: [] };
     const newRuleId = andGroup.inequalities.length > 0 ? Math.max(...andGroup.inequalities.map(rule => rule.id)) + 1 : 1;
     const newRule: Inequality = {
       id: newRuleId,
@@ -151,17 +198,28 @@ export const TradingRules = ({
       },
       explanation: "When a faster moving average crosses below a slower one, it indicates a potential downtrend beginning and signals time to exit long positions."
     };
-    updatedRules[0] = {
-      ...andGroup,
-      inequalities: [...andGroup.inequalities, newRule]
-    };
+    
+    if (updatedRules.length === 0) {
+      updatedRules.push({ id: 1, logic: "AND", inequalities: [newRule] });
+    } else {
+      updatedRules[0] = {
+        ...andGroup,
+        inequalities: [...andGroup.inequalities, newRule]
+      };
+    }
+    
     onExitRulesChange(updatedRules);
   };
 
   const handleAddExitRuleOR = () => {
-    if (!onExitRulesChange || exitRules.length < 2) return;
+    if (!onExitRulesChange) return;
+    
+    // Ensure we have rule groups first
+    ensureRuleGroups(false);
+    
     const updatedRules = [...exitRules];
-    const orGroup = updatedRules[1];
+    const orGroupIndex = updatedRules.findIndex(group => group.logic === "OR") || 1;
+    const orGroup = updatedRules[orGroupIndex] || { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] };
     const newRuleId = orGroup.inequalities.length > 0 ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1 : 1;
     const newRule: Inequality = {
       id: newRuleId,
@@ -176,11 +234,34 @@ export const TradingRules = ({
       },
       explanation: "Price falling below the stop loss level protects capital by exiting the position before further losses occur."
     };
-    updatedRules[1] = {
-      ...orGroup,
-      inequalities: [...orGroup.inequalities, newRule]
-    };
+    
+    if (orGroupIndex === -1 || updatedRules.length <= orGroupIndex) {
+      updatedRules.push({ id: 2, logic: "OR", requiredConditions: 1, inequalities: [newRule] });
+    } else {
+      updatedRules[orGroupIndex] = {
+        ...orGroup,
+        inequalities: [...orGroup.inequalities, newRule]
+      };
+    }
+    
     onExitRulesChange(updatedRules);
+  };
+
+  // Functions to handle adding the first rule group
+  const handleAddFirstEntryRuleGroup = () => {
+    if (!onEntryRulesChange) return;
+    onEntryRulesChange([
+      { id: 1, logic: "AND", inequalities: [] },
+      { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+    ]);
+  };
+
+  const handleAddFirstExitRuleGroup = () => {
+    if (!onExitRulesChange) return;
+    onExitRulesChange([
+      { id: 1, logic: "AND", inequalities: [] },
+      { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+    ]);
   };
 
   return (
@@ -208,7 +289,7 @@ export const TradingRules = ({
         
         <TabsContent value="entry" className="mt-0">
           <div className="space-y-6">
-            {entryRules.length > 0 && (
+            {entryRules.length > 0 ? (
               <>
                 <RuleGroup 
                   title="AND Group" 
@@ -236,13 +317,24 @@ export const TradingRules = ({
                   />
                 )}
               </>
+            ) : editable ? (
+              <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
+                <p className="text-muted-foreground mb-4">No entry rules defined yet</p>
+                <Button onClick={handleAddFirstEntryRuleGroup}>
+                  <Plus className="h-4 w-4 mr-2" /> Create Rule Groups
+                </Button>
+              </div>
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
+                No entry rules defined
+              </div>
             )}
           </div>
         </TabsContent>
         
         <TabsContent value="exit" className="mt-0">
           <div className="space-y-6">
-            {exitRules.length > 0 && (
+            {exitRules.length > 0 ? (
               <>
                 <RuleGroup 
                   title="AND Group" 
@@ -270,6 +362,17 @@ export const TradingRules = ({
                   />
                 )}
               </>
+            ) : editable ? (
+              <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
+                <p className="text-muted-foreground mb-4">No exit rules defined yet</p>
+                <Button onClick={handleAddFirstExitRuleGroup}>
+                  <Plus className="h-4 w-4 mr-2" /> Create Rule Groups
+                </Button>
+              </div>
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
+                No exit rules defined
+              </div>
             )}
           </div>
         </TabsContent>

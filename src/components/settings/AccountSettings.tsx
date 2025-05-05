@@ -35,6 +35,7 @@ export function AccountSettings() {
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const initialsForAvatar = username.charAt(0).toUpperCase();
+  
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(""); // Clear any previous errors
@@ -148,14 +149,32 @@ export function AccountSettings() {
   const handleSaveProfile = async () => {
     setIsUpdating(true);
     try {
-      const {
-        error
-      } = await supabase.auth.updateUser({
+      // Check if email has changed
+      const emailChanged = email !== user?.email;
+      
+      // Update user metadata (username)
+      const { error: metadataError } = await supabase.auth.updateUser({
         data: {
           username: name
         }
       });
-      if (error) throw error;
+      
+      if (metadataError) throw metadataError;
+      
+      // Update email if changed
+      if (emailChanged) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: email
+        });
+        
+        if (emailError) throw emailError;
+        
+        toast({
+          title: "Verification email sent",
+          description: "Please check your inbox to confirm your new email address."
+        });
+      }
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully."
@@ -302,8 +321,8 @@ export function AccountSettings() {
           
           <div>
             <label htmlFor="email" className="block text-sm mb-2">Email</label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} disabled />
-            <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            <p className="text-xs text-muted-foreground mt-1">Changing your email will require confirmation</p>
           </div>
           
           <div>

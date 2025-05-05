@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
+import { Switch } from "@/components/ui/switch";
 
 // Max file size: 1MB
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
@@ -29,6 +30,7 @@ export function AccountSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [isPro, setIsPro] = useState(user?.user_metadata?.is_pro === true);
 
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
@@ -206,6 +208,34 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+  const toggleSubscriptionStatus = async () => {
+    setIsUpdating(true);
+    try {
+      const newStatus = !isPro;
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          is_pro: newStatus
+        }
+      });
+      
+      if (error) throw error;
+      
+      setIsPro(newStatus);
+      toast({
+        title: `Subscription status updated`,
+        description: `You are now on the ${newStatus ? 'Pro' : 'Free'} plan.`
+      });
+    } catch (error) {
+      console.error("Error updating subscription status:", error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update subscription status.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -216,7 +246,7 @@ export function AccountSettings() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs px-2 py-0.5">Free</Badge>
+                <Badge variant="secondary" className="text-xs px-2 py-0.5">{isPro ? 'Pro' : 'Free'}</Badge>
               </div>
               <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
             </div>
@@ -235,6 +265,26 @@ export function AccountSettings() {
                 </div>
               </div>
             </div>
+            
+            {/* Developer testing toggle - only visible in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-sm">Developer Mode</h3>
+                    <p className="text-xs text-muted-foreground">Toggle between Free and Pro for testing</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">{isPro ? 'Pro' : 'Free'}</span>
+                    <Switch 
+                      checked={isPro} 
+                      onCheckedChange={toggleSubscriptionStatus}
+                      disabled={isUpdating}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

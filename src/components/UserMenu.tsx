@@ -26,6 +26,7 @@ export function UserMenu() {
   // Extract username and email from user
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const email = user?.email || "user@example.com";
+  const isPro = user?.user_metadata?.is_pro === true;
   
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -40,7 +41,7 @@ export function UserMenu() {
           <p className="font-medium">{username}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
           <div className="mt-2">
-            <span className="px-2 py-1 text-xs bg-secondary rounded-full">Free</span>
+            <span className="px-2 py-1 text-xs bg-secondary rounded-full">{isPro ? 'Pro' : 'Free'}</span>
           </div>
         </div>
         

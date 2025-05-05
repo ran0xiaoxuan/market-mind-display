@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -260,7 +259,7 @@ const AIStrategy = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Strategy with Moonshot AI...
+                    Generating Strategy...
                   </>
                 ) : (
                   "Generate Strategy"

@@ -130,7 +130,7 @@ export function RecentTrades() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
+              {/* Removed ID column */}
               <TableHead>Strategy</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Asset</TableHead>
@@ -143,7 +143,7 @@ export function RecentTrades() {
           <TableBody>
             {filteredTrades.map((trade) => (
               <TableRow key={trade.id}>
-                <TableCell className="font-medium">{trade.id}</TableCell>
+                {/* Removed TableCell for ID */}
                 <TableCell>{trade.strategy}</TableCell>
                 <TableCell>
                   <Badge variant={trade.type === "buy" ? "outline" : "secondary"}>{trade.type}</Badge>
@@ -163,3 +163,4 @@ export function RecentTrades() {
     </Card>
   );
 }
+

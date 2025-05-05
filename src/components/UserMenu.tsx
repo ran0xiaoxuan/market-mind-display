@@ -1,12 +1,10 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function UserMenu() {
@@ -29,17 +27,11 @@ export function UserMenu() {
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const email = user?.email || "user@example.com";
   
-  // Get first letter of username for avatar fallback
-  const initialsForAvatar = username.charAt(0).toUpperCase();
-  
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 ml-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL} alt={username} />
-            <AvatarFallback className="bg-primary text-primary-foreground">{initialsForAvatar}</AvatarFallback>
-          </Avatar>
+        <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 ml-2 flex items-center justify-center">
+          <UserRound size={18} className="text-primary" />
         </Button>
       </PopoverTrigger>
       

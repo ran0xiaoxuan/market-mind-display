@@ -9,7 +9,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   
   if (!MOONSHOT_API_KEY) {
     console.error("MOONSHOT_API_KEY is not set");
-    throw new Error("MOONSHOT_API_KEY is not set");
+    throw new Error("MOONSHOT_API_KEY environment variable is not configured. Please add it to your Supabase project.");
   }
   
   // Create a careful, structured prompt for the AI
@@ -91,7 +91,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
 
   try {
     console.log("Sending request to Moonshot API with key:", MOONSHOT_API_KEY.substring(0, 5) + "...");
-    // Call the Moonshot AI API
+    // Call the Moonshot AI API with improved error handling
     const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -208,7 +208,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || "Unknown error occurred",
-        details: error.toString()
+        details: error.toString(),
+        help: "Make sure MOONSHOT_API_KEY is properly configured in your Supabase project."
       }),
       {
         status: 500,

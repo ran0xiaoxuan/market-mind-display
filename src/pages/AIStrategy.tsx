@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { Loader2, AlertCircle, ExternalLink, CheckCircle } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,12 +23,21 @@ const AIStrategy = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [edgeFunctionError, setEdgeFunctionError] = useState<boolean>(false);
+  const [useFallbackData, setUseFallbackData] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     setError(null);
     setEdgeFunctionError(false);
+    setUseFallbackData(false);
+  };
+
+  const handleStrategyDescriptionChange = (value: string) => {
+    setStrategyDescription(value);
+    setError(null);
+    setEdgeFunctionError(false);
+    setUseFallbackData(false);
   };
 
   const handleGenerateStrategy = async () => {
@@ -51,6 +60,7 @@ const AIStrategy = () => {
     setIsLoading(true);
     setError(null);
     setEdgeFunctionError(false);
+    setUseFallbackData(false);
     
     try {
       // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
@@ -62,7 +72,8 @@ const AIStrategy = () => {
       
       setGeneratedStrategy(strategy);
       toast("Strategy generated", {
-        description: "Moonshot AI has successfully generated a trading strategy based on your description"
+        description: "Moonshot AI has successfully generated a trading strategy based on your description",
+        icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
@@ -85,6 +96,28 @@ const AIStrategy = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUseFallbackData = () => {
+    // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
+    const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
+    
+    // Use the generateFallbackStrategy function from strategyService
+    import("@/services/strategyService").then(({ generateFallbackStrategy }) => {
+      const fallbackStrategy = generateFallbackStrategy(
+        assetType as "stocks" | "cryptocurrency", 
+        selectedAsset, 
+        strategyDescription
+      );
+      
+      setGeneratedStrategy(fallbackStrategy);
+      setUseFallbackData(true);
+      
+      toast("Using fallback strategy", {
+        description: "Using a template strategy since the AI service is unavailable",
+        icon: <CheckCircle className="h-4 w-4 text-green-500" />
+      });
+    });
   };
 
   const handleSaveStrategy = async () => {
@@ -120,6 +153,7 @@ const AIStrategy = () => {
     setStrategyDescription("");
     setError(null);
     setEdgeFunctionError(false);
+    setUseFallbackData(false);
   };
 
   const openSupabaseDocs = () => {
@@ -150,7 +184,7 @@ const AIStrategy = () => {
 
             <StrategyDescription
               description={strategyDescription}
-              onDescriptionChange={setStrategyDescription}
+              onDescriptionChange={handleStrategyDescriptionChange}
             />
 
             {error && (
@@ -195,6 +229,20 @@ const AIStrategy = () => {
                               View Edge Functions
                             </Button>
                           </div>
+                          
+                          <div className="mt-4">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={handleUseFallbackData}
+                              className="w-full"
+                            >
+                              Use Fallback Strategy Template
+                            </Button>
+                            <p className="text-xs mt-1 text-center text-muted-foreground">
+                              Continue with a predefined template instead of AI generation
+                            </p>
+                          </div>
                         </AlertDescription>
                       </Alert>
                     </div>
@@ -234,6 +282,7 @@ const AIStrategy = () => {
                 <h1 className="text-3xl font-bold">{generatedStrategy.name}</h1>
                 <p className="text-muted-foreground mt-2">
                   {generatedStrategy.description}
+                  {useFallbackData && <span className="text-amber-600 ml-2 font-medium">(Template Strategy)</span>}
                 </p>
               </div>
               <Button

@@ -146,7 +146,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       throw error;
     }
     
-    // Return data directly from strategies table - Fix the property name from max_buyVolume to max_buy_volume
+    // Return data directly from strategies table 
     return {
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
@@ -466,16 +466,6 @@ export const generateStrategy = async (
     return strategy;
   } catch (error) {
     console.error("Error generating strategy:", error);
-    
-    // Check if we should use fallback data or throw the error
-    const shouldUseFallback = confirm("AI service error. Would you like to use a fallback strategy template instead?");
-    
-    if (shouldUseFallback) {
-      console.warn("Using fallback mock strategy data due to error:", error);
-      return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
-    }
-    
-    // Re-throw the error if user doesn't want fallback
     throw error;
   }
 };
@@ -558,7 +548,7 @@ function ensureRuleGroups(rules: any[]): RuleGroupData[] {
 }
 
 // Generate a fallback strategy when AI service fails
-function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", selectedAsset: string, strategyDescription: string): GeneratedStrategy {
+export function generateFallbackStrategy(assetType: "stocks" | "cryptocurrency", selectedAsset: string, strategyDescription: string): GeneratedStrategy {
   console.log("Generating fallback strategy", { assetType, selectedAsset, strategyDescription });
   
   const andGroup: RuleGroupData = {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -16,7 +15,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { saveGeneratedStrategy } from "@/services/strategyService";
-import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
+import { RuleGroupData } from "@/components/strategy-detail/types";
 import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
@@ -39,18 +38,18 @@ const ManualStrategy = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   
-  // Initialize with default entry and exit rules
+  // Initialize with empty entry and exit rule groups
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
     {
       id: 1,
       logic: "AND",
-      inequalities: [defaultInequality(1)]
+      inequalities: []
     },
     {
       id: 2,
       logic: "OR",
       requiredConditions: 1,
-      inequalities: [defaultInequality(1)]
+      inequalities: []
     }
   ]);
   
@@ -58,13 +57,13 @@ const ManualStrategy = () => {
     {
       id: 1,
       logic: "AND",
-      inequalities: [defaultInequality(1)]
+      inequalities: []
     },
     {
       id: 2,
       logic: "OR",
       requiredConditions: 1,
-      inequalities: [defaultInequality(1)]
+      inequalities: []
     }
   ]);
 
@@ -87,28 +86,6 @@ const ManualStrategy = () => {
     setSelectedAsset(symbol);
     form.setValue("targetAsset", symbol);
   };
-
-  function defaultInequality(id: number): Inequality {
-    return {
-      id: id,
-      left: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "20"
-        }
-      },
-      condition: "Crosses Above",
-      right: {
-        type: "indicator",
-        indicator: "SMA",
-        parameters: {
-          period: "50"
-        }
-      },
-      explanation: "When a faster moving average crosses above a slower one, it indicates a potential uptrend beginning."
-    };
-  }
 
   const onSubmit = async (values: FormValues) => {
     if (!user) {

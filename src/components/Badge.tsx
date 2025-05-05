@@ -1,4 +1,3 @@
-
 import { Badge as ShadcnBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -12,8 +11,8 @@ export function Badge({ variant = "default", className, children }: BadgeProps) 
   // Now we can directly use the variant since we've added "pro" and "free" to the shadcn Badge component
   return (
     <ShadcnBadge variant={variant} className={cn(
-      // Add animation only for pro badge
-      variant === "pro" ? "shadow-sm animate-pulse" : "",
+      // Remove the animate-pulse class but keep the shadow
+      variant === "pro" ? "shadow-sm" : "",
       className
     )}>
       {children}

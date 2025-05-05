@@ -1,98 +1,165 @@
 
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { FilterBar } from "./FilterBar";
 
-const recentTradesData = [{
-  date: "2024-03",
-  day: "03",
-  strategy: "RSI Strategy",
-  symbol: "AAPL",
-  type: "Buy",
-  typeColor: "text-green-600",
-  price: "$172.40",
-  shares: "100",
-  pnl: "-",
-  pnlColor: ""
-}, {
-  date: "2024-03",
-  day: "03",
-  strategy: "Moving Average",
-  symbol: "TSLA",
-  type: "Sell",
-  typeColor: "text-red-600",
-  price: "$149.75",
-  shares: "150",
-  pnl: "-3.2%",
-  pnlColor: "text-red-600"
-}, {
-  date: "2024-03",
-  day: "03",
-  strategy: "Bollinger Bands",
-  symbol: "GOOGL",
-  type: "Buy",
-  typeColor: "text-green-600",
-  price: "$147.00",
-  shares: "200",
-  pnl: "-",
-  pnlColor: ""
-}, {
-  date: "2024-03",
-  day: "02",
-  strategy: "RSI Strategy",
-  symbol: "MSFT",
-  type: "Sell",
-  typeColor: "text-red-600",
-  price: "$177.82",
-  shares: "75",
-  pnl: "-1.8%",
-  pnlColor: "text-red-600"
-}, {
-  date: "2024-03",
-  day: "02",
-  strategy: "Moving Average",
-  symbol: "AMZN",
-  type: "Sell",
-  typeColor: "text-red-600",
-  price: "$178.75",
-  shares: "125",
-  pnl: "+0.5%",
-  pnlColor: "text-green-600"
-}];
+// Sample trades data
+const allTrades = [
+  {
+    id: "T-1234",
+    strategy: "RSI Strategy",
+    type: "buy",
+    asset: "AAPL",
+    entry: "$175.23",
+    exit: "$178.45",
+    profit: "+1.8%",
+    date: "2025-05-04"
+  },
+  {
+    id: "T-1235",
+    strategy: "Ichimoku Cloud",
+    type: "sell",
+    asset: "MSFT",
+    entry: "$402.18",
+    exit: "$398.62",
+    profit: "+0.9%",
+    date: "2025-05-03"
+  },
+  {
+    id: "T-1236",
+    strategy: "Moving Average Crossover",
+    type: "sell",
+    asset: "TSLA",
+    entry: "$165.23",
+    exit: "$152.30",
+    profit: "-7.8%",
+    date: "2025-05-02"
+  },
+  {
+    id: "T-1237",
+    strategy: "Bollinger Bands",
+    type: "buy",
+    asset: "AMZN",
+    entry: "$184.70",
+    exit: "$189.30",
+    profit: "+2.5%",
+    date: "2025-05-01"
+  },
+  {
+    id: "T-1238",
+    strategy: "MACD Strategy",
+    type: "buy",
+    asset: "NVDA",
+    entry: "$924.63",
+    exit: "$930.25",
+    profit: "+0.6%",
+    date: "2025-04-30"
+  }
+];
 
 export function RecentTrades() {
-  return <Card>
+  const [filteredTrades, setFilteredTrades] = useState(allTrades);
+
+  const handleFilterChange = ({
+    search,
+    sortBy,
+    timeframe
+  }: {
+    search: string;
+    sortBy: string;
+    timeframe: string;
+  }) => {
+    let result = [...allTrades];
+
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(
+        trade =>
+          trade.strategy.toLowerCase().includes(searchLower) ||
+          trade.asset.toLowerCase().includes(searchLower) ||
+          trade.id.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply timeframe filter
+    if (timeframe !== "all") {
+      const now = new Date();
+      let cutoffDate = new Date();
+      
+      if (timeframe === "day") {
+        cutoffDate.setDate(now.getDate() - 1);
+      } else if (timeframe === "week") {
+        cutoffDate.setDate(now.getDate() - 7);
+      } else if (timeframe === "month") {
+        cutoffDate.setMonth(now.getMonth() - 1);
+      }
+      
+      result = result.filter(trade => new Date(trade.date) >= cutoffDate);
+    }
+
+    // Apply sorting
+    if (sortBy === "newest") {
+      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else if (sortBy === "oldest") {
+      result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } else if (sortBy === "return-high") {
+      result.sort((a, b) => parseFloat(b.profit) - parseFloat(a.profit));
+    } else if (sortBy === "return-low") {
+      result.sort((a, b) => parseFloat(a.profit) - parseFloat(b.profit));
+    }
+
+    setFilteredTrades(result);
+  };
+
+  return (
+    <Card>
       <div className="p-6 pb-3">
-        <h3 className="text-lg font-semibold mb-2">Trade Analysis</h3>
-        <p className="text-sm text-muted-foreground">Latest trades across all strategies</p>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Strategy</TableHead>
-            <TableHead>Symbol</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Shares</TableHead>
-            <TableHead>P/L</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {recentTradesData.map((trade, index) => <TableRow key={index}>
-              <TableCell>{`${trade.date}-${trade.day}`}</TableCell>
-              <TableCell>{trade.strategy}</TableCell>
-              <TableCell>{trade.symbol}</TableCell>
-              <TableCell className={trade.typeColor}>{trade.type}</TableCell>
-              <TableCell>{trade.price}</TableCell>
-              <TableCell>{trade.shares}</TableCell>
-              <TableCell className={trade.pnlColor}>{trade.pnl}</TableCell>
-            </TableRow>)}
-        </TableBody>
-      </Table>
-
-      <div className="p-4 flex justify-center">
+        <h3 className="text-lg font-semibold mb-2">Recent Trades</h3>
+        <p className="text-sm text-muted-foreground mb-4">History of recent trading activity</p>
         
+        <FilterBar 
+          onFilterChange={handleFilterChange} 
+          className="mb-4"
+        />
       </div>
-    </Card>;
+      
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Strategy</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Asset</TableHead>
+              <TableHead>Entry</TableHead>
+              <TableHead>Exit</TableHead>
+              <TableHead>Profit/Loss</TableHead>
+              <TableHead>Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTrades.map((trade) => (
+              <TableRow key={trade.id}>
+                <TableCell className="font-medium">{trade.id}</TableCell>
+                <TableCell>{trade.strategy}</TableCell>
+                <TableCell>
+                  <Badge variant={trade.type === "buy" ? "outline" : "secondary"}>{trade.type}</Badge>
+                </TableCell>
+                <TableCell>{trade.asset}</TableCell>
+                <TableCell>{trade.entry}</TableCell>
+                <TableCell>{trade.exit}</TableCell>
+                <TableCell className={`${trade.profit.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                  {trade.profit}
+                </TableCell>
+                <TableCell>{trade.date}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
+  );
 }

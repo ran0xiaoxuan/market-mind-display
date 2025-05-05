@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Sparkles } from "lucide-react";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 
@@ -59,14 +58,12 @@ const Strategies = () => {
             <h1 className="text-3xl font-bold">Trading Strategies</h1>
             <div className="flex gap-2 mt-4 sm:mt-0">
               <Link to="/ai-strategy">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
+                <Button variant="outline">
                   AI Strategy
                 </Button>
               </Link>
               <Link to="/manual-strategy">
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
+                <Button>
                   New Strategy
                 </Button>
               </Link>

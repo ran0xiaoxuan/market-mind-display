@@ -121,7 +121,7 @@ const AIStrategy = () => {
                     Generating Strategy with Moonshot AI...
                   </>
                 ) : (
-                  "Generate Strategy with Moonshot AI"
+                  "Generate Strategy"
                 )}
               </Button>
             </div>

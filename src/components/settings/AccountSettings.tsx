@@ -272,7 +272,9 @@ export function AccountSettings() {
                   {isPro ? 'Pro' : 'Free'}
                 </Badge>
               </div>
-              <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
+              {!isPro && (
+                <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
+              )}
             </div>
             
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">

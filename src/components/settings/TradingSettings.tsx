@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -258,102 +259,103 @@ export function TradingSettings() {
                       <Switch 
                         checked={field.value} 
                         onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {form.watch("discord") && (
+              <FormField
+                control={form.control}
+                name="discordWebhook"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Discord Webhook URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Create a webhook in your Discord server settings and paste the URL here
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
           
-          {form.watch("discord") && (
-            <FormField
-              control={form.control}
-              name="discordWebhook"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Discord Webhook URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Create a webhook in your Discord server settings and paste the URL here
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-          )}
-        </div>
-        
-        {/* Telegram Integration */}
-        <div className="space-y-4 border-t pt-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Send className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Telegram Notifications</p>
-                <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
+          {/* Telegram Integration */}
+          <div className="space-y-4 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Send className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Telegram Notifications</p>
+                  <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
+                </div>
               </div>
+              <FormField
+                control={form.control}
+                name="telegram"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Switch 
+                        checked={field.value} 
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
-            <FormField
-              control={form.control}
-              name="telegram"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Switch 
-                      checked={field.value} 
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            
+            {form.watch("telegram") && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="telegramBotToken"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telegram Bot Token</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Create a bot with @BotFather and paste the token here
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="telegramChatId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telegram Chat ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="-100123456789" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        The ID of the chat where signals should be sent
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </div>
           
-          {form.watch("telegram") && (
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="telegramBotToken"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telegram Bot Token</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Create a bot with @BotFather and paste the token here
-                    </FormDescription>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="telegramChatId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telegram Chat ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="-100123456789" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      The ID of the chat where signals should be sent
-                    </FormDescription>
-                  </FormItem>
-                )}
-              />
-            </div>
-          )}
-        </div>
-        
-        {/* Save Button */}
-        <div className="pt-4">
-          <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Notification Settings"}
-          </Button>
-        </div>
-      </form>
+          {/* Save Button */}
+          <div className="pt-4">
+            <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Notification Settings"}
+            </Button>
+          </div>
+        </form>
+      </Form>
     );
   };
 

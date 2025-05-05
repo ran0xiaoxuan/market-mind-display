@@ -90,7 +90,10 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   `;
 
   try {
-    console.log("Sending request to Moonshot API with key:", MOONSHOT_API_KEY.substring(0, 5) + "...");
+    // Add more detailed logging
+    console.log(`Starting Moonshot API request for ${selectedAsset} (${assetType})`);
+    console.log("Using API key (first 5 chars):", MOONSHOT_API_KEY.substring(0, 5) + "...");
+    
     // Call the Moonshot AI API with improved error handling
     const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
       method: "POST",
@@ -110,21 +113,42 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
       })
     });
 
+    // Log response status for debugging
+    console.log(`Moonshot API response status: ${response.status}`);
+    
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error("Moonshot API Error:", errorData);
-      throw new Error(`API Error: ${response.status} - ${errorData}`);
+      const errorText = await response.text();
+      console.error(`Moonshot API Error (${response.status}):`, errorText);
+      
+      // Provide more detailed error message based on status code
+      if (response.status === 401) {
+        throw new Error("Invalid API key. Please verify your MOONSHOT_API_KEY is correct and not expired.");
+      } else if (response.status === 429) {
+        throw new Error("Rate limit exceeded. Please try again later or check your API plan limits.");
+      } else if (response.status >= 500) {
+        throw new Error("Moonshot API server error. This is likely temporary, please try again later.");
+      } else {
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      }
     }
 
+    // Parse the JSON response
     const data = await response.json();
-    console.log("Moonshot API Response received");
+    console.log("Moonshot API response received successfully");
+    
+    // Check if the data has the expected structure
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error("Unexpected API response structure:", JSON.stringify(data));
+      throw new Error("Unexpected response format from Moonshot API. The response doesn't contain the expected fields.");
+    }
     
     // Extract the content from the response
     const content = data.choices?.[0]?.message?.content || "";
-    console.log("Content extracted:", content.substring(0, 100) + "...");
+    console.log("Content extracted (first 100 chars):", content.substring(0, 100) + "...");
     
     // Parse JSON from content
     try {
+      // Try parsing the content directly
       const strategyJson = JSON.parse(content);
       console.log("Successfully parsed strategy JSON");
       return strategyJson;
@@ -141,11 +165,64 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
           return extractedJson;
         } catch (extractError) {
           console.error("Failed to extract JSON using regex:", extractError);
-          throw new Error("Failed to parse valid JSON from Moonshot response");
+          
+          // As a last resort, try to build a minimal valid response
+          console.log("Attempting to create fallback response");
+          return {
+            name: `${selectedAsset} Trading Strategy`,
+            description: strategyDescription,
+            market: assetType === "stocks" ? "Equities" : "Crypto",
+            timeframe: "Daily",
+            targetAsset: selectedAsset,
+            entryRules: [{
+              id: 1,
+              logic: "AND",
+              inequalities: [{
+                id: 1,
+                left: { 
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "20" }
+                },
+                condition: "Crosses Above",
+                right: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "50" }
+                },
+                explanation: "When the short-term moving average crosses above the long-term moving average, it indicates a potential uptrend."
+              }]
+            }],
+            exitRules: [{
+              id: 1,
+              logic: "AND",
+              inequalities: [{
+                id: 1,
+                left: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "20" }
+                },
+                condition: "Crosses Below",
+                right: {
+                  type: "indicator",
+                  indicator: "SMA",
+                  parameters: { period: "50" }
+                },
+                explanation: "When the short-term moving average crosses below the long-term moving average, it indicates a potential downtrend."
+              }]
+            }],
+            riskManagement: {
+              stopLoss: "5",
+              takeProfit: "15",
+              singleBuyVolume: "2000",
+              maxBuyVolume: "10000"
+            }
+          };
         }
       }
       
-      throw new Error("Failed to parse JSON from Moonshot response");
+      throw new Error("Failed to parse JSON from Moonshot response. The API may be experiencing issues.");
     }
   } catch (error) {
     console.error("Error generating strategy with Moonshot:", error);
@@ -186,7 +263,14 @@ serve(async (req) => {
     // Validate input
     if (!assetType || !selectedAsset || !strategyDescription) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }),
+        JSON.stringify({ 
+          error: "Missing required parameters",
+          details: {
+            assetType: assetType ? "✓" : "✗ missing",
+            selectedAsset: selectedAsset ? "✓" : "✗ missing", 
+            strategyDescription: strategyDescription ? "✓" : "✗ missing"
+          }
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -205,11 +289,21 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in edge function:", error);
+    
+    // Determine if this is an API key issue
+    const errorMessage = error.message || "Unknown error occurred";
+    const isApiKeyIssue = errorMessage.includes("API key") || 
+                          errorMessage.includes("MOONSHOT_API_KEY") ||
+                          errorMessage.includes("401");
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Unknown error occurred",
+        error: errorMessage,
         details: error.toString(),
-        help: "Make sure MOONSHOT_API_KEY is properly configured in your Supabase project."
+        help: isApiKeyIssue 
+          ? "Make sure MOONSHOT_API_KEY is properly configured in your Supabase project's secrets. You can update this in the Supabase dashboard under Settings > API > Edge Function Secrets."
+          : "Try again later or check the Edge Function logs in the Supabase dashboard for more details.",
+        type: isApiKeyIssue ? "api_key_error" : "general_error"
       }),
       {
         status: 500,

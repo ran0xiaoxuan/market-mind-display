@@ -106,7 +106,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
           "Authorization": `Bearer ${MOONSHOT_API_KEY}`
         },
         body: JSON.stringify({
-          model: "moonshot-v1-8k", // Using Moonshot's primary model
+          model: "moonshot-v1-32k", // Using Moonshot's larger context model
           messages: [{
             role: "user",
             content: prompt

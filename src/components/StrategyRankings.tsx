@@ -1,6 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 
 type Strategy = {
   name: string;
@@ -41,9 +42,16 @@ export function StrategyRankings() {
               <div className={`w-3 h-3 rounded-full ${strategy.color}`}></div>
               <span className="text-sm font-medium">{strategy.name}</span>
             </div>
-            <span className={`text-sm font-semibold ${strategy.return.startsWith("+") ? "text-green-600" : strategy.return.startsWith("-") ? "text-red-600" : ""}`}>
-              {strategy.return}
-            </span>
+            <div className="flex items-center">
+              {parseFloat(strategy.return) > 0 ? (
+                <ArrowUpIcon className="h-4 w-4 text-green-600 mr-1" />
+              ) : parseFloat(strategy.return) < 0 ? (
+                <ArrowDownIcon className="h-4 w-4 text-red-600 mr-1" />
+              ) : null}
+              <span className={`text-sm font-semibold ${strategy.return.startsWith("+") ? "text-green-600" : strategy.return.startsWith("-") ? "text-red-600" : ""}`}>
+                {strategy.return}
+              </span>
+            </div>
           </div>)}
       </div>
     </Card>;

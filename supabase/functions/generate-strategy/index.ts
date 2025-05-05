@@ -5,11 +5,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Define the function that will generate strategies based on AI input
 const generateStrategy = async (assetType: string, selectedAsset: string, strategyDescription: string) => {
-  const MOONSHOT_API_KEY = Deno.env.get("MOONSHOT_API_KEY");
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   
-  if (!MOONSHOT_API_KEY) {
-    console.error("MOONSHOT_API_KEY is not set");
-    throw new Error("MOONSHOT_API_KEY environment variable is not configured. Please add it to your Supabase project.");
+  if (!OPENAI_API_KEY) {
+    console.error("OPENAI_API_KEY is not set");
+    throw new Error("OPENAI_API_KEY environment variable is not configured. Please add it to your Supabase project.");
   }
   
   // Create a careful, structured prompt for the AI
@@ -91,28 +91,31 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
 
   try {
     // Add more detailed logging
-    console.log(`Starting Moonshot API request for ${selectedAsset} (${assetType})`);
+    console.log(`Starting OpenAI API request for ${selectedAsset} (${assetType})`);
     console.log("Strategy description:", strategyDescription.substring(0, 100) + (strategyDescription.length > 100 ? "..." : ""));
     
-    // Call the Moonshot AI API with improved error handling and timeout
+    // Call the OpenAI API with improved error handling and timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     try {
-      const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${MOONSHOT_API_KEY}`
+          "Authorization": `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: "moonshot-v1-32k", // Using Moonshot's larger context model
+          model: "gpt-4o-mini",
           messages: [{
+            role: "system",
+            content: "You are a trading strategy creation AI. Your task is to generate trading strategies in valid JSON format based on the user's specifications."
+          }, {
             role: "user",
             content: prompt
           }],
           temperature: 0.7,
-          max_tokens: 4000,
+          max_tokens: 2000,
           response_format: { type: "json_object" }
         }),
         signal: controller.signal
@@ -121,19 +124,19 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
       clearTimeout(timeoutId);
 
       // Log response status for debugging
-      console.log(`Moonshot API response status: ${response.status}`);
+      console.log(`OpenAI API response status: ${response.status}`);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Moonshot API Error (${response.status}):`, errorText);
+        console.error(`OpenAI API Error (${response.status}):`, errorText);
         
         // Provide more detailed error message based on status code
         if (response.status === 401) {
-          throw new Error("Invalid API key. Please verify your MOONSHOT_API_KEY is correct and not expired.");
+          throw new Error("Invalid API key. Please verify your OPENAI_API_KEY is correct and not expired.");
         } else if (response.status === 429) {
           throw new Error("Rate limit exceeded. Please try again later or check your API plan limits.");
         } else if (response.status >= 500) {
-          throw new Error("Moonshot API server error. This is likely temporary, please try again later.");
+          throw new Error("OpenAI API server error. This is likely temporary, please try again later.");
         } else {
           throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
@@ -141,12 +144,12 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
 
       // Parse the JSON response
       const data = await response.json();
-      console.log("Moonshot API response received successfully");
+      console.log("OpenAI API response received successfully");
       
       // Check if the data has the expected structure
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         console.error("Unexpected API response structure:", JSON.stringify(data));
-        throw new Error("Unexpected response format from Moonshot API. The response doesn't contain the expected fields.");
+        throw new Error("Unexpected response format from OpenAI API. The response doesn't contain the expected fields.");
       }
       
       // Extract the content from the response
@@ -161,7 +164,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
         console.log("Successfully parsed strategy JSON");
         return strategyJson;
       } catch (parseError) {
-        console.error("Error parsing JSON from Moonshot response:", parseError);
+        console.error("Error parsing JSON from OpenAI response:", parseError);
         
         // Try to extract JSON if it's surrounded by markdown code blocks or other text
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -179,7 +182,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
           }
         }
         
-        throw new Error("Failed to parse JSON from Moonshot response. The API may be experiencing issues.");
+        throw new Error("Failed to parse JSON from OpenAI response. The API may be experiencing issues.");
       }
     } catch (fetchError) {
       clearTimeout(timeoutId);
@@ -192,7 +195,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
       throw fetchError;
     }
   } catch (error) {
-    console.error("Error generating strategy with Moonshot:", error);
+    console.error("Error generating strategy with OpenAI:", error);
     throw error;
   }
 };
@@ -349,7 +352,7 @@ serve(async (req) => {
     // Determine if this is an API key issue
     const errorMessage = error.message || "Unknown error occurred";
     const isApiKeyIssue = errorMessage.includes("API key") || 
-                          errorMessage.includes("MOONSHOT_API_KEY") ||
+                          errorMessage.includes("OPENAI_API_KEY") ||
                           errorMessage.includes("401");
     
     return new Response(
@@ -357,7 +360,7 @@ serve(async (req) => {
         error: errorMessage,
         details: error.toString(),
         help: isApiKeyIssue 
-          ? "Make sure MOONSHOT_API_KEY is properly configured in your Supabase project's secrets. You can update this in the Supabase dashboard under Settings > API > Edge Function Secrets."
+          ? "Make sure OPENAI_API_KEY is properly configured in your Supabase project's secrets. You can update this in the Supabase dashboard under Settings > API > Edge Function Secrets."
           : "Try again later or check the Edge Function logs in the Supabase dashboard for more details.",
         type: isApiKeyIssue ? "api_key_error" : "general_error"
       }),

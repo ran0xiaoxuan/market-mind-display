@@ -426,7 +426,7 @@ export const generateStrategy = async (
   console.log("Generating strategy with AI service...", { assetType, selectedAsset, strategyDescription });
   
   try {
-    // Call the Supabase Edge Function to generate strategy using Moonshot AI
+    // Call the Supabase Edge Function to generate strategy using OpenAI API
     // Add timeout handling for the fetch call without using signal parameter
     try {
       const { data, error } = await supabase.functions.invoke('generate-strategy', {

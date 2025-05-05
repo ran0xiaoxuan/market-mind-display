@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, PlayIcon } from "lucide-react";
+import { CalendarIcon, PlayIcon, Save } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import { useLocation } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SaveBacktestDialog } from "@/components/backtest/SaveBacktestDialog";
 
 const Backtest = () => {
   const location = useLocation();
@@ -31,6 +31,7 @@ const Backtest = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [backtestResults, setBacktestResults] = useState<any>(null);
   const [runningBacktest, setRunningBacktest] = useState<boolean>(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState<boolean>(false);
   
   const { toast } = useToast();
 
@@ -70,42 +71,46 @@ const Backtest = () => {
     }
   }, [location.search, toast]);
 
-  const performanceMetrics = [{
-    name: "Total Return",
-    value: "17.00%",
-    green: true
-  }, {
-    name: "Annualized Return",
-    value: "34.00%",
-    green: true
-  }, {
-    name: "Sharpe Ratio",
-    value: "1.8"
-  }, {
-    name: "Max Drawdown",
-    value: "-3.8%"
-  }, {
-    name: "Win Rate",
-    value: "68%"
-  }];
+  const performanceMetrics = [
+    {
+      name: "Total Return",
+      value: "17.00%",
+      green: true
+    }, {
+      name: "Annualized Return",
+      value: "34.00%",
+      green: true
+    }, {
+      name: "Sharpe Ratio",
+      value: "1.8"
+    }, {
+      name: "Max Drawdown",
+      value: "-3.8%"
+    }, {
+      name: "Win Rate",
+      value: "68%"
+    }
+  ];
 
-  const tradeStatistics = [{
-    name: "Total Trades",
-    value: "25"
-  }, {
-    name: "Winning Trades",
-    value: "17"
-  }, {
-    name: "Losing Trades",
-    value: "8"
-  }, {
-    name: "Avg. Profit",
-    value: "$320.45",
-    green: true
-  }, {
-    name: "Avg. Loss",
-    value: "-$175.20"
-  }];
+  const tradeStatistics = [
+    {
+      name: "Total Trades",
+      value: "25"
+    }, {
+      name: "Winning Trades",
+      value: "17"
+    }, {
+      name: "Losing Trades",
+      value: "8"
+    }, {
+      name: "Avg. Profit",
+      value: "$320.45",
+      green: true
+    }, {
+      name: "Avg. Loss",
+      value: "-$175.20"
+    }
+  ];
 
   const runBacktest = async () => {
     if (!strategy) {
@@ -188,6 +193,14 @@ const Backtest = () => {
       });
       setRunningBacktest(false);
     }
+  };
+
+  const handleSaveResults = () => {
+    setSaveDialogOpen(true);
+  };
+
+  const handleCloseSaveDialog = () => {
+    setSaveDialogOpen(false);
   };
 
   return <div className="min-h-screen flex flex-col bg-background">
@@ -306,10 +319,21 @@ const Backtest = () => {
 
           <Card>
             <CardContent className="pt-6">
-              <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
-              <p className="text-muted-foreground text-sm mb-6">
-                {hasResults ? "View the performance of your strategy over the selected time period." : "Run a backtest to see results here."}
-              </p>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
+                  <p className="text-muted-foreground text-sm">
+                    {hasResults ? "View the performance of your strategy over the selected time period." : "Run a backtest to see results here."}
+                  </p>
+                </div>
+                
+                {hasResults && (
+                  <Button onClick={handleSaveResults} size="sm" variant="outline">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Results
+                  </Button>
+                )}
+              </div>
 
               {hasResults ? <div>
                   <Tabs defaultValue="summary" className="mb-6">
@@ -411,6 +435,19 @@ const Backtest = () => {
             </CardContent>
           </Card>
         </div>
+        
+        <SaveBacktestDialog 
+          isOpen={saveDialogOpen}
+          onClose={handleCloseSaveDialog}
+          backtestResults={backtestResults}
+          strategyId={strategy}
+          backtestParameters={{
+            startDate,
+            endDate,
+            initialCapital,
+            positionSize
+          }}
+        />
       </main>
     </div>;
 };

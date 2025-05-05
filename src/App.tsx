@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -21,6 +20,7 @@ import EditHistory from "./pages/EditHistory";
 import BacktestHistory from "./pages/BacktestHistory";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ManualStrategy from "./pages/ManualStrategy";
 
 const queryClient = new QueryClient();
 

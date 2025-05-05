@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Discord, Twitter } from "lucide-react";
+import { MessageSquare, Twitter } from "lucide-react";
 
 export function ContactUs() {
   return (
@@ -15,7 +15,7 @@ export function ContactUs() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <Discord className="h-10 w-10 text-indigo-600" />
+              <MessageSquare className="h-10 w-10 text-indigo-600" />
               <div>
                 <h3 className="font-medium">Join our Discord</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -27,7 +27,7 @@ export function ContactUs() {
                 className="w-full border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                 onClick={() => window.open('https://discord.gg/tradingapp', '_blank')}
               >
-                <Discord className="mr-2 h-4 w-4" />
+                <MessageSquare className="mr-2 h-4 w-4" />
                 Join Discord
               </Button>
             </div>

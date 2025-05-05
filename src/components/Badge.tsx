@@ -9,39 +9,13 @@ interface BadgeProps {
 }
 
 export function Badge({ variant = "default", className, children }: BadgeProps) {
-  // Custom styling for the pro badge
-  if (variant === "pro") {
-    return (
-      <ShadcnBadge 
-        variant="outline" 
-        className={cn(
-          "bg-gradient-to-r from-amber-400 to-amber-500 text-black font-medium border-amber-300 shadow-sm",
-          className
-        )}
-      >
-        {children}
-      </ShadcnBadge>
-    );
-  }
-  
-  // Custom styling for the free badge
-  if (variant === "free") {
-    return (
-      <ShadcnBadge 
-        variant="outline" 
-        className={cn(
-          "bg-secondary text-muted-foreground border-gray-200",
-          className
-        )}
-      >
-        {children}
-      </ShadcnBadge>
-    );
-  }
-
-  // Default badge with existing behavior
+  // Now we can directly use the variant since we've added "pro" and "free" to the shadcn Badge component
   return (
-    <ShadcnBadge variant={variant} className={className}>
+    <ShadcnBadge variant={variant} className={cn(
+      // Add animation only for pro badge
+      variant === "pro" ? "shadow-sm animate-pulse" : "",
+      className
+    )}>
       {children}
     </ShadcnBadge>
   );

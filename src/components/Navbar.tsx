@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 import { Button } from "./ui/button";
 import { Logo } from "./Logo";
-import { Sparkles } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", href: "/" },
@@ -37,7 +36,7 @@ export function Navbar() {
             Dashboard
           </Link>
           
-          {/* AI Strategy button - now with white text on hover */}
+          {/* AI Strategy button - now with white text on hover, but no icon */}
           <Link to="/ai-strategy">
             <Button 
               variant="ghost" 
@@ -47,7 +46,6 @@ export function Navbar() {
                 location.pathname === "/ai-strategy" ? "ring-2 ring-gray-500" : ""
               )}
             >
-              <Sparkles className="w-4 h-4" />
               AI Strategy
             </Button>
           </Link>

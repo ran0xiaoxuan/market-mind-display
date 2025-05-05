@@ -50,7 +50,17 @@ export const TradeHistoryTable = ({
                   {trade.signal === "Long" ? "Buy" : trade.signal === "Take Profit" ? "Sell" : trade.signal}
                 </TableCell>
                 <TableCell className="py-3">
-                  {trade.date}
+                  <div className="flex flex-col">
+                    <span>{trade.date}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {/* Extract the time from the date string if it exists */}
+                      {trade.date.includes(",") ? 
+                        trade.date.split(", ")[1].includes(":") ? 
+                          trade.date.split(", ")[1] : 
+                          "12:00 PM" : 
+                        "12:00 PM"}
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell className="py-3">
                   <div className="flex flex-col">

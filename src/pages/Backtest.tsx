@@ -18,6 +18,7 @@ import { useLocation } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect, SelectOption } from "@/components/SearchableSelect";
 
 const Backtest = () => {
   const location = useLocation();
@@ -28,6 +29,7 @@ const Backtest = () => {
   const [positionSize, setPositionSize] = useState<string>("10");
   const [hasResults, setHasResults] = useState<boolean>(false);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [strategyOptions, setStrategyOptions] = useState<SelectOption[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [backtestResults, setBacktestResults] = useState<any>(null);
   const [runningBacktest, setRunningBacktest] = useState<boolean>(false);
@@ -41,6 +43,13 @@ const Backtest = () => {
         setIsLoading(true);
         const data = await getStrategies();
         setStrategies(data);
+        
+        // Convert strategies to select options format
+        const options = data.map(strategy => ({
+          value: strategy.id,
+          label: strategy.name
+        }));
+        setStrategyOptions(options);
       } catch (error) {
         console.error("Error fetching strategies:", error);
         toast({
@@ -208,24 +217,15 @@ const Backtest = () => {
                   <label htmlFor="strategy" className="text-sm font-medium">
                     Strategy
                   </label>
-                  <Select value={strategy} onValueChange={setStrategy} disabled={isLoading || runningBacktest}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={isLoading ? "Loading strategies..." : "Select strategy"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {strategies.length > 0 ? (
-                        strategies.map((strategyItem) => (
-                          <SelectItem key={strategyItem.id} value={strategyItem.id}>
-                            {strategyItem.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="none" disabled>
-                          {isLoading ? "Loading strategies..." : "No strategies available"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  {/* Replace the Select with SearchableSelect */}
+                  <SearchableSelect
+                    options={strategyOptions}
+                    value={strategy}
+                    onChange={setStrategy}
+                    placeholder={isLoading ? "Loading strategies..." : "Select strategy"}
+                    emptyMessage={strategies.length === 0 ? "No strategies available" : "No matching strategies found"}
+                    disabled={isLoading || runningBacktest}
+                  />
                 </div>
 
                 <div className="space-y-2">

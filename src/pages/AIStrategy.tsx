@@ -8,10 +8,11 @@ import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AIStrategy = () => {
   const { user } = useAuth();
@@ -21,11 +22,13 @@ const AIStrategy = () => {
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [edgeFunctionError, setEdgeFunctionError] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     setError(null);
+    setEdgeFunctionError(false);
   };
 
   const handleGenerateStrategy = async () => {
@@ -45,6 +48,8 @@ const AIStrategy = () => {
 
     setIsLoading(true);
     setError(null);
+    setEdgeFunctionError(false);
+    
     try {
       // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
       const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
@@ -60,9 +65,19 @@ const AIStrategy = () => {
     } catch (error) {
       console.error("Error generating strategy:", error);
       const errorMessage = error.response?.data?.error || error.message || "Unknown error";
+      
+      // Check if this is an edge function communication error
+      const isEdgeFunctionError = errorMessage.includes("Edge Function") || 
+                                 errorMessage.includes("Failed to fetch") ||
+                                 errorMessage.includes("Failed to send");
+      
+      setEdgeFunctionError(isEdgeFunctionError);
       setError(`Failed to generate strategy: ${errorMessage}`);
+      
       toast("Failed to generate strategy", {
-        description: "There was an error connecting to the AI service. Please try again.",
+        description: isEdgeFunctionError 
+          ? "There was an error connecting to our AI service. Please check your connection and try again."
+          : "There was an error generating your strategy. Please try again.",
         icon: <AlertCircle className="h-4 w-4 text-destructive" />
       });
     } finally {
@@ -102,6 +117,11 @@ const AIStrategy = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
     setError(null);
+    setEdgeFunctionError(false);
+  };
+
+  const openSupabaseDocs = () => {
+    window.open("https://supabase.com/docs/guides/functions", "_blank");
   };
 
   return (
@@ -131,8 +151,37 @@ const AIStrategy = () => {
               <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-medium">AI Service Error</h4>
+                  <h4 className="font-medium">
+                    {edgeFunctionError ? "AI Service Connection Error" : "AI Service Error"}
+                  </h4>
                   <p className="text-sm">{error}</p>
+                  
+                  {edgeFunctionError && (
+                    <div className="mt-3">
+                      <Alert variant="destructive" className="bg-destructive/5">
+                        <AlertTitle className="flex items-center gap-2">
+                          Supabase Edge Function Error
+                        </AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">The AI service is currently unavailable. This might be due to:</p>
+                          <ul className="list-disc pl-5 space-y-1 text-sm">
+                            <li>Supabase Edge Function not deployed correctly</li>
+                            <li>Missing API keys in the project settings</li>
+                            <li>Network connectivity issues</li>
+                          </ul>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-3 flex items-center gap-1"
+                            onClick={openSupabaseDocs}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Supabase Functions Documentation
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

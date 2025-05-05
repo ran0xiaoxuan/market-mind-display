@@ -1,5 +1,7 @@
 
 import { Card } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface RiskManagementProps {
   riskManagement: {
@@ -11,6 +13,30 @@ interface RiskManagementProps {
 }
 
 export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
+  // Basic validation to check if riskManagement data is valid
+  const isValidData = riskManagement && 
+    typeof riskManagement.stopLoss === 'string' && 
+    typeof riskManagement.takeProfit === 'string' &&
+    typeof riskManagement.singleBuyVolume === 'string' && 
+    typeof riskManagement.maxBuyVolume === 'string';
+
+  if (!isValidData) {
+    return (
+      <Card className="p-6 mt-6">
+        <div className="mb-2">
+          <h2 className="text-xl font-semibold">Risk Management</h2>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Unable to load risk management data. Please try again later.
+          </AlertDescription>
+        </Alert>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6 mt-6">
       <div className="mb-2">

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
+// Max file size: 1MB
+const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
+
 export function AccountSettings() {
   const { user } = useAuth();
   const [name, setName] = useState(user?.user_metadata?.username || user?.email?.split('@')[0] || "");
@@ -23,6 +27,7 @@ export function AccountSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
@@ -30,7 +35,20 @@ export function AccountSettings() {
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    setUploadError(""); // Clear any previous errors
+    
     if (file) {
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        setUploadError(`File size exceeds the 1MB limit (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+        toast({
+          title: "File too large",
+          description: "Maximum file size is 1MB. Please select a smaller image.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Create a temporary URL for preview
       const previewUrl = URL.createObjectURL(file);
       setAvatarUrl(previewUrl);
@@ -49,37 +67,43 @@ export function AccountSettings() {
       const filePath = `avatars/${user?.id}/${fileName}`;
       
       // Upload the file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
       
       // Get the public URL
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      if (!data.publicUrl) throw new Error("Failed to get public URL");
+      if (!urlData.publicUrl) throw new Error("Failed to get public URL");
+      
+      console.log("Avatar uploaded successfully:", urlData.publicUrl);
       
       // Update user metadata with the new avatar URL
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: data.publicUrl }
+        data: { avatar_url: urlData.publicUrl }
       });
       
       if (updateError) throw updateError;
       
-      setAvatarUrl(data.publicUrl);
+      setAvatarUrl(urlData.publicUrl);
       
       toast({
         title: "Avatar uploaded",
         description: "Your avatar has been updated successfully."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading avatar:", error);
+      setUploadError(error.message || "Failed to upload your avatar");
       toast({
         title: "Upload failed",
-        description: "Failed to upload your avatar. Please try again.",
+        description: error.message || "Failed to upload your avatar. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -275,6 +299,11 @@ export function AccountSettings() {
               <p className="text-xs text-muted-foreground">
                 Recommended size: 200 x 200 pixels. Max file size: 1MB.
               </p>
+              {uploadError && (
+                <p className="text-xs text-destructive">
+                  Error: {uploadError}
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
               <Button 

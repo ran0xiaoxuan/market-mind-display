@@ -146,12 +146,12 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       throw error;
     }
     
-    // Return data directly from strategies table
+    // Return data directly from strategies table - Fix the property name from max_buyVolume to max_buy_volume
     return {
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
       singleBuyVolume: data.single_buy_volume,
-      maxBuyVolume: data.max_buyVolume
+      maxBuyVolume: data.max_buy_volume
     };
   } catch (error) {
     console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);

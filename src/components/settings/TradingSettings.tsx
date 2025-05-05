@@ -459,7 +459,7 @@ export function TradingSettings() {
           Choose how you want to be notified when trading signals are generated
         </p>
         
-        <Card className={isPro ? "border-green-200 bg-gradient-to-r from-green-50 to-white" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
+        <Card className={isPro ? "" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
           <CardContent className="p-6">
             {renderNotificationSettings()}
           </CardContent>
@@ -470,7 +470,7 @@ export function TradingSettings() {
         <h2 className="text-xl font-medium mb-2">Signal Notification Settings</h2>
         <p className="text-sm text-muted-foreground mb-6">Configure which types of signals to send</p>
         
-        <Card className={isPro ? "border-green-200 bg-gradient-to-r from-green-50 to-white" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
+        <Card className={isPro ? "" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
           <CardContent className="p-6">
             {renderSignalNotificationTypes()}
           </CardContent>

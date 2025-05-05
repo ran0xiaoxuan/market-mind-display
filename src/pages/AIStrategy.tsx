@@ -41,7 +41,7 @@ const AIStrategy = () => {
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
       setGeneratedStrategy(strategy);
       toast("Strategy generated", {
-        description: "AI has successfully generated a trading strategy based on your description"
+        description: "Moonshot AI has successfully generated a trading strategy based on your description"
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
@@ -118,10 +118,10 @@ const AIStrategy = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Strategy...
+                    Generating Strategy with Moonshot AI...
                   </>
                 ) : (
-                  "Generate Strategy"
+                  "Generate Strategy with Moonshot AI"
                 )}
               </Button>
             </div>

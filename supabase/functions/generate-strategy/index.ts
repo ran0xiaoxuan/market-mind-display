@@ -5,10 +5,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Define the function that will generate strategies based on AI input
 const generateStrategy = async (assetType: string, selectedAsset: string, strategyDescription: string) => {
-  const BAILIAN_API_KEY = Deno.env.get("BAILIAN_API_KEY");
+  const MOONSHOT_API_KEY = Deno.env.get("MOONSHOT_API_KEY");
   
-  if (!BAILIAN_API_KEY) {
-    throw new Error("BAILIAN_API_KEY is not set");
+  if (!MOONSHOT_API_KEY) {
+    throw new Error("MOONSHOT_API_KEY is not set");
   }
   
   // Create a careful, structured prompt for the AI
@@ -158,49 +158,58 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   `;
 
   try {
-    // Call the AI API
-    const response = await fetch("https://api.bailian.tech/openapi/api/v1/text/generation", {
+    console.log("Sending request to Moonshot API");
+    // Call the Moonshot AI API
+    const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${BAILIAN_API_KEY}`
+        "Authorization": `Bearer ${MOONSHOT_API_KEY}`
       },
       body: JSON.stringify({
-        model: "ERNIE-Bot-4",
+        model: "moonshot-v1-8k", // Using Moonshot's primary model
         messages: [{
           role: "user",
           content: prompt
         }],
         temperature: 0.7,
-        top_p: 0.9,
-        stream: false
+        max_tokens: 4000,
+        response_format: { type: "json_object" }
       })
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("AI API Error:", errorData);
+      console.error("Moonshot API Error:", errorData);
       throw new Error(`API Error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log("AI API Response:", JSON.stringify(data));
+    console.log("Moonshot API Response:", JSON.stringify(data));
     
     // Extract the content from the response
-    const content = data.result || "";
+    const content = data.choices?.[0]?.message?.content || "";
     
-    // Extract the JSON from the content
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("No valid JSON found in the AI response");
+    // Parse JSON from content
+    try {
+      const strategyJson = JSON.parse(content);
+      console.log("Parsed strategy:", JSON.stringify(strategyJson));
+      return strategyJson;
+    } catch (parseError) {
+      console.error("Error parsing JSON from Moonshot response:", parseError);
+      
+      // Try to extract JSON if it's surrounded by markdown code blocks or other text
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const extractedJson = JSON.parse(jsonMatch[0]);
+        console.log("Extracted JSON from response:", JSON.stringify(extractedJson));
+        return extractedJson;
+      }
+      
+      throw new Error("Failed to parse JSON from Moonshot response");
     }
-    
-    const strategyJson = JSON.parse(jsonMatch[0]);
-    console.log("Parsed strategy:", JSON.stringify(strategyJson));
-    
-    return strategyJson;
   } catch (error) {
-    console.error("Error generating strategy:", error);
+    console.error("Error generating strategy with Moonshot:", error);
     throw error;
   }
 };

@@ -296,7 +296,7 @@ export const TradingRules = ({
               {entryRules.map((group, index) => (
                 <RuleGroup
                   key={`entry-group-${index}`}
-                  title={`${group.logic} Group`}
+                  title={group.logic === "AND" ? "AND Group" : "OR Group"}
                   color={group.logic === "AND" ? "blue" : "amber"}
                   description={group.logic === "AND" ? "All conditions must be met." : `At least ${group.requiredConditions || 1} of ${Math.max(2, group.inequalities.length)} conditions must be met.`}
                   inequalities={group.inequalities}
@@ -364,7 +364,7 @@ export const TradingRules = ({
               {exitRules.map((group, index) => (
                 <RuleGroup
                   key={`exit-group-${index}`}
-                  title={`${group.logic} Group`}
+                  title={group.logic === "AND" ? "AND Group" : "OR Group"}
                   color={group.logic === "AND" ? "blue" : "amber"}
                   description={group.logic === "AND" ? "All conditions must be met." : `At least ${group.requiredConditions || 1} of ${Math.max(2, group.inequalities.length)} conditions must be met.`}
                   inequalities={group.inequalities}

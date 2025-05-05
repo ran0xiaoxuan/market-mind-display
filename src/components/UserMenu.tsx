@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/Badge";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -41,7 +42,9 @@ export function UserMenu() {
           <p className="font-medium">{username}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
           <div className="mt-2">
-            <span className="px-2 py-1 text-xs bg-secondary rounded-full">{isPro ? 'Pro' : 'Free'}</span>
+            <Badge variant={isPro ? 'pro' : 'free'}>
+              {isPro ? 'Pro' : 'Free'}
+            </Badge>
           </div>
         </div>
         
@@ -66,3 +69,4 @@ export function UserMenu() {
     </Popover>
   );
 }
+

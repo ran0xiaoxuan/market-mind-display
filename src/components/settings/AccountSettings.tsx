@@ -265,7 +265,12 @@ export function AccountSettings() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs px-2 py-0.5">{isPro ? 'Pro' : 'Free'}</Badge>
+                <Badge 
+                  variant={isPro ? "pro" : "free"} 
+                  className={isPro ? "text-xs px-3 py-1 animate-pulse" : "text-xs px-2 py-0.5"}
+                >
+                  {isPro ? 'Pro' : 'Free'}
+                </Badge>
               </div>
               <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
             </div>

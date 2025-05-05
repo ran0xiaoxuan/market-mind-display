@@ -9,22 +9,122 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AccountSettings() {
-  const [name, setName] = useState("ranxiaoxuan");
-  const [email, setEmail] = useState("ran0xiaoxuan@gmail.com");
+  const { user } = useAuth();
+  const [name, setName] = useState(user?.user_metadata?.username || user?.email?.split('@')[0] || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR_URL);
+  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Extract initials for avatar fallback
+  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
+  const initialsForAvatar = username.charAt(0).toUpperCase();
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       setAvatarUrl(url);
     }
   };
+
+  const handleUpdateAvatar = async () => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your avatar has been updated successfully."
+      });
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update your avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { username: name }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully."
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update your profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "New password and confirm password must match.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ 
+        password: newPassword 
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been updated successfully."
+      });
+      
+      // Clear password fields
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      console.error("Error updating password:", error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update your password. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -71,11 +171,19 @@ export function AccountSettings() {
           
           <div>
             <label htmlFor="email" className="block text-sm mb-2">Email</label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} disabled />
+            <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
           </div>
           
           <div>
-            <Button variant="default" className="bg-black text-white mt-2">Save Changes</Button>
+            <Button 
+              variant="default" 
+              className="bg-black text-white mt-2"
+              onClick={handleSaveProfile}
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </div>
       </div>
@@ -87,8 +195,8 @@ export function AccountSettings() {
         
         <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={avatarUrl} alt="Profile" />
-            <AvatarFallback className="bg-red-500 text-white text-lg">RA</AvatarFallback>
+            <AvatarImage src={avatarUrl} alt={username} />
+            <AvatarFallback className="bg-primary text-primary-foreground">{initialsForAvatar}</AvatarFallback>
           </Avatar>
           
           <div className="space-y-4">
@@ -106,7 +214,13 @@ export function AccountSettings() {
                 Recommended size: 200 x 200 pixels. Max file size: 1MB.
               </p>
             </div>
-            <Button variant="default">Update Avatar</Button>
+            <Button 
+              variant="default"
+              onClick={handleUpdateAvatar}
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Updating..." : "Update Avatar"}
+            </Button>
           </div>
         </div>
       </div>
@@ -133,7 +247,14 @@ export function AccountSettings() {
           </div>
           
           <div>
-            <Button variant="default" className="bg-black text-white mt-2">Update Password</Button>
+            <Button 
+              variant="default" 
+              className="bg-black text-white mt-2"
+              onClick={handleUpdatePassword}
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Updating..." : "Update Password"}
+            </Button>
           </div>
         </div>
       </div>

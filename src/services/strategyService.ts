@@ -146,12 +146,12 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       throw error;
     }
     
-    // Return data directly from strategies table 
+    // Fixed property name: max_buy_volume instead of max_buyVolume
     return {
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
       singleBuyVolume: data.single_buy_volume,
-      maxBuyVolume: data.max_buyVolume
+      maxBuyVolume: data.max_buy_volume
     };
   } catch (error) {
     console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);
@@ -427,28 +427,18 @@ export const generateStrategy = async (
   
   try {
     // Call the Supabase Edge Function to generate strategy using Moonshot AI
-    // Add timeout handling for the fetch call
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-    
+    // Add timeout handling for the fetch call without using signal parameter
     try {
       const { data, error } = await supabase.functions.invoke('generate-strategy', {
         body: { 
           assetType, 
           selectedAsset, 
           strategyDescription 
-        },
-        signal: controller.signal
+        }
       });
-      
-      clearTimeout(timeoutId);
       
       if (error) {
         console.error("Error calling generate-strategy function:", error);
-        // Check if this is a timeout error
-        if (error.message && error.message.includes("aborted")) {
-          throw new Error("Request timed out. The generation process took too long, please try again with a simpler description.");
-        }
         throw new Error(`Failed to generate strategy: ${error.message}`);
       }
       
@@ -476,29 +466,55 @@ export const generateStrategy = async (
       };
       
       return strategy;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
+    } catch (fetchError: any) {
+      // Fix error handling to not rely on the .response property
+      console.error("Fetch error in generateStrategy:", fetchError);
       
-      if (fetchError.name === 'AbortError') {
-        console.error("Request timeout after 60 seconds");
-        const error = new Error("The strategy generation request timed out. Please try again with a simpler description.");
-        error.response = { data: { type: "timeout_error" } };
-        throw error;
+      // Check if this is a timeout error by inspecting the error message
+      if (fetchError.message && fetchError.message.includes("aborted")) {
+        const timeoutError = new Error("The strategy generation request timed out. Please try again with a simpler description.");
+        // Creating a custom error object instead of adding properties to Error
+        throw {
+          message: timeoutError.message,
+          type: "timeout_error",
+          originalError: fetchError
+        };
       }
       
       throw fetchError;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating strategy:", error);
     
     // Add network connectivity check
     if (!navigator.onLine) {
-      const networkError = new Error("Your device appears to be offline. Please check your internet connection and try again.");
-      networkError.response = { data: { type: "connection_error" } };
-      throw networkError;
+      // Creating a custom error object instead of adding properties to Error
+      throw {
+        message: "Your device appears to be offline. Please check your internet connection and try again.",
+        type: "connection_error",
+        originalError: error
+      };
     }
     
-    throw error;
+    // Ensure we return the error object properly
+    if (typeof error === 'object' && error !== null) {
+      // If error already has a custom format, pass it through
+      if (error.type && error.message) {
+        throw error;
+      }
+      // Otherwise, create a structured error
+      throw {
+        message: error.message || "Unknown error occurred",
+        type: error.type || "unknown_error",
+        originalError: error
+      };
+    }
+    
+    // Handle cases where error might be a string or other primitive
+    throw {
+      message: String(error),
+      type: "unknown_error"
+    };
   }
 };
 

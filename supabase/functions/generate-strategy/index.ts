@@ -3,256 +3,840 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Define the function that will generate strategies based on AI input
-const generateStrategy = async (assetType: string, selectedAsset: string, strategyDescription: string) => {
-  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-  
-  if (!OPENAI_API_KEY) {
-    console.error("OPENAI_API_KEY is not set");
-    throw new Error("OPENAI_API_KEY environment variable is not configured. Please add it to your Supabase project.");
-  }
-  
-  // Create a careful, structured prompt for the AI
-  const prompt = `
-    Generate a detailed algorithmic trading strategy for ${assetType}, specifically for ${selectedAsset}. 
-    The strategy should match this description: "${strategyDescription}".
-    
-    Please format your response as a valid JSON object with the following structure:
-    {
-      "name": "Strategy name",
-      "description": "Brief strategy description",
-      "market": "Market type (e.g. Crypto, Equities)",
-      "timeframe": "The timeframe (e.g. Daily, 4h, 1h)",
-      "targetAsset": "The target asset (e.g. BTC/USD, AAPL)",
-      "entryRules": [
+// Define strategy templates organized by asset type and strategy type
+const strategyTemplates = {
+  stocks: {
+    momentum: {
+      name: "Stock Momentum Strategy",
+      description: "This strategy identifies stocks with strong upward momentum and buys them while they continue to show strength.",
+      market: "Equities",
+      timeframe: "Daily",
+      entryRules: [
         {
-          "id": 1,
-          "logic": "AND",
-          "inequalities": [
+          id: 1,
+          logic: "AND",
+          inequalities: [
             {
-              "id": 1,
-              "left": {
-                "type": "indicator", // Options: indicator, price, value
-                "indicator": "SMA", // Example indicators: SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, Ichimoku
-                "parameters": { "period": "20" } // Parameters specific to the indicator
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
               },
-              "condition": "Crosses Above", // Or other conditions like Greater Than, Less Than, etc.
-              "right": {
-                "type": "indicator", // Options: indicator, price, value
-                "indicator": "SMA",
-                "parameters": { "period": "50" }
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: { period: "200" }
               },
-              "explanation": "Detailed explanation of why this rule is important and what it signals"
+              explanation: "Price above 200-day SMA indicates a long-term uptrend."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "14" }
+              },
+              condition: "Greater Than",
+              right: {
+                type: "value",
+                value: "50"
+              },
+              explanation: "RSI above 50 confirms bullish momentum."
             }
           ]
-        }
-      ],
-      "exitRules": [
-        {
-          "id": 1,
-          "logic": "AND",
-          "inequalities": [
-            {
-              "id": 1,
-              "left": {
-                "type": "indicator",
-                "indicator": "SMA",
-                "parameters": { "period": "20" }
-              },
-              "condition": "Crosses Below",
-              "right": {
-                "type": "indicator",
-                "indicator": "SMA",
-                "parameters": { "period": "50" }
-              },
-              "explanation": "Detailed explanation of why this exit rule is important"
-            }
-          ]
-        }
-      ],
-      "riskManagement": {
-        "stopLoss": "5", // percentage
-        "takeProfit": "15", // percentage
-        "singleBuyVolume": "2000", // dollars
-        "maxBuyVolume": "10000" // dollars
-      }
-    }
-    
-    IMPORTANT GUIDELINES:
-    1. For the OR logic groups, include at least 2 conditions and specify how many conditions ('requiredConditions') should be met.
-    2. Provide detailed explanations for each rule to help users understand the rationale.
-    3. Use a diverse set of indicators and conditions appropriate for ${assetType}.
-    4. Make sure all indicators have appropriate parameters.
-    5. Ensure risk management values are reasonable and aligned with the strategy.
-    6. Include a mix of price-based, indicator-based, and volume-based signals where appropriate.
-    
-    Return only the JSON object, nothing else.
-  `;
-
-  try {
-    // Add more detailed logging
-    console.log(`Starting OpenAI API request for ${selectedAsset} (${assetType})`);
-    console.log("Strategy description:", strategyDescription.substring(0, 100) + (strategyDescription.length > 100 ? "..." : ""));
-    
-    // Call the OpenAI API with improved error handling and timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-    
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{
-            role: "system",
-            content: "You are a trading strategy creation AI. Your task is to generate trading strategies in valid JSON format based on the user's specifications."
-          }, {
-            role: "user",
-            content: prompt
-          }],
-          temperature: 0.7,
-          max_tokens: 2000,
-          response_format: { type: "json_object" }
-        }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-
-      // Log response status for debugging
-      console.log(`OpenAI API response status: ${response.status}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`OpenAI API Error (${response.status}):`, errorText);
-        
-        // Provide more detailed error message based on status code
-        if (response.status === 401) {
-          throw new Error("Invalid API key. Please verify your OPENAI_API_KEY is correct and not expired.");
-        } else if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again later or check your API plan limits.");
-        } else if (response.status >= 500) {
-          throw new Error("OpenAI API server error. This is likely temporary, please try again later.");
-        } else {
-          throw new Error(`API Error: ${response.status} - ${errorText}`);
+        {
+          id: 2,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "MACD",
+                parameters: { fast: "12", slow: "26", signal: "9" }
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "value",
+                value: "0"
+              },
+              explanation: "MACD crossing above zero line indicates strengthening momentum."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "Volume",
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "Volume SMA",
+                parameters: { period: "20" }
+              },
+              explanation: "Above average volume suggests strong buying interest."
+            }
+          ]
         }
-      }
-
-      // Parse the JSON response
-      const data = await response.json();
-      console.log("OpenAI API response received successfully");
-      
-      // Check if the data has the expected structure
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error("Unexpected API response structure:", JSON.stringify(data));
-        throw new Error("Unexpected response format from OpenAI API. The response doesn't contain the expected fields.");
-      }
-      
-      // Extract the content from the response
-      const content = data.choices?.[0]?.message?.content || "";
-      console.log("Content received length:", content.length);
-      console.log("Content excerpt:", content.substring(0, 100) + "...");
-      
-      // Parse JSON from content
-      try {
-        // Try parsing the content directly
-        const strategyJson = JSON.parse(content);
-        console.log("Successfully parsed strategy JSON");
-        return strategyJson;
-      } catch (parseError) {
-        console.error("Error parsing JSON from OpenAI response:", parseError);
-        
-        // Try to extract JSON if it's surrounded by markdown code blocks or other text
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const extractedJson = JSON.parse(jsonMatch[0]);
-            console.log("Successfully extracted JSON from response using regex");
-            return extractedJson;
-          } catch (extractError) {
-            console.error("Failed to extract JSON using regex:", extractError);
-            
-            // As a last resort, try to build a minimal valid response based on user inputs
-            console.log("Creating fallback response with user inputs");
-            return createFallbackStrategy(assetType, selectedAsset, strategyDescription);
-          }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Less Than",
+              right: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: { period: "50" }
+              },
+              explanation: "Price falling below 50-day SMA signals potential trend reversal."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "14" }
+              },
+              condition: "Less Than",
+              right: {
+                type: "value",
+                value: "40"
+              },
+              explanation: "RSI below 40 indicates weakening momentum."
+            }
+          ]
         }
-        
-        throw new Error("Failed to parse JSON from OpenAI response. The API may be experiencing issues.");
+      ],
+      riskManagement: {
+        stopLoss: "5",
+        takeProfit: "15",
+        singleBuyVolume: "2000",
+        maxBuyVolume: "10000"
       }
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        console.error("Request timeout after 30 seconds");
-        throw new Error("The AI service request timed out. Please try again later.");
+    },
+    value: {
+      name: "Value Stock Strategy",
+      description: "This strategy identifies undervalued stocks based on fundamental and technical indicators.",
+      market: "Equities",
+      timeframe: "Daily",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "14" }
+              },
+              condition: "Less Than",
+              right: {
+                type: "value",
+                value: "30"
+              },
+              explanation: "RSI below 30 indicates an oversold condition, suggesting the stock may be undervalued."
+            },
+            {
+              id: 2,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: { period: "50" }
+              },
+              explanation: "Price still above 50-day SMA suggests overall trend remains positive despite recent pullback."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "14" }
+              },
+              condition: "Greater Than",
+              right: {
+                type: "value",
+                value: "70"
+              },
+              explanation: "RSI above 70 indicates an overbought condition, suggesting it may be time to take profits."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "Bollinger Bands",
+                parameters: { period: "20", deviations: "2" }
+              },
+              condition: "Touches Upper",
+              right: {
+                type: "indicator",
+                indicator: "Bollinger Bands",
+                parameters: { period: "20", deviations: "2" }
+              },
+              explanation: "Price touching upper Bollinger Band suggests potential resistance and reversal point."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "4",
+        takeProfit: "12",
+        singleBuyVolume: "2500",
+        maxBuyVolume: "10000"
       }
-      
-      throw fetchError;
+    },
+    mean_reversion: {
+      name: "Mean Reversion Strategy",
+      description: "This strategy identifies stocks that have deviated significantly from their average price and are likely to revert back.",
+      market: "Equities",
+      timeframe: "Daily",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Less Than",
+              right: {
+                type: "indicator",
+                indicator: "Bollinger Bands",
+                parameters: { period: "20", deviations: "-2" }
+              },
+              explanation: "Price below lower Bollinger Band indicates potential overselling and mean reversion opportunity."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "2" }
+              },
+              condition: "Less Than",
+              right: {
+                type: "value",
+                value: "10"
+              },
+              explanation: "Extremely low 2-period RSI confirms severe oversold condition."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "SMA",
+                parameters: { period: "20" }
+              },
+              explanation: "Price returning to 20-day SMA indicates successful mean reversion."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "14" }
+              },
+              condition: "Greater Than",
+              right: {
+                type: "value",
+                value: "60"
+              },
+              explanation: "RSI above 60 suggests momentum has shifted from oversold to potentially overbought."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "3",
+        takeProfit: "9",
+        singleBuyVolume: "2200",
+        maxBuyVolume: "8800"
+      }
+    },
+    breakout: {
+      name: "Breakout Trading Strategy",
+      description: "This strategy identifies stocks breaking out of consolidation patterns with increased volume.",
+      market: "Equities",
+      timeframe: "Daily",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "Resistance",
+                parameters: { period: "20" }
+              },
+              explanation: "Price breaking above recent resistance level signals potential breakout."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "Volume"
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "Volume SMA",
+                parameters: { period: "20" }
+              },
+              explanation: "Increased volume confirms the strength of the breakout."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Less Than",
+              right: {
+                type: "indicator",
+                indicator: "Support",
+                parameters: { period: "10" }
+              },
+              explanation: "Price dropping below recent support suggests failed breakout."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "ATR",
+                parameters: { period: "14" }
+              },
+              condition: "Decreasing",
+              right: {
+                type: "indicator",
+                indicator: "ATR",
+                parameters: { period: "14", shift: "5" }
+              },
+              explanation: "Decreasing volatility suggests momentum from breakout is waning."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "6",
+        takeProfit: "18",
+        singleBuyVolume: "2000",
+        maxBuyVolume: "10000"
+      }
     }
-  } catch (error) {
-    console.error("Error generating strategy with OpenAI:", error);
-    throw error;
+  },
+  cryptocurrency: {
+    trend_following: {
+      name: "Crypto Trend Following Strategy",
+      description: "This strategy identifies strong trends in cryptocurrency markets and follows them until reversal signals appear.",
+      market: "Crypto",
+      timeframe: "4h",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "EMA",
+                parameters: { period: "8" }
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "indicator",
+                indicator: "EMA",
+                parameters: { period: "21" }
+              },
+              explanation: "Fast EMA crossing above slow EMA indicates start of potential uptrend."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "ADX",
+                parameters: { period: "14" }
+              },
+              condition: "Greater Than",
+              right: {
+                type: "value",
+                value: "25"
+              },
+              explanation: "ADX above 25 confirms strong trend is in place."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "EMA",
+                parameters: { period: "8" }
+              },
+              condition: "Crosses Below",
+              right: {
+                type: "indicator",
+                indicator: "EMA",
+                parameters: { period: "21" }
+              },
+              explanation: "Fast EMA crossing below slow EMA signals potential trend reversal."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "Parabolic SAR"
+              },
+              condition: "Flips",
+              right: {
+                type: "value",
+                value: "Above Price"
+              },
+              explanation: "Parabolic SAR flipping above price is a strong reversal signal."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "8",
+        takeProfit: "24",
+        singleBuyVolume: "1000",
+        maxBuyVolume: "5000"
+      }
+    },
+    oscillator: {
+      name: "Crypto Oscillator Strategy",
+      description: "This strategy uses oscillators to identify overbought and oversold conditions in cryptocurrency markets.",
+      market: "Crypto",
+      timeframe: "1h",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "Stochastic",
+                parameters: { k: "14", d: "3" }
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "value",
+                value: "20"
+              },
+              explanation: "Stochastic crossing above 20 from oversold territory signals potential upward momentum."
+            },
+            {
+              id: 2,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "EMA",
+                parameters: { period: "50" }
+              },
+              explanation: "Price above 50 EMA confirms overall uptrend remains intact."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "Stochastic",
+                parameters: { k: "14", d: "3" }
+              },
+              condition: "Crosses Below",
+              right: {
+                type: "value",
+                value: "80"
+              },
+              explanation: "Stochastic crossing below 80 from overbought territory signals potential downward momentum."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "RSI",
+                parameters: { period: "14" }
+              },
+              condition: "Crosses Below",
+              right: {
+                type: "value",
+                value: "70"
+              },
+              explanation: "RSI crossing below 70 confirms overbought conditions are resolving."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "6",
+        takeProfit: "18",
+        singleBuyVolume: "1200",
+        maxBuyVolume: "6000"
+      }
+    },
+    ichimoku: {
+      name: "Ichimoku Cloud Strategy",
+      description: "This strategy uses the Ichimoku Cloud indicator system to identify trends and potential reversals in cryptocurrency markets.",
+      market: "Crypto",
+      timeframe: "4h",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "indicator",
+                indicator: "Ichimoku Cloud",
+                parameters: { component: "kumo" }
+              },
+              explanation: "Price crossing above the Ichimoku Cloud indicates a bullish signal."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "Ichimoku Cloud",
+                parameters: { component: "tenkan" }
+              },
+              condition: "Crosses Above",
+              right: {
+                type: "indicator",
+                indicator: "Ichimoku Cloud",
+                parameters: { component: "kijun" }
+              },
+              explanation: "Tenkan-sen crossing above Kijun-sen (TK Cross) confirms bullish momentum."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Crosses Below",
+              right: {
+                type: "indicator",
+                indicator: "Ichimoku Cloud",
+                parameters: { component: "kijun" }
+              },
+              explanation: "Price crossing below the Kijun-sen signals loss of momentum."
+            },
+            {
+              id: 2,
+              left: {
+                type: "indicator",
+                indicator: "Ichimoku Cloud",
+                parameters: { component: "tenkan" }
+              },
+              condition: "Crosses Below",
+              right: {
+                type: "indicator",
+                indicator: "Ichimoku Cloud",
+                parameters: { component: "kijun" }
+              },
+              explanation: "Tenkan-sen crossing below Kijun-sen signals bearish momentum."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "7",
+        takeProfit: "21",
+        singleBuyVolume: "1000",
+        maxBuyVolume: "5000"
+      }
+    },
+    breakout: {
+      name: "Crypto Volatility Breakout Strategy",
+      description: "This strategy identifies periods of low volatility followed by breakouts in cryptocurrency markets.",
+      market: "Crypto",
+      timeframe: "1h",
+      entryRules: [
+        {
+          id: 1,
+          logic: "AND",
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "Bollinger Bands Width",
+                parameters: { period: "20", deviations: "2" }
+              },
+              condition: "Increasing",
+              right: {
+                type: "indicator",
+                indicator: "Bollinger Bands Width",
+                parameters: { period: "20", deviations: "2", shift: "5" }
+              },
+              explanation: "Expanding Bollinger Bands width indicates increasing volatility after consolidation."
+            },
+            {
+              id: 2,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Greater Than",
+              right: {
+                type: "indicator",
+                indicator: "Bollinger Bands",
+                parameters: { period: "20", deviations: "2" }
+              },
+              explanation: "Price breaking above upper Bollinger Band confirms upward breakout."
+            }
+          ]
+        }
+      ],
+      exitRules: [
+        {
+          id: 1,
+          logic: "OR",
+          requiredConditions: 1,
+          inequalities: [
+            {
+              id: 1,
+              left: {
+                type: "indicator",
+                indicator: "ATR",
+                parameters: { period: "14" }
+              },
+              condition: "Decreasing",
+              right: {
+                type: "indicator",
+                indicator: "ATR",
+                parameters: { period: "14", shift: "3" }
+              },
+              explanation: "Decreasing ATR indicates volatility contraction after breakout move."
+            },
+            {
+              id: 2,
+              left: {
+                type: "price",
+                indicator: "Price"
+              },
+              condition: "Less Than",
+              right: {
+                type: "indicator",
+                indicator: "Bollinger Bands",
+                parameters: { period: "20", component: "middle" }
+              },
+              explanation: "Price returning below middle Bollinger Band suggests momentum is slowing."
+            }
+          ]
+        }
+      ],
+      riskManagement: {
+        stopLoss: "8",
+        takeProfit: "24",
+        singleBuyVolume: "1000",
+        maxBuyVolume: "5000"
+      }
+    }
   }
 };
 
-// Helper function to create a fallback strategy when all parsing attempts fail
-function createFallbackStrategy(assetType: string, selectedAsset: string, strategyDescription: string) {
-  return {
-    name: `${selectedAsset} Trading Strategy`,
-    description: strategyDescription,
-    market: assetType === "stocks" ? "Equities" : "Crypto",
-    timeframe: "Daily",
-    targetAsset: selectedAsset,
-    entryRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
-        left: { 
-          type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "20" }
+// Helper function to select a strategy template based on asset type and description keywords
+function selectStrategyTemplate(assetType, description) {
+  // Convert to lowercase for case-insensitive matching
+  const lowerDescription = description.toLowerCase();
+  let strategyType = "momentum"; // Default strategy type
+  
+  // Define keywords that map to different strategy types
+  const strategyKeywords = {
+    momentum: ["momentum", "trend", "following", "uptrend", "bullish"],
+    value: ["value", "undervalued", "fundamental", "oversold", "buy low"],
+    mean_reversion: ["mean", "reversion", "average", "return", "oversold", "overbought"],
+    breakout: ["breakout", "volatility", "consolidation", "range", "volume"],
+    oscillator: ["oscillator", "rsi", "stochastic", "overbought", "oversold"],
+    ichimoku: ["ichimoku", "cloud", "tenkan", "kijun"]
+  };
+  
+  // Find the strategy type with the most keyword matches
+  let maxMatches = 0;
+  Object.entries(strategyKeywords).forEach(([type, keywords]) => {
+    const matches = keywords.filter(keyword => lowerDescription.includes(keyword)).length;
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      strategyType = type;
+    }
+  });
+  
+  // If no good match is found in cryptocurrency templates but we need one, use a default
+  if (assetType === "cryptocurrency" && !strategyTemplates.cryptocurrency[strategyType]) {
+    strategyType = "trend_following";
+  }
+  
+  // If no good match is found in stocks templates but we need one, use a default
+  if (assetType === "stocks" && !strategyTemplates.stocks[strategyType]) {
+    strategyType = "momentum";
+  }
+  
+  // Return the selected template
+  return strategyTemplates[assetType][strategyType];
+}
+
+// Custom function to modify a template and personalize it for the asset
+function personalizeTemplate(template, assetType, selectedAsset, strategyDescription) {
+  // Create a deep copy of the template to avoid modifying the original
+  const strategy = JSON.parse(JSON.stringify(template));
+  
+  // Personalize the name and description
+  strategy.name = `${selectedAsset} ${template.name}`;
+  strategy.description = `${strategyDescription}\n\nThis strategy is designed for ${selectedAsset} and ${template.description.toLowerCase()}`;
+  
+  // Set the target asset
+  strategy.targetAsset = selectedAsset;
+  
+  // Add some randomization to risk management settings to make each strategy feel unique
+  const randomizeFactor = 0.9 + (Math.random() * 0.2); // Between 0.9 and 1.1
+  strategy.riskManagement.stopLoss = (parseFloat(strategy.riskManagement.stopLoss) * randomizeFactor).toFixed(1);
+  strategy.riskManagement.takeProfit = (parseFloat(strategy.riskManagement.takeProfit) * randomizeFactor).toFixed(1);
+  
+  // Maybe add an additional rule based on asset type
+  if (Math.random() > 0.7) {
+    if (assetType === "cryptocurrency") {
+      // Add a crypto-specific rule
+      const extraRule = {
+        id: 3,
+        left: {
+          type: "indicator", 
+          indicator: "Volume"
         },
-        condition: "Crosses Above",
+        condition: "Greater Than", 
         right: {
           type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "50" }
+          indicator: "Volume SMA",
+          parameters: { period: "30" }
         },
-        explanation: "When the short-term moving average crosses above the long-term moving average, it indicates a potential uptrend."
-      }]
-    }],
-    exitRules: [{
-      id: 1,
-      logic: "AND",
-      inequalities: [{
-        id: 1,
+        explanation: "Higher than average volume indicates strong market interest and potential for continued movement."
+      };
+      
+      if (strategy.entryRules[0].inequalities.length < 3) {
+        strategy.entryRules[0].inequalities.push(extraRule);
+      }
+    } else {
+      // Add a stock-specific rule
+      const extraRule = {
+        id: 3,
         left: {
           type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "20" }
+          indicator: "ATR",
+          parameters: { period: "14" }
         },
-        condition: "Crosses Below",
+        condition: "Increasing",
         right: {
           type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "50" }
+          indicator: "ATR",
+          parameters: { period: "14", shift: "5" }
         },
-        explanation: "When the short-term moving average crosses below the long-term moving average, it indicates a potential downtrend."
-      }]
-    }],
-    riskManagement: {
-      stopLoss: "5",
-      takeProfit: "15",
-      singleBuyVolume: "2000",
-      maxBuyVolume: "10000"
+        explanation: "Increasing Average True Range indicates rising volatility which often accompanies the start of new trends."
+      };
+      
+      if (strategy.entryRules[0].inequalities.length < 3) {
+        strategy.entryRules[0].inequalities.push(extraRule);
+      }
     }
-  };
+  }
+  
+  return strategy;
 }
 
 // Define the serving function for the edge function
@@ -316,11 +900,18 @@ serve(async (req) => {
       );
     }
     
-    // Generate strategy with timeout handling
     console.log("Generating strategy for:", { assetType, selectedAsset, strategyDescription });
-    
+
     try {
-      const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
+      // Select an appropriate template based on the asset type and description
+      const templateAssetType = assetType === "cryptocurrency" ? "cryptocurrency" : "stocks";
+      const selectedTemplate = selectStrategyTemplate(templateAssetType, strategyDescription);
+      
+      // Personalize the template for the specific asset and description
+      const strategy = personalizeTemplate(selectedTemplate, templateAssetType, selectedAsset, strategyDescription);
+      
+      // Log success
+      console.log("Strategy generated successfully");
       
       // Return the generated strategy
       return new Response(JSON.stringify(strategy), {
@@ -328,41 +919,29 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch (genError) {
-      // Handle specific timeout errors
-      if (genError.message && genError.message.includes("timed out")) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Request timed out",
-            details: "The AI service took too long to respond. Please try again with a simpler request.",
-            type: "timeout_error"
-          }),
-          {
-            status: 504,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+      console.error("Error generating strategy:", genError);
       
-      // Re-throw for general error handling
-      throw genError;
+      // Return a meaningful error
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to generate strategy",
+          details: genError.toString(),
+          type: "generation_error"
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
   } catch (error) {
     console.error("Error in edge function:", error);
     
-    // Determine if this is an API key issue
-    const errorMessage = error.message || "Unknown error occurred";
-    const isApiKeyIssue = errorMessage.includes("API key") || 
-                          errorMessage.includes("OPENAI_API_KEY") ||
-                          errorMessage.includes("401");
-    
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
+        error: "An unexpected error occurred",
         details: error.toString(),
-        help: isApiKeyIssue 
-          ? "Make sure OPENAI_API_KEY is properly configured in your Supabase project's secrets. You can update this in the Supabase dashboard under Settings > API > Edge Function Secrets."
-          : "Try again later or check the Edge Function logs in the Supabase dashboard for more details.",
-        type: isApiKeyIssue ? "api_key_error" : "general_error"
+        type: "general_error"
       }),
       {
         status: 500,

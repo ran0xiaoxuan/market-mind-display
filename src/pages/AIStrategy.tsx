@@ -32,6 +32,7 @@ const AIStrategy = () => {
   };
 
   const handleGenerateStrategy = async () => {
+    // Validation checks
     if (!selectedAsset) {
       toast("Asset selection required", {
         description: "Please select an asset for your trading strategy"
@@ -46,6 +47,7 @@ const AIStrategy = () => {
       return;
     }
 
+    // Clear previous errors and set loading state
     setIsLoading(true);
     setError(null);
     setEdgeFunctionError(false);
@@ -124,6 +126,10 @@ const AIStrategy = () => {
     window.open("https://supabase.com/docs/guides/functions", "_blank");
   };
 
+  const openSupabaseDashboard = () => {
+    window.open("https://supabase.com/dashboard/project/lqfhhqhswdqpsliskxrr/functions", "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -166,18 +172,29 @@ const AIStrategy = () => {
                           <p className="mb-2">The AI service is currently unavailable. This might be due to:</p>
                           <ul className="list-disc pl-5 space-y-1 text-sm">
                             <li>Supabase Edge Function not deployed correctly</li>
-                            <li>Missing API keys in the project settings</li>
+                            <li>Missing MOONSHOT_API_KEY in the project settings</li>
                             <li>Network connectivity issues</li>
                           </ul>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-3 flex items-center gap-1"
-                            onClick={openSupabaseDocs}
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Supabase Functions Documentation
-                          </Button>
+                          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex items-center gap-1"
+                              onClick={openSupabaseDocs}
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Supabase Functions Documentation
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex items-center gap-1"
+                              onClick={openSupabaseDashboard}
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              View Edge Functions
+                            </Button>
+                          </div>
                         </AlertDescription>
                       </Alert>
                     </div>

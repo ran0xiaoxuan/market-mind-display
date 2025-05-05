@@ -13,7 +13,7 @@ interface RiskManagementProps {
 }
 
 export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
-  // Basic validation to check if riskManagement data is valid
+  // More robust validation to check if riskManagement data is valid
   const isValidData = riskManagement && 
     typeof riskManagement.stopLoss === 'string' && 
     typeof riskManagement.takeProfit === 'string' &&

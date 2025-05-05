@@ -8,6 +8,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   const MOONSHOT_API_KEY = Deno.env.get("MOONSHOT_API_KEY");
   
   if (!MOONSHOT_API_KEY) {
+    console.error("MOONSHOT_API_KEY is not set");
     throw new Error("MOONSHOT_API_KEY is not set");
   }
   
@@ -44,41 +45,6 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
               "explanation": "Detailed explanation of why this rule is important and what it signals"
             }
           ]
-        },
-        {
-          "id": 2,
-          "logic": "OR",
-          "requiredConditions": 1, // Number of conditions that must be met (important for OR groups)
-          "inequalities": [
-            {
-              "id": 1,
-              "left": {
-                "type": "indicator",
-                "indicator": "RSI",
-                "parameters": { "period": "14" }
-              },
-              "condition": "Less Than",
-              "right": {
-                "type": "value",
-                "value": "30"
-              },
-              "explanation": "Detailed explanation of why this rule is important and what it signals"
-            },
-            {
-              "id": 2,
-              "left": {
-                "type": "indicator",
-                "indicator": "MACD",
-                "parameters": { "fast": "12", "slow": "26", "signal": "9" }
-              },
-              "condition": "Crosses Above",
-              "right": {
-                "type": "value",
-                "value": "0"
-              },
-              "explanation": "Detailed explanation of why this rule is important and what it signals"
-            }
-          ]
         }
       ],
       "exitRules": [
@@ -98,40 +64,6 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
                 "type": "indicator",
                 "indicator": "SMA",
                 "parameters": { "period": "50" }
-              },
-              "explanation": "Detailed explanation of why this exit rule is important"
-            }
-          ]
-        },
-        {
-          "id": 2,
-          "logic": "OR",
-          "requiredConditions": 1, // Number of conditions that must be met (important for OR groups)
-          "inequalities": [
-            {
-              "id": 1,
-              "left": {
-                "type": "indicator",
-                "indicator": "RSI",
-                "parameters": { "period": "14" }
-              },
-              "condition": "Greater Than",
-              "right": {
-                "type": "value",
-                "value": "70"
-              },
-              "explanation": "Detailed explanation of why this exit rule is important"
-            },
-            {
-              "id": 2,
-              "left": {
-                "type": "price",
-                "value": "Close"
-              },
-              "condition": "Less Than",
-              "right": {
-                "type": "value",
-                "value": "Stop Loss"
               },
               "explanation": "Detailed explanation of why this exit rule is important"
             }
@@ -158,7 +90,7 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
   `;
 
   try {
-    console.log("Sending request to Moonshot API");
+    console.log("Sending request to Moonshot API with key:", MOONSHOT_API_KEY.substring(0, 5) + "...");
     // Call the Moonshot AI API
     const response = await fetch("https://api.moonshot.cn/v1/chat/completions", {
       method: "POST",
@@ -185,25 +117,32 @@ const generateStrategy = async (assetType: string, selectedAsset: string, strate
     }
 
     const data = await response.json();
-    console.log("Moonshot API Response:", JSON.stringify(data));
+    console.log("Moonshot API Response received");
     
     // Extract the content from the response
     const content = data.choices?.[0]?.message?.content || "";
+    console.log("Content extracted:", content.substring(0, 100) + "...");
     
     // Parse JSON from content
     try {
       const strategyJson = JSON.parse(content);
-      console.log("Parsed strategy:", JSON.stringify(strategyJson));
+      console.log("Successfully parsed strategy JSON");
       return strategyJson;
     } catch (parseError) {
       console.error("Error parsing JSON from Moonshot response:", parseError);
+      console.log("Raw content received:", content);
       
       // Try to extract JSON if it's surrounded by markdown code blocks or other text
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const extractedJson = JSON.parse(jsonMatch[0]);
-        console.log("Extracted JSON from response:", JSON.stringify(extractedJson));
-        return extractedJson;
+        try {
+          const extractedJson = JSON.parse(jsonMatch[0]);
+          console.log("Successfully extracted JSON from response using regex");
+          return extractedJson;
+        } catch (extractError) {
+          console.error("Failed to extract JSON using regex:", extractError);
+          throw new Error("Failed to parse valid JSON from Moonshot response");
+        }
       }
       
       throw new Error("Failed to parse JSON from Moonshot response");
@@ -267,7 +206,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in edge function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error occurred" }),
+      JSON.stringify({ 
+        error: error.message || "Unknown error occurred",
+        details: error.toString()
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

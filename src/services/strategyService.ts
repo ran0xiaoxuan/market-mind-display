@@ -151,7 +151,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       stopLoss: data.stop_loss,
       takeProfit: data.take_profit,
       singleBuyVolume: data.single_buy_volume,
-      maxBuyVolume: data.max_buy_volume
+      maxBuyVolume: data.max_buyVolume
     };
   } catch (error) {
     console.error(`Failed to fetch risk management data for strategy: ${strategyId}`, error);
@@ -426,7 +426,7 @@ export const generateStrategy = async (
   console.log("Generating strategy with AI service...", { assetType, selectedAsset, strategyDescription });
   
   try {
-    // Call the Supabase Edge Function to generate strategy using Bailian AI
+    // Call the Supabase Edge Function to generate strategy using Moonshot AI
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: { 
         assetType, 
@@ -467,10 +467,16 @@ export const generateStrategy = async (
   } catch (error) {
     console.error("Error generating strategy:", error);
     
-    // Provide fallback mock data if the API call fails
-    console.warn("Using fallback mock strategy data due to error:", error);
+    // Check if we should use fallback data or throw the error
+    const shouldUseFallback = confirm("AI service error. Would you like to use a fallback strategy template instead?");
     
-    return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
+    if (shouldUseFallback) {
+      console.warn("Using fallback mock strategy data due to error:", error);
+      return generateFallbackStrategy(assetType, selectedAsset, strategyDescription);
+    }
+    
+    // Re-throw the error if user doesn't want fallback
+    throw error;
   }
 };
 
@@ -810,3 +816,10 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     throw new Error("Failed to save strategy. Please try again.");
   }
 };
+
+// Add a helper function to confirm with the user
+function confirm(message: string): boolean {
+  // In a real app, this would show a dialog
+  // For now, we'll default to true to use the fallback
+  return false; // Default to false so that error is thrown and shown to user
+}

@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,13 +20,22 @@ const AIStrategy = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [generatedStrategy, setGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
+    setError(null);
   };
 
   const handleGenerateStrategy = async () => {
+    if (!selectedAsset) {
+      toast("Asset selection required", {
+        description: "Please select an asset for your trading strategy"
+      });
+      return;
+    }
+
     if (!strategyDescription) {
       toast("Strategy description required", {
         description: "Please provide a description of your trading strategy"
@@ -35,18 +44,26 @@ const AIStrategy = () => {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
       const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
+      console.log("Generating strategy with parameters:", { assetType, selectedAsset, strategyDescription });
+      
       const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
+      console.log("Strategy generated successfully:", strategy);
+      
       setGeneratedStrategy(strategy);
       toast("Strategy generated", {
         description: "Moonshot AI has successfully generated a trading strategy based on your description"
       });
     } catch (error) {
       console.error("Error generating strategy:", error);
+      const errorMessage = error.response?.data?.error || error.message || "Unknown error";
+      setError(`Failed to generate strategy: ${errorMessage}`);
       toast("Failed to generate strategy", {
-        description: "Please try again with a different description"
+        description: "There was an error connecting to the AI service. Please try again.",
+        icon: <AlertCircle className="h-4 w-4 text-destructive" />
       });
     } finally {
       setIsLoading(false);
@@ -84,6 +101,7 @@ const AIStrategy = () => {
   const handleReset = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
+    setError(null);
   };
 
   return (
@@ -109,11 +127,21 @@ const AIStrategy = () => {
               onDescriptionChange={setStrategyDescription}
             />
 
-            <div className="flex justify-end">
+            {error && (
+              <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium">AI Service Error</h4>
+                  <p className="text-sm">{error}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-6">
               <Button
                 className="w-full"
                 onClick={handleGenerateStrategy}
-                disabled={isLoading || !strategyDescription}
+                disabled={isLoading || !strategyDescription || !selectedAsset}
               >
                 {isLoading ? (
                   <>

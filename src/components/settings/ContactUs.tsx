@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, Twitter } from "lucide-react";
+import { MessageSquare, X } from "lucide-react";
 
 export function ContactUs() {
   return (
@@ -37,7 +37,7 @@ export function ContactUs() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <Twitter className="h-10 w-10 text-blue-500" />
+              <X className="h-10 w-10 text-black" />
               <div>
                 <h3 className="font-medium">Follow us on X</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -46,10 +46,10 @@ export function ContactUs() {
               </div>
               <Button 
                 variant="outline"
-                className="w-full border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                className="w-full border-black/20 hover:bg-black/5 hover:text-black"
                 onClick={() => window.open('https://twitter.com/tradingappofficial', '_blank')}
               >
-                <Twitter className="mr-2 h-4 w-4" />
+                <X className="mr-2 h-4 w-4" />
                 Follow on X
               </Button>
             </div>

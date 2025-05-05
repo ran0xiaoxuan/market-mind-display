@@ -1,7 +1,7 @@
 
-import { User, Bell } from "lucide-react";
+import { User, Bell, Contact } from "lucide-react";
 
-type SettingsTab = "account" | "trading";
+type SettingsTab = "account" | "trading" | "contact";
 
 interface SettingsTabsProps {
   activeTab: SettingsTab;
@@ -12,6 +12,7 @@ export function SettingsTabs({ activeTab, setActiveTab }: SettingsTabsProps) {
   const tabs = [
     { id: "account" as const, label: "Account", icon: <User className="h-4 w-4" /> },
     { id: "trading" as const, label: "Notifications", icon: <Bell className="h-4 w-4" /> },
+    { id: "contact" as const, label: "Contact Us", icon: <Contact className="h-4 w-4" /> },
   ];
 
   return (

@@ -58,12 +58,16 @@ const Strategies = () => {
             <h1 className="text-3xl font-bold">Trading Strategies</h1>
             <div className="flex gap-2 mt-4 sm:mt-0">
               <Link to="/ai-strategy">
-                <Button variant="outline">
+                <Button 
+                  className="bg-black text-white hover:bg-black/90"
+                >
                   AI Strategy
                 </Button>
               </Link>
               <Link to="/manual-strategy">
-                <Button>
+                <Button 
+                  className="bg-white text-black border border-gray-300 hover:bg-gray-100"
+                >
                   New Strategy
                 </Button>
               </Link>

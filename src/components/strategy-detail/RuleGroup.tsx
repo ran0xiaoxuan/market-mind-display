@@ -77,7 +77,7 @@ export const RuleGroup = ({
     onInequitiesChange(updatedInequalities);
   };
   
-  const handleInequalityDelete = (id: number) => {
+  const handleInequalityDelete = (id: string | number) => {
     if (!onInequitiesChange) return;
     
     const updatedInequalities = inequalities.filter(inequality => inequality.id !== id);

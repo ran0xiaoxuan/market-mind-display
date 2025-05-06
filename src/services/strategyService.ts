@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -93,8 +92,8 @@ export const generateStrategy = async (
         asset,
         description
       },
-      // Use timeoutSeconds for the function invocation
-      timeoutSeconds: 30 // 30 second timeout for AI generation
+      // Correct property name according to latest Supabase client API
+      timeoutMs: 30000 // 30 second timeout for AI generation
     });
 
     if (error) {
@@ -347,7 +346,7 @@ export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt'
 
 export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promise<string> => {
   try {
-    // First, create the base strategy
+    // First, create the base strategy - fix missing user_id
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
       .insert([{
@@ -359,7 +358,8 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         stop_loss: strategy.riskManagement.stopLoss,
         take_profit: strategy.riskManagement.takeProfit,
         single_buy_volume: strategy.riskManagement.singleBuyVolume,
-        max_buy_volume: strategy.riskManagement.maxBuyVolume
+        max_buy_volume: strategy.riskManagement.maxBuyVolume,
+        user_id: (await supabase.auth.getUser()).data.user?.id || 'anonymous'
       }])
       .select('*')
       .single();
@@ -604,4 +604,3 @@ const formatInequality = (inequality: any) => {
     explanation: inequality.explanation
   };
 };
-

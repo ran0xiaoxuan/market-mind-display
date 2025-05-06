@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -98,7 +97,9 @@ export const TradingRules = ({
     
     const updatedRules = [...entryRules];
     const andGroup = updatedRules[0] || { id: 1, logic: "AND", inequalities: [] };
-    const newRuleId = andGroup.inequalities.length > 0 ? Math.max(...andGroup.inequalities.map(rule => rule.id)) + 1 : 1;
+    const newRuleId = andGroup.inequalities.length > 0 ? 
+      Math.max(...andGroup.inequalities.map(rule => typeof rule.id === 'string' ? parseInt(rule.id) : rule.id as number)) + 1 : 1;
+    
     const newRule: Inequality = {
       id: newRuleId,
       left: {
@@ -140,7 +141,9 @@ export const TradingRules = ({
     const updatedRules = [...entryRules];
     const orGroupIndex = updatedRules.findIndex(group => group.logic === "OR") || 1;
     const orGroup = updatedRules[orGroupIndex] || { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] };
-    const newRuleId = orGroup.inequalities.length > 0 ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1 : 1;
+    const newRuleId = orGroup.inequalities.length > 0 ? 
+      Math.max(...orGroup.inequalities.map(rule => typeof rule.id === 'string' ? parseInt(rule.id) : rule.id as number)) + 1 : 1;
+    
     const newRule: Inequality = {
       id: newRuleId,
       left: {
@@ -178,7 +181,9 @@ export const TradingRules = ({
     
     const updatedRules = [...exitRules];
     const andGroup = updatedRules[0] || { id: 1, logic: "AND", inequalities: [] };
-    const newRuleId = andGroup.inequalities.length > 0 ? Math.max(...andGroup.inequalities.map(rule => rule.id)) + 1 : 1;
+    const newRuleId = andGroup.inequalities.length > 0 ? 
+      Math.max(...andGroup.inequalities.map(rule => typeof rule.id === 'string' ? parseInt(rule.id) : rule.id as number)) + 1 : 1;
+    
     const newRule: Inequality = {
       id: newRuleId,
       left: {
@@ -220,7 +225,9 @@ export const TradingRules = ({
     const updatedRules = [...exitRules];
     const orGroupIndex = updatedRules.findIndex(group => group.logic === "OR") || 1;
     const orGroup = updatedRules[orGroupIndex] || { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] };
-    const newRuleId = orGroup.inequalities.length > 0 ? Math.max(...orGroup.inequalities.map(rule => rule.id)) + 1 : 1;
+    const newRuleId = orGroup.inequalities.length > 0 ? 
+      Math.max(...orGroup.inequalities.map(rule => typeof rule.id === 'string' ? parseInt(rule.id) : rule.id as number)) + 1 : 1;
+    
     const newRule: Inequality = {
       id: newRuleId,
       left: {

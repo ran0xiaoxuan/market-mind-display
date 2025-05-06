@@ -1,6 +1,6 @@
 
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -8,17 +8,24 @@ import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { deleteStrategy } from "@/services/strategyService";
+
 interface StrategyHeaderProps {
   strategyId: string;
   strategyName: string;
 }
+
 export const StrategyHeader = ({
   strategyId,
   strategyName
 }: StrategyHeaderProps) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDeleteStrategy = async () => {
+    if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone.")) {
+      return;
+    }
+    
     try {
       setIsDeleting(true);
       await deleteStrategy(strategyId);
@@ -46,61 +53,53 @@ export const StrategyHeader = ({
     });
   };
 
-  return <div className="mb-6">
+  return (
+    <div className="mb-6">
       <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Back
       </Link>
       
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl md:text-3xl font-bold">{strategyName}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">{strategyName || "Strategy Details"}</h1>
         </div>
         
         <div className="flex items-center gap-2">
-          <ToggleGroup type="single" defaultValue="overview">
-            <Link to={`/strategy/${strategyId}/edit`}>
+          <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input" onClick={() => navigate(`/edit-strategy/${strategyId}`)}>
+            <Edit className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Edit</span>
+          </Button>
+            
+          <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={handleBacktestClick}>
+            <PlayIcon className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Backtest</span>
+          </Button>
+            
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
-                <Edit className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Edit</span>
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
-            </Link>
-            
-            <ToggleGroupItem value="backtest" aria-label="Run Backtest" asChild>
-              <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={handleBacktestClick}>
-                <PlayIcon className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Backtest</span>
-              </Button>
-            </ToggleGroupItem>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuSeparator />
-                <Link to={`/strategy/${strategyId}/history`}>
-                  <DropdownMenuItem>
-                    <History className="h-4 w-4 mr-2" />
-                    Edit History
-                  </DropdownMenuItem>
-                </Link>
-                <Link to={`/strategy/${strategyId}/backtests`}>
-                  <DropdownMenuItem>
-                    <LineChart className="h-4 w-4 mr-2" />
-                    Backtest History
-                  </DropdownMenuItem>
-                </Link>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDeleteStrategy} disabled={isDeleting}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {isDeleting ? "Deleting..." : "Delete Strategy"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </ToggleGroup>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate(`/edit-history/${strategyId}`)}>
+                <History className="h-4 w-4 mr-2" />
+                Edit History
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/backtest-history?strategyId=${strategyId}`)}>
+                <LineChart className="h-4 w-4 mr-2" />
+                Backtest History
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDeleteStrategy} disabled={isDeleting}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? "Deleting..." : "Delete Strategy"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };

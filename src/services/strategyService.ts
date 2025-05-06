@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -61,6 +62,23 @@ const mapDbStrategyToInterface = (dbStrategy: any): Strategy => {
   };
 };
 
+// Convert camelCase interface fields to snake_case for database
+const mapInterfaceToDbStrategy = (strategy: Omit<Strategy, 'id' | 'createdAt' | 'updatedAt'>) => {
+  return {
+    name: strategy.name,
+    description: strategy.description,
+    is_active: strategy.isActive,
+    market: strategy.market,
+    timeframe: strategy.timeframe,
+    target_asset: strategy.targetAsset,
+    user_id: strategy.userId,
+    stop_loss: strategy.stopLoss,
+    take_profit: strategy.takeProfit,
+    single_buy_volume: strategy.singleBuyVolume,
+    max_buy_volume: strategy.maxBuyVolume
+  };
+};
+
 // Generate strategy using AI
 export const generateStrategy = async (
   assetType: "stocks" | "cryptocurrency",
@@ -75,8 +93,7 @@ export const generateStrategy = async (
         asset,
         description
       },
-      // Note: Using an object with 'timeoutSeconds' as this is the correct property name
-      // for the FunctionInvokeOptions interface in the latest Supabase client
+      // Use timeoutSeconds for the function invocation
       timeoutSeconds: 30 // 30 second timeout for AI generation
     });
 
@@ -245,7 +262,7 @@ export const getStrategies = async (): Promise<Strategy[]> => {
     }
 
     // Map each database strategy object to our Strategy interface
-    return data.map(mapDbStrategyToInterface) as Strategy[];
+    return data.map(mapDbStrategyToInterface);
   } catch (error) {
     console.error("Error in getStrategies:", error);
     throw error;
@@ -271,9 +288,24 @@ export const deleteStrategy = async (id: string): Promise<void> => {
 
 export const updateStrategy = async (id: string, updates: Partial<Strategy>): Promise<Strategy | null> => {
   try {
+    // Convert any camelCase properties to snake_case for the database
+    const dbUpdates: any = {};
+    
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+    if (updates.market !== undefined) dbUpdates.market = updates.market;
+    if (updates.timeframe !== undefined) dbUpdates.timeframe = updates.timeframe;
+    if (updates.targetAsset !== undefined) dbUpdates.target_asset = updates.targetAsset;
+    if (updates.userId !== undefined) dbUpdates.user_id = updates.userId;
+    if (updates.stopLoss !== undefined) dbUpdates.stop_loss = updates.stopLoss;
+    if (updates.takeProfit !== undefined) dbUpdates.take_profit = updates.takeProfit;
+    if (updates.singleBuyVolume !== undefined) dbUpdates.single_buy_volume = updates.singleBuyVolume;
+    if (updates.maxBuyVolume !== undefined) dbUpdates.max_buy_volume = updates.maxBuyVolume;
+
     const { data, error } = await supabase
       .from('strategies')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
       .select('*')
       .single();
@@ -283,7 +315,7 @@ export const updateStrategy = async (id: string, updates: Partial<Strategy>): Pr
       throw error;
     }
 
-    return data as Strategy;
+    return mapDbStrategyToInterface(data);
   } catch (error) {
     console.error("Error in updateStrategy:", error);
     throw error;
@@ -292,9 +324,12 @@ export const updateStrategy = async (id: string, updates: Partial<Strategy>): Pr
 
 export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt' | 'updatedAt'>): Promise<Strategy | null> => {
   try {
+    // Convert from camelCase to snake_case for DB
+    const dbStrategy = mapInterfaceToDbStrategy(strategy);
+    
     const { data, error } = await supabase
       .from('strategies')
-      .insert([strategy])
+      .insert([dbStrategy])
       .select('*')
       .single();
 
@@ -303,7 +338,7 @@ export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt'
       throw error;
     }
 
-    return data as Strategy;
+    return mapDbStrategyToInterface(data);
   } catch (error) {
     console.error("Error in createStrategy:", error);
     throw error;
@@ -416,7 +451,7 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
   try {
     const { data, error } = await supabase
       .from('strategies')
-      .select('stopLoss, takeProfit, singleBuyVolume, maxBuyVolume')
+      .select('stop_loss, take_profit, single_buy_volume, max_buy_volume')
       .eq('id', strategyId)
       .single();
 
@@ -430,7 +465,12 @@ export const getRiskManagementForStrategy = async (strategyId: string): Promise<
       return null;
     }
 
-    return data as RiskManagementData;
+    return {
+      stopLoss: data.stop_loss || '',
+      takeProfit: data.take_profit || '',
+      singleBuyVolume: data.single_buy_volume || '',
+      maxBuyVolume: data.max_buy_volume || ''
+    };
   } catch (error) {
     console.error("Error in getRiskManagementForStrategy:", error);
     throw error;
@@ -564,3 +604,4 @@ const formatInequality = (inequality: any) => {
     explanation: inequality.explanation
   };
 };
+

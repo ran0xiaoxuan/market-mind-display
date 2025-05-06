@@ -37,6 +37,16 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
     );
   }
 
+  // Remove the % symbol if it's present at the end of the string
+  const formatPercentage = (value: string) => {
+    return value.endsWith('%') ? value : `${value}%`;
+  };
+
+  // Remove the $ symbol if it's present at the beginning of the string
+  const formatCurrency = (value: string) => {
+    return value.startsWith('$') ? value : `$${value}`;
+  };
+
   return (
     <Card className="p-6 mt-6">
       <div className="mb-2">
@@ -50,22 +60,22 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Stop Loss</p>
-            <p className="font-medium text-red-500">{riskManagement.stopLoss}%</p>
+            <p className="font-medium text-red-500">{formatPercentage(riskManagement.stopLoss)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Take Profit</p>
-            <p className="font-medium text-green-500">{riskManagement.takeProfit}%</p>
+            <p className="font-medium text-green-500">{formatPercentage(riskManagement.takeProfit)}</p>
           </div>
         </div>
         
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Single Buy Volume</p>
-            <p className="font-medium">${riskManagement.singleBuyVolume}</p>
+            <p className="font-medium">{formatCurrency(riskManagement.singleBuyVolume)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Max Buy Volume</p>
-            <p className="font-medium">${riskManagement.maxBuyVolume}</p>
+            <p className="font-medium">{formatCurrency(riskManagement.maxBuyVolume)}</p>
           </div>
         </div>
       </div>

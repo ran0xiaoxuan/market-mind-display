@@ -1,3 +1,4 @@
+
 export type IndicatorParameters = {
   // Basic parameters
   period?: string;
@@ -86,7 +87,7 @@ export type InequalitySide = {
 };
 
 export type Inequality = {
-  id: number | string; // Updated to accept both number and string
+  id: string | number; // Accept both string and number types
   left: InequalitySide;
   condition: string;
   right: InequalitySide;
@@ -94,7 +95,7 @@ export type Inequality = {
 };
 
 export type RuleGroupData = {
-  id: number | string; // Updated to accept both number and string
+  id: string | number; // Accept both string and number types
   logic: string;
   inequalities: Inequality[];
   requiredConditions?: number; // Number of conditions that must be met for OR groups

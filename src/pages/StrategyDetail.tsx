@@ -88,7 +88,83 @@ const StrategyDetail = () => {
             startingValue: "$10,000",
             currentValue: "$15,000",
             totalGrowth: "+50.0%",
-            // ... keep existing code (mock trades data)
+            trades: [
+              {
+                id: "1",
+                date: "2023-01-05",
+                type: "buy",
+                price: 150.25,
+                contracts: 10,
+                signal: "SMA Crossover",
+                profit: null,
+                profitPercentage: null
+              },
+              {
+                id: "2",
+                date: "2023-01-12",
+                type: "sell",
+                price: 165.50,
+                contracts: 10,
+                signal: "SMA Crossover",
+                profit: 152.50,
+                profitPercentage: 10.15
+              },
+              {
+                id: "3",
+                date: "2023-02-01",
+                type: "buy",
+                price: 168.75,
+                contracts: 5,
+                signal: "RSI Overbought",
+                profit: null,
+                profitPercentage: null
+              },
+              {
+                id: "4",
+                date: "2023-02-10",
+                type: "sell",
+                price: 160.00,
+                contracts: 5,
+                signal: "RSI Overbought",
+                profit: -43.75,
+                profitPercentage: -5.15
+              },
+              {
+                id: "5",
+                date: "2023-03-01",
+                type: "buy",
+                price: 172.00,
+                contracts: 8,
+                signal: "MACD Crossover",
+                profit: null,
+                profitPercentage: null
+              },
+              {
+                id: "6",
+                date: "2023-03-15",
+                type: "sell",
+                price: 185.20,
+                contracts: 8,
+                signal: "MACD Crossover",
+                profit: 105.60,
+                profitPercentage: 7.70
+              }
+            ],
+            performanceMetrics: {
+              totalReturn: "+12.5%",
+              annualizedReturn: "+37.5%",
+              sharpeRatio: "1.8",
+              maxDrawdown: "-4.8%"
+            },
+            tradeStats: {
+              winRate: "65%",
+              profitFactor: "2.1",
+              totalTrades: "45",
+              winningTrades: "29",
+              losingTrades: "16",
+              averageProfit: "+2.3%",
+              averageLoss: "-1.5%"
+            }
           });
           
           setIsActive(fetchedStrategy.isActive);

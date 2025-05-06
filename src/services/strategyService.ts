@@ -34,6 +34,181 @@ export interface GeneratedStrategy {
   }
 }
 
+export interface RiskManagementData {
+  stopLoss: string;
+  takeProfit: string;
+  singleBuyVolume: string;
+  maxBuyVolume: string;
+}
+
+export const generateStrategy = async (
+  assetType: "stocks" | "cryptocurrency",
+  asset: string,
+  description: string
+): Promise<GeneratedStrategy> => {
+  try {
+    // Call the Supabase Edge Function that generates the strategy
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: {
+        assetType,
+        asset,
+        description
+      },
+      timeout: 30000 // 30 second timeout for AI generation
+    });
+
+    if (error) {
+      console.error("Error from generate-strategy function:", error);
+      throw {
+        message: `Error from AI service: ${error.message}`,
+        type: error.name === 'AbortError' ? 'timeout_error' : 'api_error'
+      };
+    }
+
+    console.log("Generated strategy data:", data);
+    return data as GeneratedStrategy;
+  } catch (error: any) {
+    // Handle timeouts and connection errors
+    if (error.message && error.message.includes('timeout')) {
+      throw {
+        message: "The request timed out. Please try again with a simpler description.",
+        type: "timeout_error"
+      };
+    }
+    
+    // Handle connection errors
+    if (!navigator.onLine || error.message?.includes('Failed to fetch')) {
+      throw {
+        message: "Failed to connect to the AI service. Please check your internet connection.",
+        type: "connection_error"
+      };
+    }
+
+    // Handle API key errors
+    if (error.message?.includes('API key')) {
+      throw {
+        message: "API key error: The AI service could not authenticate. Check your Supabase Edge Function configuration.",
+        type: "api_key_error"
+      };
+    }
+
+    // Otherwise, just pass through the error
+    console.error("Error in generateStrategy:", error);
+    throw error;
+  }
+};
+
+export const generateFallbackStrategy = (
+  assetType: "stocks" | "cryptocurrency",
+  asset: string,
+  description: string
+): GeneratedStrategy => {
+  // Create a template strategy based on the asset type
+  const timeframe = assetType === 'cryptocurrency' ? '1h' : '1d';
+  const name = `${asset} ${assetType === 'cryptocurrency' ? 'Crypto' : 'Stock'} Strategy`;
+
+  const strategy: GeneratedStrategy = {
+    name: name,
+    description: description || `A simple ${assetType} strategy for ${asset}`,
+    market: assetType === 'cryptocurrency' ? 'Cryptocurrency' : 'Stock Market',
+    timeframe: timeframe,
+    targetAsset: asset,
+    entryRules: [
+      {
+        id: 1,
+        logic: "ALL",
+        requiredConditions: 2,
+        explanation: "Enter when both conditions are met",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "20" },
+              valueType: "number"
+            },
+            condition: "CROSSES_ABOVE",
+            right: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "50" },
+              valueType: "number"
+            },
+            explanation: "Short-term moving average crosses above long-term moving average"
+          },
+          {
+            id: 2,
+            left: {
+              type: "INDICATOR",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              valueType: "number"
+            },
+            condition: "GREATER_THAN",
+            right: {
+              type: "VALUE",
+              value: "50",
+              valueType: "number"
+            },
+            explanation: "RSI indicates bullish momentum"
+          }
+        ]
+      }
+    ],
+    exitRules: [
+      {
+        id: 1,
+        logic: "ANY",
+        requiredConditions: 1,
+        explanation: "Exit when any condition is met",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "INDICATOR", 
+              indicator: "SMA",
+              parameters: { period: "20" },
+              valueType: "number"
+            },
+            condition: "CROSSES_BELOW",
+            right: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "50" },
+              valueType: "number"
+            },
+            explanation: "Short-term moving average crosses below long-term moving average"
+          },
+          {
+            id: 2,
+            left: {
+              type: "INDICATOR",
+              indicator: "PRICE",
+              valueType: "number"
+            },
+            condition: "LESS_THAN",
+            right: {
+              type: "VALUE",
+              value: assetType === 'cryptocurrency' ? "Support level" : "Previous low",
+              valueType: "number"
+            },
+            explanation: "Price breaks below support"
+          }
+        ]
+      }
+    ],
+    riskManagement: {
+      stopLoss: "5%",
+      takeProfit: "15%",
+      singleBuyVolume: assetType === 'cryptocurrency' ? "100 USDT" : "10% of portfolio",
+      maxBuyVolume: assetType === 'cryptocurrency' ? "1000 USDT" : "30% of portfolio"
+    }
+  };
+
+  return strategy;
+};
+
 export const getStrategies = async (): Promise<Strategy[]> => {
   try {
     const { data, error } = await supabase

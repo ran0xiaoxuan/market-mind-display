@@ -125,9 +125,28 @@ const EditStrategy = () => {
         
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(strategyId);
-        if (rulesData) {
-          setEntryRules(rulesData.entryRules);
-          setExitRules(rulesData.exitRules);
+        if (rulesData && rulesData.entryRules.length > 0 && rulesData.exitRules.length > 0) {
+          // Convert string IDs to numbers for default rules if needed
+          const processedEntryRules = rulesData.entryRules.map(group => ({
+            ...group,
+            // Keep ID as is since we now support string IDs in RuleGroupData
+            inequalities: group.inequalities.map(rule => ({
+              ...rule
+              // Keep ID as is since we now support string IDs in Inequality
+            }))
+          }));
+          
+          const processedExitRules = rulesData.exitRules.map(group => ({
+            ...group,
+            // Keep ID as is since we now support string IDs in RuleGroupData
+            inequalities: group.inequalities.map(rule => ({
+              ...rule
+              // Keep ID as is since we now support string IDs in Inequality
+            }))
+          }));
+          
+          setEntryRules(processedEntryRules);
+          setExitRules(processedExitRules);
         } else {
           // Set default rules if none exist
           setEntryRules([{

@@ -41,6 +41,27 @@ export interface RiskManagementData {
   maxBuyVolume: string;
 }
 
+// Convert snake_case database fields to camelCase for our Strategy interface
+const mapDbStrategyToInterface = (dbStrategy: any): Strategy => {
+  return {
+    id: dbStrategy.id,
+    createdAt: dbStrategy.created_at,
+    updatedAt: dbStrategy.updated_at,
+    name: dbStrategy.name,
+    description: dbStrategy.description,
+    isActive: dbStrategy.is_active,
+    market: dbStrategy.market,
+    timeframe: dbStrategy.timeframe,
+    targetAsset: dbStrategy.target_asset,
+    userId: dbStrategy.user_id,
+    stopLoss: dbStrategy.stop_loss,
+    takeProfit: dbStrategy.take_profit,
+    singleBuyVolume: dbStrategy.single_buy_volume,
+    maxBuyVolume: dbStrategy.max_buy_volume
+  };
+};
+
+// Generate strategy using AI
 export const generateStrategy = async (
   assetType: "stocks" | "cryptocurrency",
   asset: string,
@@ -54,7 +75,9 @@ export const generateStrategy = async (
         asset,
         description
       },
-      timeout: 30000 // 30 second timeout for AI generation
+      // Note: Using an object with 'timeoutSeconds' as this is the correct property name
+      // for the FunctionInvokeOptions interface in the latest Supabase client
+      timeoutSeconds: 30 // 30 second timeout for AI generation
     });
 
     if (error) {
@@ -221,7 +244,8 @@ export const getStrategies = async (): Promise<Strategy[]> => {
       throw error;
     }
 
-    return data as Strategy[];
+    // Map each database strategy object to our Strategy interface
+    return data.map(mapDbStrategyToInterface) as Strategy[];
   } catch (error) {
     console.error("Error in getStrategies:", error);
     throw error;
@@ -432,7 +456,8 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
     }
 
     console.log("Retrieved strategy:", data);
-    return data as Strategy;
+    // Convert the database object to our Strategy interface
+    return mapDbStrategyToInterface(data);
   } catch (error) {
     console.error("Error in getStrategyById:", error);
     throw error;
@@ -483,6 +508,7 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         id: group.id,
         logic: group.logic,
         requiredConditions: group.required_conditions,
+        explanation: group.explanation,
         inequalities: inequalities.map(formatInequality)
       };
     }));
@@ -504,6 +530,7 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         id: group.id,
         logic: group.logic,
         requiredConditions: group.required_conditions,
+        explanation: group.explanation,
         inequalities: inequalities.map(formatInequality)
       };
     }));

@@ -1,4 +1,3 @@
-
 export type IndicatorParameters = {
   // Basic parameters
   period?: string;
@@ -87,7 +86,7 @@ export type InequalitySide = {
 };
 
 export type Inequality = {
-  id: number;
+  id: number | string; // Updated to accept both number and string
   left: InequalitySide;
   condition: string;
   right: InequalitySide;
@@ -95,10 +94,11 @@ export type Inequality = {
 };
 
 export type RuleGroupData = {
-  id: number;
+  id: number | string; // Updated to accept both number and string
   logic: string;
   inequalities: Inequality[];
   requiredConditions?: number; // Number of conditions that must be met for OR groups
+  explanation?: string; // Add explanation property to match the database structure
 };
 
 // New type definitions for the DB schema

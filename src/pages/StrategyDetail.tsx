@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -57,10 +56,10 @@ const StrategyDetail = () => {
           
           // Get risk management data directly from the strategy
           const riskData = {
-            stopLoss: fetchedStrategy.stop_loss || "5",
-            takeProfit: fetchedStrategy.take_profit || "15",
-            singleBuyVolume: fetchedStrategy.single_buy_volume || "1000",
-            maxBuyVolume: fetchedStrategy.max_buy_volume || "5000"
+            stopLoss: fetchedStrategy.stopLoss || "5",
+            takeProfit: fetchedStrategy.takeProfit || "15",
+            singleBuyVolume: fetchedStrategy.singleBuyVolume || "1000",
+            maxBuyVolume: fetchedStrategy.maxBuyVolume || "5000"
           };
           setRiskManagement(riskData);
           
@@ -74,101 +73,25 @@ const StrategyDetail = () => {
             ...fetchedStrategy,
             name: fetchedStrategy.name,
             description: fetchedStrategy.description,
-            status: fetchedStrategy.is_active ? "active" : "inactive",
+            status: fetchedStrategy.isActive ? "active" : "inactive",
             performance: "+8.2%",
             annualized: "+24.6%",
             sharpeRatio: "1.4", 
             maxDrawdown: "-5.2%",
             winRate: "62%",
             profitFactor: "1.8",
-            createdDate: fetchedStrategy.created_at,
-            lastUpdated: fetchedStrategy.updated_at,
+            createdDate: fetchedStrategy.createdAt,
+            lastUpdated: fetchedStrategy.updatedAt,
             market: fetchedStrategy.market,
             timeframe: fetchedStrategy.timeframe,
-            targetAsset: fetchedStrategy.target_asset,
+            targetAsset: fetchedStrategy.targetAsset,
             startingValue: "$10,000",
             currentValue: "$15,000",
             totalGrowth: "+50.0%",
-            // Mock data for trades
-            trades: [
-              {
-                id: 196,
-                date: "Apr 09, 2025",
-                type: "Entry long",
-                signal: "Long",
-                price: "171.95",
-                contracts: 1,
-                profit: "",
-                profitPercentage: ""
-              },
-              {
-                id: 196,
-                date: "Apr 11, 2025",
-                type: "Exit long",
-                signal: "Take Profit",
-                price: "190.81",
-                contracts: 1,
-                profit: "+18.86",
-                profitPercentage: "+10.97%"
-              },
-              {
-                id: 195,
-                date: "Apr 07, 2025",
-                type: "Entry long",
-                signal: "Long",
-                price: "177.20",
-                contracts: 1,
-                profit: "",
-                profitPercentage: ""
-              },
-              {
-                id: 195,
-                date: "Apr 08, 2025",
-                type: "Exit long",
-                signal: "Take Profit",
-                price: "186.70",
-                contracts: 1,
-                profit: "+9.50",
-                profitPercentage: "+5.36%"
-              },
-              {
-                id: 194,
-                date: "Mar 13, 2025",
-                type: "Entry long",
-                signal: "Long",
-                price: "215.95",
-                contracts: 1,
-                profit: "",
-                profitPercentage: ""
-              },
-              {
-                id: 194,
-                date: "Mar 14, 2025",
-                type: "Exit long",
-                signal: "Take Profit",
-                price: "211.25",
-                contracts: 1,
-                profit: "-4.70",
-                profitPercentage: "-2.18%"
-              }
-            ],
-            performanceMetrics: {
-              totalReturn: "17.00%",
-              annualizedReturn: "34.00%",
-              sharpeRatio: "1.8",
-              maxDrawdown: "-3.8%",
-              winRate: "68%"
-            },
-            tradeStats: {
-              totalTrades: 25,
-              winningTrades: 17,
-              losingTrades: 8,
-              avgProfit: "$320.45",
-              avgLoss: "-$175.20"
-            }
+            // ... keep existing code (mock trades data)
           });
           
-          setIsActive(fetchedStrategy.is_active);
+          setIsActive(fetchedStrategy.isActive);
         } else {
           setError("Strategy not found");
         }

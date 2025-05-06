@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -26,19 +25,10 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AITest from "./pages/AITest";
+import { useAuth } from "./contexts/AuthContext";
 
 function App() {
-  const [session, setSession] = useState(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-  }, []);
+  const { session } = useAuth();
 
   const ProtectedRoute = ({ children }) => {
     if (!session) {
@@ -48,7 +38,7 @@ function App() {
   };
 
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
@@ -74,7 +64,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster richColors />
-    </Router>
+    </>
   );
 }
 

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -91,9 +92,9 @@ export const generateStrategy = async (
         assetType,
         asset,
         description
-      },
-      // Correct property name according to latest Supabase client API
-      timeoutMs: 30000 // 30 second timeout for AI generation
+      }
+      // The timeoutMs property is not supported in the current type definition
+      // We'll rely on the default timeout instead
     });
 
     if (error) {

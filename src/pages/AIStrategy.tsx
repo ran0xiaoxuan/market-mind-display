@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -74,24 +73,25 @@ const AIStrategy = () => {
         description: "AI has successfully generated a trading strategy based on your description",
         icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating strategy:", error);
-      const errorMessage = error.response?.data?.error || error.message || "Unknown error";
-      const errorType = error.response?.data?.type || "unknown_error";
+      const errorMessage = error.message || "Unknown error";
+      const errorType = error.type || "unknown_error";
       
-      setError(`Failed to generate strategy: ${errorMessage}`);
+      setError(errorMessage);
       setErrorType(errorType);
       
       // Check if this is a connection error
       const isConnectionError = errorMessage.includes("Failed to fetch") || 
                                 errorMessage.includes("Network error") ||
                                 errorMessage.includes("connection") ||
+                                errorType === "connection_error" ||
                                 !navigator.onLine;
       
       toast("Failed to generate strategy", {
         description: isConnectionError 
           ? "There was an error connecting to the AI service. Please check your connection and try again."
-          : "There was an error generating your strategy. Please try again with a simpler description.",
+          : "There was an error generating your strategy. Please try again or use a simpler description.",
         icon: <AlertCircle className="h-4 w-4 text-destructive" />
       });
     } finally {

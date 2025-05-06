@@ -426,8 +426,10 @@ export const generateStrategy = async (
   console.log("Generating strategy with AI service...", { assetType, selectedAsset, strategyDescription });
   
   try {
-    // Call the Supabase Edge Function to generate strategy using OpenAI API
-    // Add timeout handling for the fetch call without using signal parameter
+    // Set a timeout for the fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     try {
       const { data, error } = await supabase.functions.invoke('generate-strategy', {
         body: { 
@@ -436,6 +438,8 @@ export const generateStrategy = async (
           strategyDescription 
         }
       });
+      
+      clearTimeout(timeoutId); // Clear timeout if request completes
       
       if (error) {
         console.error("Error calling generate-strategy function:", error);
@@ -467,15 +471,13 @@ export const generateStrategy = async (
       
       return strategy;
     } catch (fetchError: any) {
-      // Fix error handling to not rely on the .response property
+      clearTimeout(timeoutId);
       console.error("Fetch error in generateStrategy:", fetchError);
       
-      // Check if this is a timeout error by inspecting the error message
-      if (fetchError.message && fetchError.message.includes("aborted")) {
-        const timeoutError = new Error("The strategy generation request timed out. Please try again with a simpler description.");
-        // Creating a custom error object instead of adding properties to Error
+      // Check if this is a timeout or abort error
+      if (fetchError.name === 'AbortError' || fetchError.message?.includes("aborted")) {
         throw {
-          message: timeoutError.message,
+          message: "The strategy generation request timed out. Please try again with a simpler description.",
           type: "timeout_error",
           originalError: fetchError
         };
@@ -488,7 +490,6 @@ export const generateStrategy = async (
     
     // Add network connectivity check
     if (!navigator.onLine) {
-      // Creating a custom error object instead of adding properties to Error
       throw {
         message: "Your device appears to be offline. Please check your internet connection and try again.",
         type: "connection_error",

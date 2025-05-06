@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { RuleGroupData } from "@/components/strategy-detail/types";
 
 export interface Strategy {
   id: string;
@@ -15,6 +16,22 @@ export interface Strategy {
   takeProfit: string;
   singleBuyVolume: string;
   maxBuyVolume: string;
+}
+
+export interface GeneratedStrategy {
+  name: string;
+  description: string;
+  market: string;
+  timeframe: string;
+  targetAsset: string;
+  entryRules: RuleGroupData[];
+  exitRules: RuleGroupData[];
+  riskManagement: {
+    stopLoss: string;
+    takeProfit: string;
+    singleBuyVolume: string;
+    maxBuyVolume: string;
+  }
 }
 
 export const getStrategies = async (): Promise<Strategy[]> => {
@@ -94,12 +111,107 @@ export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt'
   }
 };
 
-export interface RiskManagementData {
-  stopLoss: string;
-  takeProfit: string;
-  singleBuyVolume: string;
-  maxBuyVolume: string;
-}
+export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promise<string> => {
+  try {
+    // First, create the base strategy
+    const { data: strategyData, error: strategyError } = await supabase
+      .from('strategies')
+      .insert([{
+        name: strategy.name,
+        description: strategy.description,
+        market: strategy.market,
+        timeframe: strategy.timeframe,
+        target_asset: strategy.targetAsset,
+        stop_loss: strategy.riskManagement.stopLoss,
+        take_profit: strategy.riskManagement.takeProfit,
+        single_buy_volume: strategy.riskManagement.singleBuyVolume,
+        max_buy_volume: strategy.riskManagement.maxBuyVolume
+      }])
+      .select('*')
+      .single();
+
+    if (strategyError) {
+      console.error("Error saving strategy:", strategyError);
+      throw strategyError;
+    }
+
+    const strategyId = strategyData.id;
+
+    // Process entry rules
+    await saveRuleGroups(strategyId, strategy.entryRules, 'entry');
+    
+    // Process exit rules
+    await saveRuleGroups(strategyId, strategy.exitRules, 'exit');
+
+    return strategyId;
+  } catch (error) {
+    console.error("Error in saveGeneratedStrategy:", error);
+    throw error;
+  }
+};
+
+const saveRuleGroups = async (
+  strategyId: string, 
+  ruleGroups: RuleGroupData[], 
+  ruleType: 'entry' | 'exit'
+) => {
+  try {
+    // Process each rule group
+    for (let i = 0; i < ruleGroups.length; i++) {
+      const group = ruleGroups[i];
+      
+      // Create the rule group
+      const { data: groupData, error: groupError } = await supabase
+        .from('rule_groups')
+        .insert({
+          strategy_id: strategyId,
+          group_order: i + 1,
+          required_conditions: group.requiredConditions || null,
+          rule_type: ruleType,
+          logic: group.logic,
+          explanation: group.explanation || null
+        })
+        .select('*')
+        .single();
+
+      if (groupError) {
+        console.error("Error saving rule group:", groupError);
+        throw groupError;
+      }
+
+      const groupId = groupData.id;
+
+      // Process inequalities for this group
+      if (group.inequalities && group.inequalities.length > 0) {
+        for (let j = 0; j < group.inequalities.length; j++) {
+          const inequality = group.inequalities[j];
+          
+          await supabase
+            .from('trading_rules')
+            .insert({
+              rule_group_id: groupId,
+              inequality_order: j + 1,
+              left_type: inequality.left.type,
+              left_indicator: inequality.left.indicator || null,
+              left_parameters: inequality.left.parameters || null,
+              left_value: inequality.left.value || null,
+              left_value_type: inequality.left.valueType || null,
+              condition: inequality.condition,
+              right_type: inequality.right.type,
+              right_indicator: inequality.right.indicator || null,
+              right_parameters: inequality.right.parameters || null,
+              right_value: inequality.right.value || null,
+              right_value_type: inequality.right.valueType || null,
+              explanation: inequality.explanation || null
+            });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in saveRuleGroups:", error);
+    throw error;
+  }
+};
 
 export const getRiskManagementForStrategy = async (strategyId: string): Promise<RiskManagementData | null> => {
   try {

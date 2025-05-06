@@ -1,107 +1,76 @@
-
-import React from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { Toaster } from "sonner";
+import { supabase } from "./integrations/supabase/client";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import Dashboard from "./pages/Dashboard";
 import Strategies from "./pages/Strategies";
 import StrategyDetail from "./pages/StrategyDetail";
-import EditStrategy from "./pages/EditStrategy";
-import Backtest from "./pages/Backtest";
-import Analytics from "./pages/Analytics";
-import AIStrategy from "./pages/AIStrategy";
-import Settings from "./pages/Settings";
-import Login from "./pages/auth/Login";
-import Signup from "./pages/auth/Signup";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import EditHistory from "./pages/EditHistory";
-import BacktestHistory from "./pages/BacktestHistory";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
 import ManualStrategy from "./pages/ManualStrategy";
+import AIStrategy from "./pages/AIStrategy";
+import Backtest from "./pages/Backtest";
+import BacktestHistory from "./pages/BacktestHistory";
+import EditStrategy from "./pages/EditStrategy";
+import EditHistory from "./pages/EditHistory";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
+import AITest from "./pages/AITest";
 
-const queryClient = new QueryClient();
+function App() {
+  const [session, setSession] = useState(null);
 
-const App = () => (
-  <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              {/* Auth Routes */}
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/signup" element={<Signup />} />
-              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-              
-              {/* Protected App Routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } />
-              <Route path="/strategies" element={
-                <ProtectedRoute>
-                  <Strategies />
-                </ProtectedRoute>
-              } />
-              <Route path="/strategy/:strategyId" element={
-                <ProtectedRoute>
-                  <StrategyDetail />
-                </ProtectedRoute>
-              } />
-              <Route path="/strategy/:strategyId/edit" element={
-                <ProtectedRoute>
-                  <EditStrategy />
-                </ProtectedRoute>
-              } />
-              <Route path="/strategy/:strategyId/history" element={
-                <ProtectedRoute>
-                  <EditHistory />
-                </ProtectedRoute>
-              } />
-              <Route path="/strategy/:strategyId/backtests" element={
-                <ProtectedRoute>
-                  <BacktestHistory />
-                </ProtectedRoute>
-              } />
-              <Route path="/backtest" element={
-                <ProtectedRoute>
-                  <Backtest />
-                </ProtectedRoute>
-              } />
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              } />
-              <Route path="/ai-strategy" element={
-                <ProtectedRoute>
-                  <AIStrategy />
-                </ProtectedRoute>
-              } />
-              <Route path="/manual-strategy" element={
-                <ProtectedRoute>
-                  <ManualStrategy />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </React.StrictMode>
-);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+  }, []);
+
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!session) {
+      return <Navigate to="/login" />;
+    }
+    return <>{children}</>;
+  };
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/strategies" element={<Strategies />} />
+          <Route path="/strategy/:id" element={<StrategyDetail />} />
+          <Route path="/manual-strategy" element={<ManualStrategy />} />
+          <Route path="/ai-strategy" element={<AIStrategy />} />
+          <Route path="/backtest" element={<Backtest />} />
+          <Route path="/backtest-history" element={<BacktestHistory />} />
+          <Route path="/edit-strategy/:id" element={<EditStrategy />} />
+          <Route path="/edit-history/:id" element={<EditHistory />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/ai-test" element={<AITest />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster richColors />
+    </Router>
+  );
+}
 
 export default App;

@@ -1,12 +1,14 @@
 
 project_id = "lqfhhqhswdqpsliskxrr"
-[api]
-enabled = true
-[db]
-enabled = true
-[realtime]
-enabled = true
-[storage]
-enabled = true
-[edge_functions]
-enabled = true
+
+[functions.generate-strategy]
+verify_jwt = true
+
+[functions.get-fmp-key]
+verify_jwt = true
+
+[functions.get-taapi-key]
+verify_jwt = true
+
+[functions.moonshot-chat]
+verify_jwt = true

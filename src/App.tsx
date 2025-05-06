@@ -1,16 +1,18 @@
+
 import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  Outlet,
 } from "react-router-dom";
 import { Toaster } from "sonner";
 import { supabase } from "./integrations/supabase/client";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
+import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Strategies from "./pages/Strategies";
 import StrategyDetail from "./pages/StrategyDetail";
@@ -38,7 +40,7 @@ function App() {
     });
   }, []);
 
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const ProtectedRoute = ({ children }) => {
     if (!session) {
       return <Navigate to="/login" />;
     }
@@ -52,7 +54,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route element={<ProtectedRoute />}>
+        
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/strategy/:id" element={<StrategyDetail />} />
@@ -66,6 +70,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/ai-test" element={<AITest />} />
         </Route>
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster richColors />

@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { createUserMessage, extractAssistantMessage, sendChatCompletion } from "@/services/moonshotService";
+import { 
+  ChatMessage, 
+  createUserMessage, 
+  extractAssistantMessage, 
+  sendChatCompletion 
+} from "@/services/moonshotService";
 import { toast } from "sonner";
 
 export const AIChatTest = () => {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "system", content: "You are a helpful trading assistant. Be concise and informative." }
   ]);
   const [isLoading, setIsLoading] = useState(false);

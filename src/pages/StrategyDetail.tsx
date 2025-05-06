@@ -66,7 +66,12 @@ const StrategyDetail = () => {
           // Fetch trading rules data
           const rulesData = await getTradingRulesForStrategy(strategyId);
           console.log("Trading rules data:", rulesData);
-          setTradingRules(rulesData);
+          
+          // Ensure tradingRules is always properly initialized
+          setTradingRules({
+            entryRules: rulesData?.entryRules || [],
+            exitRules: rulesData?.exitRules || []
+          });
           
           // Convert database strategy to UI strategy format
           setStrategy({
@@ -258,47 +263,11 @@ const StrategyDetail = () => {
     maxBuyVolume: "5000"
   };
 
-  // Use default values if trading rules data is not available
-  const defaultTradingRules = {
-    entryRules: [{
-      id: "default-entry",
-      logic: "AND",
-      inequalities: [{
-        id: "default-entry-inequality",
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "20" }
-        },
-        condition: "Crosses Above",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "50" }
-        }
-      }]
-    }],
-    exitRules: [{
-      id: "default-exit",
-      logic: "AND",
-      inequalities: [{
-        id: "default-exit-inequality",
-        left: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "20" }
-        },
-        condition: "Crosses Below",
-        right: {
-          type: "indicator",
-          indicator: "SMA",
-          parameters: { period: "50" }
-        }
-      }]
-    }]
+  // Ensure we always have valid trading rules data
+  const tradingRulesData = tradingRules || {
+    entryRules: [],
+    exitRules: []
   };
-
-  const tradingRulesData = tradingRules || defaultTradingRules;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -339,8 +308,8 @@ const StrategyDetail = () => {
             
             <TabsContent value="rules" className="pt-6">
               <TradingRules 
-                entryRules={tradingRulesData.entryRules}
-                exitRules={tradingRulesData.exitRules}
+                entryRules={tradingRulesData.entryRules || []}
+                exitRules={tradingRulesData.exitRules || []}
               />
             </TabsContent>
             
@@ -349,7 +318,7 @@ const StrategyDetail = () => {
                 <h2 className="text-xl font-semibold mb-2">Trade History</h2>
                 <p className="text-sm text-muted-foreground mb-6">Historical trades executed by this strategy</p>
                 
-                <TradeHistoryTable trades={strategy.trades} />
+                <TradeHistoryTable trades={strategy.trades || []} />
               </Card>
             </TabsContent>
           </Tabs>

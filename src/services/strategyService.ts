@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -347,10 +346,13 @@ export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt'
 
 export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promise<string> => {
   try {
-    // First, create the base strategy - fix missing user_id
+    // First, create the base strategy with proper user_id
+    const currentUser = await supabase.auth.getUser();
+    const userId = currentUser.data.user?.id || 'anonymous';
+    
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
-      .insert([{
+      .insert({
         name: strategy.name,
         description: strategy.description,
         market: strategy.market,
@@ -360,8 +362,8 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         take_profit: strategy.riskManagement.takeProfit,
         single_buy_volume: strategy.riskManagement.singleBuyVolume,
         max_buy_volume: strategy.riskManagement.maxBuyVolume,
-        user_id: (await supabase.auth.getUser()).data.user?.id || 'anonymous'
-      }])
+        user_id: userId
+      })
       .select('*')
       .single();
 
@@ -532,53 +534,58 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
       throw exitGroupsError;
     }
 
-    // Format entry groups
-    const entryRules = await Promise.all(entryGroups.map(async (group) => {
-      const { data: inequalities, error: inequalitiesError } = await supabase
-        .from('trading_rules')
-        .select('*')
-        .eq('rule_group_id', group.id)
-        .order('inequality_order', { ascending: true });
+    // If no rule groups were found, return empty arrays instead of throwing an error
+    const entryRules = entryGroups && entryGroups.length > 0 
+      ? await Promise.all(entryGroups.map(async (group) => {
+          const { data: inequalities, error: inequalitiesError } = await supabase
+            .from('trading_rules')
+            .select('*')
+            .eq('rule_group_id', group.id)
+            .order('inequality_order', { ascending: true });
 
-      if (inequalitiesError) {
-        console.error("Error fetching inequalities for group:", inequalitiesError);
-        throw inequalitiesError;
-      }
+          if (inequalitiesError) {
+            console.error("Error fetching inequalities for group:", inequalitiesError);
+            throw inequalitiesError;
+          }
 
-      return {
-        id: group.id,
-        logic: group.logic,
-        requiredConditions: group.required_conditions,
-        explanation: group.explanation,
-        inequalities: inequalities.map(formatInequality)
-      };
-    }));
+          return {
+            id: group.id,
+            logic: group.logic,
+            requiredConditions: group.required_conditions,
+            explanation: group.explanation,
+            inequalities: inequalities ? inequalities.map(formatInequality) : []
+          };
+        }))
+      : [];
 
     // Format exit groups
-    const exitRules = await Promise.all(exitGroups.map(async (group) => {
-      const { data: inequalities, error: inequalitiesError } = await supabase
-        .from('trading_rules')
-        .select('*')
-        .eq('rule_group_id', group.id)
-        .order('inequality_order', { ascending: true });
+    const exitRules = exitGroups && exitGroups.length > 0
+      ? await Promise.all(exitGroups.map(async (group) => {
+          const { data: inequalities, error: inequalitiesError } = await supabase
+            .from('trading_rules')
+            .select('*')
+            .eq('rule_group_id', group.id)
+            .order('inequality_order', { ascending: true });
 
-      if (inequalitiesError) {
-        console.error("Error fetching inequalities for group:", inequalitiesError);
-        throw inequalitiesError;
-      }
+          if (inequalitiesError) {
+            console.error("Error fetching inequalities for group:", inequalitiesError);
+            throw inequalitiesError;
+          }
 
-      return {
-        id: group.id,
-        logic: group.logic,
-        requiredConditions: group.required_conditions,
-        explanation: group.explanation,
-        inequalities: inequalities.map(formatInequality)
-      };
-    }));
+          return {
+            id: group.id,
+            logic: group.logic,
+            requiredConditions: group.required_conditions,
+            explanation: group.explanation,
+            inequalities: inequalities ? inequalities.map(formatInequality) : []
+          };
+        }))
+      : [];
 
     return { entryRules, exitRules };
   } catch (error) {
     console.error("Error in getTradingRulesForStrategy:", error);
+    // Return empty arrays instead of throwing to prevent UI crashes
     return { entryRules: [], exitRules: [] };
   }
 };

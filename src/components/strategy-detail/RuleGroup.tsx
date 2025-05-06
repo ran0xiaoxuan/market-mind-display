@@ -41,6 +41,9 @@ export const RuleGroup = ({
   const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
   const [showSlider, setShowSlider] = useState<boolean>(false);
 
+  // Ensure inequalities is always an array
+  const safeInequalities = Array.isArray(inequalities) ? inequalities : [];
+
   useEffect(() => {
     if (requiredConditions !== undefined) {
       setConditionsCount(requiredConditions);
@@ -49,7 +52,7 @@ export const RuleGroup = ({
 
   const handleConditionsCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (!isNaN(value) && value >= 1 && value <= inequalities.length) {
+    if (!isNaN(value) && value >= 1 && value <= safeInequalities.length) {
       setConditionsCount(value);
       if (onRequiredConditionsChange) {
         onRequiredConditionsChange(value);
@@ -70,7 +73,7 @@ export const RuleGroup = ({
   const handleInequalityChange = (updatedInequality: Inequality) => {
     if (!onInequitiesChange) return;
     
-    const updatedInequalities = inequalities.map(inequality => 
+    const updatedInequalities = safeInequalities.map(inequality => 
       inequality.id === updatedInequality.id ? updatedInequality : inequality
     );
     
@@ -80,7 +83,7 @@ export const RuleGroup = ({
   const handleInequalityDelete = (id: string | number) => {
     if (!onInequitiesChange) return;
     
-    const updatedInequalities = inequalities.filter(inequality => inequality.id !== id);
+    const updatedInequalities = safeInequalities.filter(inequality => inequality.id !== id);
     onInequitiesChange(updatedInequalities);
     
     // Adjust required conditions if needed
@@ -94,13 +97,13 @@ export const RuleGroup = ({
   };
   
   // When extracting OR group description, ensure we use requiredConditions property
-  const effectiveInequalitiesCount = Math.max(2, inequalities?.length || 0);
+  const effectiveInequalitiesCount = Math.max(2, safeInequalities?.length || 0);
   const orGroupDescription = title === "OR Group"
     ? `At least ${requiredConditions || 1} of ${effectiveInequalitiesCount} conditions must be met.`
     : description;
   
   // Calculate max possible required conditions based on available inequalities
-  const maxRequiredConditions = inequalities?.length || 1;
+  const maxRequiredConditions = safeInequalities?.length || 1;
   
   return (
     <div className={`mb-6 ${className || ''}`}>
@@ -140,7 +143,7 @@ export const RuleGroup = ({
             </div>
             <span>of {effectiveInequalitiesCount} conditions must be met.</span>
             
-            {showSlider && inequalities.length > 0 && (
+            {showSlider && safeInequalities.length > 0 && (
               <div className="w-full mt-2 px-2">
                 <Slider 
                   defaultValue={[conditionsCount]} 
@@ -167,8 +170,8 @@ export const RuleGroup = ({
       </div>
       
       <div className="space-y-3">
-        {inequalities && inequalities.length > 0 ? (
-          inequalities.map((inequality) => (
+        {safeInequalities && safeInequalities.length > 0 ? (
+          safeInequalities.map((inequality) => (
             <div key={`${title.toLowerCase().split(' ')[0]}-${inequality.id}`}>
               <RuleInequality 
                 inequality={inequality} 

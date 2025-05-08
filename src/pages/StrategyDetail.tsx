@@ -75,7 +75,7 @@ const StrategyDetail = () => {
           const rulesData = await getTradingRulesForStrategy(strategyId);
           console.log("Trading rules data:", rulesData);
           
-          // Ensure tradingRules is always properly initialized with empty arrays if null
+          // Ensure tradingRules is always properly initialized with empty arrays
           setTradingRules({
             entryRules: rulesData?.entryRules || [],
             exitRules: rulesData?.exitRules || []
@@ -89,7 +89,7 @@ const StrategyDetail = () => {
           });
         }
         
-        // Convert database strategy to UI strategy format
+        // Convert database strategy to UI strategy format with safe defaults
         setStrategy({
           ...fetchedStrategy,
           name: fetchedStrategy.name || "Untitled Strategy",
@@ -268,7 +268,7 @@ const StrategyDetail = () => {
     );
   }
 
-  // Use risk management data directly from strategy
+  // Use risk management data directly from strategy with safe defaults
   const riskManagementData = riskManagement || {
     stopLoss: "5",
     takeProfit: "15", 
@@ -321,8 +321,8 @@ const StrategyDetail = () => {
             
             <TabsContent value="rules" className="pt-6">
               <TradingRules 
-                entryRules={tradingRulesData.entryRules || []}
-                exitRules={tradingRulesData.exitRules || []}
+                entryRules={tradingRulesData.entryRules}
+                exitRules={tradingRulesData.exitRules}
               />
             </TabsContent>
             

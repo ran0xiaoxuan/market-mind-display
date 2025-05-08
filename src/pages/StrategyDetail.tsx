@@ -39,7 +39,9 @@ const StrategyDetail = () => {
 
   useEffect(() => {
     const fetchStrategyData = async () => {
-      if (!strategyId) {
+      // Better handling of the strategyId - check for undefined or empty string
+      if (!strategyId || strategyId.trim() === "") {
+        console.error("Missing strategy ID in URL params");
         setError("No strategy ID provided");
         setLoading(false);
         return;
@@ -54,6 +56,7 @@ const StrategyDetail = () => {
         const fetchedStrategy = await getStrategyById(strategyId);
         
         if (!fetchedStrategy) {
+          console.error("Strategy not found with ID:", strategyId);
           setError("Strategy not found");
           setLoading(false);
           return;

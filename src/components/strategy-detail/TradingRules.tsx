@@ -286,7 +286,7 @@ export const TradingRules = ({
   return (
     <Card className="p-6 mb-6">
       {hasNoRules && !editable && (
-        <Alert variant="warning" className="mb-4">
+        <Alert className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             No trading rules have been defined for this strategy yet.

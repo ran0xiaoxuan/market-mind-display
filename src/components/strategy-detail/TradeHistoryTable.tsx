@@ -1,23 +1,30 @@
 
 import { ArrowDownUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 interface Trade {
-  id?: number;
+  id?: string | number;
   date: string;
   type: string;
   signal: string;
   price: string;
   contracts: number;
-  profit: string;
-  profitPercentage?: string;
+  profit: string | null;
+  profitPercentage?: string | null;
 }
+
 interface TradeHistoryTableProps {
   trades: Trade[];
 }
+
 export const TradeHistoryTable = ({
-  trades
+  trades = []
 }: TradeHistoryTableProps) => {
-  return <div className="overflow-x-auto">
+  // Ensure we have valid trades array
+  const safeTrades = Array.isArray(trades) ? trades : [];
+  
+  return (
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/20">
@@ -27,61 +34,69 @@ export const TradeHistoryTable = ({
               </div>
             </TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Date/Time</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Date</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Volume</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Profit/Loss</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {trades.map((trade, index) => {
-          const tradeId = trade.id || trades.length - index;
-          const isEntryRow = trade.type.toLowerCase().includes('entry');
-          const isExitRow = trade.type.toLowerCase().includes('exit');
-          const isProfitPositive = parseFloat(trade.profit?.replace(/[^0-9.-]+/g, '') || '0') > 0;
-          const isProfitNegative = parseFloat(trade.profit?.replace(/[^0-9.-]+/g, '') || '0') < 0;
-          // Determine if the trade is a buy or sell based on its type
-          const tradeType = isEntryRow ? "Buy" : "Sell";
-          return <TableRow key={index} className={isEntryRow ? "border-b-0 pb-0" : ""}>
-                {isEntryRow && <TableCell rowSpan={2} className="align-center font-medium text-center">
+          {safeTrades.length > 0 ? (
+            safeTrades.map((trade, index) => {
+              const tradeId = trade.id || (index + 1);
+              const isBuy = trade.type.toLowerCase().includes('buy');
+              const isProfitPositive = trade.profit ? !trade.profit.includes('-') : false;
+              const isProfitNegative = trade.profit ? trade.profit.includes('-') : false;
+              
+              return (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">
                     {tradeId}
-                  </TableCell>}
-                <TableCell className="py-3">
-                  {trade.signal === "Long" ? "Buy" : trade.signal === "Take Profit" ? "Sell" : trade.signal}
-                </TableCell>
-                <TableCell className="py-3">
-                  <div className="flex flex-col">
-                    <span>{trade.date}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {/* Extract the time from the date string if it exists */}
-                      {trade.date.includes(",") ? 
-                        trade.date.split(", ")[1].includes(":") ? 
-                          trade.date.split(", ")[1] : 
-                          "12:00 PM" : 
-                        "12:00 PM"}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3">
-                  <div className="flex flex-col">
-                    <span>{trade.price}</span>
-                    <span className="text-muted-foreground text-xs">USD</span>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3 text-left">{trade.contracts}</TableCell>
-                <TableCell className="py-3">
-                  {isExitRow && trade.profit && <div className="flex flex-col items-left">
-                      <span className={isProfitPositive ? "text-green-600" : isProfitNegative ? "text-red-600" : ""}>
-                        {trade.profit}
-                      </span>
-                      {trade.profitPercentage && <span className={`text-xs ${isProfitPositive ? "text-green-600" : isProfitNegative ? "text-red-600" : ""}`}>
-                          {trade.profitPercentage}
-                        </span>}
-                    </div>}
-                </TableCell>
-              </TableRow>;
-        })}
+                  </TableCell>
+                  <TableCell>
+                    {trade.type}
+                  </TableCell>
+                  <TableCell>
+                    {trade.date}
+                  </TableCell>
+                  <TableCell>
+                    {trade.price}
+                  </TableCell>
+                  <TableCell>
+                    {trade.contracts}
+                  </TableCell>
+                  <TableCell>
+                    {trade.profit && (
+                      <div className="flex flex-col">
+                        <span className={
+                          isProfitPositive ? "text-green-600" : 
+                          isProfitNegative ? "text-red-600" : ""
+                        }>
+                          {trade.profit}
+                        </span>
+                        {trade.profitPercentage && (
+                          <span className={`text-xs ${
+                            isProfitPositive ? "text-green-600" : 
+                            isProfitNegative ? "text-red-600" : ""
+                          }`}>
+                            {trade.profitPercentage}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          ) : (
+            <TableRow>
+              <TableCell colSpan={6} className="h-24 text-center">
+                No trade history available
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
-    </div>;
+    </div>
+  );
 };

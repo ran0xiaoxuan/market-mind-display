@@ -16,9 +16,7 @@ import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { 
   getStrategyById, 
-  Strategy, 
   getRiskManagementForStrategy, 
-  RiskManagementData,
   getTradingRulesForStrategy
 } from "@/services/strategyService";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -31,18 +29,25 @@ const StrategyDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(false);
-  const [riskManagement, setRiskManagement] = useState<RiskManagementData | null>(null);
-  const [tradingRules, setTradingRules] = useState<{ 
-    entryRules: RuleGroupData[],
-    exitRules: RuleGroupData[]
-  } | null>(null);
+  const [riskManagement, setRiskManagement] = useState({
+    stopLoss: "5",
+    takeProfit: "15",
+    singleBuyVolume: "1000",
+    maxBuyVolume: "5000"
+  });
+  const [tradingRules, setTradingRules] = useState<{
+    entryRules: RuleGroupData[];
+    exitRules: RuleGroupData[];
+  }>({
+    entryRules: [],
+    exitRules: []
+  });
 
   useEffect(() => {
     const fetchStrategyData = async () => {
-      // Better handling of the strategyId - check for undefined or empty string
-      if (!strategyId || strategyId.trim() === "") {
-        console.error("Missing strategy ID in URL params");
-        setError("No strategy ID provided");
+      if (!strategyId) {
+        console.error("No strategy ID provided in URL params");
+        setError("Strategy ID is missing. Please go back and select a strategy.");
         setLoading(false);
         return;
       }
@@ -52,49 +57,56 @@ const StrategyDetail = () => {
         setError(null);
         console.log("Fetching strategy with ID:", strategyId);
         
-        // Fetch strategy data
+        // Fetch strategy data with proper error handling
         const fetchedStrategy = await getStrategyById(strategyId);
         
         if (!fetchedStrategy) {
           console.error("Strategy not found with ID:", strategyId);
-          setError("Strategy not found");
+          setError(`Strategy with ID ${strategyId} not found`);
           setLoading(false);
           return;
         }
 
         console.log("Strategy data retrieved:", fetchedStrategy);
         
-        // Get risk management data directly from the strategy
-        const riskData = {
+        // Extract risk management data from strategy
+        setRiskManagement({
           stopLoss: fetchedStrategy.stopLoss || "5",
-          takeProfit: fetchedStrategy.takeProfit || "15",
+          takeProfit: fetchedStrategy.takeProfit || "15", 
           singleBuyVolume: fetchedStrategy.singleBuyVolume || "1000",
           maxBuyVolume: fetchedStrategy.maxBuyVolume || "5000"
-        };
-        setRiskManagement(riskData);
+        });
         
-        // Fetch trading rules data with proper error handling
+        // Safely fetch trading rules
         try {
           const rulesData = await getTradingRulesForStrategy(strategyId);
-          console.log("Trading rules data:", rulesData);
+          console.log("Retrieved trading rules:", rulesData);
           
-          // Ensure tradingRules is always properly initialized with empty arrays
-          setTradingRules({
-            entryRules: rulesData?.entryRules || [],
-            exitRules: rulesData?.exitRules || []
-          });
+          if (rulesData) {
+            setTradingRules({
+              entryRules: Array.isArray(rulesData.entryRules) ? rulesData.entryRules : [],
+              exitRules: Array.isArray(rulesData.exitRules) ? rulesData.exitRules : []
+            });
+          } else {
+            console.log("No trading rules found, using empty arrays");
+            setTradingRules({
+              entryRules: [],
+              exitRules: []
+            });
+          }
         } catch (rulesError) {
           console.error("Error fetching trading rules:", rulesError);
-          // Don't fail the entire page load, just set empty rules
+          // Don't fail the entire page load for rules error
           setTradingRules({
             entryRules: [],
             exitRules: []
           });
         }
         
-        // Convert database strategy to UI strategy format with safe defaults
+        // Set up demo data for the strategy with safe fallbacks
         setStrategy({
           ...fetchedStrategy,
+          id: fetchedStrategy.id,
           name: fetchedStrategy.name || "Untitled Strategy",
           description: fetchedStrategy.description || "No description provided",
           status: fetchedStrategy.isActive ? "active" : "inactive",
@@ -104,20 +116,17 @@ const StrategyDetail = () => {
           maxDrawdown: "-5.2%",
           winRate: "62%",
           profitFactor: "1.8",
-          createdDate: fetchedStrategy.createdAt,
-          lastUpdated: fetchedStrategy.updatedAt,
+          createdAt: fetchedStrategy.createdAt,
+          updatedAt: fetchedStrategy.updatedAt,
           market: fetchedStrategy.market || "Unknown",
           timeframe: fetchedStrategy.timeframe || "Unknown",
           targetAsset: fetchedStrategy.targetAsset || "Unknown",
-          startingValue: "$10,000",
-          currentValue: "$15,000",
-          totalGrowth: "+50.0%",
           trades: [
             {
               id: "1",
               date: "2023-01-05",
-              type: "buy",
-              price: 150.25,
+              type: "Buy",
+              price: "$150.25",
               contracts: 10,
               signal: "SMA Crossover",
               profit: null,
@@ -126,68 +135,47 @@ const StrategyDetail = () => {
             {
               id: "2",
               date: "2023-01-12",
-              type: "sell",
-              price: 165.50,
+              type: "Sell",
+              price: "$165.50",
               contracts: 10,
               signal: "SMA Crossover",
-              profit: 152.50,
-              profitPercentage: 10.15
+              profit: "$152.50",
+              profitPercentage: "+10.15%"
             },
             {
               id: "3",
               date: "2023-02-01",
-              type: "buy",
-              price: 168.75,
+              type: "Buy",
+              price: "$168.75",
               contracts: 5,
-              signal: "RSI Overbought",
+              signal: "RSI Oversold",
               profit: null,
               profitPercentage: null
             },
             {
               id: "4",
               date: "2023-02-10",
-              type: "sell",
-              price: 160.00,
+              type: "Sell",
+              price: "$160.00",
               contracts: 5,
               signal: "RSI Overbought",
-              profit: -43.75,
-              profitPercentage: -5.15
-            },
-            {
-              id: "5",
-              date: "2023-03-01",
-              type: "buy",
-              price: 172.00,
-              contracts: 8,
-              signal: "MACD Crossover",
-              profit: null,
-              profitPercentage: null
-            },
-            {
-              id: "6",
-              date: "2023-03-15",
-              type: "sell",
-              price: 185.20,
-              contracts: 8,
-              signal: "MACD Crossover",
-              profit: 105.60,
-              profitPercentage: 7.70
+              profit: "-$43.75",
+              profitPercentage: "-5.15%"
             }
           ],
           performanceMetrics: {
             totalReturn: "+12.5%",
             annualizedReturn: "+37.5%",
             sharpeRatio: "1.8",
-            maxDrawdown: "-4.8%"
+            maxDrawdown: "-4.8%",
+            winRate: "65%"
           },
           tradeStats: {
-            winRate: "65%",
-            profitFactor: "2.1",
-            totalTrades: "45",
-            winningTrades: "29",
-            losingTrades: "16",
-            averageProfit: "+2.3%",
-            averageLoss: "-1.5%"
+            totalTrades: 45,
+            winningTrades: 29,
+            losingTrades: 16,
+            avgProfit: "+2.3%",
+            avgLoss: "-1.5%"
           }
         });
         
@@ -206,7 +194,7 @@ const StrategyDetail = () => {
     fetchStrategyData();
   }, [strategyId]);
   
-  const handleStatusChange = async (checked: boolean) => {
+  const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
     
     // Update the strategy object to reflect the new status
@@ -270,21 +258,7 @@ const StrategyDetail = () => {
       </div>
     );
   }
-
-  // Use risk management data directly from strategy with safe defaults
-  const riskManagementData = riskManagement || {
-    stopLoss: "5",
-    takeProfit: "15", 
-    singleBuyVolume: "1000",
-    maxBuyVolume: "5000"
-  };
-
-  // Ensure we always have valid trading rules data
-  const tradingRulesData = tradingRules || {
-    entryRules: [],
-    exitRules: []
-  };
-
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -292,7 +266,7 @@ const StrategyDetail = () => {
         <div className="max-w-7xl mx-auto">
           <StrategyHeader 
             strategyId={strategyId || ""} 
-            strategyName={strategy.name || ""} 
+            strategyName={strategy.name} 
           />
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
@@ -311,7 +285,7 @@ const StrategyDetail = () => {
               />
               
               <RiskManagement 
-                riskManagement={riskManagementData} 
+                riskManagement={riskManagement} 
               />
             </TabsContent>
             
@@ -324,8 +298,8 @@ const StrategyDetail = () => {
             
             <TabsContent value="rules" className="pt-6">
               <TradingRules 
-                entryRules={tradingRulesData.entryRules}
-                exitRules={tradingRulesData.exitRules}
+                entryRules={tradingRules.entryRules}
+                exitRules={tradingRules.exitRules}
               />
             </TabsContent>
             

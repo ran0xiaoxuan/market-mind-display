@@ -22,7 +22,10 @@ import {
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
 const StrategyDetail = () => {
-  const { strategyId } = useParams<{ strategyId: string }>();
+  // Extract the strategyId from URL params
+  const params = useParams<{ strategyId: string }>();
+  const strategyId = params.strategyId;
+  
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [strategy, setStrategy] = useState<any | null>(null);
@@ -46,7 +49,7 @@ const StrategyDetail = () => {
   useEffect(() => {
     const fetchStrategyData = async () => {
       if (!strategyId) {
-        console.error("No strategy ID provided in URL params");
+        console.error("No strategy ID provided in URL params:", params);
         setError("Strategy ID is missing. Please go back and select a strategy.");
         setLoading(false);
         return;

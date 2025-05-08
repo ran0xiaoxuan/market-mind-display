@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -49,133 +50,145 @@ const StrategyDetail = () => {
         setError(null);
         console.log("Fetching strategy with ID:", strategyId);
         
+        // Fetch strategy data
         const fetchedStrategy = await getStrategyById(strategyId);
         
-        if (fetchedStrategy) {
-          console.log("Strategy data retrieved:", fetchedStrategy);
-          
-          // Get risk management data directly from the strategy
-          const riskData = {
-            stopLoss: fetchedStrategy.stopLoss || "5",
-            takeProfit: fetchedStrategy.takeProfit || "15",
-            singleBuyVolume: fetchedStrategy.singleBuyVolume || "1000",
-            maxBuyVolume: fetchedStrategy.maxBuyVolume || "5000"
-          };
-          setRiskManagement(riskData);
-          
-          // Fetch trading rules data
+        if (!fetchedStrategy) {
+          setError("Strategy not found");
+          setLoading(false);
+          return;
+        }
+
+        console.log("Strategy data retrieved:", fetchedStrategy);
+        
+        // Get risk management data directly from the strategy
+        const riskData = {
+          stopLoss: fetchedStrategy.stopLoss || "5",
+          takeProfit: fetchedStrategy.takeProfit || "15",
+          singleBuyVolume: fetchedStrategy.singleBuyVolume || "1000",
+          maxBuyVolume: fetchedStrategy.maxBuyVolume || "5000"
+        };
+        setRiskManagement(riskData);
+        
+        // Fetch trading rules data with proper error handling
+        try {
           const rulesData = await getTradingRulesForStrategy(strategyId);
           console.log("Trading rules data:", rulesData);
           
-          // Ensure tradingRules is always properly initialized
+          // Ensure tradingRules is always properly initialized with empty arrays if null
           setTradingRules({
             entryRules: rulesData?.entryRules || [],
             exitRules: rulesData?.exitRules || []
           });
-          
-          // Convert database strategy to UI strategy format
-          setStrategy({
-            ...fetchedStrategy,
-            name: fetchedStrategy.name,
-            description: fetchedStrategy.description,
-            status: fetchedStrategy.isActive ? "active" : "inactive",
-            performance: "+8.2%",
-            annualized: "+24.6%",
-            sharpeRatio: "1.4", 
-            maxDrawdown: "-5.2%",
-            winRate: "62%",
-            profitFactor: "1.8",
-            createdDate: fetchedStrategy.createdAt,
-            lastUpdated: fetchedStrategy.updatedAt,
-            market: fetchedStrategy.market,
-            timeframe: fetchedStrategy.timeframe,
-            targetAsset: fetchedStrategy.targetAsset,
-            startingValue: "$10,000",
-            currentValue: "$15,000",
-            totalGrowth: "+50.0%",
-            trades: [
-              {
-                id: "1",
-                date: "2023-01-05",
-                type: "buy",
-                price: 150.25,
-                contracts: 10,
-                signal: "SMA Crossover",
-                profit: null,
-                profitPercentage: null
-              },
-              {
-                id: "2",
-                date: "2023-01-12",
-                type: "sell",
-                price: 165.50,
-                contracts: 10,
-                signal: "SMA Crossover",
-                profit: 152.50,
-                profitPercentage: 10.15
-              },
-              {
-                id: "3",
-                date: "2023-02-01",
-                type: "buy",
-                price: 168.75,
-                contracts: 5,
-                signal: "RSI Overbought",
-                profit: null,
-                profitPercentage: null
-              },
-              {
-                id: "4",
-                date: "2023-02-10",
-                type: "sell",
-                price: 160.00,
-                contracts: 5,
-                signal: "RSI Overbought",
-                profit: -43.75,
-                profitPercentage: -5.15
-              },
-              {
-                id: "5",
-                date: "2023-03-01",
-                type: "buy",
-                price: 172.00,
-                contracts: 8,
-                signal: "MACD Crossover",
-                profit: null,
-                profitPercentage: null
-              },
-              {
-                id: "6",
-                date: "2023-03-15",
-                type: "sell",
-                price: 185.20,
-                contracts: 8,
-                signal: "MACD Crossover",
-                profit: 105.60,
-                profitPercentage: 7.70
-              }
-            ],
-            performanceMetrics: {
-              totalReturn: "+12.5%",
-              annualizedReturn: "+37.5%",
-              sharpeRatio: "1.8",
-              maxDrawdown: "-4.8%"
-            },
-            tradeStats: {
-              winRate: "65%",
-              profitFactor: "2.1",
-              totalTrades: "45",
-              winningTrades: "29",
-              losingTrades: "16",
-              averageProfit: "+2.3%",
-              averageLoss: "-1.5%"
-            }
+        } catch (rulesError) {
+          console.error("Error fetching trading rules:", rulesError);
+          // Don't fail the entire page load, just set empty rules
+          setTradingRules({
+            entryRules: [],
+            exitRules: []
           });
-          
-          setIsActive(fetchedStrategy.isActive);
-        } else {
-          setError("Strategy not found");
         }
+        
+        // Convert database strategy to UI strategy format
+        setStrategy({
+          ...fetchedStrategy,
+          name: fetchedStrategy.name || "Untitled Strategy",
+          description: fetchedStrategy.description || "No description provided",
+          status: fetchedStrategy.isActive ? "active" : "inactive",
+          performance: "+8.2%",
+          annualized: "+24.6%",
+          sharpeRatio: "1.4", 
+          maxDrawdown: "-5.2%",
+          winRate: "62%",
+          profitFactor: "1.8",
+          createdDate: fetchedStrategy.createdAt,
+          lastUpdated: fetchedStrategy.updatedAt,
+          market: fetchedStrategy.market || "Unknown",
+          timeframe: fetchedStrategy.timeframe || "Unknown",
+          targetAsset: fetchedStrategy.targetAsset || "Unknown",
+          startingValue: "$10,000",
+          currentValue: "$15,000",
+          totalGrowth: "+50.0%",
+          trades: [
+            {
+              id: "1",
+              date: "2023-01-05",
+              type: "buy",
+              price: 150.25,
+              contracts: 10,
+              signal: "SMA Crossover",
+              profit: null,
+              profitPercentage: null
+            },
+            {
+              id: "2",
+              date: "2023-01-12",
+              type: "sell",
+              price: 165.50,
+              contracts: 10,
+              signal: "SMA Crossover",
+              profit: 152.50,
+              profitPercentage: 10.15
+            },
+            {
+              id: "3",
+              date: "2023-02-01",
+              type: "buy",
+              price: 168.75,
+              contracts: 5,
+              signal: "RSI Overbought",
+              profit: null,
+              profitPercentage: null
+            },
+            {
+              id: "4",
+              date: "2023-02-10",
+              type: "sell",
+              price: 160.00,
+              contracts: 5,
+              signal: "RSI Overbought",
+              profit: -43.75,
+              profitPercentage: -5.15
+            },
+            {
+              id: "5",
+              date: "2023-03-01",
+              type: "buy",
+              price: 172.00,
+              contracts: 8,
+              signal: "MACD Crossover",
+              profit: null,
+              profitPercentage: null
+            },
+            {
+              id: "6",
+              date: "2023-03-15",
+              type: "sell",
+              price: 185.20,
+              contracts: 8,
+              signal: "MACD Crossover",
+              profit: 105.60,
+              profitPercentage: 7.70
+            }
+          ],
+          performanceMetrics: {
+            totalReturn: "+12.5%",
+            annualizedReturn: "+37.5%",
+            sharpeRatio: "1.8",
+            maxDrawdown: "-4.8%"
+          },
+          tradeStats: {
+            winRate: "65%",
+            profitFactor: "2.1",
+            totalTrades: "45",
+            winningTrades: "29",
+            losingTrades: "16",
+            averageProfit: "+2.3%",
+            averageLoss: "-1.5%"
+          }
+        });
+        
+        setIsActive(fetchedStrategy.isActive || false);
       } catch (error: any) {
         console.error("Error fetching strategy:", error);
         setError(error.message || "Failed to load strategy details");

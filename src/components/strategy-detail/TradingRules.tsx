@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -334,7 +335,7 @@ export const TradingRules = ({
                   <RuleGroup 
                     title="OR Group" 
                     color="amber" 
-                    description={`At least ${safeEntryRules[1].requiredConditions || 1} of ${Math.max(2, (safeEntryRules[1]?.inequalities || []).length)} conditions must be met.`}
+                    description={`At least ${safeEntryRules[1]?.requiredConditions || 1} of ${Math.max(2, (safeEntryRules[1]?.inequalities || []).length)} conditions must be met.`}
                     inequalities={safeEntryRules[1]?.inequalities || []} 
                     editable={editable} 
                     onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 

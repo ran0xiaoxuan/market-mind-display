@@ -24,6 +24,7 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AITest from "./pages/AITest";
+import StrategyDetail from "./pages/StrategyDetail";
 import { useAuth } from "./contexts/AuthContext";
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/strategies" element={<Strategies />} />
+          <Route path="/strategy/:id" element={<StrategyDetail />} />
           <Route path="/manual-strategy" element={<ManualStrategy />} />
           <Route path="/ai-strategy" element={<AIStrategy />} />
           <Route path="/backtest" element={<Backtest />} />

@@ -22,7 +22,7 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
 
   if (!isValidData) {
     return (
-      <Card className="p-6 mt-6">
+      <Card className="p-6">
         <div className="mb-2">
           <h2 className="text-xl font-semibold">Risk Management</h2>
         </div>
@@ -48,7 +48,7 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
   };
 
   return (
-    <Card className="p-6 mt-6">
+    <Card className="p-6">
       <div className="mb-2">
         <h2 className="text-xl font-semibold">Risk Management</h2>
       </div>

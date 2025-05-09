@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -13,6 +14,7 @@ import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
 
 const StrategyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -185,10 +187,10 @@ const StrategyDetail = () => {
   if (loading) {
     return (
       <Container>
-        <div className="my-4">
-          <Skeleton className="h-10 w-3/4 mb-4" />
-          <Skeleton className="h-40 w-full mb-6" />
-          <Skeleton className="h-60 w-full mb-6" />
+        <div className="my-4 space-y-6">
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-60 w-full" />
           <Skeleton className="h-40 w-full" />
         </div>
       </Container>
@@ -216,7 +218,7 @@ const StrategyDetail = () => {
   
   return (
     <Container>
-      <div className="my-6">
+      <div className="my-6 space-y-8">
         <StrategyHeader 
           strategyId={id || ""} 
           strategyName={strategy.name} 
@@ -243,7 +245,7 @@ const StrategyDetail = () => {
         
         <PerformanceMetricsCard strategyId={id || ""} />
         
-        <div className="mt-6">
+        <div>
           <h2 className="text-xl font-semibold mb-4">Trade History</h2>
           <TradeHistoryTable trades={trades} />
         </div>

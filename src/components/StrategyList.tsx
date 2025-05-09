@@ -19,7 +19,7 @@ export function StrategyList() {
       setLoading(true);
       setError(null);
       const data = await getStrategies();
-      setStrategies(data.slice(0, 4)); // Get top 4 strategies
+      setStrategies(data.slice(0, 6)); // Changed from 4 to 6 strategies
     } catch (err) {
       console.error("Error fetching strategies:", err);
       setError("Failed to load strategies");
@@ -75,7 +75,7 @@ export function StrategyList() {
       <CardContent className="p-0 flex-1">
         <div className="divide-y">
           {loading ? (
-            Array(4).fill(0).map((_, i) => (
+            Array(6).fill(0).map((_, i) => (
               <div key={i} className="flex items-center justify-between px-6 py-4">
                 <div className="animate-pulse w-2/3 h-6 rounded bg-muted"></div>
                 <div className="animate-pulse w-8 h-8 rounded-full bg-muted"></div>

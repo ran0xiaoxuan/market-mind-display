@@ -65,7 +65,12 @@ export const StrategyHeader = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input" onClick={() => navigate(`/edit-strategy/${strategyId}`)}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 px-2.5 border border-input" 
+            onClick={() => navigate(`/edit-strategy/${strategyId}`)}
+          >
             <Edit className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Edit</span>
           </Button>

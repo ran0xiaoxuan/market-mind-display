@@ -69,6 +69,11 @@ const Backtest = () => {
     }
   }, [location.search, toast]);
 
+  // New function to disable future dates
+  const disableFutureDates = (date: Date) => {
+    return date > new Date();
+  };
+
   const performanceMetrics = [{
     name: "Total Return",
     value: "17.00%",
@@ -247,7 +252,8 @@ const Backtest = () => {
                           <Calendar 
                             mode="single" 
                             selected={startDate} 
-                            onSelect={setStartDate} 
+                            onSelect={setStartDate}
+                            disabled={disableFutureDates} 
                             initialFocus
                           />
                         </PopoverContent>
@@ -270,7 +276,8 @@ const Backtest = () => {
                           <Calendar 
                             mode="single" 
                             selected={endDate} 
-                            onSelect={setEndDate} 
+                            onSelect={setEndDate}
+                            disabled={disableFutureDates} 
                             initialFocus
                           />
                         </PopoverContent>

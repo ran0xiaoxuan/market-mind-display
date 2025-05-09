@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon } from "lucide-react";
@@ -245,7 +244,12 @@ const Backtest = () => {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto" />
+                          <Calendar 
+                            mode="single" 
+                            selected={startDate} 
+                            onSelect={setStartDate} 
+                            initialFocus
+                          />
                         </PopoverContent>
                       </Popover>
                     </div>
@@ -263,7 +267,12 @@ const Backtest = () => {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto" />
+                          <Calendar 
+                            mode="single" 
+                            selected={endDate} 
+                            onSelect={setEndDate} 
+                            initialFocus
+                          />
                         </PopoverContent>
                       </Popover>
                     </div>

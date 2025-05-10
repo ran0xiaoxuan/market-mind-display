@@ -70,9 +70,7 @@ export const RuleGroup = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" className="h-6 w-6 p-1 ml-1" aria-label="Rule info">
-                  <Info className="h-4 w-4" />
-                </Button>
+                
               </TooltipTrigger>
               <TooltipContent>
                 <p>{description}</p>

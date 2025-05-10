@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -104,15 +103,15 @@ export const TradingRules = ({
     }
   };
 
-  // Add new condition to a rule group
+  // Add new condition to a rule group (updated to create empty conditions)
   const handleAddCondition = (isEntryRule: boolean, groupIndex: number) => {
     if (isEntryRule && onEntryRulesChange) {
       const updatedRules = [...safeEntryRules];
       const newInequality: Inequality = {
         id: uuidv4(),
-        left: { type: 'indicator', indicator: 'SMA', parameters: { period: '14' } },
-        condition: 'Greater Than',
-        right: { type: 'indicator', indicator: 'SMA', parameters: { period: '50' } }
+        left: { type: '', indicator: '', parameters: {} },
+        condition: '',
+        right: { type: '', indicator: '', parameters: {} }
       };
 
       updatedRules[groupIndex] = {
@@ -126,9 +125,9 @@ export const TradingRules = ({
       const updatedRules = [...safeExitRules];
       const newInequality: Inequality = {
         id: uuidv4(),
-        left: { type: 'indicator', indicator: 'SMA', parameters: { period: '14' } },
-        condition: 'Less Than',
-        right: { type: 'indicator', indicator: 'SMA', parameters: { period: '50' } }
+        left: { type: '', indicator: '', parameters: {} },
+        condition: '',
+        right: { type: '', indicator: '', parameters: {} }
       };
 
       updatedRules[groupIndex] = {

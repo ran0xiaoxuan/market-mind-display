@@ -106,7 +106,7 @@ export const RuleGroup = ({
               type="number"
               min="1"
               max={Math.max(1, inequalities.length)}
-              value={requiredConditions}
+              value={requiredConditions === undefined ? "" : requiredConditions}
               onChange={handleRequiredConditionsChange}
               className="w-16 h-8"
             />

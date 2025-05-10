@@ -17,7 +17,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { saveGeneratedStrategy } from "@/services/strategyService";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { useAuth } from "@/contexts/AuthContext";
-
 const formSchema = z.object({
   name: z.string().min(3, "Strategy name must be at least 3 characters"),
   description: z.string().min(10, "Please provide a more detailed description"),
@@ -30,7 +29,6 @@ const formSchema = z.object({
   maxBuyVolume: z.string().min(1, "Please provide a maximum buy volume")
 });
 type FormValues = z.infer<typeof formSchema>;
-
 const ManualStrategy = () => {
   const {
     user
@@ -147,23 +145,7 @@ const ManualStrategy = () => {
 
                 <FormField control={form.control} name="market" render={({
                 field
-              }) => <FormItem>
-                      <FormLabel>Market</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a market" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Equities">Equities</SelectItem>
-                          <SelectItem value="Forex">Forex</SelectItem>
-                          <SelectItem value="Crypto">Crypto</SelectItem>
-                          <SelectItem value="Commodities">Commodities</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>} />
+              }) => {}} />
 
                 <FormField control={form.control} name="timeframe" render={({
                 field
@@ -281,5 +263,4 @@ const ManualStrategy = () => {
       </main>
     </div>;
 };
-
 export default ManualStrategy;

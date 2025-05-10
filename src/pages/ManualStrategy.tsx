@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
-import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,15 +40,15 @@ const ManualStrategy = () => {
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   
-  // Initialize with empty entry and exit rule groups
+  // Initialize with empty entry and exit rule groups - remove requiredConditions default
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
     { id: 1, logic: "AND", inequalities: [] },
-    { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+    { id: 2, logic: "OR", inequalities: [] }
   ]);
   
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([
     { id: 1, logic: "AND", inequalities: [] },
-    { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+    { id: 2, logic: "OR", inequalities: [] }
   ]);
 
   const form = useForm<FormValues>({

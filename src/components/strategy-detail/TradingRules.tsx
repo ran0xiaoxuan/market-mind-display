@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -94,14 +93,14 @@ export const TradingRules = ({
       if (safeEntryRules.length === 0) {
         onEntryRulesChange([
           { id: 1, logic: "AND", inequalities: [] },
-          { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+          { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
         ]);
       }
     } else if (!isEntryRules && onExitRulesChange) {
       if (safeExitRules.length === 0) {
         onExitRulesChange([
           { id: 1, logic: "AND", inequalities: [] },
-          { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+          { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
         ]);
       }
     }
@@ -152,7 +151,7 @@ export const TradingRules = ({
     if (!onEntryRulesChange) return;
     onEntryRulesChange([
       { id: 1, logic: "AND", inequalities: [] },
-      { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+      { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
     ]);
   };
 
@@ -160,7 +159,7 @@ export const TradingRules = ({
     if (!onExitRulesChange) return;
     onExitRulesChange([
       { id: 1, logic: "AND", inequalities: [] },
-      { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+      { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
     ]);
   };
 

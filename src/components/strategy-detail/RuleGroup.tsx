@@ -109,6 +109,7 @@ export const RuleGroup = ({
               value={requiredConditions === undefined ? "" : requiredConditions}
               onChange={handleRequiredConditionsChange}
               className="w-16 h-8"
+              placeholder=""
             />
           </div>
         )}

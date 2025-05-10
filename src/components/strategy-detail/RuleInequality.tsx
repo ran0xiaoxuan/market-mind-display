@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
@@ -22,19 +21,32 @@ interface RuleInequalityProps {
   onChange?: (inequality: Inequality) => void;
   onDelete?: () => void;
   showValidation?: boolean;
+  isNewlyAdded?: boolean;
+  onEditingComplete?: () => void;
 }
 
 export const RuleInequality = ({ 
   inequality, 
   editable = false,
   onChange,
-  onDelete
+  onDelete,
+  showValidation,
+  isNewlyAdded = false,
+  onEditingComplete
 }: RuleInequalityProps) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isNewlyAdded);
   const [showExplanation, setShowExplanation] = useState(false);
   const [editedInequality, setEditedInequality] = useState<Inequality>(inequality);
   const [availableIndicators, setAvailableIndicators] = useState<string[]>([]);
   const [indicatorSearch, setIndicatorSearch] = useState('');
+  
+  // Set editing mode when isNewlyAdded changes
+  useEffect(() => {
+    if (isNewlyAdded) {
+      setIsEditing(true);
+      setEditedInequality({...inequality});
+    }
+  }, [isNewlyAdded, inequality]);
   
   // Fetch available indicators from TAAPI
   useEffect(() => {
@@ -123,6 +135,9 @@ export const RuleInequality = ({
   const cancelEditing = () => {
     setIsEditing(false);
     setIndicatorSearch('');
+    if (isNewlyAdded && onEditingComplete) {
+      onEditingComplete();
+    }
   };
   
   const saveChanges = () => {
@@ -131,6 +146,9 @@ export const RuleInequality = ({
     }
     setIsEditing(false);
     setIndicatorSearch('');
+    if (isNewlyAdded && onEditingComplete) {
+      onEditingComplete();
+    }
   };
   
   const updateLeft = (field: string, value: string) => {

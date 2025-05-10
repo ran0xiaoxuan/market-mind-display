@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -30,6 +31,7 @@ export const TradingRules = ({
   showValidation = false
 }: TradingRulesProps) => {
   const [activeTab, setActiveTab] = useState<string>("entry");
+  const [newlyAddedConditionId, setNewlyAddedConditionId] = useState<string | null>(null);
   
   // Ensure we work with valid arrays
   const safeEntryRules = Array.isArray(entryRules) ? entryRules : [];
@@ -107,10 +109,12 @@ export const TradingRules = ({
 
   // Add new condition to a rule group (updated to create empty conditions)
   const handleAddCondition = (isEntryRule: boolean, groupIndex: number) => {
+    const newInequalityId = uuidv4();
+    
     if (isEntryRule && onEntryRulesChange) {
       const updatedRules = [...safeEntryRules];
       const newInequality: Inequality = {
-        id: uuidv4(),
+        id: newInequalityId,
         left: { type: '', indicator: '', parameters: {} },
         condition: '',
         right: { type: '', indicator: '', parameters: {} }
@@ -122,11 +126,12 @@ export const TradingRules = ({
       };
       
       onEntryRulesChange(updatedRules);
+      setNewlyAddedConditionId(newInequalityId);
       toast.success("New condition added to entry rule");
     } else if (!isEntryRule && onExitRulesChange) {
       const updatedRules = [...safeExitRules];
       const newInequality: Inequality = {
-        id: uuidv4(),
+        id: newInequalityId,
         left: { type: '', indicator: '', parameters: {} },
         condition: '',
         right: { type: '', indicator: '', parameters: {} }
@@ -138,6 +143,7 @@ export const TradingRules = ({
       };
       
       onExitRulesChange(updatedRules);
+      setNewlyAddedConditionId(newInequalityId);
       toast.success("New condition added to exit rule");
     }
   };
@@ -159,6 +165,11 @@ export const TradingRules = ({
   };
 
   const hasNoRules = safeEntryRules.length === 0 && safeExitRules.length === 0;
+
+  // Clear newly added condition ID after it's been used
+  const handleClearNewlyAddedCondition = () => {
+    setNewlyAddedConditionId(null);
+  };
 
   return (
     <Card className="p-6 mb-6">
@@ -206,6 +217,8 @@ export const TradingRules = ({
                   className="bg-blue-50/50 border border-blue-100" 
                   onAddRule={() => handleAddCondition(true, 0)}
                   showValidation={showValidation}
+                  newlyAddedConditionId={newlyAddedConditionId}
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition}
                 />
                 
                 {safeEntryRules.length > 1 && (
@@ -221,6 +234,8 @@ export const TradingRules = ({
                     className="bg-amber-50/50 border border-amber-100"
                     onAddRule={() => handleAddCondition(true, 1)}
                     showValidation={showValidation}
+                    newlyAddedConditionId={newlyAddedConditionId}
+                    onClearNewlyAddedCondition={handleClearNewlyAddedCondition}
                   />
                 )}
               </>
@@ -253,6 +268,8 @@ export const TradingRules = ({
                   className="bg-blue-50/50 border border-blue-100"
                   onAddRule={() => handleAddCondition(false, 0)}
                   showValidation={showValidation}
+                  newlyAddedConditionId={newlyAddedConditionId}
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition}
                 />
                 
                 {safeExitRules.length > 1 && (
@@ -268,6 +285,8 @@ export const TradingRules = ({
                     className="bg-amber-50/50 border border-amber-100"
                     onAddRule={() => handleAddCondition(false, 1)}
                     showValidation={showValidation}
+                    newlyAddedConditionId={newlyAddedConditionId}
+                    onClearNewlyAddedCondition={handleClearNewlyAddedCondition}
                   />
                 )}
               </>

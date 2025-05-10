@@ -1,25 +1,28 @@
 
-import { RuleInequality } from "./RuleInequality";
+import { useState } from "react";
 import { Inequality } from "./types";
-import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { RuleInequality } from "./RuleInequality";
 import { Button } from "@/components/ui/button";
-import { Plus, HelpCircle } from "lucide-react";
+import { Plus, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface RuleGroupProps {
-  title: "AND Group" | "OR Group";
-  color: "blue" | "amber";
+  title: string;
+  color: string;
   description: string;
   inequalities: Inequality[];
   editable?: boolean;
   onInequitiesChange?: (inequalities: Inequality[]) => void;
   requiredConditions?: number;
   onRequiredConditionsChange?: (count: number) => void;
-  onAddRule?: () => void;
   className?: string;
+  onAddRule?: () => void;
   showValidation?: boolean;
+  newlyAddedConditionId?: string | null;
+  onClearNewlyAddedCondition?: () => void;
 }
 
 export const RuleGroup = ({
@@ -31,140 +34,123 @@ export const RuleGroup = ({
   onInequitiesChange,
   requiredConditions,
   onRequiredConditionsChange,
+  className = "",
   onAddRule,
-  className,
-  showValidation = false
+  showValidation = false,
+  newlyAddedConditionId = null,
+  onClearNewlyAddedCondition
 }: RuleGroupProps) => {
-  const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
-  const [showSlider, setShowSlider] = useState<boolean>(false);
-
-  // Ensure inequalities is always an array
-  const safeInequalities = Array.isArray(inequalities) ? inequalities : [];
-
-  useEffect(() => {
-    if (requiredConditions !== undefined) {
-      setConditionsCount(requiredConditions);
-    }
-  }, [requiredConditions]);
-
-  const handleConditionsCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const isOrGroup = title.includes("OR");
+  
+  const handleDeleteInequality = (index: number) => {
+    if (!onInequitiesChange) return;
+    
+    const updatedInequalities = [...inequalities];
+    updatedInequalities.splice(index, 1);
+    
+    onInequitiesChange(updatedInequalities);
+    toast.success("Condition removed");
+  };
+  
+  const handleInequalityChange = (index: number, updatedInequality: Inequality) => {
+    if (!onInequitiesChange) return;
+    
+    const updatedInequalities = [...inequalities];
+    updatedInequalities[index] = updatedInequality;
+    
+    onInequitiesChange(updatedInequalities);
+  };
+  
+  const handleRequiredConditionsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!onRequiredConditionsChange) return;
+    
     const value = parseInt(e.target.value);
-    if (!isNaN(value) && value >= 1 && value <= safeInequalities.length) {
-      setConditionsCount(value);
-      if (onRequiredConditionsChange) {
-        onRequiredConditionsChange(value);
-      }
-    }
+    if (isNaN(value)) return;
+    
+    // Ensure value is at least 1 and at most the number of inequalities
+    const validValue = Math.max(1, Math.min(value, inequalities.length));
+    onRequiredConditionsChange(validValue);
   };
-
-  const handleSliderChange = (value: number[]) => {
-    if (value.length > 0) {
-      const newValue = value[0];
-      setConditionsCount(newValue);
-      if (onRequiredConditionsChange) {
-        onRequiredConditionsChange(newValue);
-      }
-    }
-  };
-
-  const handleInequalityChange = (updatedInequality: Inequality) => {
-    if (!onInequitiesChange) return;
-    const updatedInequalities = safeInequalities.map(inequality => 
-      inequality.id === updatedInequality.id ? updatedInequality : inequality
-    );
-    onInequitiesChange(updatedInequalities);
-  };
-
-  const handleInequalityDelete = (id: string | number) => {
-    if (!onInequitiesChange) return;
-    const updatedInequalities = safeInequalities.filter(inequality => inequality.id !== id);
-    onInequitiesChange(updatedInequalities);
-
-    // Adjust required conditions if needed
-    if (title === "OR Group" && conditionsCount > updatedInequalities.length) {
-      const newCount = Math.max(1, updatedInequalities.length);
-      setConditionsCount(newCount);
-      if (onRequiredConditionsChange) {
-        onRequiredConditionsChange(newCount);
-      }
-    }
-  };
-
-  // When extracting OR group description, ensure we use requiredConditions property
-  const effectiveInequalitiesCount = Math.max(2, safeInequalities?.length || 0);
-  const orGroupDescription = title === "OR Group" 
-    ? `At least ${requiredConditions || 1} of ${effectiveInequalitiesCount} conditions must be met.` 
-    : description;
-
-  // Calculate max possible required conditions based on available inequalities
-  const maxRequiredConditions = safeInequalities?.length || 1;
+  
+  // Check if there are missing required fields in the inequalities
+  const hasIncompleteRules = showValidation && editable && inequalities.some(inequality => 
+    !inequality.left?.type || !inequality.condition || !inequality.right?.type ||
+    (inequality.left?.type === 'indicator' && !inequality.left?.indicator) ||
+    (inequality.right?.type === 'indicator' && !inequality.right?.indicator) ||
+    (inequality.right?.type === 'value' && !inequality.right?.value)
+  );
 
   return (
-    <div className={`mb-6 ${className || ''}`}>
-      <div className={`${color === "blue" ? "bg-blue-50" : "bg-amber-50"} p-3 rounded-md mb-3`}>
-        <h4 className={`text-sm font-semibold mb-1 ${color === "blue" ? "text-blue-800" : "text-amber-800"}`}>
-          {title}
-        </h4>
-        {title === "OR Group" && editable ? (
-          <div className="text-xs text-muted-foreground mb-2 flex items-center flex-wrap gap-2">
-            <span>At least</span> 
-            <div className="flex items-center">
-              <Input 
-                type="number" 
-                min={1} 
-                max={maxRequiredConditions} 
-                value={conditionsCount} 
-                onChange={handleConditionsCountChange} 
-                className="w-16 h-6 px-2 py-0 inline-block mx-1 text-xs" 
-              />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground ml-1 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Specify how many conditions from the OR group must be true for the rule to trigger.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <span>of {effectiveInequalitiesCount} conditions must be met.</span>
-            
-            {showSlider && safeInequalities.length > 0}
+    <div className={`rounded-lg p-4 ${className}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" className="h-6 w-6 p-1 ml-1" aria-label="Rule info">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{description}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        {editable && isOrGroup && (
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="requiredConditions">Required conditions:</Label>
+            <Input
+              id="requiredConditions"
+              type="number"
+              min="1"
+              max={Math.max(1, inequalities.length)}
+              value={requiredConditions || 1}
+              onChange={handleRequiredConditionsChange}
+              className="w-16 h-8"
+            />
           </div>
-        ) : title === "OR Group" ? (
-          <p className="text-xs text-muted-foreground mb-2">
-            {orGroupDescription}
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground mb-2">{description}</p>
         )}
       </div>
+
+      {hasIncompleteRules && (
+        <div className="mb-4 p-2 bg-red-50 text-red-700 rounded-md text-sm">
+          Some conditions are incomplete. Please fill in all required fields.
+        </div>
+      )}
       
-      <div className="space-y-3">
-        {safeInequalities && safeInequalities.length > 0 ? (
-          safeInequalities.map(inequality => (
-            <div key={`${title.toLowerCase().split(' ')[0]}-${inequality.id}`}>
-              <RuleInequality 
-                inequality={inequality} 
-                editable={editable} 
-                onChange={handleInequalityChange} 
-                onDelete={editable ? () => handleInequalityDelete(inequality.id) : undefined} 
-                showValidation={showValidation}
-              />
-            </div>
-          ))
-        ) : (
-          <div className="p-3 bg-gray-100 rounded text-center text-gray-500">
-            No conditions defined
-          </div>
-        )}
-      </div>
+      {inequalities.length > 0 ? (
+        <div className="space-y-3 mt-4">
+          {inequalities.map((inequality, index) => (
+            <RuleInequality 
+              key={inequality.id} 
+              inequality={inequality}
+              editable={editable}
+              onChange={(updatedInequality) => handleInequalityChange(index, updatedInequality)}
+              onDelete={() => handleDeleteInequality(index)}
+              showValidation={showValidation}
+              isNewlyAdded={newlyAddedConditionId === inequality.id}
+              onEditingComplete={onClearNewlyAddedCondition}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white p-4 rounded-md border text-center text-muted-foreground mt-4">
+          No conditions defined yet
+        </div>
+      )}
       
       {editable && (
-        <div className="mt-3">
-          <Button variant="outline" size="sm" className="w-full border-dashed" onClick={onAddRule}>
-            <Plus className="mr-1 h-4 w-4" /> Add Condition
+        <div className="mt-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onAddRule}
+            className={`border-${color}-400 text-${color}-700`}
+          >
+            <Plus className="h-4 w-4 mr-2" /> Add Condition
           </Button>
         </div>
       )}

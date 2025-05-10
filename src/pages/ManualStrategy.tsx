@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -21,8 +20,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Strategy name must be at least 3 characters"),
-  description: z.string().min(10, "Please provide a more detailed description"),
+  name: z.string(),
+  description: z.string(),
   timeframe: z.string().min(1, "Please select a timeframe"),
   targetAsset: z.string().min(1, "Please select a target asset"),
   stopLoss: z.string().min(1, "Please provide a stop loss value"),

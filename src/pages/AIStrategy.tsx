@@ -367,10 +367,6 @@ const AIStrategy = () => {
               <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Market</p>
-                  <p className="font-medium">{generatedStrategy.market}</p>
-                </div>
-                <div>
                   <p className="text-sm text-muted-foreground">Timeframe</p>
                   <p className="font-medium">{generatedStrategy.timeframe}</p>
                 </div>

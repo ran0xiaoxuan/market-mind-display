@@ -180,7 +180,7 @@ export const AssetTypeSelector = ({
   };
   return <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Target Asset</h2>
-      <p className="text-sm text-muted-foreground mb-4">Choose the asset you want to trade</p>
+      
       
       <div className="mb-6 relative">
         <label htmlFor="asset-select" className="block text-sm font-medium mb-2">

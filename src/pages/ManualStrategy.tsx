@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -19,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
 const formSchema = z.object({
   name: z.string().min(1, "Strategy name is required"),
   description: z.string().min(1, "Description is required"),
@@ -29,16 +31,17 @@ const formSchema = z.object({
   singleBuyVolume: z.string().min(1, "Single buy volume is required"),
   maxBuyVolume: z.string().min(1, "Maximum buy volume is required")
 });
+
 type FormValues = z.infer<typeof formSchema>;
+
 const ManualStrategy = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showMissingAssetAlert, setShowMissingAssetAlert] = useState(false);
 
   // Initialize with empty entry and exit rule groups - remove requiredConditions default
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
@@ -50,6 +53,7 @@ const ManualStrategy = () => {
     logic: "OR",
     inequalities: []
   }]);
+  
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
     id: 1,
     logic: "AND",
@@ -59,6 +63,7 @@ const ManualStrategy = () => {
     logic: "OR",
     inequalities: []
   }]);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,9 +78,11 @@ const ManualStrategy = () => {
     },
     mode: "onSubmit"
   });
+  
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     form.setValue("targetAsset", symbol);
+    setShowMissingAssetAlert(false);
   };
 
   // Validate trading rules
@@ -105,6 +112,7 @@ const ManualStrategy = () => {
         }
       }
     });
+    
     exitRules.forEach((group, index) => {
       if (group.logic === "OR" && Array.isArray(group.inequalities) && group.inequalities.length > 0) {
         if (group.inequalities.length < 2) {
@@ -115,14 +123,26 @@ const ManualStrategy = () => {
         }
       }
     });
+    
     return errors;
   };
+  
   const onSubmit = async (values: FormValues) => {
     setIsFormSubmitted(true);
     setValidationErrors([]);
+    
     if (!user) {
-      toast("Authentication required", {
+      toast.error("Authentication required", {
         description: "Please log in to save your strategy"
+      });
+      return;
+    }
+
+    // Check if target asset is selected
+    if (!selectedAsset) {
+      setShowMissingAssetAlert(true);
+      toast.error("Missing asset", {
+        description: "Please select a target asset for your strategy"
       });
       return;
     }
@@ -131,11 +151,12 @@ const ManualStrategy = () => {
     const ruleErrors = validateRules();
     if (ruleErrors.length > 0) {
       setValidationErrors(ruleErrors);
-      toast("Validation failed", {
+      toast.error("Trading rules validation failed", {
         description: "Please fix all errors before saving"
       });
       return;
     }
+    
     setIsSaving(true);
     try {
       // Format strategy in the same structure as the AI-generated one
@@ -153,8 +174,9 @@ const ManualStrategy = () => {
           maxBuyVolume: values.maxBuyVolume
         }
       };
+      
       const strategyId = await saveGeneratedStrategy(strategy);
-      toast("Strategy saved", {
+      toast.success("Strategy saved", {
         description: "Your strategy has been saved successfully"
       });
 
@@ -162,13 +184,14 @@ const ManualStrategy = () => {
       navigate(`/strategy/${strategyId}`);
     } catch (error) {
       console.error("Error saving strategy:", error);
-      toast("Failed to save strategy", {
+      toast.error("Failed to save strategy", {
         description: "Please try again later"
       });
     } finally {
       setIsSaving(false);
     }
   };
+  
   return <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
@@ -247,9 +270,15 @@ const ManualStrategy = () => {
             </Card>
 
             <div className="mb-6">
-              
               <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
-              {isFormSubmitted && !selectedAsset && <p className="text-destructive text-sm font-medium mt-2">Please select a target asset</p>}
+              {(isFormSubmitted || showMissingAssetAlert) && !selectedAsset && (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Please select a target asset
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <Card className="p-6">
@@ -309,7 +338,14 @@ const ManualStrategy = () => {
               </div>
             </Card>
 
-            <TradingRules entryRules={entryRules} exitRules={exitRules} onEntryRulesChange={setEntryRules} onExitRulesChange={setExitRules} editable={true} showValidation={isFormSubmitted} />
+            <TradingRules 
+              entryRules={entryRules} 
+              exitRules={exitRules} 
+              onEntryRulesChange={setEntryRules} 
+              onExitRulesChange={setExitRules} 
+              editable={true} 
+              showValidation={isFormSubmitted} 
+            />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isSaving}>
@@ -321,4 +357,5 @@ const ManualStrategy = () => {
       </main>
     </div>;
 };
+
 export default ManualStrategy;

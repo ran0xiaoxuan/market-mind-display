@@ -178,9 +178,7 @@ const ManualStrategy = () => {
                         <FormControl>
                           <Textarea placeholder="Describe your trading strategy..." className="min-h-[100px]" {...field} />
                         </FormControl>
-                        <FormDescription>
-                          Explain the strategy's concept, approach, and goals
-                        </FormDescription>
+                        
                         {isFormSubmitted && <FormMessage />}
                       </FormItem>} />
                 </div>

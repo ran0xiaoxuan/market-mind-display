@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -93,20 +94,20 @@ export const TradingRules = ({
       if (safeEntryRules.length === 0) {
         onEntryRulesChange([
           { id: 1, logic: "AND", inequalities: [] },
-          { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
+          { id: 2, logic: "OR", inequalities: [] }
         ]);
       }
     } else if (!isEntryRules && onExitRulesChange) {
       if (safeExitRules.length === 0) {
         onExitRulesChange([
           { id: 1, logic: "AND", inequalities: [] },
-          { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
+          { id: 2, logic: "OR", inequalities: [] }
         ]);
       }
     }
   };
 
-  // Add new condition to a rule group (updated to create empty conditions)
+  // Add new condition to a rule group without validation toast
   const handleAddCondition = (isEntryRule: boolean, groupIndex: number) => {
     const newInequalityId = uuidv4();
     
@@ -126,7 +127,7 @@ export const TradingRules = ({
       
       onEntryRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
-      toast.success("New condition added to entry rule");
+      // Remove toast notification when adding new condition
     } else if (!isEntryRule && onExitRulesChange) {
       const updatedRules = [...safeExitRules];
       const newInequality: Inequality = {
@@ -143,7 +144,7 @@ export const TradingRules = ({
       
       onExitRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
-      toast.success("New condition added to exit rule");
+      // Remove toast notification when adding new condition
     }
   };
 
@@ -151,7 +152,7 @@ export const TradingRules = ({
     if (!onEntryRulesChange) return;
     onEntryRulesChange([
       { id: 1, logic: "AND", inequalities: [] },
-      { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
+      { id: 2, logic: "OR", inequalities: [] }
     ]);
   };
 
@@ -159,7 +160,7 @@ export const TradingRules = ({
     if (!onExitRulesChange) return;
     onExitRulesChange([
       { id: 1, logic: "AND", inequalities: [] },
-      { id: 2, logic: "OR", inequalities: [] } // Removed default requiredConditions
+      { id: 2, logic: "OR", inequalities: [] }
     ]);
   };
 

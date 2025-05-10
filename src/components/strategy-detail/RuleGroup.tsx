@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Inequality } from "./types";
 import { RuleInequality } from "./RuleInequality";
@@ -70,7 +71,7 @@ export const RuleGroup = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                
+                <Info className="h-4 w-4 ml-2 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
                 <p>{description}</p>
@@ -85,7 +86,11 @@ export const RuleGroup = ({
           </div>}
       </div>
 
-      {hasIncompleteRules}
+      {hasIncompleteRules && showValidation && (
+        <div className="text-sm text-red-500 mb-2">
+          Some conditions are incomplete
+        </div>
+      )}
       
       {inequalities.length > 0 ? <div className="space-y-3 mt-4">
           {inequalities.map((inequality, index) => <RuleInequality key={inequality.id} inequality={inequality} editable={editable} onChange={updatedInequality => handleInequalityChange(index, updatedInequality)} onDelete={() => handleDeleteInequality(index)} showValidation={showValidation} isNewlyAdded={newlyAddedConditionId === inequality.id} onEditingComplete={onClearNewlyAddedCondition} />)}

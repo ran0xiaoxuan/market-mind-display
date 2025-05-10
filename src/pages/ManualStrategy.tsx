@@ -25,10 +25,11 @@ const formSchema = z.object({
   description: z.string(),
   timeframe: z.string().min(1, "Please select a timeframe"),
   targetAsset: z.string().min(1, "Please select a target asset"),
-  stopLoss: z.string().min(1, "Please provide a stop loss value"),
-  takeProfit: z.string().min(1, "Please provide a take profit value"),
-  singleBuyVolume: z.string().min(1, "Please provide a single buy volume"),
-  maxBuyVolume: z.string().min(1, "Please provide a maximum buy volume")
+  // Modified these fields to accept any string, removing validation
+  stopLoss: z.string(),
+  takeProfit: z.string(),
+  singleBuyVolume: z.string(),
+  maxBuyVolume: z.string()
 });
 
 type FormValues = z.infer<typeof formSchema>;

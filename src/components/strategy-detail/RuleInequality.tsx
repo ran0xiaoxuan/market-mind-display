@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
@@ -20,6 +21,7 @@ interface RuleInequalityProps {
   editable?: boolean;
   onChange?: (inequality: Inequality) => void;
   onDelete?: () => void;
+  showValidation?: boolean;
 }
 
 export const RuleInequality = ({ 

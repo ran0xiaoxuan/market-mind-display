@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -55,12 +56,12 @@ const ManualStrategy = () => {
     defaultValues: {
       name: "",
       description: "",
-      timeframe: "Daily",
+      timeframe: "",  // Removed the default value "Daily"
       targetAsset: "",
-      stopLoss: "5",
-      takeProfit: "15",
-      singleBuyVolume: "2000",
-      maxBuyVolume: "10000"
+      stopLoss: "",   // Removed the default value "5"
+      takeProfit: "", // Removed the default value "15"
+      singleBuyVolume: "", // Removed the default value "2000"
+      maxBuyVolume: "" // Removed the default value "10000"
     },
     mode: "onSubmit", // Only validate on submit
     reValidateMode: "onSubmit" // Only revalidate on submit
@@ -212,7 +213,7 @@ const ManualStrategy = () => {
                     <FormItem>
                       <FormLabel>Stop Loss (%)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" placeholder="Enter stop loss percentage" {...field} />
                       </FormControl>
                       <FormDescription>
                         Maximum percentage loss per trade
@@ -229,7 +230,7 @@ const ManualStrategy = () => {
                     <FormItem>
                       <FormLabel>Take Profit (%)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" placeholder="Enter take profit percentage" {...field} />
                       </FormControl>
                       <FormDescription>
                         Target percentage gain per trade
@@ -246,7 +247,7 @@ const ManualStrategy = () => {
                     <FormItem>
                       <FormLabel>Single Buy Volume ($)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" placeholder="Enter single buy amount" {...field} />
                       </FormControl>
                       <FormDescription>
                         Maximum amount to spend on a single purchase
@@ -263,7 +264,7 @@ const ManualStrategy = () => {
                     <FormItem>
                       <FormLabel>Maximum Buy Volume ($)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" placeholder="Enter maximum buy amount" {...field} />
                       </FormControl>
                       <FormDescription>
                         Maximum total investment amount

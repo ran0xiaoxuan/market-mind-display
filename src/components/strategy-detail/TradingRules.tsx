@@ -10,6 +10,8 @@ import { AvailableIndicators } from "./AvailableIndicators";
 import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
 
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
@@ -102,6 +104,43 @@ export const TradingRules = ({
     }
   };
 
+  // Add new condition to a rule group
+  const handleAddCondition = (isEntryRule: boolean, groupIndex: number) => {
+    if (isEntryRule && onEntryRulesChange) {
+      const updatedRules = [...safeEntryRules];
+      const newInequality: Inequality = {
+        id: uuidv4(),
+        left: { type: 'indicator', indicator: 'SMA', parameters: { period: '14' } },
+        condition: 'Greater Than',
+        right: { type: 'indicator', indicator: 'SMA', parameters: { period: '50' } }
+      };
+
+      updatedRules[groupIndex] = {
+        ...updatedRules[groupIndex],
+        inequalities: [...(updatedRules[groupIndex].inequalities || []), newInequality]
+      };
+      
+      onEntryRulesChange(updatedRules);
+      toast.success("New condition added to entry rule");
+    } else if (!isEntryRule && onExitRulesChange) {
+      const updatedRules = [...safeExitRules];
+      const newInequality: Inequality = {
+        id: uuidv4(),
+        left: { type: 'indicator', indicator: 'SMA', parameters: { period: '14' } },
+        condition: 'Less Than',
+        right: { type: 'indicator', indicator: 'SMA', parameters: { period: '50' } }
+      };
+
+      updatedRules[groupIndex] = {
+        ...updatedRules[groupIndex],
+        inequalities: [...(updatedRules[groupIndex].inequalities || []), newInequality]
+      };
+      
+      onExitRulesChange(updatedRules);
+      toast.success("New condition added to exit rule");
+    }
+  };
+
   const handleAddFirstEntryRuleGroup = () => {
     if (!onEntryRulesChange) return;
     onEntryRulesChange([
@@ -164,6 +203,7 @@ export const TradingRules = ({
                   editable={editable} 
                   onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
                   className="bg-blue-50/50 border border-blue-100" 
+                  onAddRule={() => handleAddCondition(true, 0)}
                 />
                 
                 {safeEntryRules.length > 1 && (
@@ -176,7 +216,8 @@ export const TradingRules = ({
                     onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 
                     requiredConditions={safeEntryRules[1]?.requiredConditions} 
                     onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
-                    className="bg-amber-50/50 border border-amber-100" 
+                    className="bg-amber-50/50 border border-amber-100"
+                    onAddRule={() => handleAddCondition(true, 1)}
                   />
                 )}
               </>
@@ -206,7 +247,8 @@ export const TradingRules = ({
                   inequalities={safeExitRules[0]?.inequalities || []} 
                   editable={editable} 
                   onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
-                  className="bg-blue-50/50 border border-blue-100" 
+                  className="bg-blue-50/50 border border-blue-100"
+                  onAddRule={() => handleAddCondition(false, 0)}
                 />
                 
                 {safeExitRules.length > 1 && (
@@ -219,7 +261,8 @@ export const TradingRules = ({
                     onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} 
                     requiredConditions={safeExitRules[1]?.requiredConditions} 
                     onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
-                    className="bg-amber-50/50 border border-amber-100" 
+                    className="bg-amber-50/50 border border-amber-100"
+                    onAddRule={() => handleAddCondition(false, 1)}
                   />
                 )}
               </>

@@ -1,3 +1,4 @@
+
 import { RuleInequality } from "./RuleInequality";
 import { Inequality } from "./types";
 import { Input } from "@/components/ui/input";
@@ -188,7 +189,7 @@ export const RuleGroup = ({
         )}
       </div>
       
-      {editable && onAddRule && (
+      {editable && (
         <div className="mt-3">
           <Button 
             variant="outline" 
@@ -196,7 +197,7 @@ export const RuleGroup = ({
             className="w-full border-dashed"
             onClick={onAddRule}
           >
-            <Plus className="mr-1 h-4 w-4" /> Add Rule
+            <Plus className="mr-1 h-4 w-4" /> Add Condition
           </Button>
         </div>
       )}

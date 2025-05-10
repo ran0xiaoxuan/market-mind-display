@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -23,7 +22,7 @@ import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 const formSchema = z.object({
   name: z.string(),
   description: z.string(),
-  timeframe: z.string().min(1, "Please select a timeframe"),
+  timeframe: z.string(), // Removed validation, timeframe can now be empty
   targetAsset: z.string().min(1, "Please select a target asset"),
   // Modified these fields to accept any string, removing validation
   stopLoss: z.string(),
@@ -57,12 +56,12 @@ const ManualStrategy = () => {
     defaultValues: {
       name: "",
       description: "",
-      timeframe: "",  // Removed the default value "Daily"
+      timeframe: "",
       targetAsset: "",
-      stopLoss: "",   // Removed the default value "5"
-      takeProfit: "", // Removed the default value "15"
-      singleBuyVolume: "", // Removed the default value "2000"
-      maxBuyVolume: "" // Removed the default value "10000"
+      stopLoss: "",
+      takeProfit: "",
+      singleBuyVolume: "",
+      maxBuyVolume: ""
     },
     mode: "onSubmit", // Only validate on submit
     reValidateMode: "onSubmit" // Only revalidate on submit
@@ -173,7 +172,7 @@ const ManualStrategy = () => {
                           <SelectItem value="Monthly">Monthly</SelectItem>
                         </SelectContent>
                       </Select>
-                      {isFormSubmitted && <FormMessage />}
+                      {/* No FormMessage displayed even when isFormSubmitted is true */}
                     </FormItem>
                   )}
                 />

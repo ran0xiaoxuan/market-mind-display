@@ -18,17 +18,18 @@ import { saveGeneratedStrategy } from "@/services/strategyService";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const formSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  timeframe: z.string(), // Removed validation, timeframe can now be empty
+  name: z.string().min(1, "Strategy name is required"),
+  description: z.string().min(1, "Description is required"),
+  timeframe: z.string().min(1, "Timeframe is required"),
   targetAsset: z.string().min(1, "Please select a target asset"),
-  // Modified these fields to accept any string, removing validation
-  stopLoss: z.string(),
-  takeProfit: z.string(),
-  singleBuyVolume: z.string(),
-  maxBuyVolume: z.string()
+  stopLoss: z.string().min(1, "Stop loss is required"),
+  takeProfit: z.string().min(1, "Take profit is required"),
+  singleBuyVolume: z.string().min(1, "Single buy volume is required"),
+  maxBuyVolume: z.string().min(1, "Maximum buy volume is required")
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -39,6 +40,7 @@ const ManualStrategy = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   // Initialize with empty entry and exit rule groups - remove requiredConditions default
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
@@ -63,8 +65,7 @@ const ManualStrategy = () => {
       singleBuyVolume: "",
       maxBuyVolume: ""
     },
-    mode: "onSubmit", // Only validate on submit
-    reValidateMode: "onSubmit" // Only revalidate on submit
+    mode: "onSubmit"
   });
 
   const handleAssetSelect = (symbol: string) => {
@@ -72,12 +73,71 @@ const ManualStrategy = () => {
     form.setValue("targetAsset", symbol);
   };
 
+  // Validate trading rules
+  const validateRules = () => {
+    const errors: string[] = [];
+    
+    // Check if there's at least one entry rule
+    const hasEntryRule = entryRules.some(group => 
+      Array.isArray(group.inequalities) && group.inequalities.length > 0
+    );
+    
+    if (!hasEntryRule) {
+      errors.push("At least one entry rule is required");
+    }
+    
+    // Check if there's at least one exit rule
+    const hasExitRule = exitRules.some(group => 
+      Array.isArray(group.inequalities) && group.inequalities.length > 0
+    );
+    
+    if (!hasExitRule) {
+      errors.push("At least one exit rule is required");
+    }
+    
+    // Check OR groups - they need at least 2 conditions and required conditions set
+    entryRules.forEach((group, index) => {
+      if (group.logic === "OR" && Array.isArray(group.inequalities) && group.inequalities.length > 0) {
+        if (group.inequalities.length < 2) {
+          errors.push(`Entry OR group must have at least 2 conditions`);
+        }
+        if (group.inequalities.length >= 2 && (!group.requiredConditions || group.requiredConditions < 1)) {
+          errors.push(`Entry OR group must have required conditions set`);
+        }
+      }
+    });
+    
+    exitRules.forEach((group, index) => {
+      if (group.logic === "OR" && Array.isArray(group.inequalities) && group.inequalities.length > 0) {
+        if (group.inequalities.length < 2) {
+          errors.push(`Exit OR group must have at least 2 conditions`);
+        }
+        if (group.inequalities.length >= 2 && (!group.requiredConditions || group.requiredConditions < 1)) {
+          errors.push(`Exit OR group must have required conditions set`);
+        }
+      }
+    });
+    
+    return errors;
+  };
+
   const onSubmit = async (values: FormValues) => {
     setIsFormSubmitted(true);
+    setValidationErrors([]);
     
     if (!user) {
       toast("Authentication required", {
         description: "Please log in to save your strategy"
+      });
+      return;
+    }
+    
+    // Validate trading rules
+    const ruleErrors = validateRules();
+    if (ruleErrors.length > 0) {
+      setValidationErrors(ruleErrors);
+      toast("Validation failed", {
+        description: "Please fix all errors before saving"
       });
       return;
     }
@@ -128,6 +188,19 @@ const ManualStrategy = () => {
           </p>
         </div>
 
+        {validationErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="list-disc pl-5">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card className="p-6">
@@ -143,7 +216,7 @@ const ManualStrategy = () => {
                       <FormControl>
                         <Input placeholder="My Trading Strategy" {...field} />
                       </FormControl>
-                      {isFormSubmitted && <FormMessage />}
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -172,7 +245,7 @@ const ManualStrategy = () => {
                           <SelectItem value="Monthly">Monthly</SelectItem>
                         </SelectContent>
                       </Select>
-                      {/* No FormMessage displayed even when isFormSubmitted is true */}
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -190,7 +263,7 @@ const ManualStrategy = () => {
                         <FormDescription>
                           Explain the strategy's concept, approach, and goals
                         </FormDescription>
-                        {isFormSubmitted && <FormMessage />}
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -201,6 +274,9 @@ const ManualStrategy = () => {
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Target Asset</h2>
               <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
+              {isFormSubmitted && !selectedAsset && (
+                <p className="text-destructive text-sm font-medium mt-2">Please select a target asset</p>
+              )}
             </div>
 
             <Card className="p-6">
@@ -218,7 +294,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Maximum percentage loss per trade
                       </FormDescription>
-                      {isFormSubmitted && <FormMessage />}
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -235,7 +311,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Target percentage gain per trade
                       </FormDescription>
-                      {isFormSubmitted && <FormMessage />}
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -252,7 +328,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Maximum amount to spend on a single purchase
                       </FormDescription>
-                      {isFormSubmitted && <FormMessage />}
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -269,7 +345,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Maximum total investment amount
                       </FormDescription>
-                      {isFormSubmitted && <FormMessage />}
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

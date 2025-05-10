@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
@@ -171,12 +172,14 @@ export const RuleInequality = ({
     setIndicatorSearch('');
     setValidationErrors([]);
     
-    // If this is a newly added inequality and we cancel editing,
-    // call onDelete to remove it completely
+    // Always delete the inequality when canceling a newly added one
     if (isNewlyAdded && onDelete) {
       onDelete();
+      return;
     } 
-    else if (isNewlyAdded && onEditingComplete) {
+    
+    // If it's not a new inequality and we're canceling edit, just notify parent editing is done
+    if (onEditingComplete) {
       onEditingComplete();
     }
   };
@@ -197,7 +200,7 @@ export const RuleInequality = ({
     setIsEditing(false);
     setIndicatorSearch('');
     
-    if (isNewlyAdded && onEditingComplete) {
+    if (onEditingComplete) {
       onEditingComplete();
     }
   };

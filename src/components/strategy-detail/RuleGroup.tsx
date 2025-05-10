@@ -19,6 +19,7 @@ interface RuleGroupProps {
   onRequiredConditionsChange?: (count: number) => void;
   onAddRule?: () => void;
   className?: string;
+  showValidation?: boolean;
 }
 
 export const RuleGroup = ({
@@ -31,7 +32,8 @@ export const RuleGroup = ({
   requiredConditions,
   onRequiredConditionsChange,
   onAddRule,
-  className
+  className,
+  showValidation = false
 }: RuleGroupProps) => {
   const [conditionsCount, setConditionsCount] = useState<number>(requiredConditions || 1);
   const [showSlider, setShowSlider] = useState<boolean>(false);
@@ -148,6 +150,7 @@ export const RuleGroup = ({
                 editable={editable} 
                 onChange={handleInequalityChange} 
                 onDelete={editable ? () => handleInequalityDelete(inequality.id) : undefined} 
+                showValidation={showValidation}
               />
             </div>
           ))

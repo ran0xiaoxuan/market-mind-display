@@ -5,11 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 interface StrategyDescriptionProps {
   description: string;
   onDescriptionChange: (value: string) => void;
+  showValidation?: boolean;
 }
 
 export const StrategyDescription = ({
   description,
   onDescriptionChange,
+  showValidation = false,
 }: StrategyDescriptionProps) => {
   return (
     <Card className="p-6 mb-10 border">

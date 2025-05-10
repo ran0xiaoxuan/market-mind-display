@@ -18,6 +18,7 @@ interface TradingRulesProps {
   onEntryRulesChange?: (rules: RuleGroupData[]) => void;
   onExitRulesChange?: (rules: RuleGroupData[]) => void;
   editable?: boolean;
+  showValidation?: boolean;
 }
 
 export const TradingRules = ({
@@ -25,7 +26,8 @@ export const TradingRules = ({
   exitRules = [],
   onEntryRulesChange,
   onExitRulesChange,
-  editable = false
+  editable = false,
+  showValidation = false
 }: TradingRulesProps) => {
   const [activeTab, setActiveTab] = useState<string>("entry");
   
@@ -203,6 +205,7 @@ export const TradingRules = ({
                   onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
                   className="bg-blue-50/50 border border-blue-100" 
                   onAddRule={() => handleAddCondition(true, 0)}
+                  showValidation={showValidation}
                 />
                 
                 {safeEntryRules.length > 1 && (
@@ -217,6 +220,7 @@ export const TradingRules = ({
                     onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
                     className="bg-amber-50/50 border border-amber-100"
                     onAddRule={() => handleAddCondition(true, 1)}
+                    showValidation={showValidation}
                   />
                 )}
               </>
@@ -248,6 +252,7 @@ export const TradingRules = ({
                   onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
                   className="bg-blue-50/50 border border-blue-100"
                   onAddRule={() => handleAddCondition(false, 0)}
+                  showValidation={showValidation}
                 />
                 
                 {safeExitRules.length > 1 && (
@@ -262,6 +267,7 @@ export const TradingRules = ({
                     onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
                     className="bg-amber-50/50 border border-amber-100"
                     onAddRule={() => handleAddCondition(false, 1)}
+                    showValidation={showValidation}
                   />
                 )}
               </>

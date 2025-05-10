@@ -1,10 +1,10 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { saveGeneratedStrategy } from "@/services/strategyService";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 
 const formSchema = z.object({
   name: z.string().min(3, "Strategy name must be at least 3 characters"),
@@ -37,6 +38,7 @@ const ManualStrategy = () => {
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   
   // Initialize with empty entry and exit rule groups
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
@@ -72,6 +74,8 @@ const ManualStrategy = () => {
   };
 
   const onSubmit = async (values: FormValues) => {
+    setIsFormSubmitted(true);
+    
     if (!user) {
       toast("Authentication required", {
         description: "Please log in to save your strategy"
@@ -141,7 +145,7 @@ const ManualStrategy = () => {
                       <FormControl>
                         <Input placeholder="My Trading Strategy" {...field} />
                       </FormControl>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -164,7 +168,7 @@ const ManualStrategy = () => {
                           <SelectItem value="Crypto">Crypto</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -193,7 +197,7 @@ const ManualStrategy = () => {
                           <SelectItem value="Monthly">Monthly</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -211,7 +215,7 @@ const ManualStrategy = () => {
                         <FormDescription>
                           Explain the strategy's concept, approach, and goals
                         </FormDescription>
-                        <FormMessage />
+                        {isFormSubmitted && <FormMessage />}
                       </FormItem>
                     )}
                   />
@@ -239,7 +243,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Maximum percentage loss per trade
                       </FormDescription>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -256,7 +260,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Target percentage gain per trade
                       </FormDescription>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -273,7 +277,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Maximum amount to spend on a single purchase
                       </FormDescription>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -290,7 +294,7 @@ const ManualStrategy = () => {
                       <FormDescription>
                         Maximum total investment amount
                       </FormDescription>
-                      <FormMessage />
+                      {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -303,6 +307,7 @@ const ManualStrategy = () => {
               onEntryRulesChange={setEntryRules}
               onExitRulesChange={setExitRules}
               editable={true}
+              showValidation={isFormSubmitted}
             />
 
             <div className="flex justify-end">

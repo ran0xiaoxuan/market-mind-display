@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { saveGeneratedStrategy } from "@/services/strategyService";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { useAuth } from "@/contexts/AuthContext";
+
 const formSchema = z.object({
   name: z.string().min(3, "Strategy name must be at least 3 characters"),
   description: z.string().min(10, "Please provide a more detailed description"),
@@ -28,36 +29,26 @@ const formSchema = z.object({
   singleBuyVolume: z.string().min(1, "Please provide a single buy volume"),
   maxBuyVolume: z.string().min(1, "Please provide a maximum buy volume")
 });
+
 type FormValues = z.infer<typeof formSchema>;
+
 const ManualStrategy = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
-
+  
   // Initialize with empty entry and exit rule groups
-  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([{
-    id: 1,
-    logic: "AND",
-    inequalities: []
-  }, {
-    id: 2,
-    logic: "OR",
-    requiredConditions: 1,
-    inequalities: []
-  }]);
-  const [exitRules, setExitRules] = useState<RuleGroupData[]>([{
-    id: 1,
-    logic: "AND",
-    inequalities: []
-  }, {
-    id: 2,
-    logic: "OR",
-    requiredConditions: 1,
-    inequalities: []
-  }]);
+  const [entryRules, setEntryRules] = useState<RuleGroupData[]>([
+    { id: 1, logic: "AND", inequalities: [] },
+    { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+  ]);
+  
+  const [exitRules, setExitRules] = useState<RuleGroupData[]>([
+    { id: 1, logic: "AND", inequalities: [] },
+    { id: 2, logic: "OR", requiredConditions: 1, inequalities: [] }
+  ]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -70,12 +61,16 @@ const ManualStrategy = () => {
       takeProfit: "15",
       singleBuyVolume: "2000",
       maxBuyVolume: "10000"
-    }
+    },
+    mode: "onSubmit", // Only validate on submit
+    reValidateMode: "onSubmit" // Only revalidate on submit
   });
+
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     form.setValue("targetAsset", symbol);
   };
+
   const onSubmit = async (values: FormValues) => {
     if (!user) {
       toast("Authentication required", {
@@ -83,6 +78,7 @@ const ManualStrategy = () => {
       });
       return;
     }
+
     setIsSaving(true);
     try {
       // Format strategy in the same structure as the AI-generated one
@@ -101,6 +97,7 @@ const ManualStrategy = () => {
           maxBuyVolume: values.maxBuyVolume
         }
       };
+      
       const strategyId = await saveGeneratedStrategy(strategy);
       toast("Strategy saved", {
         description: "Your strategy has been saved successfully"
@@ -117,7 +114,9 @@ const ManualStrategy = () => {
       setIsSaving(false);
     }
   };
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
@@ -133,23 +132,48 @@ const ManualStrategy = () => {
               <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="name" render={({
-                field
-              }) => <FormItem>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Strategy Name</FormLabel>
                       <FormControl>
                         <Input placeholder="My Trading Strategy" {...field} />
                       </FormControl>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )}
+                />
 
-                <FormField control={form.control} name="market" render={({
-                field
-              }) => {}} />
+                <FormField
+                  control={form.control}
+                  name="market"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Market</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a market" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Equities">Equities</SelectItem>
+                          <SelectItem value="Forex">Forex</SelectItem>
+                          <SelectItem value="Crypto">Crypto</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                <FormField control={form.control} name="timeframe" render={({
-                field
-              }) => <FormItem>
+                <FormField
+                  control={form.control}
+                  name="timeframe"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Timeframe</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
@@ -170,12 +194,16 @@ const ManualStrategy = () => {
                         </SelectContent>
                       </Select>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="col-span-1 md:col-span-2">
-                  <FormField control={form.control} name="description" render={({
-                  field
-                }) => <FormItem>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Strategy Description</FormLabel>
                         <FormControl>
                           <Textarea placeholder="Describe your trading strategy..." className="min-h-[100px]" {...field} />
@@ -184,7 +212,9 @@ const ManualStrategy = () => {
                           Explain the strategy's concept, approach, and goals
                         </FormDescription>
                         <FormMessage />
-                      </FormItem>} />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
             </Card>
@@ -197,9 +227,11 @@ const ManualStrategy = () => {
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-6">Risk Management</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="stopLoss" render={({
-                field
-              }) => <FormItem>
+                <FormField
+                  control={form.control}
+                  name="stopLoss"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Stop Loss (%)</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
@@ -208,11 +240,15 @@ const ManualStrategy = () => {
                         Maximum percentage loss per trade
                       </FormDescription>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )}
+                />
 
-                <FormField control={form.control} name="takeProfit" render={({
-                field
-              }) => <FormItem>
+                <FormField
+                  control={form.control}
+                  name="takeProfit"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Take Profit (%)</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
@@ -221,11 +257,15 @@ const ManualStrategy = () => {
                         Target percentage gain per trade
                       </FormDescription>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )}
+                />
 
-                <FormField control={form.control} name="singleBuyVolume" render={({
-                field
-              }) => <FormItem>
+                <FormField
+                  control={form.control}
+                  name="singleBuyVolume"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Single Buy Volume ($)</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
@@ -234,11 +274,15 @@ const ManualStrategy = () => {
                         Maximum amount to spend on a single purchase
                       </FormDescription>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )}
+                />
 
-                <FormField control={form.control} name="maxBuyVolume" render={({
-                field
-              }) => <FormItem>
+                <FormField
+                  control={form.control}
+                  name="maxBuyVolume"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Maximum Buy Volume ($)</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
@@ -247,11 +291,19 @@ const ManualStrategy = () => {
                         Maximum total investment amount
                       </FormDescription>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )}
+                />
               </div>
             </Card>
 
-            <TradingRules entryRules={entryRules} exitRules={exitRules} onEntryRulesChange={setEntryRules} onExitRulesChange={setExitRules} editable={true} />
+            <TradingRules
+              entryRules={entryRules}
+              exitRules={exitRules}
+              onEntryRulesChange={setEntryRules}
+              onExitRulesChange={setExitRules}
+              editable={true}
+            />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isSaving}>
@@ -261,6 +313,8 @@ const ManualStrategy = () => {
           </form>
         </Form>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default ManualStrategy;

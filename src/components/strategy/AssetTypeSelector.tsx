@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,12 +8,10 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
 import { popularStocks, popularCryptocurrencies } from "@/data/assetData";
-
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
-
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -86,7 +83,6 @@ export const AssetTypeSelector = ({
       setIsLoading(false);
       return;
     }
-    
     setIsLoading(true);
     setIsSearchError(false);
     try {
@@ -105,7 +101,6 @@ export const AssetTypeSelector = ({
       const cryptoResults = await searchCryptocurrencies(query, apiKey || "");
       const combinedResults = [...stockResults, ...cryptoResults];
       setSearchResults(combinedResults);
-      
       if (combinedResults.length === 0 && query.length > 0 && !isSearchError) {
         toast({
           title: "No Results Found",
@@ -183,10 +178,9 @@ export const AssetTypeSelector = ({
     setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
   };
-  
   return <Card className="p-6 mb-10 border">
-      <h2 className="text-xl font-semibold mb-2">Select Asset</h2>
-      <p className="text-sm text-muted-foreground mb-4">Choose the asset you want to trade</p>
+      <h2 className="text-xl font-semibold mb-2">Target Asset</h2>
+      
       
       <div className="mb-6 relative">
         <label htmlFor="asset-select" className="block text-sm font-medium mb-2">
@@ -211,44 +205,25 @@ export const AssetTypeSelector = ({
           <DialogTitle className="sr-only">
             Search Assets
           </DialogTitle>
-          <CommandInput 
-            placeholder="Type to search for stocks or cryptocurrencies..." 
-            value={searchQuery} 
-            onValueChange={setSearchQuery} 
-            autoFocus={true} 
-          />
+          <CommandInput placeholder="Type to search for stocks or cryptocurrencies..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
           <CommandList>
             <CommandEmpty>
-              {isLoading ? (
-                <div className="flex items-center justify-center p-4">
+              {isLoading ? <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchQuery.trim() === "" ? (
-                <p className="p-4 text-center text-sm text-muted-foreground">
+                </div> : searchQuery.trim() === "" ? <p className="p-4 text-center text-sm text-muted-foreground">
                   Type to search for assets
-                </p>
-              ) : (
-                <p className="p-4 text-center text-sm text-muted-foreground">
+                </p> : <p className="p-4 text-center text-sm text-muted-foreground">
                   No assets found
-                </p>
-              )}
+                </p>}
             </CommandEmpty>
-            {searchResults.length > 0 && (
-              <CommandGroup heading="Search Results">
-                {searchResults.map(asset => (
-                  <CommandItem 
-                    key={asset.symbol} 
-                    value={`${asset.symbol} ${asset.name}`} 
-                    onSelect={() => handleSelectAsset(asset)}
-                  >
+            {searchResults.length > 0 && <CommandGroup heading="Search Results">
+                {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
                     <div className="flex flex-col">
                       <span>{asset.symbol}</span>
                       <span className="text-xs text-muted-foreground">{asset.name}</span>
                     </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+                  </CommandItem>)}
+              </CommandGroup>}
           </CommandList>
         </CommandDialog>
       </div>

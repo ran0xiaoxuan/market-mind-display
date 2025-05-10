@@ -170,7 +170,13 @@ export const RuleInequality = ({
     setIsEditing(false);
     setIndicatorSearch('');
     setValidationErrors([]);
-    if (isNewlyAdded && onEditingComplete) {
+    
+    // If this is a newly added inequality and we cancel editing,
+    // call onDelete to remove it completely
+    if (isNewlyAdded && onDelete) {
+      onDelete();
+    } 
+    else if (isNewlyAdded && onEditingComplete) {
       onEditingComplete();
     }
   };

@@ -2,7 +2,7 @@ import { Badge } from "@/components/Badge";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { Inequality, InequalitySide } from "./types";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Check, X, Info, Search } from "lucide-react";
+import { Pencil, Trash2, Check, X, Info, Search, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 import { getSupportedIndicators } from "@/services/taapiService";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 interface RuleInequalityProps {
   inequality: Inequality;
@@ -39,6 +40,7 @@ export const RuleInequality = ({
   const [editedInequality, setEditedInequality] = useState<Inequality>(inequality);
   const [availableIndicators, setAvailableIndicators] = useState<string[]>([]);
   const [indicatorSearch, setIndicatorSearch] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   // Set editing mode when isNewlyAdded changes
   useEffect(() => {
@@ -127,25 +129,68 @@ export const RuleInequality = ({
     }
   };
   
+  const validateInequality = (): string[] => {
+    const errors: string[] = [];
+    
+    // Validate left side
+    if (!editedInequality.left.type) {
+      errors.push("Left side type is required");
+    } else if (editedInequality.left.type === "indicator" && !editedInequality.left.indicator) {
+      errors.push("Left side indicator is required");
+    } else if (editedInequality.left.type === "price" && !editedInequality.left.value) {
+      errors.push("Left side price value is required");
+    }
+    
+    // Validate condition
+    if (!editedInequality.condition) {
+      errors.push("Condition is required");
+    }
+    
+    // Validate right side
+    if (!editedInequality.right.type) {
+      errors.push("Right side type is required");
+    } else if (editedInequality.right.type === "indicator" && !editedInequality.right.indicator) {
+      errors.push("Right side indicator is required");
+    } else if (editedInequality.right.type === "price" && !editedInequality.right.value) {
+      errors.push("Right side price value is required");
+    } else if (editedInequality.right.type === "value" && !editedInequality.right.value) {
+      errors.push("Right side value is required");
+    }
+    
+    return errors;
+  };
+  
   const startEditing = () => {
     setEditedInequality({...inequality});
     setIsEditing(true);
+    setValidationErrors([]);
   };
   
   const cancelEditing = () => {
     setIsEditing(false);
     setIndicatorSearch('');
+    setValidationErrors([]);
     if (isNewlyAdded && onEditingComplete) {
       onEditingComplete();
     }
   };
   
   const saveChanges = () => {
+    const errors = validateInequality();
+    setValidationErrors(errors);
+    
+    if (errors.length > 0) {
+      toast.error("Please fix all errors before saving");
+      return;
+    }
+    
     if (onChange) {
       onChange(editedInequality);
     }
+    
     setIsEditing(false);
     setIndicatorSearch('');
+    
     if (isNewlyAdded && onEditingComplete) {
       onEditingComplete();
     }
@@ -599,7 +644,7 @@ export const RuleInequality = ({
               
               {/* Explanation Field */}
               <div className="w-full px-1">
-                <label className="text-xs text-muted-foreground">Explanation</label>
+                <label className="text-xs text-muted-foreground">Explanation (optional)</label>
                 <textarea
                   value={editedInequality.explanation || ""}
                   onChange={(e) => updateExplanation(e.target.value)}
@@ -607,6 +652,21 @@ export const RuleInequality = ({
                   placeholder="Enter explanation for this rule..."
                 />
               </div>
+              
+              {/* Validation errors */}
+              {validationErrors.length > 0 && (
+                <div className="w-full bg-red-50 border border-red-200 rounded-md p-2 text-sm">
+                  <div className="flex items-center gap-1 text-red-600 font-medium mb-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Please fix these errors:</span>
+                  </div>
+                  <ul className="list-disc pl-5 text-xs text-red-600">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
               <div className="flex space-x-2">
                 <Button size="sm" variant="ghost" onClick={cancelEditing}><X className="h-4 w-4 mr-1" /> Cancel</Button>

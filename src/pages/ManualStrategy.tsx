@@ -23,7 +23,6 @@ import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 const formSchema = z.object({
   name: z.string().min(3, "Strategy name must be at least 3 characters"),
   description: z.string().min(10, "Please provide a more detailed description"),
-  market: z.string().min(1, "Please select a market"),
   timeframe: z.string().min(1, "Please select a timeframe"),
   targetAsset: z.string().min(1, "Please select a target asset"),
   stopLoss: z.string().min(1, "Please provide a stop loss value"),
@@ -57,7 +56,6 @@ const ManualStrategy = () => {
     defaultValues: {
       name: "",
       description: "",
-      market: "Equities",
       timeframe: "Daily",
       targetAsset: "",
       stopLoss: "5",
@@ -90,7 +88,6 @@ const ManualStrategy = () => {
       const strategy = {
         name: values.name,
         description: values.description,
-        market: values.market,
         timeframe: values.timeframe,
         targetAsset: values.targetAsset,
         entryRules: entryRules,
@@ -146,29 +143,6 @@ const ManualStrategy = () => {
                       <FormControl>
                         <Input placeholder="My Trading Strategy" {...field} />
                       </FormControl>
-                      {isFormSubmitted && <FormMessage />}
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="market"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Market</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a market" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Equities">Equities</SelectItem>
-                          <SelectItem value="Forex">Forex</SelectItem>
-                          <SelectItem value="Crypto">Crypto</SelectItem>
-                        </SelectContent>
-                      </Select>
                       {isFormSubmitted && <FormMessage />}
                     </FormItem>
                   )}

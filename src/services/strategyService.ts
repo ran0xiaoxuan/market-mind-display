@@ -8,7 +8,6 @@ export interface Strategy {
   name: string;
   description: string;
   isActive: boolean;
-  market: string;
   timeframe: string;
   targetAsset: string;
   userId: string;
@@ -21,7 +20,6 @@ export interface Strategy {
 export interface GeneratedStrategy {
   name: string;
   description: string;
-  market: string;
   timeframe: string;
   targetAsset: string;
   entryRules: RuleGroupData[];
@@ -50,7 +48,6 @@ const mapDbStrategyToInterface = (dbStrategy: any): Strategy => {
     name: dbStrategy.name,
     description: dbStrategy.description,
     isActive: dbStrategy.is_active,
-    market: dbStrategy.market,
     timeframe: dbStrategy.timeframe,
     targetAsset: dbStrategy.target_asset,
     userId: dbStrategy.user_id,
@@ -67,7 +64,6 @@ const mapInterfaceToDbStrategy = (strategy: Omit<Strategy, 'id' | 'createdAt' | 
     name: strategy.name,
     description: strategy.description,
     is_active: strategy.isActive,
-    market: strategy.market,
     timeframe: strategy.timeframe,
     target_asset: strategy.targetAsset,
     user_id: strategy.userId,
@@ -149,7 +145,6 @@ export const generateFallbackStrategy = (
   const strategy: GeneratedStrategy = {
     name: name,
     description: description || `A simple ${assetType} strategy for ${asset}`,
-    market: assetType === 'cryptocurrency' ? 'Cryptocurrency' : 'Stock Market',
     timeframe: timeframe,
     targetAsset: asset,
     entryRules: [
@@ -293,7 +288,6 @@ export const updateStrategy = async (id: string, updates: Partial<Strategy>): Pr
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
-    if (updates.market !== undefined) dbUpdates.market = updates.market;
     if (updates.timeframe !== undefined) dbUpdates.timeframe = updates.timeframe;
     if (updates.targetAsset !== undefined) dbUpdates.target_asset = updates.targetAsset;
     if (updates.userId !== undefined) dbUpdates.user_id = updates.userId;
@@ -355,7 +349,6 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
       .insert({
         name: strategy.name,
         description: strategy.description,
-        market: strategy.market,
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
         stop_loss: strategy.riskManagement.stopLoss,

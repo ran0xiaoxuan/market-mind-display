@@ -204,7 +204,6 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
-          market: string
           max_buy_volume: string | null
           name: string
           single_buy_volume: string | null
@@ -220,7 +219,6 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
-          market: string
           max_buy_volume?: string | null
           name: string
           single_buy_volume?: string | null
@@ -236,7 +234,6 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
-          market?: string
           max_buy_volume?: string | null
           name?: string
           single_buy_volume?: string | null

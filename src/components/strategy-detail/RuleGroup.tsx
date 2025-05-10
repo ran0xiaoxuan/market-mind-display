@@ -106,13 +106,7 @@ export const RuleGroup = ({
             </div>
             <span>of {effectiveInequalitiesCount} conditions must be met.</span>
             
-            {showSlider && safeInequalities.length > 0 && <div className="w-full mt-2 px-2">
-                <Slider defaultValue={[conditionsCount]} max={maxRequiredConditions} min={1} step={1} onValueChange={handleSliderChange} className="w-full" />
-                <div className="flex justify-between text-xs mt-1">
-                  <span>More flexible (1)</span>
-                  <span>More strict ({maxRequiredConditions})</span>
-                </div>
-              </div>}
+            {showSlider && safeInequalities.length > 0}
           </div> : title === "OR Group" ? <p className="text-xs text-muted-foreground mb-2">
             {orGroupDescription}
           </p> : <p className="text-xs text-muted-foreground mb-2">{description}</p>}

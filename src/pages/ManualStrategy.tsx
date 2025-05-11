@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -72,7 +73,7 @@ const ManualStrategy = () => {
       singleBuyVolume: "",
       maxBuyVolume: ""
     },
-    mode: "onSubmit"
+    mode: "onSubmit" // Only validate on submit
   });
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
@@ -109,8 +110,11 @@ const ManualStrategy = () => {
     });
     return errors;
   };
+  
   const onSubmit = async (values: FormValues) => {
+    // Only set form as submitted when the save button is clicked
     setIsFormSubmitted(true);
+    
     if (!user) {
       toast.error("Authentication required", {
         description: "Please log in to save your strategy"
@@ -118,7 +122,7 @@ const ManualStrategy = () => {
       return;
     }
 
-    // Validate trading rules
+    // Validate trading rules - only when submitting
     const ruleErrors = validateTradingRules();
     setValidationErrors(ruleErrors);
     if (ruleErrors.length > 0) {
@@ -128,6 +132,16 @@ const ManualStrategy = () => {
       });
       return;
     }
+    
+    // Check if the form is valid according to zod schema
+    const formErrors = form.formState.errors;
+    if (Object.keys(formErrors).length > 0) {
+      toast.error("Form validation failed", {
+        description: "Please fill in all required fields"
+      });
+      return;
+    }
+    
     setIsSaving(true);
     try {
       // Format strategy in the same structure as the AI-generated one
@@ -162,13 +176,8 @@ const ManualStrategy = () => {
     }
   };
 
-  // Clear validation errors if they were shown and form is edited
-  useEffect(() => {
-    if (isFormSubmitted) {
-      setValidationErrors([]); // Clear errors when form is edited after submission
-      setIsFormSubmitted(false);
-    }
-  }, [form.formState.isDirty]);
+  // Don't clear validation errors when form is edited 
+  // Only show validation after form submission
   return <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
@@ -312,7 +321,14 @@ const ManualStrategy = () => {
                 </AlertDescription>
               </Alert>}
 
-            <TradingRules entryRules={entryRules} exitRules={exitRules} onEntryRulesChange={setEntryRules} onExitRulesChange={setExitRules} editable={true} showValidation={isFormSubmitted} />
+            <TradingRules 
+              entryRules={entryRules} 
+              exitRules={exitRules} 
+              onEntryRulesChange={setEntryRules} 
+              onExitRulesChange={setExitRules} 
+              editable={true} 
+              showValidation={isFormSubmitted} 
+            />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isSaving}>

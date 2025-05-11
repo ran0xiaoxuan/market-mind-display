@@ -46,7 +46,6 @@ export const RuleGroup = ({
     const updatedInequalities = [...inequalities];
     updatedInequalities.splice(index, 1);
     onInequitiesChange(updatedInequalities);
-    // Removed toast message on deletion
   };
   
   const handleInequalityChange = (index: number, updatedInequality: Inequality) => {
@@ -66,7 +65,7 @@ export const RuleGroup = ({
     onRequiredConditionsChange(validValue);
   };
 
-  // Check if there are missing required fields in the inequalities
+  // Check if there are missing required fields in the inequalities - only show when showValidation is true
   const hasIncompleteRules = showValidation && editable && inequalities.some(inequality => 
     !inequality.left?.type || 
     !inequality.condition || 

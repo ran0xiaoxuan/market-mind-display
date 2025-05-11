@@ -106,7 +106,7 @@ export const TradingRules = ({
     }
   };
 
-  // Add new condition to a rule group without validation toast
+  // Add new condition to a rule group - no toast notification
   const handleAddCondition = (isEntryRule: boolean, groupIndex: number) => {
     const newInequalityId = uuidv4();
     
@@ -126,7 +126,6 @@ export const TradingRules = ({
       
       onEntryRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
-      // Removed toast notification when adding new condition
     } else if (!isEntryRule && onExitRulesChange) {
       const updatedRules = [...safeExitRules];
       const newInequality: Inequality = {
@@ -143,7 +142,6 @@ export const TradingRules = ({
       
       onExitRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
-      // Removed toast notification when adding new condition
     }
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -15,6 +16,7 @@ import { RuleGroupData } from "@/components/strategy-detail/types";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
+import { getTradingRulesForStrategy, getStrategyById, getRiskManagementForStrategy } from "@/services/strategyService";
 
 const StrategyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,16 +37,10 @@ const StrategyDetail = () => {
     }
     
     try {
-      // Fetch strategy details
-      const { data: strategyData, error: strategyError } = await supabase
-        .from("strategies")
-        .select("*")
-        .eq("id", id)
-        .single();
+      console.log("Fetching strategy details for ID:", id);
       
-      if (strategyError) {
-        throw strategyError;
-      }
+      // Fetch strategy details using the service function
+      const strategyData = await getStrategyById(id);
       
       if (!strategyData) {
         setError("Strategy not found");
@@ -53,85 +49,18 @@ const StrategyDetail = () => {
       }
       
       setStrategy(strategyData);
-      setIsActive(strategyData.is_active);
+      setIsActive(strategyData.isActive);
       
-      // Fetch rule groups and their rules
-      const { data: ruleGroups, error: ruleGroupsError } = await supabase
-        .from("rule_groups")
-        .select(`
-          id,
-          rule_type,
-          group_order,
-          logic,
-          required_conditions,
-          explanation,
-          trading_rules (
-            id,
-            inequality_order,
-            left_type,
-            left_indicator,
-            left_parameters,
-            left_value,
-            left_value_type,
-            condition,
-            right_type,
-            right_indicator,
-            right_parameters,
-            right_value,
-            right_value_type,
-            explanation
-          )
-        `)
-        .eq("strategy_id", id)
-        .order("group_order", { ascending: true });
+      console.log("Strategy data fetched:", strategyData);
       
-      if (ruleGroupsError) {
-        throw ruleGroupsError;
-      }
+      // Fetch trading rules using the service function
+      const rulesData = await getTradingRulesForStrategy(id);
       
-      // Transform rule groups into our app's format
-      if (ruleGroups) {
-        const entryRuleGroups: RuleGroupData[] = [];
-        const exitRuleGroups: RuleGroupData[] = [];
-        
-        ruleGroups.forEach(group => {
-          const transformedGroup: RuleGroupData = {
-            id: group.id,
-            logic: group.logic,
-            requiredConditions: group.required_conditions,
-            explanation: group.explanation,
-            inequalities: group.trading_rules.sort((a: any, b: any) => 
-              a.inequality_order - b.inequality_order
-            ).map((rule: any) => ({
-              id: rule.id,
-              left: {
-                type: rule.left_type,
-                indicator: rule.left_indicator,
-                parameters: rule.left_parameters,
-                value: rule.left_value,
-                valueType: rule.left_value_type
-              },
-              condition: rule.condition,
-              right: {
-                type: rule.right_type,
-                indicator: rule.right_indicator,
-                parameters: rule.right_parameters,
-                value: rule.right_value,
-                valueType: rule.right_value_type
-              },
-              explanation: rule.explanation
-            }))
-          };
-          
-          if (group.rule_type === 'entry') {
-            entryRuleGroups.push(transformedGroup);
-          } else if (group.rule_type === 'exit') {
-            exitRuleGroups.push(transformedGroup);
-          }
-        });
-        
-        setEntryRules(entryRuleGroups);
-        setExitRules(exitRuleGroups);
+      console.log("Trading rules fetched:", rulesData);
+      
+      if (rulesData) {
+        setEntryRules(rulesData.entryRules);
+        setExitRules(rulesData.exitRules);
       }
       
       // Fetch most recent backtest trades
@@ -210,10 +139,10 @@ const StrategyDetail = () => {
   }
   
   const riskManagementData = {
-    stopLoss: strategy.stop_loss || "Not set",
-    takeProfit: strategy.take_profit || "Not set",
-    singleBuyVolume: strategy.single_buy_volume || "Not set",
-    maxBuyVolume: strategy.max_buy_volume || "Not set"
+    stopLoss: strategy.stopLoss || "Not set",
+    takeProfit: strategy.takeProfit || "Not set",
+    singleBuyVolume: strategy.singleBuyVolume || "Not set",
+    maxBuyVolume: strategy.maxBuyVolume || "Not set"
   };
   
   return (
@@ -227,10 +156,10 @@ const StrategyDetail = () => {
         <StrategyInfo 
           strategy={{
             description: strategy.description,
-            createdAt: strategy.created_at,
-            updatedAt: strategy.updated_at,
+            createdAt: strategy.createdAt,
+            updatedAt: strategy.updatedAt,
             timeframe: strategy.timeframe,
-            targetAsset: strategy.target_asset
+            targetAsset: strategy.targetAsset
           }} 
           isActive={isActive} 
           onStatusChange={handleStatusChange} 

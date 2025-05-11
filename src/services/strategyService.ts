@@ -363,12 +363,23 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     }
 
     const strategyId = strategyData.id;
+    console.log("Strategy base data saved with ID:", strategyId);
 
-    // Process entry rules
-    await saveRuleGroups(strategyId, strategy.entryRules, 'entry');
+    // Process entry rules - ensure we have entry rules to save
+    if (strategy.entryRules && strategy.entryRules.length > 0) {
+      await saveRuleGroups(strategyId, strategy.entryRules, 'entry');
+      console.log("Entry rules saved successfully");
+    } else {
+      console.warn("No entry rules to save");
+    }
     
-    // Process exit rules
-    await saveRuleGroups(strategyId, strategy.exitRules, 'exit');
+    // Process exit rules - ensure we have exit rules to save
+    if (strategy.exitRules && strategy.exitRules.length > 0) {
+      await saveRuleGroups(strategyId, strategy.exitRules, 'exit');
+      console.log("Exit rules saved successfully");
+    } else {
+      console.warn("No exit rules to save");
+    }
 
     return strategyId;
   } catch (error) {
@@ -383,6 +394,8 @@ const saveRuleGroups = async (
   ruleType: 'entry' | 'exit'
 ) => {
   try {
+    console.log(`Saving ${ruleType} rule groups:`, JSON.stringify(ruleGroups));
+    
     // Process each rule group
     for (let i = 0; i < ruleGroups.length; i++) {
       const group = ruleGroups[i];
@@ -402,18 +415,21 @@ const saveRuleGroups = async (
         .single();
 
       if (groupError) {
-        console.error("Error saving rule group:", groupError);
+        console.error(`Error saving ${ruleType} rule group:`, groupError);
         throw groupError;
       }
 
       const groupId = groupData.id;
+      console.log(`Created rule group with ID ${groupId} for ${ruleType} rules`);
 
       // Process inequalities for this group
       if (group.inequalities && group.inequalities.length > 0) {
+        console.log(`Saving ${group.inequalities.length} inequalities for group ${groupId}`);
+        
         for (let j = 0; j < group.inequalities.length; j++) {
           const inequality = group.inequalities[j];
           
-          await supabase
+          const { data: ruleData, error: ruleError } = await supabase
             .from('trading_rules')
             .insert({
               rule_group_id: groupId,
@@ -430,12 +446,23 @@ const saveRuleGroups = async (
               right_value: inequality.right.value || null,
               right_value_type: inequality.right.valueType || null,
               explanation: inequality.explanation || null
-            });
+            })
+            .select('*')
+            .single();
+          
+          if (ruleError) {
+            console.error(`Error saving inequality ${j+1} for group ${groupId}:`, ruleError);
+            throw ruleError;
+          }
+          
+          console.log(`Saved inequality ${j+1} with ID ${ruleData.id}`);
         }
+      } else {
+        console.warn(`No inequalities to save for group ${groupId}`);
       }
     }
   } catch (error) {
-    console.error("Error in saveRuleGroups:", error);
+    console.error(`Error in saveRuleGroups (${ruleType}):`, error);
     throw error;
   }
 };
@@ -499,34 +526,36 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
 
 export const getTradingRulesForStrategy = async (strategyId: string) => {
   try {
+    console.log("Fetching trading rules for strategy:", strategyId);
+    
     // First, get all the rule groups for this strategy
-    const { data: entryGroups, error: entryGroupsError } = await supabase
+    const { data: ruleGroups, error: ruleGroupsError } = await supabase
       .from('rule_groups')
       .select('*')
       .eq('strategy_id', strategyId)
-      .eq('rule_type', 'entry')
       .order('group_order', { ascending: true });
 
-    if (entryGroupsError) {
-      console.error("Error fetching entry rule groups:", entryGroupsError);
-      throw entryGroupsError;
+    if (ruleGroupsError) {
+      console.error("Error fetching rule groups:", ruleGroupsError);
+      throw ruleGroupsError;
     }
 
-    const { data: exitGroups, error: exitGroupsError } = await supabase
-      .from('rule_groups')
-      .select('*')
-      .eq('strategy_id', strategyId)
-      .eq('rule_type', 'exit')
-      .order('group_order', { ascending: true });
-
-    if (exitGroupsError) {
-      console.error("Error fetching exit rule groups:", exitGroupsError);
-      throw exitGroupsError;
+    console.log("Fetched rule groups:", ruleGroups);
+    
+    if (!ruleGroups || ruleGroups.length === 0) {
+      console.warn("No rule groups found for strategy:", strategyId);
+      return { entryRules: [], exitRules: [] };
     }
+
+    // Separate entry and exit rule groups
+    const entryRuleGroups = ruleGroups.filter(group => group.rule_type === 'entry');
+    const exitRuleGroups = ruleGroups.filter(group => group.rule_type === 'exit');
+    
+    console.log(`Found ${entryRuleGroups.length} entry rule groups and ${exitRuleGroups.length} exit rule groups`);
 
     // Process entry groups
-    const entryRules = entryGroups && entryGroups.length > 0 
-      ? await Promise.all(entryGroups.map(async (group) => {
+    const entryRules = entryRuleGroups.length > 0 
+      ? await Promise.all(entryRuleGroups.map(async (group) => {
           const { data: inequalities, error: inequalitiesError } = await supabase
             .from('trading_rules')
             .select('*')
@@ -534,10 +563,12 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
             .order('inequality_order', { ascending: true });
 
           if (inequalitiesError) {
-            console.error("Error fetching inequalities for group:", inequalitiesError);
+            console.error("Error fetching inequalities for entry group:", inequalitiesError);
             throw inequalitiesError;
           }
 
+          console.log(`Fetched ${inequalities?.length || 0} inequalities for entry group ${group.id}`);
+          
           return {
             id: group.id,
             logic: group.logic,
@@ -549,8 +580,8 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
       : [];
 
     // Process exit groups
-    const exitRules = exitGroups && exitGroups.length > 0
-      ? await Promise.all(exitGroups.map(async (group) => {
+    const exitRules = exitRuleGroups.length > 0
+      ? await Promise.all(exitRuleGroups.map(async (group) => {
           const { data: inequalities, error: inequalitiesError } = await supabase
             .from('trading_rules')
             .select('*')
@@ -558,9 +589,11 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
             .order('inequality_order', { ascending: true });
 
           if (inequalitiesError) {
-            console.error("Error fetching inequalities for group:", inequalitiesError);
+            console.error("Error fetching inequalities for exit group:", inequalitiesError);
             throw inequalitiesError;
           }
+          
+          console.log(`Fetched ${inequalities?.length || 0} inequalities for exit group ${group.id}`);
 
           return {
             id: group.id,
@@ -572,8 +605,10 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         }))
       : [];
 
-    // Log the results for debugging
-    console.log("Retrieved trading rules:", { entryRules, exitRules });
+    console.log("Final processed trading rules:", { 
+      entryRules: entryRules.length, 
+      exitRules: exitRules.length 
+    });
     
     return { entryRules, exitRules };
   } catch (error) {

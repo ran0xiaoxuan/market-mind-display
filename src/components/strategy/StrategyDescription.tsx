@@ -31,6 +31,12 @@ export const StrategyDescription = ({
       <div className="mt-3 text-xs text-muted-foreground">
         <p>💡 <strong>Pro tip:</strong> Be specific with indicators, timeframes and risk parameters you want.</p>
       </div>
+
+      {showValidation && description.trim().length < 20 && (
+        <div className="mt-2 text-sm text-red-500">
+          Please provide a more detailed description (at least 20 characters).
+        </div>
+      )}
     </Card>
   );
 };

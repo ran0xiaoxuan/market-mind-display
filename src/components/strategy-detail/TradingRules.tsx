@@ -10,7 +10,6 @@ import { AvailableIndicators } from "./AvailableIndicators";
 import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
 interface TradingRulesProps {
@@ -127,7 +126,7 @@ export const TradingRules = ({
       
       onEntryRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
-      // Remove toast notification when adding new condition
+      // Removed toast notification when adding new condition
     } else if (!isEntryRule && onExitRulesChange) {
       const updatedRules = [...safeExitRules];
       const newInequality: Inequality = {
@@ -144,7 +143,7 @@ export const TradingRules = ({
       
       onExitRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
-      // Remove toast notification when adding new condition
+      // Removed toast notification when adding new condition
     }
   };
 

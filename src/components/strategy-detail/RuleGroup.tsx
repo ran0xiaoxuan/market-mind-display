@@ -7,7 +7,7 @@ import { Plus, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+
 interface RuleGroupProps {
   title: string;
   color: string;
@@ -23,6 +23,7 @@ interface RuleGroupProps {
   newlyAddedConditionId?: string | null;
   onClearNewlyAddedCondition?: () => void;
 }
+
 export const RuleGroup = ({
   title,
   color,
@@ -39,19 +40,22 @@ export const RuleGroup = ({
   onClearNewlyAddedCondition
 }: RuleGroupProps) => {
   const isOrGroup = title.includes("OR");
+  
   const handleDeleteInequality = (index: number) => {
     if (!onInequitiesChange) return;
     const updatedInequalities = [...inequalities];
     updatedInequalities.splice(index, 1);
     onInequitiesChange(updatedInequalities);
-    toast.success("Condition removed");
+    // Removed toast message on deletion
   };
+  
   const handleInequalityChange = (index: number, updatedInequality: Inequality) => {
     if (!onInequitiesChange) return;
     const updatedInequalities = [...inequalities];
     updatedInequalities[index] = updatedInequality;
     onInequitiesChange(updatedInequalities);
   };
+  
   const handleRequiredConditionsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!onRequiredConditionsChange) return;
     const value = parseInt(e.target.value);
@@ -63,7 +67,15 @@ export const RuleGroup = ({
   };
 
   // Check if there are missing required fields in the inequalities
-  const hasIncompleteRules = showValidation && editable && inequalities.some(inequality => !inequality.left?.type || !inequality.condition || !inequality.right?.type || inequality.left?.type === 'indicator' && !inequality.left?.indicator || inequality.right?.type === 'indicator' && !inequality.right?.indicator || inequality.right?.type === 'value' && !inequality.right?.value);
+  const hasIncompleteRules = showValidation && editable && inequalities.some(inequality => 
+    !inequality.left?.type || 
+    !inequality.condition || 
+    !inequality.right?.type || 
+    (inequality.left?.type === 'indicator' && !inequality.left?.indicator) || 
+    (inequality.right?.type === 'indicator' && !inequality.right?.indicator) || 
+    (inequality.right?.type === 'value' && !inequality.right?.value)
+  );
+  
   return <div className={`rounded-lg p-4 ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
@@ -82,7 +94,16 @@ export const RuleGroup = ({
         
         {editable && isOrGroup && <div className="flex items-center space-x-2">
             <Label htmlFor="requiredConditions">Required conditions:</Label>
-            <Input id="requiredConditions" type="number" min="1" max={Math.max(1, inequalities.length)} value={requiredConditions === undefined ? "" : requiredConditions} onChange={handleRequiredConditionsChange} className="w-16 h-8" placeholder="" />
+            <Input 
+              id="requiredConditions" 
+              type="number" 
+              min="1" 
+              max={Math.max(1, inequalities.length)} 
+              value={requiredConditions === undefined ? "" : requiredConditions} 
+              onChange={handleRequiredConditionsChange} 
+              className="w-16 h-8" 
+              placeholder="" 
+            />
           </div>}
       </div>
 
@@ -93,13 +114,27 @@ export const RuleGroup = ({
       )}
       
       {inequalities.length > 0 ? <div className="space-y-3 mt-4">
-          {inequalities.map((inequality, index) => <RuleInequality key={inequality.id} inequality={inequality} editable={editable} onChange={updatedInequality => handleInequalityChange(index, updatedInequality)} onDelete={() => handleDeleteInequality(index)} showValidation={showValidation} isNewlyAdded={newlyAddedConditionId === inequality.id} onEditingComplete={onClearNewlyAddedCondition} />)}
+          {inequalities.map((inequality, index) => <RuleInequality 
+            key={inequality.id} 
+            inequality={inequality} 
+            editable={editable} 
+            onChange={updatedInequality => handleInequalityChange(index, updatedInequality)} 
+            onDelete={() => handleDeleteInequality(index)} 
+            showValidation={showValidation}
+            isNewlyAdded={newlyAddedConditionId === inequality.id} 
+            onEditingComplete={onClearNewlyAddedCondition} 
+          />)}
         </div> : <div className="bg-white p-4 rounded-md border text-center text-muted-foreground mt-4">
           No conditions defined yet
         </div>}
       
       {editable && <div className="mt-4">
-          <Button variant="outline" size="sm" onClick={onAddRule} className={`border-${color}-400 text-${color}-700`}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onAddRule} 
+            className={`border-${color}-400 text-${color}-700`}
+          >
             <Plus className="h-4 w-4 mr-2" /> Add Condition
           </Button>
         </div>}

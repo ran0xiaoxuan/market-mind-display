@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+
 const formSchema = z.object({
   name: z.string().min(1, "Strategy name is required"),
   description: z.string().min(1, "Strategy description is required"),
@@ -71,7 +72,7 @@ const ManualStrategy = () => {
       singleBuyVolume: "",
       maxBuyVolume: ""
     },
-    mode: "onChange"
+    mode: "onSubmit"
   });
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
@@ -161,12 +162,13 @@ const ManualStrategy = () => {
     }
   };
 
-  // Reset validation errors when rules change
+  // Clear validation errors if they were shown and form is edited
   useEffect(() => {
     if (isFormSubmitted) {
-      setValidationErrors(validateTradingRules());
+      setValidationErrors([]); // Clear errors when form is edited after submission
+      setIsFormSubmitted(false);
     }
-  }, [entryRules, exitRules, isFormSubmitted]);
+  }, [form.formState.isDirty]);
   return <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">

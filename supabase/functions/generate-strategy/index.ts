@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -75,7 +76,7 @@ For each rule, make sure the left and right sides are properly formatted with:
 - indicator: name of the indicator (e.g., "SMA", "RSI") when type is "INDICATOR"
 - parameters: appropriate parameters for the indicator (e.g., period, source)
 - value: actual value when type is "VALUE"
-- valueType: "number" or "string" to indicate the type of value
+- valueType: only include this field when absolutely necessary
 
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name (MUST include the asset symbol)
@@ -88,9 +89,9 @@ Always return your response as a valid JSON object with these properties:
   - requiredConditions: number (only required for OR logic)
   - inequalities: array of inequality objects with:
     - id: unique identifier
-    - left: {type, indicator, parameters, value, valueType}
+    - left: {type, indicator, parameters, value}
     - condition: string describing condition
-    - right: {type, indicator, parameters, value, valueType}
+    - right: {type, indicator, parameters, value}
     - explanation: string explaining the rule
 - exitRules: Same structure as entryRules but for exit conditions
 - riskManagement: {
@@ -195,6 +196,39 @@ Generate a detailed trading strategy as a JSON object. Remember to include "${se
       }
 
       console.log("Successfully parsed strategy JSON:", strategyJSON);
+      
+      // Clean up the valueType fields
+      if (strategyJSON.entryRules && Array.isArray(strategyJSON.entryRules)) {
+        strategyJSON.entryRules.forEach(ruleGroup => {
+          if (ruleGroup.inequalities && Array.isArray(ruleGroup.inequalities)) {
+            ruleGroup.inequalities.forEach(inequality => {
+              // Remove valueType if it's "number" since that's the default
+              if (inequality.left && inequality.left.valueType === "number") {
+                delete inequality.left.valueType;
+              }
+              if (inequality.right && inequality.right.valueType === "number") {
+                delete inequality.right.valueType;
+              }
+            });
+          }
+        });
+      }
+
+      if (strategyJSON.exitRules && Array.isArray(strategyJSON.exitRules)) {
+        strategyJSON.exitRules.forEach(ruleGroup => {
+          if (ruleGroup.inequalities && Array.isArray(ruleGroup.inequalities)) {
+            ruleGroup.inequalities.forEach(inequality => {
+              // Remove valueType if it's "number" since that's the default
+              if (inequality.left && inequality.left.valueType === "number") {
+                delete inequality.left.valueType;
+              }
+              if (inequality.right && inequality.right.valueType === "number") {
+                delete inequality.right.valueType;
+              }
+            });
+          }
+        });
+      }
 
       return new Response(
         JSON.stringify(strategyJSON),

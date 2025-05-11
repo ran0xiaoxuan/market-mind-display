@@ -16,7 +16,7 @@ import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { Inequality, RuleGroupData, RuleGroup, TradingRule } from "@/components/strategy-detail/types";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
-import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
+import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
 import { debounce } from "lodash";
 import { getStrategyById, getRiskManagementForStrategy, getTradingRulesForStrategy, Strategy } from "@/services/strategyService";
 import { supabase } from "@/integrations/supabase/client";
@@ -227,15 +227,13 @@ const EditStrategy = () => {
         }
       }
       
-      // Search both stocks and crypto simultaneously and combine results
+      // Search stocks only (removed crypto search)
       const stockResults = await searchStocks(query, apiKey || "");
-      const cryptoResults = await searchCryptocurrencies(query, apiKey || "");
-      const combinedResults = [...stockResults, ...cryptoResults];
       
-      console.log(`Search returned ${combinedResults.length} results for "${query}"`);
-      setSearchResults(combinedResults);
+      console.log(`Search returned ${stockResults.length} results for "${query}"`);
+      setSearchResults(stockResults);
       
-      if (combinedResults.length === 0 && query.length > 0) {
+      if (stockResults.length === 0 && query.length > 0) {
         toast({
           title: "No Results Found",
           description: `No assets found matching "${query}"`
@@ -253,13 +251,11 @@ const EditStrategy = () => {
           
           // Retry the search with the new key
           const retryStockResults = await searchStocks(query, newKey);
-          const retryCryptoResults = await searchCryptocurrencies(query, newKey);
-          const retryCombinedResults = [...retryStockResults, ...retryCryptoResults];
+          setSearchResults(retryStockResults);
           
-          setSearchResults(retryCombinedResults);
-          console.log(`Retry search returned ${retryCombinedResults.length} results for "${query}"`);
+          console.log(`Retry search returned ${retryStockResults.length} results for "${query}"`);
           
-          if (retryCombinedResults.length === 0 && query.length > 0) {
+          if (retryStockResults.length === 0 && query.length > 0) {
             toast({
               title: "No Results Found",
               description: `No assets found matching "${query}"`

@@ -59,11 +59,9 @@ const AIStrategy = () => {
     setErrorType(null);
     
     try {
-      // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
-      const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
-      console.log("Generating strategy with parameters:", { assetType, selectedAsset, strategyDescription, retryAttempt: retryCount });
+      console.log("Generating strategy with parameters:", { assetType: 'stocks', selectedAsset, strategyDescription, retryAttempt: retryCount });
       
-      const strategy = await generateStrategy(assetType, selectedAsset, strategyDescription);
+      const strategy = await generateStrategy('stocks', selectedAsset, strategyDescription);
       console.log("Strategy generated successfully:", strategy);
       
       setGeneratedStrategy(strategy);
@@ -111,13 +109,10 @@ const AIStrategy = () => {
   };
 
   const handleUseFallbackData = () => {
-    // We're now generating strategies for combined assets, so we'll determine the type based on the asset format
-    const assetType = selectedAsset.includes('/') ? 'cryptocurrency' : 'stocks';
-    
     // Use the generateFallbackStrategy function from strategyService
     import("@/services/strategyService").then(({ generateFallbackStrategy }) => {
       const fallbackStrategy = generateFallbackStrategy(
-        assetType as "stocks" | "cryptocurrency", 
+        "stocks", 
         selectedAsset, 
         strategyDescription
       );
@@ -190,7 +185,7 @@ const AIStrategy = () => {
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">AI Strategy Generator</h1>
               <p className="text-muted-foreground">
-                Select your asset and describe your ideal trading strategy
+                Select your stock and describe your ideal trading strategy
               </p>
             </div>
 

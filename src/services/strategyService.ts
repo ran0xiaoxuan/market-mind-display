@@ -76,7 +76,7 @@ const mapInterfaceToDbStrategy = (strategy: Omit<Strategy, 'id' | 'createdAt' | 
 
 // Generate strategy using AI
 export const generateStrategy = async (
-  assetType: "stocks" | "cryptocurrency",
+  assetType: "stocks",
   asset: string,
   description: string
 ): Promise<GeneratedStrategy> => {
@@ -85,8 +85,8 @@ export const generateStrategy = async (
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: {
         assetType,
-        asset,
-        description
+        selectedAsset: asset,
+        strategyDescription: description
       }
       // The timeoutMs property is not supported in the current type definition
       // We'll rely on the default timeout instead
@@ -134,18 +134,15 @@ export const generateStrategy = async (
 };
 
 export const generateFallbackStrategy = (
-  assetType: "stocks" | "cryptocurrency",
+  assetType: "stocks",
   asset: string,
   description: string
 ): GeneratedStrategy => {
-  // Create a template strategy based on the asset type
-  const timeframe = assetType === 'cryptocurrency' ? '1h' : '1d';
-  const name = `${asset} ${assetType === 'cryptocurrency' ? 'Crypto' : 'Stock'} Strategy`;
-
+  // Create a template strategy for stocks
   const strategy: GeneratedStrategy = {
-    name: name,
-    description: description || `A simple ${assetType} strategy for ${asset}`,
-    timeframe: timeframe,
+    name: `${asset} Stock Strategy`,
+    description: description || `A simple stock strategy for ${asset}`,
+    timeframe: '1d',
     targetAsset: asset,
     entryRules: [
       {
@@ -224,7 +221,7 @@ export const generateFallbackStrategy = (
             condition: "LESS_THAN",
             right: {
               type: "VALUE",
-              value: assetType === 'cryptocurrency' ? "Support level" : "Previous low",
+              value: "Previous low",
               valueType: "number"
             },
             explanation: "Price breaks below support"
@@ -235,8 +232,8 @@ export const generateFallbackStrategy = (
     riskManagement: {
       stopLoss: "5%",
       takeProfit: "15%",
-      singleBuyVolume: assetType === 'cryptocurrency' ? "100 USDT" : "10% of portfolio",
-      maxBuyVolume: assetType === 'cryptocurrency' ? "1000 USDT" : "30% of portfolio"
+      singleBuyVolume: "10% of portfolio",
+      maxBuyVolume: "30% of portfolio"
     }
   };
 

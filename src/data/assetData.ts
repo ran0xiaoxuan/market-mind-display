@@ -16,18 +16,6 @@ export const popularStocks: Asset[] = [
   { symbol: "JPM", name: "JPMorgan Chase" }
 ];
 
-// Popular cryptocurrencies for quick selection
-export const popularCryptocurrencies: Asset[] = [
-  { symbol: "BTC/USDT", name: "Bitcoin/USDT" },
-  { symbol: "ETH/USDT", name: "Ethereum/USDT" },
-  { symbol: "SOL/USDT", name: "Solana/USDT" },
-  { symbol: "ADA/USDT", name: "Cardano/USDT" },
-  { symbol: "DOT/USDT", name: "Polkadot/USDT" },
-  { symbol: "XRP/USDT", name: "Ripple/USDT" },
-  { symbol: "DOGE/USDT", name: "Dogecoin/USDT" },
-  { symbol: "LINK/USDT", name: "Chainlink/USDT" }
-];
-
 // Fallback data for when API calls fail
 export const allStocks: Asset[] = [
   ...popularStocks,
@@ -53,37 +41,13 @@ export const allStocks: Asset[] = [
   { symbol: "JNJ", name: "Johnson & Johnson" }
 ];
 
-export const allCryptos: Asset[] = [
-  ...popularCryptocurrencies,
-  { symbol: "AVAX/USDT", name: "Avalanche/USDT" },
-  { symbol: "MATIC/USDT", name: "Polygon/USDT" },
-  { symbol: "DOT/USDT", name: "Polkadot/USDT" },
-  { symbol: "UNI/USDT", name: "Uniswap/USDT" },
-  { symbol: "ATOM/USDT", name: "Cosmos/USDT" },
-  { symbol: "LTC/USDT", name: "Litecoin/USDT" },
-  { symbol: "BCH/USDT", name: "Bitcoin Cash/USDT" },
-  { symbol: "XLM/USDT", name: "Stellar/USDT" },
-  { symbol: "EOS/USDT", name: "EOS/USDT" },
-  { symbol: "TRX/USDT", name: "TRON/USDT" },
-  { symbol: "FIL/USDT", name: "Filecoin/USDT" },
-  { symbol: "ALGO/USDT", name: "Algorand/USDT" },
-  { symbol: "VET/USDT", name: "VeChain/USDT" },
-  { symbol: "XTZ/USDT", name: "Tezos/USDT" },
-  { symbol: "NEAR/USDT", name: "NEAR Protocol/USDT" }
-];
-
 /**
  * Find assets in the local data that match the query
  */
-export const searchLocalAssets = (
-  query: string, 
-  assetType: "stocks" | "cryptocurrency"
-): Asset[] => {
+export const searchLocalAssets = (query: string): Asset[] => {
   if (!query || query.length < 2) return [];
   
-  const localAssetsList = assetType === "stocks" ? allStocks : allCryptos;
-  
-  return localAssetsList.filter(asset => 
+  return allStocks.filter(asset => 
     asset.symbol.toLowerCase().includes(query.toLowerCase()) || 
     asset.name.toLowerCase().includes(query.toLowerCase())
   ).slice(0, 20);

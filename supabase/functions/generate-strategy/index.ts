@@ -54,11 +54,11 @@ serve(async (req) => {
     // Build prompt for Moonshot AI
     const systemPrompt = `You are a trading strategy assistant that helps create detailed trading strategies. 
 You will be given an asset type, an asset name, and a strategy description. 
-Generate a complete trading strategy with entry rules, exit rules, and risk management.
+Generate a complete trading strategy with entry rules, exit rules, and risk management for stocks.
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name
 - description: A summary of what the strategy does
-- market: The market type (e.g., "Cryptocurrency" for crypto, "Equities" for stocks)
+- market: "Equities" for stocks
 - timeframe: The trading timeframe (e.g., "Daily", "4-Hour", "15-Minute")
 - targetAsset: The symbol of the asset to trade
 - entryRules: An array of rule groups for entry, each with:

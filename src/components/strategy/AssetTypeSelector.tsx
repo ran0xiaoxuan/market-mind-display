@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,12 +7,14 @@ import { debounce } from "lodash";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { getFmpApiKey, searchStocks, searchCryptocurrencies, Asset } from "@/services/assetApiService";
-import { popularStocks, popularCryptocurrencies } from "@/data/assetData";
+import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
+import { popularStocks, searchLocalAssets } from "@/data/assetData";
+
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
+
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -20,7 +23,6 @@ export const AssetTypeSelector = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [popularAssets, setPopularAssets] = useState<Asset[]>([]);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [selectedAssetDetails, setSelectedAssetDetails] = useState<Asset | null>(null);
   const [isSearchError, setIsSearchError] = useState(false);
@@ -51,16 +53,11 @@ export const AssetTypeSelector = ({
     fetchApiKey();
   }, []);
 
-  // Initialize popular assets with both stocks and cryptocurrencies
-  useEffect(() => {
-    setPopularAssets([...popularStocks, ...popularCryptocurrencies]);
-  }, []);
-
   // Set selected asset details when selectedAsset changes
   useEffect(() => {
     if (selectedAsset) {
       // First check if the asset is in the popular assets
-      const assetDetails = popularAssets.find(asset => asset.symbol === selectedAsset);
+      const assetDetails = popularStocks.find(asset => asset.symbol === selectedAsset);
       if (assetDetails) {
         setSelectedAssetDetails(assetDetails);
       } else if (searchResults.length > 0) {
@@ -73,7 +70,7 @@ export const AssetTypeSelector = ({
     } else {
       setSelectedAssetDetails(null);
     }
-  }, [selectedAsset, popularAssets, searchResults]);
+  }, [selectedAsset, searchResults]);
 
   // Search for assets with debounce
   const searchAssets = useCallback(debounce(async (query: string) => {
@@ -96,19 +93,18 @@ export const AssetTypeSelector = ({
         }
       }
 
-      // Search both stocks and crypto and combine results
+      // Search stocks
       const stockResults = await searchStocks(query, apiKey || "");
-      const cryptoResults = await searchCryptocurrencies(query, apiKey || "");
-      const combinedResults = [...stockResults, ...cryptoResults];
-      setSearchResults(combinedResults);
-      if (combinedResults.length === 0 && query.length > 0 && !isSearchError) {
+      setSearchResults(stockResults);
+      
+      if (stockResults.length === 0 && query.length > 0 && !isSearchError) {
         toast({
           title: "No Results Found",
-          description: `No assets found matching "${query}"`
+          description: `No stocks found matching "${query}"`
         });
       }
     } catch (error) {
-      console.error(`Error searching assets:`, error);
+      console.error(`Error searching stocks:`, error);
       if (isSearchError) {
         // Skip showing another error toast if we already showed one
         return;
@@ -123,13 +119,12 @@ export const AssetTypeSelector = ({
 
           // Retry the search with the new key
           const retryStockResults = await searchStocks(query, newKey);
-          const retryCryptoResults = await searchCryptocurrencies(query, newKey);
-          const retryCombinedResults = [...retryStockResults, ...retryCryptoResults];
-          setSearchResults(retryCombinedResults);
-          if (retryCombinedResults.length === 0 && query.length > 0) {
+          setSearchResults(retryStockResults);
+          
+          if (retryStockResults.length === 0 && query.length > 0) {
             toast({
               title: "No Results Found",
-              description: `No assets found matching "${query}"`
+              description: `No stocks found matching "${query}"`
             });
           }
         }
@@ -145,13 +140,14 @@ export const AssetTypeSelector = ({
           });
         }
 
-        // Don't set popular assets as fallback anymore
-        setSearchResults([]);
+        // Use local fallback data
+        const localResults = searchLocalAssets(query);
+        setSearchResults(localResults);
       }
     } finally {
       setIsLoading(false);
     }
-  }, 300), [apiKey, popularAssets, isSearchError]);
+  }, 300), [apiKey, isSearchError]);
 
   // Reset search error state when query changes
   useEffect(() => {
@@ -178,18 +174,18 @@ export const AssetTypeSelector = ({
     setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
   };
+
   return <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Target Asset</h2>
       
-      
       <div className="mb-6 relative">
         <label htmlFor="asset-select" className="block text-sm font-medium mb-2">
-          Select an asset (stocks or cryptocurrencies)
+          Select a stock
         </label>
 
         <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-          {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for stocks or cryptocurrencies..."}
+          {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for stocks..."}
         </Button>
         
         <CommandDialog open={isSearchOpen} onOpenChange={open => {
@@ -203,17 +199,17 @@ export const AssetTypeSelector = ({
         }
       }}>
           <DialogTitle className="sr-only">
-            Search Assets
+            Search Stocks
           </DialogTitle>
-          <CommandInput placeholder="Type to search for stocks or cryptocurrencies..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
+          <CommandInput placeholder="Type to search for stocks..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
           <CommandList>
             <CommandEmpty>
               {isLoading ? <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div> : searchQuery.trim() === "" ? <p className="p-4 text-center text-sm text-muted-foreground">
-                  Type to search for assets
+                  Type to search for stocks
                 </p> : <p className="p-4 text-center text-sm text-muted-foreground">
-                  No assets found
+                  No stocks found
                 </p>}
             </CommandEmpty>
             {searchResults.length > 0 && <CommandGroup heading="Search Results">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -20,7 +19,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-
 const formSchema = z.object({
   name: z.string().min(1, "Strategy name is required"),
   description: z.string().min(1, "Strategy description is required"),
@@ -31,11 +29,11 @@ const formSchema = z.object({
   singleBuyVolume: z.string().min(1, "Single buy volume is required"),
   maxBuyVolume: z.string().min(1, "Maximum buy volume is required")
 });
-
 type FormValues = z.infer<typeof formSchema>;
-
 const ManualStrategy = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
@@ -61,7 +59,6 @@ const ManualStrategy = () => {
     logic: "OR",
     inequalities: []
   }]);
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,9 +71,8 @@ const ManualStrategy = () => {
       singleBuyVolume: "",
       maxBuyVolume: ""
     },
-    mode: "onChange",
+    mode: "onChange"
   });
-
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     form.setValue("targetAsset", symbol);
@@ -86,55 +82,44 @@ const ManualStrategy = () => {
   // Validate trading rules
   const validateTradingRules = () => {
     const errors: string[] = [];
-    
+
     // Check if at least one entry rule exists
-    const hasEntryRules = entryRules.some(group => 
-      Array.isArray(group.inequalities) && group.inequalities.length > 0
-    );
-    
+    const hasEntryRules = entryRules.some(group => Array.isArray(group.inequalities) && group.inequalities.length > 0);
     if (!hasEntryRules) {
       errors.push("At least one entry rule is required");
     }
-    
+
     // Check if at least one exit rule exists
-    const hasExitRules = exitRules.some(group => 
-      Array.isArray(group.inequalities) && group.inequalities.length > 0
-    );
-    
+    const hasExitRules = exitRules.some(group => Array.isArray(group.inequalities) && group.inequalities.length > 0);
     if (!hasExitRules) {
       errors.push("At least one exit rule is required");
     }
-    
+
     // Check OR groups
     entryRules.forEach(group => {
       if (group.logic === "OR" && Array.isArray(group.inequalities) && group.inequalities.length === 1) {
         errors.push("OR groups must have at least 2 conditions");
       }
     });
-    
     exitRules.forEach(group => {
       if (group.logic === "OR" && Array.isArray(group.inequalities) && group.inequalities.length === 1) {
         errors.push("OR groups must have at least 2 conditions");
       }
     });
-    
     return errors;
   };
-
   const onSubmit = async (values: FormValues) => {
     setIsFormSubmitted(true);
-    
     if (!user) {
       toast.error("Authentication required", {
         description: "Please log in to save your strategy"
       });
       return;
     }
-    
+
     // Validate trading rules
     const ruleErrors = validateTradingRules();
     setValidationErrors(ruleErrors);
-    
     if (ruleErrors.length > 0) {
       // Display errors on the page
       toast.error("Strategy validation failed", {
@@ -142,7 +127,6 @@ const ManualStrategy = () => {
       });
       return;
     }
-    
     setIsSaving(true);
     try {
       // Format strategy in the same structure as the AI-generated one
@@ -160,7 +144,6 @@ const ManualStrategy = () => {
           maxBuyVolume: values.maxBuyVolume
         }
       };
-      
       const strategyId = await saveGeneratedStrategy(strategy);
       toast.success("Strategy saved", {
         description: "Your strategy has been saved successfully"
@@ -184,12 +167,11 @@ const ManualStrategy = () => {
       setValidationErrors(validateTradingRules());
     }
   }, [entryRules, exitRules, isFormSubmitted]);
-
   return <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Create a Manual Strategy</h1>
+          <h1 className="text-3xl font-bold mb-2">Create a Strategy</h1>
           <p className="text-muted-foreground">
             Create your own trading strategy by defining rules and parameters
           </p>
@@ -251,19 +233,15 @@ const ManualStrategy = () => {
             </Card>
 
             <div className="mb-6">
-              <FormField
-                control={form.control}
-                name="targetAsset"
-                render={({ field }) => (
-                  <FormItem>
+              <FormField control={form.control} name="targetAsset" render={({
+              field
+            }) => <FormItem>
                     <FormLabel>Target Asset</FormLabel>
                     <FormControl>
                       <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  </FormItem>} />
             </div>
 
             <Card className="p-6">
@@ -323,27 +301,16 @@ const ManualStrategy = () => {
               </div>
             </Card>
 
-            {validationErrors.length > 0 && (
-              <Alert variant="destructive" className="mb-4">
+            {validationErrors.length > 0 && <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4 mr-2" />
                 <AlertDescription>
                   <ul className="list-disc pl-5">
-                    {validationErrors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
+                    {validationErrors.map((error, index) => <li key={index}>{error}</li>)}
                   </ul>
                 </AlertDescription>
-              </Alert>
-            )}
+              </Alert>}
 
-            <TradingRules 
-              entryRules={entryRules} 
-              exitRules={exitRules} 
-              onEntryRulesChange={setEntryRules} 
-              onExitRulesChange={setExitRules} 
-              editable={true} 
-              showValidation={isFormSubmitted} 
-            />
+            <TradingRules entryRules={entryRules} exitRules={exitRules} onEntryRulesChange={setEntryRules} onExitRulesChange={setExitRules} editable={true} showValidation={isFormSubmitted} />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isSaving}>
@@ -355,5 +322,4 @@ const ManualStrategy = () => {
       </main>
     </div>;
 };
-
 export default ManualStrategy;

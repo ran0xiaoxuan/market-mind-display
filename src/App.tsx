@@ -14,7 +14,6 @@ import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Strategies from "./pages/Strategies";
-import ManualStrategy from "./pages/ManualStrategy";
 import AIStrategy from "./pages/AIStrategy";
 import Backtest from "./pages/Backtest";
 import BacktestHistory from "./pages/BacktestHistory";
@@ -50,7 +49,6 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/strategy/:id" element={<StrategyDetail />} />
-          <Route path="/manual-strategy" element={<ManualStrategy />} />
           <Route path="/ai-strategy" element={<AIStrategy />} />
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/backtest-history" element={<BacktestHistory />} />

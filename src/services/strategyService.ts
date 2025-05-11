@@ -448,18 +448,19 @@ const saveRuleGroups = async (
         for (let j = 0; j < group.inequalities.length; j++) {
           const inequality = group.inequalities[j];
           
+          // Ensure we have all the required fields with proper default values
           const { data: ruleData, error: ruleError } = await supabase
             .from('trading_rules')
             .insert({
               rule_group_id: groupId,
               inequality_order: j + 1,
-              left_type: inequality.left.type,
+              left_type: inequality.left.type || '',
               left_indicator: inequality.left.indicator || null,
               left_parameters: inequality.left.parameters || null,
               left_value: inequality.left.value || null,
               left_value_type: inequality.left.valueType || null,
-              condition: inequality.condition,
-              right_type: inequality.right.type,
+              condition: inequality.condition || '',
+              right_type: inequality.right.type || '',
               right_indicator: inequality.right.indicator || null,
               right_parameters: inequality.right.parameters || null,
               right_value: inequality.right.value || null,
@@ -471,6 +472,7 @@ const saveRuleGroups = async (
           
           if (ruleError) {
             console.error(`Error saving inequality ${j+1} for group ${groupId}:`, ruleError);
+            console.error("Inequality data:", JSON.stringify(inequality));
             throw ruleError;
           }
           

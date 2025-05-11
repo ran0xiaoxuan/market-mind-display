@@ -69,11 +69,18 @@ Name: "AAPL Momentum Crossover Strategy with Volume Confirmation"
 
 Description: "This strategy for Apple Inc. (AAPL) leverages momentum trends following product announcements. By combining moving averages with RSI confirmation, it captures AAPL's momentum while filtering false signals through volume analysis. Effective during market uncertainty when AAPL behaves as a safe-haven tech stock. Designed for 2-4 week positions, aligning with AAPL's price cycles, with stop-loss levels calibrated to historical volatility."
 
+## IMPORTANT FORMAT FOR RULES:
+For each rule, make sure the left and right sides are properly formatted with:
+- type: "INDICATOR" or "VALUE"
+- indicator: name of the indicator (e.g., "SMA", "RSI") when type is "INDICATOR"
+- parameters: appropriate parameters for the indicator (e.g., period, source)
+- value: actual value when type is "VALUE"
+- valueType: "number" or "string" to indicate the type of value
+
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name (MUST include the asset symbol)
 - description: A concise explanation of what the strategy does (60-80 words)
-- market: "Equities" for stocks
-- timeframe: The trading timeframe (e.g., "Daily", "4-Hour", "15-Minute")
+- timeframe: The trading timeframe (e.g., "1d", "4h", "15m")
 - targetAsset: The symbol of the asset to trade
 - entryRules: An array of rule groups for entry, each with:
   - id: unique identifier

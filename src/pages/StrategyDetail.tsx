@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -15,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
 
 const StrategyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -245,10 +245,10 @@ const StrategyDetail = () => {
         
         <PerformanceMetricsCard strategyId={id || ""} />
         
-        <div>
+        <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Trade History</h2>
           <TradeHistoryTable trades={trades} />
-        </div>
+        </Card>
       </div>
     </Container>
   );

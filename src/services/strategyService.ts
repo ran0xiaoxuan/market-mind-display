@@ -262,6 +262,22 @@ export const getStrategies = async (): Promise<Strategy[]> => {
 
 export const deleteStrategy = async (id: string): Promise<void> => {
   try {
+    console.log("Attempting to delete strategy with ID:", id);
+    
+    // First, delete related rule groups (which will cascade to trading rules)
+    const { error: ruleGroupsError } = await supabase
+      .from('rule_groups')
+      .delete()
+      .eq('strategy_id', id);
+      
+    if (ruleGroupsError) {
+      console.error("Error deleting rule groups:", ruleGroupsError);
+      throw ruleGroupsError;
+    }
+    
+    console.log("Successfully deleted related rule groups");
+    
+    // Now delete the strategy itself
     const { error } = await supabase
       .from('strategies')
       .delete()
@@ -271,6 +287,8 @@ export const deleteStrategy = async (id: string): Promise<void> => {
       console.error("Error deleting strategy:", error);
       throw error;
     }
+    
+    console.log("Strategy deletion successful");
   } catch (error) {
     console.error("Error in deleteStrategy:", error);
     throw error;

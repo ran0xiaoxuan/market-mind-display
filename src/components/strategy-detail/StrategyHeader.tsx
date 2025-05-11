@@ -2,7 +2,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
@@ -28,6 +27,7 @@ export const StrategyHeader = ({
     
     try {
       setIsDeleting(true);
+      console.log("Deleting strategy with ID:", strategyId);
       await deleteStrategy(strategyId);
       toast.success("Strategy deleted", {
         description: "The strategy has been successfully deleted"

@@ -51,13 +51,29 @@ serve(async (req) => {
       );
     }
     
-    // Build prompt for OpenAI
+    // Build enhanced prompt for OpenAI
     const systemPrompt = `You are a trading strategy assistant that helps create detailed trading strategies. 
 You will be given an asset type, an asset name, and a strategy description. 
 Generate a complete trading strategy with entry rules, exit rules, and risk management for stocks.
+
+## IMPORTANT FORMATTING REQUIREMENTS:
+1. ALWAYS include the asset symbol (e.g., "AAPL", "MSFT") in the strategy name/title.
+2. Write a detailed strategy description of at least 100-150 words that explains:
+   - The core principles behind the strategy
+   - Why this strategy is suitable for the specific asset
+   - The market conditions under which the strategy works best
+   - The key indicators used and why they're relevant for this asset
+   - The expected timeframe for results
+   - The risk/reward profile of the strategy
+
+## EXAMPLE TITLE AND DESCRIPTION:
+Name: "AAPL Momentum Crossover Strategy with Volume Confirmation"
+
+Description: "This strategy for Apple Inc. (AAPL) leverages the stock's characteristic volatility patterns and strong momentum trends that typically follow product announcements and earnings reports. The approach combines multiple technical indicators to identify optimal entry and exit points while managing risk effectively. By utilizing a dual moving average system with RSI confirmation, the strategy aims to capture AAPL's frequent momentum swings while filtering out false signals through volume analysis. This makes it particularly effective during periods of market uncertainty when AAPL often behaves as a safe-haven tech stock. The strategy is designed for medium-term positions spanning 2-4 weeks, aligning with AAPL's typical price action cycles. The risk management parameters are calibrated specifically for AAPL's historical volatility profile, with stop-loss levels accounting for the stock's average daily movement range over the past two years."
+
 Always return your response as a valid JSON object with these properties:
-- name: The strategy name
-- description: A summary of what the strategy does
+- name: The strategy name (MUST include the asset symbol)
+- description: A detailed explanation of what the strategy does (at least 100 words)
 - market: "Equities" for stocks
 - timeframe: The trading timeframe (e.g., "Daily", "4-Hour", "15-Minute")
 - targetAsset: The symbol of the asset to trade
@@ -83,7 +99,7 @@ Always return your response as a valid JSON object with these properties:
 Asset Name: ${selectedAsset}
 Strategy Description: ${strategyDescription}
 
-Generate a detailed trading strategy as a JSON object.`;
+Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a comprehensive description explaining why this strategy is suitable for ${selectedAsset}.`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);

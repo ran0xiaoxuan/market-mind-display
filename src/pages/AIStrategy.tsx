@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const AIStrategy = () => {
   const { user } = useAuth();
@@ -185,7 +187,7 @@ const AIStrategy = () => {
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">AI Strategy Generator</h1>
               <p className="text-muted-foreground">
-                Select your stock and describe your ideal trading strategy
+                Select your stock and describe your ideal trading strategy in detail
               </p>
             </div>
 
@@ -330,7 +332,7 @@ const AIStrategy = () => {
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-8">
-              <div>
+              <div className="max-w-3xl">
                 <Button
                   variant="outline"
                   onClick={handleReset}
@@ -339,9 +341,13 @@ const AIStrategy = () => {
                   Generate Another Strategy
                 </Button>
                 <h1 className="text-3xl font-bold">{generatedStrategy.name}</h1>
-                <p className="text-muted-foreground mt-2">
-                  {generatedStrategy.description}
-                </p>
+                <div className="mt-4 text-muted-foreground">
+                  <ScrollArea className="max-h-[200px] rounded-md border p-4">
+                    <p className="whitespace-pre-line">
+                      {generatedStrategy.description}
+                    </p>
+                  </ScrollArea>
+                </div>
               </div>
               <Button
                 onClick={handleSaveStrategy}

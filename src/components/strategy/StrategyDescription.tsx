@@ -16,14 +16,21 @@ export const StrategyDescription = ({
   return (
     <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Describe Your Ideal Strategy</h2>
-      <p className="text-sm text-muted-foreground mb-4">Tell us about your trading goals and specific requirements</p>
+      <p className="text-sm text-muted-foreground mb-4">
+        Tell us about your trading goals and specific requirements. The more detail you provide, 
+        the better the AI can generate a strategy tailored to your needs.
+      </p>
       
       <Textarea 
-        placeholder="Describe your ideal trading strategy. For example, I want a momentum-based strategy using RSI and MACD indicators, with a medium risk tolerance. Focus on mid-term investment time zones, with a profit-loss ratio of 2:1."
-        className="min-h-[120px]"
+        placeholder="Describe your ideal trading strategy in detail. For example: 'I want a momentum-based strategy using RSI and MACD indicators, with a medium risk tolerance. Focus on mid-term investment time zones, with a profit-loss ratio of 2:1. The strategy should capitalize on typical volatility patterns after earnings announcements.'"
+        className="min-h-[150px]"
         value={description}
         onChange={(e) => onDescriptionChange(e.target.value)}
       />
+      
+      <div className="mt-3 text-xs text-muted-foreground">
+        <p>💡 <strong>Pro tip:</strong> The more specific your description, the better the AI can generate a tailored strategy.</p>
+      </div>
     </Card>
   );
 };

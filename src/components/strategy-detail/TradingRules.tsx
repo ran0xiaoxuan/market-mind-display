@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -7,9 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AvailableIndicators } from "./AvailableIndicators";
 import { Button } from "@/components/ui/button";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { v4 as uuidv4 } from "uuid";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
@@ -35,20 +37,50 @@ export const TradingRules = ({
   const safeEntryRules = Array.isArray(entryRules) ? entryRules : [];
   const safeExitRules = Array.isArray(exitRules) ? exitRules : [];
   
+  // Validate rule structure and fix any issues
+  const validateRuleGroups = (rules: RuleGroupData[]): RuleGroupData[] => {
+    return rules.map(group => {
+      // Ensure inequalities array exists and is properly formed
+      const validInequalities = Array.isArray(group.inequalities) ? group.inequalities.map(ineq => {
+        // Fix any missing or incorrect types
+        return {
+          ...ineq,
+          left: {
+            ...ineq.left,
+            type: ineq.left?.type || (ineq.left?.indicator ? "INDICATOR" : "VALUE")
+          },
+          right: {
+            ...ineq.right,
+            type: ineq.right?.type || (ineq.right?.indicator ? "INDICATOR" : "VALUE")
+          }
+        };
+      }) : [];
+      
+      return {
+        ...group,
+        inequalities: validInequalities
+      };
+    });
+  };
+  
+  // Apply validation to both rule sets
+  const validatedEntryRules = validateRuleGroups(safeEntryRules);
+  const validatedExitRules = validateRuleGroups(safeExitRules);
+  
   // Count total rules for badges
-  const entryRuleCount = safeEntryRules.reduce(
+  const entryRuleCount = validatedEntryRules.reduce(
     (total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 
     0
   );
   
-  const exitRuleCount = safeExitRules.reduce(
+  const exitRuleCount = validatedExitRules.reduce(
     (total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 
     0
   );
 
   const handleEntryRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onEntryRulesChange) return;
-    const updatedRules = [...safeEntryRules];
+    const updatedRules = [...validatedEntryRules];
     updatedRules[groupIndex] = {
       ...updatedRules[groupIndex],
       inequalities: updatedInequalities
@@ -58,7 +90,7 @@ export const TradingRules = ({
 
   const handleEntryRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onEntryRulesChange) return;
-    const updatedRules = [...safeEntryRules];
+    const updatedRules = [...validatedEntryRules];
     updatedRules[groupIndex] = {
       ...updatedRules[groupIndex],
       requiredConditions: count
@@ -68,7 +100,7 @@ export const TradingRules = ({
 
   const handleExitRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onExitRulesChange) return;
-    const updatedRules = [...safeExitRules];
+    const updatedRules = [...validatedExitRules];
     updatedRules[groupIndex] = {
       ...updatedRules[groupIndex],
       inequalities: updatedInequalities
@@ -78,7 +110,7 @@ export const TradingRules = ({
 
   const handleExitRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onExitRulesChange) return;
-    const updatedRules = [...safeExitRules];
+    const updatedRules = [...validatedExitRules];
     updatedRules[groupIndex] = {
       ...updatedRules[groupIndex],
       requiredConditions: count
@@ -89,17 +121,17 @@ export const TradingRules = ({
   // Create rule group if none exists
   const ensureRuleGroups = (isEntryRules: boolean) => {
     if (isEntryRules && onEntryRulesChange) {
-      if (safeEntryRules.length === 0) {
+      if (validatedEntryRules.length === 0) {
         onEntryRulesChange([
           { id: 1, logic: "AND", inequalities: [] },
-          { id: 2, logic: "OR", inequalities: [] }
+          { id: 2, logic: "OR", inequalities: [], requiredConditions: 1 }
         ]);
       }
     } else if (!isEntryRules && onExitRulesChange) {
-      if (safeExitRules.length === 0) {
+      if (validatedExitRules.length === 0) {
         onExitRulesChange([
           { id: 1, logic: "AND", inequalities: [] },
-          { id: 2, logic: "OR", inequalities: [] }
+          { id: 2, logic: "OR", inequalities: [], requiredConditions: 1 }
         ]);
       }
     }
@@ -110,12 +142,12 @@ export const TradingRules = ({
     const newInequalityId = uuidv4();
     
     if (isEntryRule && onEntryRulesChange) {
-      const updatedRules = [...safeEntryRules];
+      const updatedRules = [...validatedEntryRules];
       const newInequality: Inequality = {
         id: newInequalityId,
-        left: { type: '', indicator: '', parameters: {} },
+        left: { type: 'INDICATOR', indicator: '', parameters: {} },
         condition: '',
-        right: { type: '', indicator: '', parameters: {} }
+        right: { type: 'VALUE', value: '', indicator: '', parameters: {} }
       };
 
       updatedRules[groupIndex] = {
@@ -126,12 +158,12 @@ export const TradingRules = ({
       onEntryRulesChange(updatedRules);
       setNewlyAddedConditionId(newInequalityId);
     } else if (!isEntryRule && onExitRulesChange) {
-      const updatedRules = [...safeExitRules];
+      const updatedRules = [...validatedExitRules];
       const newInequality: Inequality = {
         id: newInequalityId,
-        left: { type: '', indicator: '', parameters: {} },
+        left: { type: 'INDICATOR', indicator: '', parameters: {} },
         condition: '',
-        right: { type: '', indicator: '', parameters: {} }
+        right: { type: 'VALUE', value: '', indicator: '', parameters: {} }
       };
 
       updatedRules[groupIndex] = {
@@ -148,7 +180,7 @@ export const TradingRules = ({
     if (!onEntryRulesChange) return;
     onEntryRulesChange([
       { id: 1, logic: "AND", inequalities: [] },
-      { id: 2, logic: "OR", inequalities: [] }
+      { id: 2, logic: "OR", inequalities: [], requiredConditions: 1 }
     ]);
   };
 
@@ -156,17 +188,17 @@ export const TradingRules = ({
     if (!onExitRulesChange) return;
     onExitRulesChange([
       { id: 1, logic: "AND", inequalities: [] },
-      { id: 2, logic: "OR", inequalities: [] }
+      { id: 2, logic: "OR", inequalities: [], requiredConditions: 1 }
     ]);
   };
 
   // Updated check for no rules - also checking if the inequalities arrays are empty
   const hasNoRules = (
-    safeEntryRules.length === 0 || 
-    (safeEntryRules.every(group => !group.inequalities || group.inequalities.length === 0)) 
+    validatedEntryRules.length === 0 || 
+    (validatedEntryRules.every(group => !group.inequalities || group.inequalities.length === 0)) 
   ) && (
-    safeExitRules.length === 0 || 
-    (safeExitRules.every(group => !group.inequalities || group.inequalities.length === 0))
+    validatedExitRules.length === 0 || 
+    (validatedExitRules.every(group => !group.inequalities || group.inequalities.length === 0))
   );
 
   // Clear newly added condition ID after it's been used
@@ -208,13 +240,13 @@ export const TradingRules = ({
         
         <TabsContent value="entry" className="mt-0">
           <div className="space-y-6">
-            {safeEntryRules.length > 0 ? (
+            {validatedEntryRules.length > 0 ? (
               <>
                 <RuleGroup 
                   title="AND Group" 
                   color="blue" 
                   description="All conditions must be met." 
-                  inequalities={safeEntryRules[0]?.inequalities || []} 
+                  inequalities={validatedEntryRules[0]?.inequalities || []} 
                   editable={editable} 
                   onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
                   className="bg-blue-50/50 border border-blue-100" 
@@ -224,15 +256,15 @@ export const TradingRules = ({
                   onClearNewlyAddedCondition={handleClearNewlyAddedCondition}
                 />
                 
-                {safeEntryRules.length > 1 && (
+                {validatedEntryRules.length > 1 && (
                   <RuleGroup 
                     title="OR Group" 
                     color="amber" 
-                    description={`At least ${safeEntryRules[1]?.requiredConditions || 1} of ${Math.max(2, (safeEntryRules[1]?.inequalities || []).length)} conditions must be met.`}
-                    inequalities={safeEntryRules[1]?.inequalities || []} 
+                    description={`At least ${validatedEntryRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedEntryRules[1]?.inequalities || []).length)} conditions must be met.`}
+                    inequalities={validatedEntryRules[1]?.inequalities || []} 
                     editable={editable} 
                     onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 
-                    requiredConditions={safeEntryRules[1]?.requiredConditions} 
+                    requiredConditions={validatedEntryRules[1]?.requiredConditions} 
                     onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
                     className="bg-amber-50/50 border border-amber-100"
                     onAddRule={() => handleAddCondition(true, 1)}
@@ -259,13 +291,13 @@ export const TradingRules = ({
         
         <TabsContent value="exit" className="mt-0">
           <div className="space-y-6">
-            {safeExitRules.length > 0 ? (
+            {validatedExitRules.length > 0 ? (
               <>
                 <RuleGroup 
                   title="AND Group" 
                   color="blue" 
                   description="All conditions must be met." 
-                  inequalities={safeExitRules[0]?.inequalities || []} 
+                  inequalities={validatedExitRules[0]?.inequalities || []} 
                   editable={editable} 
                   onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
                   className="bg-blue-50/50 border border-blue-100"
@@ -275,15 +307,15 @@ export const TradingRules = ({
                   onClearNewlyAddedCondition={handleClearNewlyAddedCondition}
                 />
                 
-                {safeExitRules.length > 1 && (
+                {validatedExitRules.length > 1 && (
                   <RuleGroup 
                     title="OR Group" 
                     color="amber" 
-                    description={`At least ${safeExitRules[1]?.requiredConditions || 1} of ${Math.max(2, (safeExitRules[1]?.inequalities || []).length)} conditions must be met.`}
-                    inequalities={safeExitRules[1]?.inequalities || []} 
+                    description={`At least ${validatedExitRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedExitRules[1]?.inequalities || []).length)} conditions must be met.`}
+                    inequalities={validatedExitRules[1]?.inequalities || []} 
                     editable={editable} 
                     onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} 
-                    requiredConditions={safeExitRules[1]?.requiredConditions} 
+                    requiredConditions={validatedExitRules[1]?.requiredConditions} 
                     onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
                     className="bg-amber-50/50 border border-amber-100"
                     onAddRule={() => handleAddCondition(false, 1)}

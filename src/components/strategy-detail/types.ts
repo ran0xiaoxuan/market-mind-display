@@ -79,7 +79,7 @@ export type IndicatorParameters = {
 };
 
 export type InequalitySide = {
-  type: string;
+  type: "INDICATOR" | "VALUE" | string;
   indicator?: string;
   parameters?: IndicatorParameters;
   value?: string;

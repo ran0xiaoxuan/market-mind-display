@@ -72,11 +72,11 @@ Description: "This strategy for Apple Inc. (AAPL) leverages momentum trends foll
 
 ## IMPORTANT FORMAT FOR RULES:
 For each rule, make sure the left and right sides are properly formatted with:
-- type: "INDICATOR" or "VALUE"
-- indicator: name of the indicator (e.g., "SMA", "RSI") when type is "INDICATOR"
-- parameters: appropriate parameters for the indicator (e.g., period, source)
-- value: actual value when type is "VALUE"
-- valueType: only include this field when absolutely necessary
+- type: Must be either "INDICATOR" or "VALUE" - never leave this empty or unknown
+- indicator: Required name of the indicator (e.g., "SMA", "RSI") when type is "INDICATOR"
+- parameters: Required appropriate parameters for the indicator (e.g., period, source)
+- value: Required actual value when type is "VALUE"
+- Do NOT include valueType field unless absolutely necessary for special cases
 
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name (MUST include the asset symbol)
@@ -89,16 +89,16 @@ Always return your response as a valid JSON object with these properties:
   - requiredConditions: number (only required for OR logic)
   - inequalities: array of inequality objects with:
     - id: unique identifier
-    - left: {type, indicator, parameters, value}
+    - left: {type, indicator, parameters, value} (type must be "INDICATOR" or "VALUE")
     - condition: string describing condition
-    - right: {type, indicator, parameters, value}
+    - right: {type, indicator, parameters, value} (type must be "INDICATOR" or "VALUE")
     - explanation: string explaining the rule
 - exitRules: Same structure as entryRules but for exit conditions
 - riskManagement: {
   stopLoss: percentage as string
   takeProfit: percentage as string
-  singleBuyVolume: amount as string
-  maxBuyVolume: amount as string
+  singleBuyVolume: amount as string with $ prefix
+  maxBuyVolume: amount as string with $ prefix
 }`;
 
     const userPrompt = `Asset Type: ${assetType}
@@ -197,37 +197,91 @@ Generate a detailed trading strategy as a JSON object. Remember to include "${se
 
       console.log("Successfully parsed strategy JSON:", strategyJSON);
       
-      // Clean up the valueType fields
+      // Process the strategy rules to ensure all types are set correctly
       if (strategyJSON.entryRules && Array.isArray(strategyJSON.entryRules)) {
         strategyJSON.entryRules.forEach(ruleGroup => {
           if (ruleGroup.inequalities && Array.isArray(ruleGroup.inequalities)) {
             ruleGroup.inequalities.forEach(inequality => {
-              // Remove valueType if it's "number" since that's the default
-              if (inequality.left && inequality.left.valueType === "number") {
-                delete inequality.left.valueType;
+              // Ensure left side has correct type
+              if (inequality.left) {
+                // Default to VALUE if type is missing or unknown
+                if (!inequality.left.type || inequality.left.type === 'unknown' || inequality.left.type === '') {
+                  inequality.left.type = inequality.left.indicator ? "INDICATOR" : "VALUE";
+                }
+                // Remove valueType if present
+                if (inequality.left.valueType) {
+                  delete inequality.left.valueType;
+                }
               }
-              if (inequality.right && inequality.right.valueType === "number") {
-                delete inequality.right.valueType;
+              
+              // Ensure right side has correct type
+              if (inequality.right) {
+                // Default to VALUE if type is missing or unknown
+                if (!inequality.right.type || inequality.right.type === 'unknown' || inequality.right.type === '') {
+                  inequality.right.type = inequality.right.indicator ? "INDICATOR" : "VALUE";
+                }
+                // Remove valueType if present
+                if (inequality.right.valueType) {
+                  delete inequality.right.valueType;
+                }
               }
             });
           }
         });
       }
 
+      // Apply the same fixes to exit rules
       if (strategyJSON.exitRules && Array.isArray(strategyJSON.exitRules)) {
         strategyJSON.exitRules.forEach(ruleGroup => {
           if (ruleGroup.inequalities && Array.isArray(ruleGroup.inequalities)) {
             ruleGroup.inequalities.forEach(inequality => {
-              // Remove valueType if it's "number" since that's the default
-              if (inequality.left && inequality.left.valueType === "number") {
-                delete inequality.left.valueType;
+              // Ensure left side has correct type
+              if (inequality.left) {
+                if (!inequality.left.type || inequality.left.type === 'unknown' || inequality.left.type === '') {
+                  inequality.left.type = inequality.left.indicator ? "INDICATOR" : "VALUE";
+                }
+                if (inequality.left.valueType) {
+                  delete inequality.left.valueType;
+                }
               }
-              if (inequality.right && inequality.right.valueType === "number") {
-                delete inequality.right.valueType;
+              
+              // Ensure right side has correct type
+              if (inequality.right) {
+                if (!inequality.right.type || inequality.right.type === 'unknown' || inequality.right.type === '') {
+                  inequality.right.type = inequality.right.indicator ? "INDICATOR" : "VALUE";
+                }
+                if (inequality.right.valueType) {
+                  delete inequality.right.valueType;
+                }
               }
             });
           }
         });
+      }
+
+      // Ensure risk management values are properly formatted
+      if (strategyJSON.riskManagement) {
+        // Format volume values with $ prefix
+        if (strategyJSON.riskManagement.singleBuyVolume) {
+          strategyJSON.riskManagement.singleBuyVolume = strategyJSON.riskManagement.singleBuyVolume.startsWith('$') ? 
+            strategyJSON.riskManagement.singleBuyVolume : 
+            '$' + strategyJSON.riskManagement.singleBuyVolume.replace(/%/g, '').trim();
+        }
+        
+        if (strategyJSON.riskManagement.maxBuyVolume) {
+          strategyJSON.riskManagement.maxBuyVolume = strategyJSON.riskManagement.maxBuyVolume.startsWith('$') ? 
+            strategyJSON.riskManagement.maxBuyVolume : 
+            '$' + strategyJSON.riskManagement.maxBuyVolume.replace(/%/g, '').trim();
+        }
+        
+        // Ensure percentage values have % symbol
+        if (strategyJSON.riskManagement.stopLoss && !strategyJSON.riskManagement.stopLoss.includes('%')) {
+          strategyJSON.riskManagement.stopLoss += '%';
+        }
+        
+        if (strategyJSON.riskManagement.takeProfit && !strategyJSON.riskManagement.takeProfit.includes('%')) {
+          strategyJSON.riskManagement.takeProfit += '%';
+        }
       }
 
       return new Response(

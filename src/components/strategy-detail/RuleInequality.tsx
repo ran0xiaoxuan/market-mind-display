@@ -1,750 +1,396 @@
 
-import { Badge } from "@/components/Badge";
-import { IndicatorParameter } from "./IndicatorParameter";
-import { Inequality, InequalitySide } from "./types";
-import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Check, X, Info, Search, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Inequality } from "./types";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { getSupportedIndicators } from "@/services/taapiService";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
+import { IndicatorParameter } from "./IndicatorParameter";
+import { AvailableIndicators } from "./AvailableIndicators";
 
 interface RuleInequalityProps {
   inequality: Inequality;
   editable?: boolean;
-  onChange?: (inequality: Inequality) => void;
+  onChange?: (updatedInequality: Inequality) => void;
   onDelete?: () => void;
   showValidation?: boolean;
   isNewlyAdded?: boolean;
   onEditingComplete?: () => void;
 }
 
-export const RuleInequality = ({ 
-  inequality, 
+// Main Rule Inequality component
+export const RuleInequality = ({
+  inequality,
   editable = false,
   onChange,
   onDelete,
-  showValidation,
+  showValidation = false,
   isNewlyAdded = false,
   onEditingComplete
 }: RuleInequalityProps) => {
-  const [isEditing, setIsEditing] = useState(isNewlyAdded);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [editedInequality, setEditedInequality] = useState<Inequality>(inequality);
-  const [availableIndicators, setAvailableIndicators] = useState<string[]>([]);
-  const [indicatorSearch, setIndicatorSearch] = useState('');
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isOpen, setIsOpen] = useState<boolean>(isNewlyAdded);
+  const [localInequality, setLocalInequality] = useState<Inequality>(inequality);
   
-  // Set editing mode when isNewlyAdded changes
   useEffect(() => {
+    setLocalInequality(inequality);
+  }, [inequality]);
+
+  useEffect(() => {
+    // When newly added, auto-open the editor
     if (isNewlyAdded) {
-      setIsEditing(true);
-      setEditedInequality({...inequality});
+      setIsOpen(true);
     }
-  }, [isNewlyAdded, inequality]);
-  
-  // Fetch available indicators from TAAPI
-  useEffect(() => {
-    const fetchIndicators = async () => {
-      try {
-        const indicators = await getSupportedIndicators();
-        // Convert to proper case and sort
-        const formattedIndicators = indicators
-          .map(ind => ind.charAt(0).toUpperCase() + ind.slice(1))
-          .sort();
+  }, [isNewlyAdded]);
+
+  const handleSaveChanges = () => {
+    if (onChange) {
+      onChange(localInequality);
+    }
+    setIsOpen(false);
+    if (onEditingComplete) {
+      onEditingComplete();
+    }
+  };
+
+  const handleCancelChanges = () => {
+    setLocalInequality(inequality);
+    setIsOpen(false);
+    if (onEditingComplete) {
+      onEditingComplete();
+    }
+  };
+
+  // Check if the inequality has empty/missing required fields
+  const hasEmptyRequiredFields = (side: 'left' | 'right') => {
+    const sideObj = side === 'left' ? localInequality.left : localInequality.right;
+    
+    if (!sideObj.type) {
+      return true;
+    }
+    
+    if (sideObj.type === 'INDICATOR' && !sideObj.indicator) {
+      return true;
+    }
+    
+    if (sideObj.type === 'VALUE' && sideObj.value === undefined) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  const isIncomplete = !localInequality.condition || 
+                       hasEmptyRequiredFields('left') || 
+                       hasEmptyRequiredFields('right');
+
+  // Format the inequality for display
+  const formatSideForDisplay = (side: any) => {
+    if (!side || !side.type) {
+      return "Unknown";
+    }
+    
+    if (side.type === "INDICATOR") {
+      return side.indicator || "Unknown indicator";
+    } else if (side.type === "VALUE") {
+      return side.value || "0";
+    } else {
+      return "Unknown type";
+    }
+  };
+
+  const getConditionSymbol = (condition: string) => {
+    switch (condition) {
+      case 'CROSSES_ABOVE': return 'crosses above';
+      case 'CROSSES_BELOW': return 'crosses below';
+      case 'GREATER_THAN': return '>';
+      case 'LESS_THAN': return '<';
+      case 'EQUAL': return '=';
+      case 'GREATER_THAN_OR_EQUAL': return '≥';
+      case 'LESS_THAN_OR_EQUAL': return '≤';
+      default: return condition || 'unknown';
+    }
+  };
+
+  // Compact display when not in edit mode
+  const renderCompactDisplay = () => {
+    return (
+      <div className={`p-3 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-1 overflow-hidden">
+            <span className="text-sm font-medium truncate">{formatSideForDisplay(localInequality.left)}</span>
+            <span className="text-xs text-gray-500 px-1">{getConditionSymbol(localInequality.condition)}</span>
+            <span className="text-sm font-medium truncate">{formatSideForDisplay(localInequality.right)}</span>
+            
+            {isIncomplete && showValidation && (
+              <Badge variant="destructive" className="ml-2">Incomplete</Badge>
+            )}
+          </div>
+          
+          {editable && (
+            <div className="flex gap-1 ml-2">
+              <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)} className="h-7 px-2 text-xs">
+                Edit
+              </Button>
+              {onDelete && (
+                <Button variant="ghost" size="sm" onClick={onDelete} className="h-7 px-2 text-xs text-destructive">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
         
-        // Add our standard set of indicators as well
-        const standardIndicators = [
-          "SMA", "EMA", "RSI", "MACD", "Volume", "Volume MA", 
-          "Bollinger Bands", "ATR", "Stochastic", "Ichimoku Cloud",
-          "CCI", "Williams %R", "OBV", "DMI", "Parabolic SAR",
-          "SuperTrend", "Keltner Channel", "Donchian Channel",
-          "MFI", "Stochastic RSI", "ADX", "Awesome Oscillator"
-        ];
-        
-        const allIndicators = Array.from(new Set([...standardIndicators, ...formattedIndicators])).sort();
-        setAvailableIndicators(allIndicators);
-      } catch (error) {
-        console.error("Failed to fetch indicators:", error);
-        // Fallback to standard indicators
-        setAvailableIndicators([
-          "SMA", "EMA", "RSI", "MACD", "Volume", "Volume MA", 
-          "Bollinger Bands", "ATR", "Stochastic", "Ichimoku Cloud",
-          "CCI", "Williams %R", "OBV", "DMI", "Parabolic SAR",
-          "SuperTrend", "Keltner Channel", "Donchian Channel",
-          "MFI", "Stochastic RSI", "ADX", "Awesome Oscillator"
-        ]);
-      }
+        {localInequality.explanation && (
+          <p className="text-xs text-muted-foreground mt-1">{localInequality.explanation}</p>
+        )}
+      </div>
+    );
+  };
+
+  // Expanded edit mode display
+  const renderEditMode = () => {
+    const updateInequality = (
+      side: 'left' | 'right', 
+      field: string, 
+      value: any
+    ) => {
+      const updatedInequality = { 
+        ...localInequality,
+        [side]: { 
+          ...localInequality[side], 
+          [field]: value 
+        }
+      };
+      setLocalInequality(updatedInequality);
     };
     
-    fetchIndicators();
-  }, []);
-  
-  // Filter indicators based on search query
-  const filteredIndicators = indicatorSearch
-    ? availableIndicators.filter(indicator => 
-        indicator.toLowerCase().includes(indicatorSearch.toLowerCase())
-      )
-    : availableIndicators;
-  
-  const conditions = [
-    "Greater Than", "Less Than", 
-    "Crosses Above", "Crosses Below",
-    "Equal To", "Not Equal To",
-    "Multiplied By"
-  ];
-  const valueTypes = ["indicator", "price", "value"];
-  const priceValues = ["Open", "High", "Low", "Close", "Volume"];
-  
-  // Get value type options based on the selected indicator
-  const getValueTypeOptions = (indicator: string | undefined) => {
-    if (!indicator) return [];
-    
-    switch (indicator) {
-      case "MACD":
-        return ["MACD Line", "Signal", "Histogram"];
-      case "Bollinger Bands":
-        return ["Upper Band", "Middle Band", "Lower Band"];
-      case "Stochastic":
-      case "Stochastic RSI":
-        return ["K Line", "D Line"];
-      case "Ichimoku Cloud":
-        return ["Conversion Line", "Base Line", "Leading Span A", "Leading Span B", "Lagging Span", "Cloud"];
-      case "Keltner Channel":
-      case "Donchian Channel":
-        return ["Upper Band", "Middle Line", "Lower Band"];
-      case "DMI":
-        return ["DI+", "DI-", "ADX"];
-      case "SuperTrend":
-        return ["Trend Line", "Direction"];
-      default:
-        return [];
-    }
-  };
-  
-  const validateInequality = (): string[] => {
-    const errors: string[] = [];
-    
-    // Validate left side
-    if (!editedInequality.left.type) {
-      errors.push("Left side type is required");
-    } else if (editedInequality.left.type === "indicator" && !editedInequality.left.indicator) {
-      errors.push("Left side indicator is required");
-    } else if (editedInequality.left.type === "price" && !editedInequality.left.value) {
-      errors.push("Left side price value is required");
-    }
-    
-    // Validate condition
-    if (!editedInequality.condition) {
-      errors.push("Condition is required");
-    }
-    
-    // Validate right side
-    if (!editedInequality.right.type) {
-      errors.push("Right side type is required");
-    } else if (editedInequality.right.type === "indicator" && !editedInequality.right.indicator) {
-      errors.push("Right side indicator is required");
-    } else if (editedInequality.right.type === "price" && !editedInequality.right.value) {
-      errors.push("Right side price value is required");
-    } else if (editedInequality.right.type === "value" && !editedInequality.right.value) {
-      errors.push("Right side value is required");
-    }
-    
-    return errors;
-  };
-  
-  const startEditing = () => {
-    setEditedInequality({...inequality});
-    setIsEditing(true);
-    setValidationErrors([]);
-  };
-  
-  const cancelEditing = () => {
-    setIsEditing(false);
-    setIndicatorSearch('');
-    setValidationErrors([]);
-    
-    // Always delete the inequality when canceling a newly added one
-    if (isNewlyAdded && onDelete) {
-      onDelete();
-      return;
-    } 
-    
-    // If it's not a new inequality and we're canceling edit, just notify parent editing is done
-    if (onEditingComplete) {
-      onEditingComplete();
-    }
-  };
-  
-  const saveChanges = () => {
-    const errors = validateInequality();
-    setValidationErrors(errors);
-    
-    if (errors.length > 0) {
-      toast.error("Please fix all errors before saving");
-      return;
-    }
-    
-    if (onChange) {
-      onChange(editedInequality);
-    }
-    
-    setIsEditing(false);
-    setIndicatorSearch('');
-    
-    if (onEditingComplete) {
-      onEditingComplete();
-    }
-  };
-  
-  const updateLeft = (field: string, value: string) => {
-    setEditedInequality(prev => ({
-      ...prev,
-      left: {
-        ...prev.left,
-        [field]: value
-      }
-    }));
-  };
-  
-  const updateRight = (field: string, value: string) => {
-    setEditedInequality(prev => ({
-      ...prev,
-      right: {
-        ...prev.right,
-        [field]: value
-      }
-    }));
-  };
-  
-  const updateExplanation = (value: string) => {
-    setEditedInequality(prev => ({
-      ...prev,
-      explanation: value
-    }));
-  };
-  
-  const updateLeftParameter = (key: string, value: string) => {
-    setEditedInequality(prev => ({
-      ...prev,
-      left: {
-        ...prev.left,
-        parameters: {
-          ...prev.left.parameters,
-          [key]: value
+    const updateParameters = (
+      side: 'left' | 'right', 
+      paramName: string, 
+      paramValue: string
+    ) => {
+      const currentParams = localInequality[side].parameters || {};
+      const updatedParams = { ...currentParams, [paramName]: paramValue };
+      
+      const updatedInequality = {
+        ...localInequality,
+        [side]: {
+          ...localInequality[side],
+          parameters: updatedParams
         }
-      }
-    }));
-  };
-  
-  const updateRightParameter = (key: string, value: string) => {
-    setEditedInequality(prev => ({
-      ...prev,
-      right: {
-        ...prev.right,
-        parameters: {
-          ...prev.right.parameters,
-          [key]: value
-        }
-      }
-    }));
-  };
-  
-  const renderReadOnlySide = (side: InequalitySide) => {
-    if (side.type === "indicator") {
-      return (
-        <IndicatorParameter 
-          indicator={side.indicator || ""} 
-          parameters={side.parameters || {}} 
-          valueType={side.valueType}
-        />
-      );
-    } else if (side.type === "price") {
-      return (
-        <div className="flex flex-col">
-          <span className="font-medium">{side.value}</span>
-          <span className="text-xs text-muted-foreground">
-            Price value
-          </span>
-        </div>
-      );
-    } else if (side.type === "value") {
-      return (
-        <div className="flex flex-col">
-          <span className="font-medium">{side.value}</span>
-          <span className="text-xs text-muted-foreground">
-            Constant value
-          </span>
-        </div>
-      );
-    }
+      };
+      
+      setLocalInequality(updatedInequality);
+    };
     
     return (
-      <div className="flex flex-col">
-        <span className="font-medium">Unknown type</span>
-      </div>
-    );
-  };
-  
-  const renderEditableSide = (side: InequalitySide, isLeft: boolean) => {
-    const updateSide = isLeft ? updateLeft : updateRight;
-    const updateParameter = isLeft ? updateLeftParameter : updateRightParameter;
-    
-    return (
-      <div className="space-y-2 p-2">
-        {isLeft ? (
-          <Select value={side.type} onValueChange={(val) => updateSide("type", val)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="indicator">Indicator</SelectItem>
-              <SelectItem value="price">Price</SelectItem>
-            </SelectContent>
-          </Select>
-        ) : (
-          <Select value={side.type} onValueChange={(val) => updateSide("type", val)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {valueTypes.map(type => (
-                <SelectItem key={type} value={type}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        
-        {side.type === "indicator" && (
-          <>
-            <div className="relative">
-              <Select value={side.indicator} onValueChange={(val) => updateSide("indicator", val)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Indicator" />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="flex items-center px-2 pb-1 sticky top-0 bg-white z-10">
-                    <Search className="h-4 w-4 mr-2 opacity-50" />
-                    <Input
-                      placeholder="Search indicators..."
-                      value={indicatorSearch}
-                      onChange={(e) => setIndicatorSearch(e.target.value)}
-                      className="h-8"
-                    />
-                  </div>
-                  <ScrollArea className="h-60">
-                    {filteredIndicators.length > 0 ? (
-                      filteredIndicators.map(indicator => (
-                        <SelectItem key={indicator} value={indicator}>
-                          {indicator}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="text-center py-2 text-muted-foreground">
-                        No indicators found
-                      </div>
-                    )}
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 space-y-4">
+        {/* Left side configuration */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Left Side</label>
+            <Select 
+              value={localInequality.left.type} 
+              onValueChange={(value) => updateInequality('left', 'type', value)}
+            >
+              <SelectTrigger className={`${!localInequality.left.type && showValidation ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="INDICATOR">Indicator</SelectItem>
+                  <SelectItem value="VALUE">Value</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             
-            {getValueTypeOptions(side.indicator).length > 0 && (
-              <Select 
-                value={side.valueType || getValueTypeOptions(side.indicator)[0]} 
-                onValueChange={(val) => updateSide("valueType", val)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Component" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getValueTypeOptions(side.indicator).map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            
-            {side.indicator === "MACD" && (
-              <div className="grid grid-cols-3 gap-1">
-                <div>
-                  <span className="text-xs">Fast</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.fast || '12'} 
-                    onChange={(e) => updateParameter("fast", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Slow</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.slow || '26'} 
-                    onChange={(e) => updateParameter("slow", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Signal</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.signal || '9'} 
-                    onChange={(e) => updateParameter("signal", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-
-            {side.indicator === "Bollinger Bands" && (
-              <div className="grid grid-cols-2 gap-1">
-                <div>
-                  <span className="text-xs">Period</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.period || '20'} 
-                    onChange={(e) => updateParameter("period", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Deviation</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.deviation || '2'} 
-                    onChange={(e) => updateParameter("deviation", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-
-            {(side.indicator === "Stochastic" || side.indicator === "Stochastic RSI") && (
-              <div className="grid grid-cols-2 gap-1">
-                <div>
-                  <span className="text-xs">K</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.k || '14'} 
-                    onChange={(e) => updateParameter("k", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">D</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.d || '3'} 
-                    onChange={(e) => updateParameter("d", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {side.indicator === "Ichimoku Cloud" && (
-              <div className="grid grid-cols-2 gap-1">
-                <div>
-                  <span className="text-xs">Conversion</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.conversionPeriod || '9'} 
-                    onChange={(e) => updateParameter("conversionPeriod", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Base</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.basePeriod || '26'} 
-                    onChange={(e) => updateParameter("basePeriod", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Lagging</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.laggingSpan || '52'} 
-                    onChange={(e) => updateParameter("laggingSpan", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Displacement</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.displacement || '26'} 
-                    onChange={(e) => updateParameter("displacement", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {(side.indicator === "ATR" || side.indicator === "SuperTrend") && (
-              <div className="grid grid-cols-2 gap-1">
-                <div>
-                  <span className="text-xs">Period</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.period || '14'} 
-                    onChange={(e) => updateParameter("period", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                {side.indicator === "SuperTrend" && (
-                  <div>
-                    <span className="text-xs">Multiplier</span>
-                    <Input 
-                      type="text" 
-                      value={side.parameters?.multiplier || '3'} 
-                      onChange={(e) => updateParameter("multiplier", e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {(side.indicator === "Keltner Channel" || side.indicator === "Donchian Channel") && (
-              <div className="grid grid-cols-2 gap-1">
-                <div>
-                  <span className="text-xs">Period</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.period || '20'} 
-                    onChange={(e) => updateParameter("period", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                {side.indicator === "Keltner Channel" && (
-                  <>
-                    <div>
-                      <span className="text-xs">ATR Period</span>
-                      <Input 
-                        type="text" 
-                        value={side.parameters?.atrPeriod || '10'} 
-                        onChange={(e) => updateParameter("atrPeriod", e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-xs">Multiplier</span>
-                      <Input 
-                        type="text" 
-                        value={side.parameters?.multiplier || '2'} 
-                        onChange={(e) => updateParameter("multiplier", e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            
-            {["Awesome Oscillator", "AccelerationOscillator"].includes(side.indicator || "") && (
-              <div className="grid grid-cols-2 gap-1">
-                <div>
-                  <span className="text-xs">Fast</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.fast || '5'} 
-                    onChange={(e) => updateParameter("fast", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs">Slow</span>
-                  <Input 
-                    type="text" 
-                    value={side.parameters?.slow || '34'} 
-                    onChange={(e) => updateParameter("slow", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {side.indicator !== "MACD" && side.indicator !== "Bollinger Bands" && 
-             side.indicator !== "Stochastic" && side.indicator !== "Stochastic RSI" && 
-             side.indicator !== "Ichimoku Cloud" && side.indicator !== "ATR" && 
-             side.indicator !== "SuperTrend" && side.indicator !== "Keltner Channel" && 
-             side.indicator !== "Donchian Channel" && side.indicator !== "Awesome Oscillator" && 
-             side.indicator !== "AccelerationOscillator" && (
-              <div>
-                <span className="text-xs">Period</span>
-                <Input 
-                  type="text" 
-                  value={side.parameters?.period || ''} 
-                  onChange={(e) => updateParameter("period", e.target.value)}
-                  className="h-8 text-sm"
+            {localInequality.left.type === 'INDICATOR' ? (
+              <div className="space-y-2">
+                <AvailableIndicators
+                  selectedIndicator={localInequality.left.indicator || ''}
+                  onSelectIndicator={(indicator) => updateInequality('left', 'indicator', indicator)}
+                  className={`${!localInequality.left.indicator && showValidation ? 'border-red-500' : ''}`}
                 />
-              </div>
-            )}
-          </>
-        )}
-        
-        {side.type === "price" && (
-          <Select value={side.value} onValueChange={(val) => updateSide("value", val)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Price" />
-            </SelectTrigger>
-            <SelectContent>
-              {priceValues.map(price => (
-                <SelectItem key={price} value={price}>
-                  {price}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        
-        {!isLeft && side.type === "value" && (
-          <div>
-            <span className="text-xs">Value</span>
-            <Input 
-              type="text" 
-              value={side.value || ''} 
-              onChange={(e) => updateSide("value", e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-  return (
-    <div className="bg-slate-50 p-3 rounded-lg relative">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-        {isEditing ? (
-          <>
-            <div className="bg-white rounded border">
-              {renderEditableSide(editedInequality.left, true)}
-            </div>
-            <div className="flex flex-col items-center justify-center space-y-2">
-              <Select value={editedInequality.condition} onValueChange={(val) => setEditedInequality({...editedInequality, condition: val})}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Condition" />
-                </SelectTrigger>
-                <SelectContent>
-                  {conditions.map(condition => (
-                    <SelectItem key={condition} value={condition}>
-                      {condition}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Explanation Field */}
-              <div className="w-full px-1">
-                <label className="text-xs text-muted-foreground">Explanation (optional)</label>
-                <textarea
-                  value={editedInequality.explanation || ""}
-                  onChange={(e) => updateExplanation(e.target.value)}
-                  className="w-full h-20 text-xs p-2 border rounded-md resize-none"
-                  placeholder="Enter explanation for this rule..."
-                />
-              </div>
-              
-              {/* Validation errors */}
-              {validationErrors.length > 0 && (
-                <div className="w-full bg-red-50 border border-red-200 rounded-md p-2 text-sm">
-                  <div className="flex items-center gap-1 text-red-600 font-medium mb-1">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span>Please fix these errors:</span>
-                  </div>
-                  <ul className="list-disc pl-5 text-xs text-red-600">
-                    {validationErrors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              <div className="flex space-x-2">
-                <Button size="sm" variant="ghost" onClick={cancelEditing}><X className="h-4 w-4 mr-1" /> Cancel</Button>
-                <Button size="sm" variant="default" onClick={saveChanges}><Check className="h-4 w-4 mr-1" /> Save</Button>
-              </div>
-            </div>
-            <div className="bg-white rounded border">
-              {renderEditableSide(editedInequality.right, false)}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="p-2 bg-white rounded border">
-              {renderReadOnlySide(inequality.left)}
-            </div>
-            <div className="flex flex-col justify-center items-center">
-              <Badge variant="outline" className="bg-white font-medium text-center mb-2">
-                {inequality.condition}
-              </Badge>
-              
-              <div className="flex space-x-1 mt-1">
-                {inequality.explanation && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-6 w-6 p-0 text-blue-500"
-                          onClick={() => setShowExplanation(!showExplanation)}
-                        >
-                          <Info className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-xs">
-                        <p className="text-xs">{inequality.explanation}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
                 
-                {editable && !isEditing && (
-                  <>
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={startEditing}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    {onDelete && (
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={onDelete}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </>
+                {localInequality.left.indicator && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Parameters</label>
+                    <div className="grid grid-cols-2 gap-1">
+                      <IndicatorParameter
+                        name="period"
+                        value={(localInequality.left.parameters?.period || '14')}
+                        onChange={(value) => updateParameters('left', 'period', value)}
+                      />
+                      
+                      {/* Add more parameters as needed based on indicator type */}
+                      {localInequality.left.indicator === 'MACD' && (
+                        <>
+                          <IndicatorParameter
+                            name="fast"
+                            value={(localInequality.left.parameters?.fast || '12')}
+                            onChange={(value) => updateParameters('left', 'fast', value)}
+                          />
+                          <IndicatorParameter
+                            name="slow"
+                            value={(localInequality.left.parameters?.slow || '26')}
+                            onChange={(value) => updateParameters('left', 'slow', value)}
+                          />
+                          <IndicatorParameter
+                            name="signal"
+                            value={(localInequality.left.parameters?.signal || '9')}
+                            onChange={(value) => updateParameters('left', 'signal', value)}
+                          />
+                        </>
+                      )}
+                      
+                      {/* Optional source parameter for most indicators */}
+                      <IndicatorParameter
+                        name="source"
+                        value={(localInequality.left.parameters?.source || 'close')}
+                        onChange={(value) => updateParameters('left', 'source', value)}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-            <div className="p-2 bg-white rounded border">
-              {renderReadOnlySide(inequality.right)}
-            </div>
+            ) : localInequality.left.type === 'VALUE' ? (
+              <Input 
+                type="text"
+                value={localInequality.left.value || ''}
+                onChange={(e) => updateInequality('left', 'value', e.target.value)}
+                placeholder="Enter value"
+                className={`${!localInequality.left.value && showValidation ? 'border-red-500' : ''}`}
+              />
+            ) : null}
+          </div>
+          
+          {/* Condition */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Condition</label>
+            <Select 
+              value={localInequality.condition} 
+              onValueChange={(value) => setLocalInequality({...localInequality, condition: value})}
+            >
+              <SelectTrigger className={`${!localInequality.condition && showValidation ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder="Select condition" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="CROSSES_ABOVE">Crosses Above</SelectItem>
+                  <SelectItem value="CROSSES_BELOW">Crosses Below</SelectItem>
+                  <SelectItem value="GREATER_THAN">Greater Than</SelectItem>
+                  <SelectItem value="LESS_THAN">Less Than</SelectItem>
+                  <SelectItem value="EQUAL">Equal</SelectItem>
+                  <SelectItem value="GREATER_THAN_OR_EQUAL">Greater Than or Equal</SelectItem>
+                  <SelectItem value="LESS_THAN_OR_EQUAL">Less Than or Equal</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Right side configuration */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Right Side</label>
+            <Select 
+              value={localInequality.right.type} 
+              onValueChange={(value) => updateInequality('right', 'type', value)}
+            >
+              <SelectTrigger className={`${!localInequality.right.type && showValidation ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="INDICATOR">Indicator</SelectItem>
+                  <SelectItem value="VALUE">Value</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             
-            {/* Explanation panel that can be toggled */}
-            {showExplanation && inequality.explanation && (
-              <div className="col-span-3 mt-2 bg-blue-50 p-3 rounded-md text-sm">
-                <h5 className="font-medium mb-1 text-blue-800">Rule Explanation</h5>
-                <p className="text-blue-700">{inequality.explanation}</p>
+            {localInequality.right.type === 'INDICATOR' ? (
+              <div className="space-y-2">
+                <AvailableIndicators
+                  selectedIndicator={localInequality.right.indicator || ''}
+                  onSelectIndicator={(indicator) => updateInequality('right', 'indicator', indicator)}
+                  className={`${!localInequality.right.indicator && showValidation ? 'border-red-500' : ''}`}
+                />
+                
+                {localInequality.right.indicator && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Parameters</label>
+                    <div className="grid grid-cols-2 gap-1">
+                      <IndicatorParameter
+                        name="period"
+                        value={(localInequality.right.parameters?.period || '14')}
+                        onChange={(value) => updateParameters('right', 'period', value)}
+                      />
+                      
+                      {/* Add more parameters as needed based on indicator type */}
+                      {localInequality.right.indicator === 'MACD' && (
+                        <>
+                          <IndicatorParameter
+                            name="fast"
+                            value={(localInequality.right.parameters?.fast || '12')}
+                            onChange={(value) => updateParameters('right', 'fast', value)}
+                          />
+                          <IndicatorParameter
+                            name="slow"
+                            value={(localInequality.right.parameters?.slow || '26')}
+                            onChange={(value) => updateParameters('right', 'slow', value)}
+                          />
+                          <IndicatorParameter
+                            name="signal"
+                            value={(localInequality.right.parameters?.signal || '9')}
+                            onChange={(value) => updateParameters('right', 'signal', value)}
+                          />
+                        </>
+                      )}
+                      
+                      {/* Optional source parameter for most indicators */}
+                      <IndicatorParameter
+                        name="source"
+                        value={(localInequality.right.parameters?.source || 'close')}
+                        onChange={(value) => updateParameters('right', 'source', value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </>
-        )}
+            ) : localInequality.right.type === 'VALUE' ? (
+              <Input 
+                type="text"
+                value={localInequality.right.value || ''}
+                onChange={(e) => updateInequality('right', 'value', e.target.value)}
+                placeholder="Enter value"
+                className={`${!localInequality.right.value && showValidation ? 'border-red-500' : ''}`}
+              />
+            ) : null}
+          </div>
+        </div>
+        
+        {/* Explanation field */}
+        <div>
+          <label className="text-sm font-medium">Explanation (optional)</label>
+          <Input 
+            type="text"
+            value={localInequality.explanation || ''}
+            onChange={(e) => setLocalInequality({...localInequality, explanation: e.target.value})}
+            placeholder="Explain this rule (optional)"
+          />
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={handleCancelChanges}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleSaveChanges} disabled={isIncomplete && showValidation}>
+            Save
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  return isOpen && editable ? renderEditMode() : renderCompactDisplay();
 };

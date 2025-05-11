@@ -21,6 +21,7 @@ serve(async (req) => {
   try {
     // Check if API key exists
     if (!moonshotApiKey) {
+      console.error("Missing Moonshot API key in environment variables");
       return new Response(
         JSON.stringify({
           error: "API key is required",
@@ -85,6 +86,7 @@ Strategy Description: ${strategyDescription}
 Generate a detailed trading strategy as a JSON object.`;
 
     console.log("Sending request to Moonshot AI with prompts:", { systemPrompt, userPrompt });
+    console.log("API Key available:", !!moonshotApiKey);
     
     // Create the request to Moonshot API
     const response = await fetch(MOONSHOT_API_URL, {
@@ -111,13 +113,24 @@ Generate a detailed trading strategy as a JSON object.`;
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Moonshot API error:", errorData);
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { raw: errorText };
+      }
+      
+      console.error("Moonshot API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
       
       return new Response(
         JSON.stringify({
           error: `Moonshot API error: ${response.status} ${response.statusText}`,
-          type: "api_response_error",
+          type: "api_error",
           details: errorData
         }),
         {
@@ -136,7 +149,8 @@ Generate a detailed trading strategy as a JSON object.`;
       return new Response(
         JSON.stringify({
           error: "Invalid response from Moonshot AI",
-          type: "parsing_error"
+          type: "parsing_error",
+          rawResponse: moonshotResponse
         }),
         {
           status: 500,
@@ -159,6 +173,8 @@ Generate a detailed trading strategy as a JSON object.`;
         strategyJSON = JSON.parse(aiResponseText);
       }
 
+      console.log("Successfully parsed strategy JSON:", strategyJSON);
+
       return new Response(
         JSON.stringify(strategyJSON),
         {
@@ -169,17 +185,36 @@ Generate a detailed trading strategy as a JSON object.`;
       console.error("Error parsing Moonshot response:", parseError);
       console.log("Raw response:", aiResponseText);
       
-      return new Response(
-        JSON.stringify({
-          error: "Failed to parse strategy data from Moonshot response",
-          type: "parsing_error",
-          rawResponse: aiResponseText.substring(0, 200) + "..." // Return partial response for debugging
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      // Try to extract as much as possible even from malformed JSON
+      try {
+        // Simple attempt to fix common JSON issues
+        const fixedJson = aiResponseText
+          .replace(/(\w+):/g, '"$1":')  // Fix unquoted keys
+          .replace(/'/g, '"');          // Replace single quotes with double quotes
+        
+        const fallbackJSON = JSON.parse(fixedJson);
+        console.log("Managed to parse with fixes:", fallbackJSON);
+        
+        return new Response(
+          JSON.stringify(fallbackJSON),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      } catch (secondError) {
+        // If all parsing fails, return detailed error
+        return new Response(
+          JSON.stringify({
+            error: "Failed to parse strategy data from Moonshot response",
+            type: "parsing_error",
+            rawResponse: aiResponseText
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
     }
   } catch (error) {
     console.error("Error in generate-strategy function:", error);

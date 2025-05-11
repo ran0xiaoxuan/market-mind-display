@@ -2,7 +2,7 @@
 project_id = "lqfhhqhswdqpsliskxrr"
 
 [functions.generate-strategy]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-fmp-key]
 verify_jwt = true
@@ -11,4 +11,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.moonshot-chat]
-verify_jwt = true
+verify_jwt = false

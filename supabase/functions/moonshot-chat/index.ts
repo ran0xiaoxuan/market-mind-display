@@ -17,6 +17,21 @@ serve(async (req) => {
   }
 
   try {
+    // Validate API key first
+    if (!MOONSHOT_API_KEY) {
+      console.error("Missing Moonshot API key in environment variables");
+      return new Response(
+        JSON.stringify({
+          error: "Missing API key configuration",
+          type: "api_key_error",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
     const { messages, model = "moonshot-v1-8k", stream = false, temperature = 0.7, max_tokens } = await req.json();
 
     console.log("Sending request to Moonshot AI:", { messages, model, stream });
@@ -37,9 +52,31 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Moonshot API error:", errorData);
-      throw new Error(`Moonshot API error: ${JSON.stringify(errorData)}`);
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { raw: errorText };
+      }
+      
+      console.error("Moonshot API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      
+      return new Response(
+        JSON.stringify({
+          error: `Moonshot API error: ${response.status} ${response.statusText}`,
+          details: errorData,
+          type: "api_error"
+        }),
+        {
+          status: 502, // Forward error but as a 502 Bad Gateway
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
@@ -50,9 +87,15 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in moonshot-chat function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        type: error.name || "unknown_error"
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

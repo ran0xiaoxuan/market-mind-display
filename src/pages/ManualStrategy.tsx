@@ -171,7 +171,7 @@ const ManualStrategy = () => {
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Create a Strategy</h1>
+          <h1 className="text-3xl font-bold mb-2">New Strategy</h1>
           <p className="text-muted-foreground">
             Create your own trading strategy by defining rules and parameters
           </p>

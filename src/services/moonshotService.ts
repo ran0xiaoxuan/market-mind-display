@@ -35,10 +35,10 @@ export const sendChatCompletion = async (
   request: ChatCompletionRequest
 ): Promise<ChatCompletionResponse> => {
   try {
-    const { data, error } = await supabase.functions.invoke("moonshot-chat", {
+    const { data, error } = await supabase.functions.invoke("openai-chat", {
       body: {
         messages: request.messages,
-        model: request.model || "moonshot-v1-8k",
+        model: request.model || "gpt-3.5-turbo",
         temperature: request.temperature || 0.7,
         max_tokens: request.max_tokens,
         stream: request.stream || false
@@ -46,7 +46,7 @@ export const sendChatCompletion = async (
     });
 
     if (error) {
-      console.error("Error calling moonshot-chat function:", error);
+      console.error("Error calling openai-chat function:", error);
       throw new Error(`Failed to get AI response: ${error.message}`);
     }
 

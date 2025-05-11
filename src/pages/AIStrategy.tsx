@@ -220,7 +220,7 @@ const AIStrategy = () => {
                         <AlertDescription>
                           <p className="mb-2">The AI service could not authenticate. This is due to:</p>
                           <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>Missing MOONSHOT_API_KEY in the project settings</li>
+                            <li>Missing OPENAI_API_KEY in the project settings</li>
                             <li>Invalid or expired API key</li>
                           </ul>
                           <div className="flex flex-col sm:flex-row gap-2 mt-3">

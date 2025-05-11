@@ -10,5 +10,6 @@ verify_jwt = true
 [functions.get-taapi-key]
 verify_jwt = true
 
-[functions.moonshot-chat]
+[functions.openai-chat]
 verify_jwt = false
+

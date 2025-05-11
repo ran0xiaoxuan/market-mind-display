@@ -2,9 +2,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Moonshot API configuration
-const MOONSHOT_API_URL = "https://api.moonshot.cn/v1/chat/completions";
-const moonshotApiKey = Deno.env.get('MOONSHOT_API_KEY');
+// OpenAI API configuration
+const OPENAI_API_URL = "https://api.gptsapi.net/v1/chat/completions";
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 // CORS headers
 const corsHeaders = {
@@ -20,8 +20,8 @@ serve(async (req) => {
 
   try {
     // Check if API key exists
-    if (!moonshotApiKey) {
-      console.error("Missing Moonshot API key in environment variables");
+    if (!openaiApiKey) {
+      console.error("Missing OpenAI API key in environment variables");
       return new Response(
         JSON.stringify({
           error: "API key is required",
@@ -51,7 +51,7 @@ serve(async (req) => {
       );
     }
     
-    // Build prompt for Moonshot AI
+    // Build prompt for OpenAI
     const systemPrompt = `You are a trading strategy assistant that helps create detailed trading strategies. 
 You will be given an asset type, an asset name, and a strategy description. 
 Generate a complete trading strategy with entry rules, exit rules, and risk management for stocks.
@@ -85,18 +85,18 @@ Strategy Description: ${strategyDescription}
 
 Generate a detailed trading strategy as a JSON object.`;
 
-    console.log("Sending request to Moonshot AI with prompts:", { systemPrompt, userPrompt });
-    console.log("API Key available:", !!moonshotApiKey);
+    console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
+    console.log("API Key available:", !!openaiApiKey);
     
-    // Create the request to Moonshot API
-    const response = await fetch(MOONSHOT_API_URL, {
+    // Create the request to OpenAI API
+    const response = await fetch(OPENAI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${moonshotApiKey}`
+        "Authorization": `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: "moonshot-v1-8k", // Using Moonshot's model
+        model: "gpt-3.5-turbo", // Using OpenAI's model
         messages: [
           {
             role: "system",
@@ -121,7 +121,7 @@ Generate a detailed trading strategy as a JSON object.`;
         errorData = { raw: errorText };
       }
       
-      console.error("Moonshot API error:", {
+      console.error("OpenAI API error:", {
         status: response.status,
         statusText: response.statusText,
         error: errorData
@@ -129,7 +129,7 @@ Generate a detailed trading strategy as a JSON object.`;
       
       return new Response(
         JSON.stringify({
-          error: `Moonshot API error: ${response.status} ${response.statusText}`,
+          error: `OpenAI API error: ${response.status} ${response.statusText}`,
           type: "api_error",
           details: errorData
         }),
@@ -140,17 +140,17 @@ Generate a detailed trading strategy as a JSON object.`;
       );
     }
 
-    const moonshotResponse = await response.json();
-    console.log("Received response from Moonshot:", moonshotResponse);
+    const openaiResponse = await response.json();
+    console.log("Received response from OpenAI:", openaiResponse);
 
     // Extract strategy data from response
-    const aiResponseText = moonshotResponse.choices[0]?.message?.content;
+    const aiResponseText = openaiResponse.choices[0]?.message?.content;
     if (!aiResponseText) {
       return new Response(
         JSON.stringify({
-          error: "Invalid response from Moonshot AI",
+          error: "Invalid response from OpenAI",
           type: "parsing_error",
-          rawResponse: moonshotResponse
+          rawResponse: openaiResponse
         }),
         {
           status: 500,
@@ -182,7 +182,7 @@ Generate a detailed trading strategy as a JSON object.`;
         }
       );
     } catch (parseError) {
-      console.error("Error parsing Moonshot response:", parseError);
+      console.error("Error parsing OpenAI response:", parseError);
       console.log("Raw response:", aiResponseText);
       
       // Try to extract as much as possible even from malformed JSON
@@ -205,7 +205,7 @@ Generate a detailed trading strategy as a JSON object.`;
         // If all parsing fails, return detailed error
         return new Response(
           JSON.stringify({
-            error: "Failed to parse strategy data from Moonshot response",
+            error: "Failed to parse strategy data from OpenAI response",
             type: "parsing_error",
             rawResponse: aiResponseText
           }),

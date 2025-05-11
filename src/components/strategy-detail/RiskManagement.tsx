@@ -42,9 +42,15 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
     return value.endsWith('%') ? value : `${value}%`;
   };
 
-  // Remove the $ symbol if it's present at the beginning of the string
+  // Format currency values - always display with $ prefix
   const formatCurrency = (value: string) => {
-    return value.startsWith('$') ? value : `$${value}`;
+    if (!value) return "$0";
+    
+    // Remove any percentage signs if they exist
+    const cleanValue = value.replace(/%/g, '').trim();
+    
+    // Check if the value already starts with $ symbol
+    return cleanValue.startsWith('$') ? cleanValue : `$${cleanValue}`;
   };
 
   return (

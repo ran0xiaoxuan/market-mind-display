@@ -527,7 +527,7 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
       throw exitGroupsError;
     }
 
-    // If no rule groups were found, return empty arrays instead of throwing an error
+    // Process entry groups
     const entryRules = entryGroups && entryGroups.length > 0 
       ? await Promise.all(entryGroups.map(async (group) => {
           const { data: inequalities, error: inequalitiesError } = await supabase
@@ -551,7 +551,7 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         }))
       : [];
 
-    // Format exit groups
+    // Process exit groups
     const exitRules = exitGroups && exitGroups.length > 0
       ? await Promise.all(exitGroups.map(async (group) => {
           const { data: inequalities, error: inequalitiesError } = await supabase
@@ -575,6 +575,9 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         }))
       : [];
 
+    // Log the results for debugging
+    console.log("Retrieved trading rules:", { entryRules, exitRules });
+    
     return { entryRules, exitRules };
   } catch (error) {
     console.error("Error in getTradingRulesForStrategy:", error);

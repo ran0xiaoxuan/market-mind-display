@@ -125,75 +125,40 @@ const EditStrategy = () => {
         
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(strategyId);
-        if (rulesData && rulesData.entryRules.length > 0 && rulesData.exitRules.length > 0) {
-          // Convert string IDs to numbers for default rules if needed
-          const processedEntryRules = rulesData.entryRules.map(group => ({
-            ...group,
-            // Keep ID as is since we now support string IDs in RuleGroupData
-            inequalities: group.inequalities.map(rule => ({
-              ...rule
-              // Keep ID as is since we now support string IDs in Inequality
-            }))
-          }));
+        
+        // Check if we have valid rules
+        if (rulesData) {
+          console.log("Loaded trading rules:", rulesData);
+          if (rulesData.entryRules && rulesData.entryRules.length > 0) {
+            setEntryRules(rulesData.entryRules);
+          } else {
+            // Set empty entry rules structure instead of defaults
+            setEntryRules([
+              { id: 1, logic: "AND", inequalities: [] },
+              { id: 2, logic: "OR", inequalities: [] }
+            ]);
+          }
           
-          const processedExitRules = rulesData.exitRules.map(group => ({
-            ...group,
-            // Keep ID as is since we now support string IDs in RuleGroupData
-            inequalities: group.inequalities.map(rule => ({
-              ...rule
-              // Keep ID as is since we now support string IDs in Inequality
-            }))
-          }));
-          
-          setEntryRules(processedEntryRules);
-          setExitRules(processedExitRules);
+          if (rulesData.exitRules && rulesData.exitRules.length > 0) {
+            setExitRules(rulesData.exitRules);
+          } else {
+            // Set empty exit rules structure instead of defaults
+            setExitRules([
+              { id: 1, logic: "AND", inequalities: [] },
+              { id: 2, logic: "OR", inequalities: [] }
+            ]);
+          }
         } else {
-          // Set default rules if none exist
-          setEntryRules([{
-            id: 1,
-            logic: "AND",
-            inequalities: [{
-              id: 1,
-              left: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: {
-                  period: "20"
-                }
-              },
-              condition: "Crosses Above",
-              right: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: {
-                  period: "50"
-                }
-              }
-            }]
-          }]);
+          // Set empty rules structure if no rules are found
+          setEntryRules([
+            { id: 1, logic: "AND", inequalities: [] },
+            { id: 2, logic: "OR", inequalities: [] }
+          ]);
           
-          setExitRules([{
-            id: 1,
-            logic: "AND",
-            inequalities: [{
-              id: 1,
-              left: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: {
-                  period: "20"
-                }
-              },
-              condition: "Crosses Below",
-              right: {
-                type: "indicator",
-                indicator: "SMA",
-                parameters: {
-                  period: "50"
-                }
-              }
-            }]
-          }]);
+          setExitRules([
+            { id: 1, logic: "AND", inequalities: [] },
+            { id: 2, logic: "OR", inequalities: [] }
+          ]);
         }
         
         console.log("Strategy data loaded successfully");

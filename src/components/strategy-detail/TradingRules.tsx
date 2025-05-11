@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -161,7 +160,14 @@ export const TradingRules = ({
     ]);
   };
 
-  const hasNoRules = safeEntryRules.length === 0 && safeExitRules.length === 0;
+  // Updated check for no rules - also checking if the inequalities arrays are empty
+  const hasNoRules = (
+    safeEntryRules.length === 0 || 
+    (safeEntryRules.every(group => !group.inequalities || group.inequalities.length === 0)) 
+  ) && (
+    safeExitRules.length === 0 || 
+    (safeExitRules.every(group => !group.inequalities || group.inequalities.length === 0))
+  );
 
   // Clear newly added condition ID after it's been used
   const handleClearNewlyAddedCondition = () => {

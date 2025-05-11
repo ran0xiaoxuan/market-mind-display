@@ -352,7 +352,8 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         take_profit: strategy.riskManagement.takeProfit,
         single_buy_volume: strategy.riskManagement.singleBuyVolume,
         max_buy_volume: strategy.riskManagement.maxBuyVolume,
-        user_id: userId
+        user_id: userId,
+        is_active: false // Set strategies to inactive by default
       })
       .select('*')
       .single();

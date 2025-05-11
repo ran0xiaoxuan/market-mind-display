@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -109,8 +108,31 @@ const StrategyDetail = () => {
     fetchStrategyDetails();
   }, [id]);
   
-  const handleStatusChange = (checked: boolean) => {
+  const handleStatusChange = async (checked: boolean) => {
     setIsActive(checked);
+    
+    // Update the strategy status in the database
+    try {
+      const { error } = await supabase
+        .from('strategies')
+        .update({ is_active: checked })
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Error updating strategy status:", error);
+        toast.error("Failed to update strategy status");
+        // Revert the UI state if there was an error
+        setIsActive(!checked);
+        return;
+      }
+      
+      toast.success(`Strategy ${checked ? 'activated' : 'deactivated'} successfully`);
+    } catch (err) {
+      console.error("Error in handleStatusChange:", err);
+      toast.error("An error occurred while updating strategy status");
+      // Revert the UI state if there was an error
+      setIsActive(!checked);
+    }
   };
   
   if (loading) {

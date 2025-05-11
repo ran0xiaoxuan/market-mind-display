@@ -40,34 +40,15 @@ export const StrategyInfo = ({
   const handleStatusChange = async (checked: boolean) => {
     setIsSaving(true);
     try {
-      // Update the strategy status in the database
-      const {
-        error
-      } = await supabase.from('strategies').update({
-        is_active: checked
-      }).eq('id', strategy.id);
-      if (error) {
-        console.error("Error updating strategy status:", error);
-        toast("Error updating status", {
-          description: "There was a problem updating the strategy status"
-        });
-        return;
-      }
-
-      // Call the parent component's handler to update local state
+      // Call the parent component's handler to update the database and local state
       onStatusChange(checked);
-      toast("Status updated", {
-        description: `The strategy is now ${checked ? 'active' : 'inactive'}`
-      });
     } catch (error) {
       console.error("Error in status change:", error);
-      toast("Update failed", {
-        description: "Could not update strategy status"
-      });
     } finally {
       setIsSaving(false);
     }
   };
+  
   return <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
       

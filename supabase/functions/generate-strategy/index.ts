@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -58,22 +57,21 @@ Generate a complete trading strategy with entry rules, exit rules, and risk mana
 
 ## IMPORTANT FORMATTING REQUIREMENTS:
 1. ALWAYS include the asset symbol (e.g., "AAPL", "MSFT") in the strategy name/title.
-2. Write a detailed strategy description of at least 100-150 words that explains:
+2. Write a concise strategy description of 60-80 words that explains:
    - The core principles behind the strategy
    - Why this strategy is suitable for the specific asset
    - The market conditions under which the strategy works best
-   - The key indicators used and why they're relevant for this asset
    - The expected timeframe for results
    - The risk/reward profile of the strategy
 
 ## EXAMPLE TITLE AND DESCRIPTION:
 Name: "AAPL Momentum Crossover Strategy with Volume Confirmation"
 
-Description: "This strategy for Apple Inc. (AAPL) leverages the stock's characteristic volatility patterns and strong momentum trends that typically follow product announcements and earnings reports. The approach combines multiple technical indicators to identify optimal entry and exit points while managing risk effectively. By utilizing a dual moving average system with RSI confirmation, the strategy aims to capture AAPL's frequent momentum swings while filtering out false signals through volume analysis. This makes it particularly effective during periods of market uncertainty when AAPL often behaves as a safe-haven tech stock. The strategy is designed for medium-term positions spanning 2-4 weeks, aligning with AAPL's typical price action cycles. The risk management parameters are calibrated specifically for AAPL's historical volatility profile, with stop-loss levels accounting for the stock's average daily movement range over the past two years."
+Description: "This strategy for Apple Inc. (AAPL) leverages momentum trends following product announcements. By combining moving averages with RSI confirmation, it captures AAPL's momentum while filtering false signals through volume analysis. Effective during market uncertainty when AAPL behaves as a safe-haven tech stock. Designed for 2-4 week positions, aligning with AAPL's price cycles, with stop-loss levels calibrated to historical volatility."
 
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name (MUST include the asset symbol)
-- description: A detailed explanation of what the strategy does (at least 100 words)
+- description: A concise explanation of what the strategy does (60-80 words)
 - market: "Equities" for stocks
 - timeframe: The trading timeframe (e.g., "Daily", "4-Hour", "15-Minute")
 - targetAsset: The symbol of the asset to trade
@@ -99,7 +97,7 @@ Always return your response as a valid JSON object with these properties:
 Asset Name: ${selectedAsset}
 Strategy Description: ${strategyDescription}
 
-Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a comprehensive description explaining why this strategy is suitable for ${selectedAsset}.`;
+Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a concise description explaining why this strategy is suitable for ${selectedAsset}.`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);

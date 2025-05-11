@@ -7,7 +7,7 @@ import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
@@ -331,52 +331,57 @@ const AIStrategy = () => {
           </>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center justify-between mb-8">
-              <div className="max-w-3xl">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  className="mb-4"
-                >
-                  Generate Another Strategy
-                </Button>
-                <h1 className="text-3xl font-bold">{generatedStrategy.name}</h1>
-                <div className="mt-4 text-muted-foreground">
-                  <ScrollArea className="max-h-[200px] rounded-md border p-4">
-                    <p className="whitespace-pre-line">
+            <div className="flex flex-col mb-8">
+              <Button
+                variant="outline"
+                onClick={handleReset}
+                className="mb-4 self-start"
+              >
+                Generate Another Strategy
+              </Button>
+              
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-2xl font-bold">{generatedStrategy.name}</h1>
+                    <Button
+                      onClick={handleSaveStrategy}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Strategy"
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <h2 className="text-lg font-medium text-muted-foreground mb-2">Strategy Description</h2>
+                  <div className="mt-2 rounded-md bg-muted/50 p-4">
+                    <p className="whitespace-pre-line text-sm">
                       {generatedStrategy.description}
                     </p>
-                  </ScrollArea>
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveStrategy}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Strategy"
-                )}
-              </Button>
-            </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
-                <div>
-                  <p className="text-sm text-muted-foreground">Timeframe</p>
-                  <p className="font-medium">{generatedStrategy.timeframe}</p>
+              <Card className="p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Timeframe</p>
+                    <p className="font-medium">{generatedStrategy.timeframe}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Target Asset</p>
+                    <p className="font-medium">{generatedStrategy.targetAsset || "Not specified"}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Target Asset</p>
-                  <p className="font-medium">{generatedStrategy.targetAsset || "Not specified"}</p>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
 
             <RiskManagement riskManagement={generatedStrategy.riskManagement} />
 

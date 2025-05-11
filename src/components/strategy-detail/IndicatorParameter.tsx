@@ -1,25 +1,52 @@
-
 import { IndicatorParameters } from "./types";
 
 interface IndicatorParameterProps {
-  indicator: string;
-  parameters?: IndicatorParameters;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  // Keep the original props for backward compatibility
+  indicator?: string;
+  parameters?: any;
   valueType?: string;
 }
 
-export const IndicatorParameter = ({ indicator, parameters, valueType }: IndicatorParameterProps) => {
-  const renderParameter = (name: string, value?: string) => {
-    if (!value) return null;
+export const IndicatorParameter = ({ 
+  name, 
+  value, 
+  onChange,
+  indicator,
+  parameters,
+  valueType
+}: IndicatorParameterProps) => {
+  // If being used in the new way (with name/value/onChange)
+  if (name && onChange) {
+    return (
+      <div className="flex flex-col">
+        <label className="text-xs text-muted-foreground mb-1">{name}</label>
+        <input 
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-xs p-1 border rounded w-full"
+          placeholder={`Enter ${name.toLowerCase()}`}
+        />
+      </div>
+    );
+  }
+  
+  // Original rendering logic for backward compatibility
+  const renderParameter = (paramName: string, paramValue?: string) => {
+    if (!paramValue) return null;
     
     return (
       <span className="text-xs text-muted-foreground">
-        {name}: {value}
+        {paramName}: {paramValue}
       </span>
     );
   };
   
   const renderParameters = () => {
-    if (!parameters) return null;
+    if (!parameters || !indicator) return null;
 
     // Handle common parameters
     const commonParams = [];

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -407,6 +408,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
   }
 };
 
+// Updated to ensure consistent format between save and retrieve
 const saveRuleGroups = async (
   strategyId: string, 
   ruleGroups: RuleGroupData[], 
@@ -427,7 +429,7 @@ const saveRuleGroups = async (
           group_order: i + 1,
           required_conditions: group.requiredConditions || null,
           rule_type: ruleType,
-          logic: group.logic,
+          logic: group.logic || (i === 0 ? 'AND' : 'OR'), // Default logic based on index
           explanation: group.explanation || null
         })
         .select('*')
@@ -454,17 +456,17 @@ const saveRuleGroups = async (
             .insert({
               rule_group_id: groupId,
               inequality_order: j + 1,
-              left_type: inequality.left.type || '',
-              left_indicator: inequality.left.indicator || null,
-              left_parameters: inequality.left.parameters || null,
-              left_value: inequality.left.value || null,
-              left_value_type: inequality.left.valueType || null,
+              left_type: inequality.left?.type || 'INDICATOR',
+              left_indicator: inequality.left?.indicator || null,
+              left_parameters: inequality.left?.parameters || null,
+              left_value: inequality.left?.value || null,
+              left_value_type: inequality.left?.valueType || null,
               condition: inequality.condition || '',
-              right_type: inequality.right.type || '',
-              right_indicator: inequality.right.indicator || null,
-              right_parameters: inequality.right.parameters || null,
-              right_value: inequality.right.value || null,
-              right_value_type: inequality.right.valueType || null,
+              right_type: inequality.right?.type || 'VALUE',
+              right_indicator: inequality.right?.indicator || null,
+              right_parameters: inequality.right?.parameters || null,
+              right_value: inequality.right?.value || null,
+              right_value_type: inequality.right?.valueType || null,
               explanation: inequality.explanation || null
             })
             .select('*')
@@ -545,6 +547,7 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
   }
 };
 
+// Unified function to ensure consistent format between storage and retrieval
 export const getTradingRulesForStrategy = async (strategyId: string) => {
   try {
     console.log("Fetching trading rules for strategy:", strategyId);
@@ -592,8 +595,8 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
           
           return {
             id: group.id,
-            logic: group.logic,
-            requiredConditions: group.required_conditions,
+            logic: group.logic || (entryRuleGroups.indexOf(group) === 0 ? 'AND' : 'OR'), // Default logic based on index
+            requiredConditions: group.required_conditions || 1,
             explanation: group.explanation,
             inequalities: inequalities ? inequalities.map(formatInequality) : []
           };
@@ -618,8 +621,8 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
 
           return {
             id: group.id,
-            logic: group.logic,
-            requiredConditions: group.required_conditions,
+            logic: group.logic || (exitRuleGroups.indexOf(group) === 0 ? 'AND' : 'OR'), // Default logic based on index
+            requiredConditions: group.required_conditions || 1,
             explanation: group.explanation,
             inequalities: inequalities ? inequalities.map(formatInequality) : []
           };
@@ -639,25 +642,25 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
   }
 };
 
-// Helper function to format inequality from database to UI format
+// Helper function to format inequality from database to UI format - updated for consistent format
 const formatInequality = (inequality: any) => {
   return {
     id: inequality.id,
     left: {
-      type: inequality.left_type,
-      indicator: inequality.left_indicator,
-      parameters: inequality.left_parameters,
-      value: inequality.left_value,
-      valueType: inequality.left_value_type
+      type: inequality.left_type || 'INDICATOR',
+      indicator: inequality.left_indicator || '',
+      parameters: inequality.left_parameters || {},
+      value: inequality.left_value || '',
+      valueType: inequality.left_value_type || 'number'
     },
-    condition: inequality.condition,
+    condition: inequality.condition || '',
     right: {
-      type: inequality.right_type,
-      indicator: inequality.right_indicator,
-      parameters: inequality.right_parameters,
-      value: inequality.right_value,
-      valueType: inequality.right_value_type
+      type: inequality.right_type || 'VALUE',
+      indicator: inequality.right_indicator || '',
+      parameters: inequality.right_parameters || {},
+      value: inequality.right_value || '',
+      valueType: inequality.right_value_type || 'number'
     },
-    explanation: inequality.explanation
+    explanation: inequality.explanation || ''
   };
 };

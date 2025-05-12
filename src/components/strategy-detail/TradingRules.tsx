@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -11,6 +12,7 @@ import { Plus, AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { v4 as uuidv4 } from "uuid";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
   exitRules: RuleGroupData[];
@@ -19,6 +21,7 @@ interface TradingRulesProps {
   editable?: boolean;
   showValidation?: boolean;
 }
+
 export const TradingRules = ({
   entryRules = [],
   exitRules = [],
@@ -44,16 +47,19 @@ export const TradingRules = ({
           ...ineq,
           left: {
             ...ineq.left,
-            type: ineq.left?.type || (ineq.left?.indicator ? "INDICATOR" : "VALUE")
+            type: ineq.left?.type || "INDICATOR"
           },
           right: {
             ...ineq.right,
-            type: ineq.right?.type || (ineq.right?.indicator ? "INDICATOR" : "VALUE")
+            type: ineq.right?.type || "VALUE"
           }
         };
       }) : [];
+      
       return {
         ...group,
+        logic: group.logic || (rules.indexOf(group) === 0 ? 'AND' : 'OR'), // Default logic
+        requiredConditions: group.requiredConditions || 1, // Default required conditions
         inequalities: validInequalities
       };
     });
@@ -66,6 +72,7 @@ export const TradingRules = ({
   // Count total rules for badges
   const entryRuleCount = validatedEntryRules.reduce((total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 0);
   const exitRuleCount = validatedExitRules.reduce((total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 0);
+  
   const handleEntryRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onEntryRulesChange) return;
     const updatedRules = [...validatedEntryRules];
@@ -75,6 +82,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+  
   const handleEntryRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onEntryRulesChange) return;
     const updatedRules = [...validatedEntryRules];
@@ -84,6 +92,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+  
   const handleExitRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onExitRulesChange) return;
     const updatedRules = [...validatedExitRules];
@@ -93,6 +102,7 @@ export const TradingRules = ({
     };
     onExitRulesChange(updatedRules);
   };
+  
   const handleExitRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onExitRulesChange) return;
     const updatedRules = [...validatedExitRules];
@@ -185,6 +195,7 @@ export const TradingRules = ({
       setNewlyAddedConditionId(newInequalityId);
     }
   };
+  
   const handleAddFirstEntryRuleGroup = () => {
     if (!onEntryRulesChange) return;
     onEntryRulesChange([{
@@ -198,6 +209,7 @@ export const TradingRules = ({
       requiredConditions: 1
     }]);
   };
+  
   const handleAddFirstExitRuleGroup = () => {
     if (!onExitRulesChange) return;
     onExitRulesChange([{
@@ -219,6 +231,7 @@ export const TradingRules = ({
   const handleClearNewlyAddedCondition = () => {
     setNewlyAddedConditionId(null);
   };
+  
   return <Card className="p-6 mb-6">
       {hasNoRules && !editable && <Alert variant="default" className="mb-4">
           <AlertCircle className="h-4 w-4" />

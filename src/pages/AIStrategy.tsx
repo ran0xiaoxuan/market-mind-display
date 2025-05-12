@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -143,16 +144,18 @@ const AIStrategy = () => {
       const strategyId = await saveGeneratedStrategy(generatedStrategy);
       console.log("Strategy saved with ID:", strategyId);
       
-      toast.success("Strategy saved", {
-        description: "Your strategy has been saved successfully"
+      toast("Strategy saved", {
+        description: "Your strategy has been saved successfully",
+        icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
       
       // Navigate to the strategy details page
       navigate(`/strategy/${strategyId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving strategy:", error);
-      toast.error("Failed to save strategy", {
-        description: "Please try again later"
+      toast("Failed to save strategy", {
+        description: error.message || "Please try again later",
+        icon: <AlertCircle className="h-4 w-4 text-destructive" />
       });
     } finally {
       setIsSaving(false);

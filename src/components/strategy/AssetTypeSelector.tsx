@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,12 +8,10 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
 import { popularStocks, searchLocalAssets } from "@/data/assetData";
-
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
-
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -96,7 +93,6 @@ export const AssetTypeSelector = ({
       // Search stocks
       const stockResults = await searchStocks(query, apiKey || "");
       setSearchResults(stockResults);
-      
       if (stockResults.length === 0 && query.length > 0 && !isSearchError) {
         toast({
           title: "No Results Found",
@@ -120,7 +116,6 @@ export const AssetTypeSelector = ({
           // Retry the search with the new key
           const retryStockResults = await searchStocks(query, newKey);
           setSearchResults(retryStockResults);
-          
           if (retryStockResults.length === 0 && query.length > 0) {
             toast({
               title: "No Results Found",
@@ -174,14 +169,11 @@ export const AssetTypeSelector = ({
     setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
   };
-
   return <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Target Asset</h2>
       
       <div className="mb-6 relative">
-        <label htmlFor="asset-select" className="block text-sm font-medium mb-2">
-          Select a stock
-        </label>
+        
 
         <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />

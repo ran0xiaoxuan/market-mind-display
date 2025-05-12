@@ -177,7 +177,7 @@ export const AssetTypeSelector = ({
 
         <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-          {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for stocks..."}
+          {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for a stock..."}
         </Button>
         
         <CommandDialog open={isSearchOpen} onOpenChange={open => {

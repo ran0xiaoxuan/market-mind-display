@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -232,7 +231,7 @@ export const TradingRules = ({
     setNewlyAddedConditionId(null);
   };
   
-  return <Card className="p-6 mb-6">
+  return <Card className="p-6">
       {hasNoRules && !editable && <Alert variant="default" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>

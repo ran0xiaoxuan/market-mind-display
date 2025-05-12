@@ -337,7 +337,7 @@ const AIStrategy = () => {
           </>
         ) : (
           <div className="space-y-6">
-            <div className="flex flex-col mb-8">
+            <div className="flex flex-col mb-6">
               <Button
                 variant="outline"
                 onClick={handleReset}
@@ -346,7 +346,7 @@ const AIStrategy = () => {
                 Generate Another Strategy
               </Button>
               
-              <Card className="mb-6">
+              <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h1 className="text-2xl font-bold">{generatedStrategy.name}</h1>
@@ -374,7 +374,7 @@ const AIStrategy = () => {
                 </CardContent>
               </Card>
 
-              <Card className="p-6 mb-6">
+              <Card className="p-6 mt-6">
                 <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
                   <div>

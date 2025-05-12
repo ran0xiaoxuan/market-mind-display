@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -14,9 +13,10 @@ import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 const AIStrategy = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [strategyDescription, setStrategyDescription] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -26,19 +26,16 @@ const AIStrategy = () => {
   const [errorType, setErrorType] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
   const navigate = useNavigate();
-
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     setError(null);
     setErrorType(null);
   };
-
   const handleStrategyDescriptionChange = (value: string) => {
     setStrategyDescription(value);
     setError(null);
     setErrorType(null);
   };
-
   const handleGenerateStrategy = async () => {
     // Validation checks
     if (!selectedAsset) {
@@ -47,7 +44,6 @@ const AIStrategy = () => {
       });
       return;
     }
-
     if (!strategyDescription) {
       toast("Strategy description required", {
         description: "Please provide a description of your trading strategy"
@@ -59,16 +55,18 @@ const AIStrategy = () => {
     setIsLoading(true);
     setError(null);
     setErrorType(null);
-    
     try {
-      console.log("Generating strategy with parameters:", { assetType: 'stocks', selectedAsset, strategyDescription, retryAttempt: retryCount });
-      
+      console.log("Generating strategy with parameters:", {
+        assetType: 'stocks',
+        selectedAsset,
+        strategyDescription,
+        retryAttempt: retryCount
+      });
       const strategy = await generateStrategy('stocks', selectedAsset, strategyDescription);
       console.log("Strategy generated successfully:", strategy);
-      
       setGeneratedStrategy(strategy);
       setRetryCount(0); // Reset retry count on success
-      
+
       toast("Strategy generated", {
         description: "AI has successfully generated a trading strategy based on your description",
         icon: <CheckCircle className="h-4 w-4 text-green-500" />
@@ -77,28 +75,19 @@ const AIStrategy = () => {
       console.error("Error generating strategy:", error);
       const errorMessage = error.message || "Unknown error";
       const errorType = error.type || "unknown_error";
-      
       setError(errorMessage);
       setErrorType(errorType);
-      
+
       // Check if this is a connection error
-      const isConnectionError = errorMessage.includes("Failed to fetch") || 
-                                errorMessage.includes("Network error") ||
-                                errorMessage.includes("connection") ||
-                                errorType === "connection_error" ||
-                                !navigator.onLine;
-      
+      const isConnectionError = errorMessage.includes("Failed to fetch") || errorMessage.includes("Network error") || errorMessage.includes("connection") || errorType === "connection_error" || !navigator.onLine;
       toast("Failed to generate strategy", {
-        description: isConnectionError 
-          ? "There was an error connecting to the AI service. Please check your connection and try again."
-          : "There was an error generating your strategy. Please try again or use a simpler description.",
+        description: isConnectionError ? "There was an error connecting to the AI service. Please check your connection and try again." : "There was an error generating your strategy. Please try again or use a simpler description.",
         icon: <AlertCircle className="h-4 w-4 text-destructive" />
       });
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleRetryGeneration = () => {
     setRetryCount(prev => prev + 1);
     // If we've tried 3+ times, suggest using a simpler description
@@ -109,25 +98,19 @@ const AIStrategy = () => {
     }
     handleGenerateStrategy();
   };
-
   const handleUseFallbackData = () => {
     // Use the generateFallbackStrategy function from strategyService
-    import("@/services/strategyService").then(({ generateFallbackStrategy }) => {
-      const fallbackStrategy = generateFallbackStrategy(
-        "stocks", 
-        selectedAsset, 
-        strategyDescription
-      );
-      
+    import("@/services/strategyService").then(({
+      generateFallbackStrategy
+    }) => {
+      const fallbackStrategy = generateFallbackStrategy("stocks", selectedAsset, strategyDescription);
       setGeneratedStrategy(fallbackStrategy);
-      
       toast("Using template strategy", {
         description: "Using a template strategy since the AI service is unavailable",
         icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
     });
   };
-
   const handleSaveStrategy = async () => {
     if (!generatedStrategy) return;
     if (!user) {
@@ -136,19 +119,16 @@ const AIStrategy = () => {
       });
       return;
     }
-
     setIsSaving(true);
     try {
       console.log("Saving strategy:", generatedStrategy);
-      
       const strategyId = await saveGeneratedStrategy(generatedStrategy);
       console.log("Strategy saved with ID:", strategyId);
-      
       toast("Strategy saved", {
         description: "Your strategy has been saved successfully",
         icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
-      
+
       // Navigate to the strategy details page
       navigate(`/strategy/${strategyId}`);
     } catch (error: any) {
@@ -161,7 +141,6 @@ const AIStrategy = () => {
       setIsSaving(false);
     }
   };
-
   const handleReset = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
@@ -169,27 +148,19 @@ const AIStrategy = () => {
     setErrorType(null);
     setRetryCount(0);
   };
-
   const openSupabaseDocs = () => {
     window.open("https://supabase.com/docs/guides/functions", "_blank");
   };
-
   const openSupabaseDashboard = () => {
     window.open("https://supabase.com/dashboard/project/lqfhhqhswdqpsliskxrr/functions", "_blank");
   };
-
   const isAPIKeyError = errorType === "api_key_error";
-  const isConnectionError = error?.includes("Failed to fetch") || 
-                           error?.includes("Network error") ||
-                           errorType === "connection_error";
+  const isConnectionError = error?.includes("Failed to fetch") || error?.includes("Network error") || errorType === "connection_error";
   const isTimeoutError = errorType === "timeout_error" || error?.includes("timed out");
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
-        {!generatedStrategy ? (
-          <>
+        {!generatedStrategy ? <>
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">AI Strategy Generator</h1>
               <p className="text-muted-foreground">
@@ -197,30 +168,19 @@ const AIStrategy = () => {
               </p>
             </div>
 
-            <AssetTypeSelector
-              selectedAsset={selectedAsset}
-              onAssetSelect={handleAssetSelect}
-            />
+            <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
 
-            <StrategyDescription
-              description={strategyDescription}
-              onDescriptionChange={handleStrategyDescriptionChange}
-            />
+            <StrategyDescription description={strategyDescription} onDescriptionChange={handleStrategyDescriptionChange} />
 
-            {error && (
-              <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
+            {error && <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-medium">
-                    {isAPIKeyError ? "API Key Error" : 
-                     isConnectionError ? "Connection Error" : 
-                     isTimeoutError ? "Request Timeout" : 
-                     "AI Service Error"}
+                    {isAPIKeyError ? "API Key Error" : isConnectionError ? "Connection Error" : isTimeoutError ? "Request Timeout" : "AI Service Error"}
                   </h4>
                   <p className="text-sm">{error}</p>
                   
-                  {isAPIKeyError && (
-                    <div className="mt-3">
+                  {isAPIKeyError && <div className="mt-3">
                       <Alert variant="destructive" className="bg-destructive/5">
                         <AlertTitle className="flex items-center gap-2">
                           Supabase Edge Function Configuration Error
@@ -232,32 +192,20 @@ const AIStrategy = () => {
                             <li>Invalid or expired API key</li>
                           </ul>
                           <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="flex items-center gap-1"
-                              onClick={openSupabaseDocs}
-                            >
+                            <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDocs}>
                               <ExternalLink className="w-3 h-3" />
                               Supabase Functions Documentation
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="flex items-center gap-1"
-                              onClick={openSupabaseDashboard}
-                            >
+                            <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDashboard}>
                               <ExternalLink className="w-3 h-3" />
                               View Edge Functions
                             </Button>
                           </div>
                         </AlertDescription>
                       </Alert>
-                    </div>
-                  )}
+                    </div>}
                   
-                  {(isConnectionError || isTimeoutError) && (
-                    <div className="mt-3">
+                  {(isConnectionError || isTimeoutError) && <div className="mt-3">
                       <Alert variant="destructive" className="bg-destructive/5">
                         <AlertTitle className="flex items-center gap-2">
                           {isConnectionError ? "Connection Error" : "Request Timeout"}
@@ -271,78 +219,42 @@ const AIStrategy = () => {
                           </ul>
                           
                           <div className="mt-4 flex gap-2">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={handleRetryGeneration}
-                              className="flex items-center gap-1"
-                            >
+                            <Button variant="default" size="sm" onClick={handleRetryGeneration} className="flex items-center gap-1">
                               <RefreshCcw className="w-3 h-3" />
                               Retry Generation
                             </Button>
                             
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleUseFallbackData}
-                            >
+                            <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
                               Use Template Strategy
                             </Button>
                           </div>
                         </AlertDescription>
                       </Alert>
-                    </div>
-                  )}
+                    </div>}
                   
-                  {!isAPIKeyError && !isConnectionError && !isTimeoutError && (
-                    <div className="mt-4">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleRetryGeneration}
-                        className="mr-2 flex items-center gap-1"
-                      >
+                  {!isAPIKeyError && !isConnectionError && !isTimeoutError && <div className="mt-4">
+                      <Button variant="default" size="sm" onClick={handleRetryGeneration} className="mr-2 flex items-center gap-1">
                         <RefreshCcw className="w-3 h-3" />
                         Retry
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleUseFallbackData}
-                      >
+                      <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
                         Use Template Strategy
                       </Button>
-                    </div>
-                  )}
+                    </div>}
                 </div>
-              </div>
-            )}
+              </div>}
 
             <div className="flex justify-end mt-6">
-              <Button
-                className="w-full"
-                onClick={handleGenerateStrategy}
-                disabled={isLoading || !strategyDescription || !selectedAsset}
-              >
-                {isLoading ? (
-                  <>
+              <Button className="w-full" onClick={handleGenerateStrategy} disabled={isLoading || !strategyDescription || !selectedAsset}>
+                {isLoading ? <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Generating Strategy...
-                  </>
-                ) : (
-                  "Generate Strategy"
-                )}
+                  </> : "Generate Strategy"}
               </Button>
             </div>
-          </>
-        ) : (
-          <div className="space-y-6">
+          </> : <div className="space-y-6">
             <div className="flex flex-col mb-6">
-              <Button
-                variant="outline"
-                onClick={handleReset}
-                className="mb-4 self-start"
-              >
+              <Button variant="outline" onClick={handleReset} className="mb-4 self-start">
                 Generate Another Strategy
               </Button>
               
@@ -350,22 +262,15 @@ const AIStrategy = () => {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h1 className="text-2xl font-bold">{generatedStrategy.name}</h1>
-                    <Button
-                      onClick={handleSaveStrategy}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? (
-                        <>
+                    <Button onClick={handleSaveStrategy} disabled={isSaving}>
+                      {isSaving ? <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Saving...
-                        </>
-                      ) : (
-                        "Save Strategy"
-                      )}
+                        </> : "Save Strategy"}
                     </Button>
                   </div>
                   
-                  <h2 className="text-lg font-medium text-muted-foreground mb-2">Strategy Description</h2>
+                  
                   <div className="mt-2 rounded-md bg-muted/50 p-4">
                     <p className="whitespace-pre-line text-sm">
                       {generatedStrategy.description}
@@ -391,15 +296,9 @@ const AIStrategy = () => {
 
             <RiskManagement riskManagement={generatedStrategy.riskManagement} />
 
-            <TradingRules
-              entryRules={generatedStrategy.entryRules}
-              exitRules={generatedStrategy.exitRules}
-            />
-          </div>
-        )}
+            <TradingRules entryRules={generatedStrategy.entryRules} exitRules={generatedStrategy.exitRules} />
+          </div>}
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default AIStrategy;

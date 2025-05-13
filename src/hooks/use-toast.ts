@@ -113,68 +113,99 @@ const reducer = (state: State, action: Action): State => {
   }
 }
 
-export const useToast = () => {
-  const [state, setState] = useState<State>({ toasts: [] })
+// In-memory store for toasts for non-component contexts
+let memoryState: State = { toasts: [] }
+let listeners: ((state: State) => void)[] = []
 
-  const dispatch = (action: Action) => {
-    setState((prevState) => reducer(prevState, action))
-  }
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action)
+  listeners.forEach((listener) => {
+    listener(memoryState)
+  })
+}
 
-  const toast = ({ ...props }: Omit<ToasterToast, "id">) => {
-    const id = genId()
-
-    const update = (props: ToasterToast) =>
-      dispatch({
-        type: actionTypes.UPDATE_TOAST,
-        toast: { ...props, id },
-      })
-    const dismiss = () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
-
-    dispatch({
-      type: actionTypes.ADD_TOAST,
-      toast: {
-        ...props,
-        id,
-        open: true,
-        onOpenChange: (open) => {
-          if (!open) dismiss()
-        },
-      },
-    })
-
-    return {
-      id,
-      dismiss,
-      update,
-    }
-  }
-
+// Hook version for use inside components
+export function useToast() {
+  const [state, setState] = useState<State>(memoryState)
+  
   useEffect(() => {
-    const timeouts: ReturnType<typeof setTimeout>[] = []
-
-    state.toasts.forEach((t) => {
-      if (t.open) {
-        const timeout = setTimeout(() => {
-          dispatch({ type: actionTypes.DISMISS_TOAST, toastId: t.id })
-        }, 5000)
-        timeouts.push(timeout)
-      }
-    })
-
+    listeners.push(setState)
     return () => {
-      timeouts.forEach((timeout) => clearTimeout(timeout))
+      const index = listeners.indexOf(setState)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
     }
-  }, [state.toasts])
+  }, [state])
 
   return {
     ...state,
-    toast,
+    toast: (props: Omit<ToasterToast, "id">) => {
+      const id = genId()
+
+      const update = (props: ToasterToast) =>
+        dispatch({
+          type: actionTypes.UPDATE_TOAST,
+          toast: { ...props, id },
+        })
+        
+      const dismiss = () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
+
+      dispatch({
+        type: actionTypes.ADD_TOAST,
+        toast: {
+          ...props,
+          id,
+          open: true,
+          onOpenChange: (open) => {
+            if (!open) dismiss()
+          },
+        },
+      })
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
+      }, 5000)
+
+      return {
+        id,
+        dismiss,
+        update,
+      }
+    },
     dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
   }
 }
 
-// Direct access to toast function for components that don't need the full hook
+// Non-hook version that can be called from anywhere
 export const toast = (props: Omit<ToasterToast, "id">) => {
-  const { toast: hookToast } = useToast()
-  return hookToast(props)
+  const id = genId()
+  
+  dispatch({
+    type: actionTypes.ADD_TOAST,
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
+      },
+    },
+  })
+  
+  // Auto-dismiss after 5 seconds
+  setTimeout(() => {
+    dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
+  }, 5000)
+
+  return {
+    id,
+    dismiss: () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id }),
+    update: (props: ToasterToast) =>
+      dispatch({
+        type: actionTypes.UPDATE_TOAST,
+        toast: { ...props, id },
+      }),
+  }
 }

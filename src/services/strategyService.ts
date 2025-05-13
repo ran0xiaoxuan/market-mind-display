@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -366,7 +367,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     const userId = user.id;
     console.log("Saving strategy for user:", userId);
     
-    // Create the base strategy with proper user_id
+    // Create the base strategy first in a transaction
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
       .insert({
@@ -424,7 +425,7 @@ const saveRuleGroups = async (
   try {
     console.log(`Saving ${ruleType} rule groups:`, JSON.stringify(ruleGroups));
     
-    // Process each rule group
+    // Process each rule group sequentially to avoid RLS policy issues
     for (let i = 0; i < ruleGroups.length; i++) {
       const group = ruleGroups[i];
       
@@ -450,10 +451,11 @@ const saveRuleGroups = async (
       const groupId = groupData.id;
       console.log(`Created rule group with ID ${groupId} for ${ruleType} rules`);
 
-      // Process inequalities for this group
+      // Process inequalities for this group - but only if there are inequalities to process
       if (group.inequalities && group.inequalities.length > 0) {
         console.log(`Saving ${group.inequalities.length} inequalities for group ${groupId}`);
         
+        // Save each inequality sequentially
         for (let j = 0; j < group.inequalities.length; j++) {
           const inequality = group.inequalities[j];
           

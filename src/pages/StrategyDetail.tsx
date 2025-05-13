@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -16,8 +17,6 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { getTradingRulesForStrategy, getStrategyById, getRiskManagementForStrategy } from "@/services/strategyService";
-import { Navbar } from '@/components/Navbar';
-import { StrategyDetailNav } from '@/components/strategy-detail/StrategyDetailNav';
 
 const StrategyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -139,34 +138,26 @@ const StrategyDetail = () => {
   
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <StrategyDetailNav strategyId={id || ""} strategyName={null} />
-        <Container>
-          <div className="my-4 space-y-6">
-            <Skeleton className="h-10 w-3/4" />
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-60 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
-        </Container>
-      </>
+      <Container>
+        <div className="my-4 space-y-6">
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-60 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      </Container>
     );
   }
   
   if (error) {
     return (
-      <>
-        <Navbar />
-        <StrategyDetailNav strategyId={id || ""} strategyName="Error Loading Strategy" />
-        <Container>
-          <Alert variant="destructive" className="my-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </Container>
-      </>
+      <Container>
+        <Alert variant="destructive" className="my-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </Container>
     );
   }
   
@@ -178,44 +169,40 @@ const StrategyDetail = () => {
   };
   
   return (
-    <>
-      <Navbar />
-      <StrategyDetailNav strategyId={id || ""} strategyName={strategy.name} />
-      <Container>
-        <div className="my-6 space-y-8">
-          <StrategyHeader 
-            strategyId={id || ""} 
-            strategyName={strategy.name} 
-          />
-          
-          <StrategyInfo 
-            strategy={{
-              description: strategy.description,
-              createdAt: strategy.createdAt,
-              updatedAt: strategy.updatedAt,
-              timeframe: strategy.timeframe,
-              targetAsset: strategy.targetAsset
-            }} 
-            isActive={isActive} 
-            onStatusChange={handleStatusChange} 
-          />
-          
-          <TradingRules 
-            entryRules={entryRules} 
-            exitRules={exitRules} 
-          />
-          
-          <RiskManagement riskManagement={riskManagementData} />
-          
-          <PerformanceMetricsCard strategyId={id || ""} />
-          
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Trade History</h2>
-            <TradeHistoryTable trades={trades} />
-          </Card>
-        </div>
-      </Container>
-    </>
+    <Container>
+      <div className="my-6 space-y-8">
+        <StrategyHeader 
+          strategyId={id || ""} 
+          strategyName={strategy.name} 
+        />
+        
+        <StrategyInfo 
+          strategy={{
+            description: strategy.description,
+            createdAt: strategy.createdAt,
+            updatedAt: strategy.updatedAt,
+            timeframe: strategy.timeframe,
+            targetAsset: strategy.targetAsset
+          }} 
+          isActive={isActive} 
+          onStatusChange={handleStatusChange} 
+        />
+        
+        <TradingRules 
+          entryRules={entryRules} 
+          exitRules={exitRules} 
+        />
+        
+        <RiskManagement riskManagement={riskManagementData} />
+        
+        <PerformanceMetricsCard strategyId={id || ""} />
+        
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Trade History</h2>
+          <TradeHistoryTable trades={trades} />
+        </Card>
+      </div>
+    </Container>
   );
 };
 

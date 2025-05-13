@@ -1,24 +1,14 @@
-
 import { useState } from "react";
-import { Link, useParams, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play } from "lucide-react";
 import { BacktestCard } from "@/components/backtest/BacktestCard";
 import { BacktestData } from "@/types/backtest";
-import { Container } from "@/components/ui/container";
-import { StrategyDetailNav } from "@/components/strategy-detail/StrategyDetailNav";
 
 const BacktestHistory = () => {
   const { strategyId } = useParams<{ strategyId: string }>();
-  const [searchParams] = useSearchParams();
-  const queryStrategyId = searchParams.get("strategyId");
-  
-  // Use either the path param or query param for strategy ID
-  const currentStrategyId = strategyId || queryStrategyId;
-  
-  // Format strategy name for display (example fallback)
-  const strategyName = currentStrategyId ? currentStrategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
+  const strategyName = strategyId ? strategyId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : "RSI Strategy v2";
   
   const [backtests, setBacktests] = useState<BacktestData[]>([
     {
@@ -179,29 +169,26 @@ const BacktestHistory = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      {currentStrategyId && (
-        <StrategyDetailNav strategyId={currentStrategyId} strategyName={strategyName} />
-      )}
-      <Container>
-        <div className="my-6">
-          {!currentStrategyId && (
-            <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
+      <main className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <Link to={`/strategy/${strategyId}`} className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Link>
-          )}
-          
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">Backtest History</h1>
-              <p className="text-muted-foreground">View and compare backtest results for {strategyName}</p>
-            </div>
             
-            <Link to={currentStrategyId ? `/backtest?strategyId=${currentStrategyId}` : "/backtest"}>
-              <Button>
-                <Play className="h-4 w-4 mr-2" />
-                Run New Backtest
-              </Button>
-            </Link>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold">Backtest History</h1>
+                <p className="text-muted-foreground">View and compare backtest results for {strategyName}</p>
+              </div>
+              
+              <Link to="/backtest">
+                <Button>
+                  <Play className="h-4 w-4 mr-2" />
+                  Run New Backtest
+                </Button>
+              </Link>
+            </div>
           </div>
           
           <div className="space-y-4">
@@ -215,7 +202,7 @@ const BacktestHistory = () => {
             ))}
           </div>
         </div>
-      </Container>
+      </main>
     </div>
   );
 };

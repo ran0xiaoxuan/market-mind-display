@@ -117,6 +117,7 @@ const AIStrategy = () => {
       toast("Authentication required", {
         description: "Please log in to save your strategy"
       });
+      navigate(`/auth/login`);
       return;
     }
     setIsSaving(true);
@@ -133,10 +134,25 @@ const AIStrategy = () => {
       navigate(`/strategy/${strategyId}`);
     } catch (error: any) {
       console.error("Error saving strategy:", error);
-      toast("Failed to save strategy", {
-        description: error.message || "Please try again later",
-        icon: <AlertCircle className="h-4 w-4 text-destructive" />
-      });
+      
+      // Check if this is an authentication error
+      if (error.message?.includes("authentication") || error.code === 'PGRST301') {
+        toast("Authentication required", {
+          description: "Please log in to save your strategy",
+          icon: <AlertCircle className="h-4 w-4 text-destructive" />
+        });
+        navigate(`/auth/login`);
+      } else if (error.message?.includes("row-level security") || error.code === 'PGRST204') {
+        toast("Permission error", {
+          description: "You don't have permission to save this strategy. Please log out and log back in.",
+          icon: <AlertCircle className="h-4 w-4 text-destructive" />
+        });
+      } else {
+        toast("Failed to save strategy", {
+          description: error.message || "Please try again later",
+          icon: <AlertCircle className="h-4 w-4 text-destructive" />
+        });
+      }
     } finally {
       setIsSaving(false);
     }

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -356,10 +355,18 @@ export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt'
 
 export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promise<string> => {
   try {
-    // First, create the base strategy with proper user_id
-    const currentUser = await supabase.auth.getUser();
-    const userId = currentUser.data.user?.id || 'anonymous';
+    // First, ensure user is authenticated before proceeding
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
+    if (authError || !user) {
+      console.error("User authentication error:", authError);
+      throw new Error("Authentication required to save strategy");
+    }
+    
+    const userId = user.id;
+    console.log("Saving strategy for user:", userId);
+    
+    // Create the base strategy with proper user_id
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
       .insert({

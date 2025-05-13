@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -190,101 +191,114 @@ const AIStrategy = () => {
   const isConnectionError = error?.includes("Failed to fetch") || error?.includes("Network error") || errorType === "connection_error";
   const isTimeoutError = errorType === "timeout_error" || error?.includes("timed out");
 
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto p-6">
         {!generatedStrategy ? (
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">AI Strategy Generator</h1>
-            <p className="text-muted-foreground">
-              Select your stock and describe your ideal trading strategy in detail
-            </p>
-          </div>
+          <>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2">AI Strategy Generator</h1>
+              <p className="text-muted-foreground">
+                Select your stock and describe your ideal trading strategy in detail
+              </p>
+            </div>
 
-          <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
+            <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
 
-          <StrategyDescription description={strategyDescription} onDescriptionChange={handleStrategyDescriptionChange} />
+            <StrategyDescription description={strategyDescription} onDescriptionChange={handleStrategyDescriptionChange} />
 
-          {error && <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="font-medium">
-                  {isAPIKeyError ? "API Key Error" : isConnectionError ? "Connection Error" : isTimeoutError ? "Request Timeout" : "AI Service Error"}
-                </h4>
-                <p className="text-sm">{error}</p>
-                
-                {isAPIKeyError && <div className="mt-3">
-                    <Alert variant="destructive" className="bg-destructive/5">
-                      <AlertTitle className="flex items-center gap-2">
-                        Supabase Edge Function Configuration Error
-                      </AlertTitle>
-                      <AlertDescription>
-                        <p className="mb-2">The AI service could not authenticate. This is due to:</p>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li>Missing OPENAI_API_KEY in the project settings</li>
-                          <li>Invalid or expired API key</li>
-                        </ul>
-                        <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                          <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDocs}>
-                            <ExternalLink className="w-3 h-3" />
-                            Supabase Functions Documentation
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDashboard}>
-                            <ExternalLink className="w-3 h-3" />
-                            View Edge Functions
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  </div>}
-                
-                {(isConnectionError || isTimeoutError) && <div className="mt-3">
-                    <Alert variant="destructive" className="bg-destructive/5">
-                      <AlertTitle className="flex items-center gap-2">
-                        {isConnectionError ? "Connection Error" : "Request Timeout"}
-                      </AlertTitle>
-                      <AlertDescription>
-                        <p className="mb-2">We couldn't reach the AI service. This might be due to:</p>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li>Network connectivity issues</li>
-                          <li>Supabase Edge Function not responding</li>
-                          {isTimeoutError && <li>Request was too complex and timed out</li>}
-                        </ul>
-                        
-                        <div className="mt-4 flex gap-2">
-                          <Button variant="default" size="sm" onClick={handleRetryGeneration} className="flex items-center gap-1">
-                            <RefreshCcw className="w-3 h-3" />
-                            Retry Generation
-                          </Button>
+            {error && (
+              <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium">
+                    {isAPIKeyError ? "API Key Error" : isConnectionError ? "Connection Error" : isTimeoutError ? "Request Timeout" : "AI Service Error"}
+                  </h4>
+                  <p className="text-sm">{error}</p>
+                  
+                  {isAPIKeyError && (
+                    <div className="mt-3">
+                      <Alert variant="destructive" className="bg-destructive/5">
+                        <AlertTitle className="flex items-center gap-2">
+                          Supabase Edge Function Configuration Error
+                        </AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">The AI service could not authenticate. This is due to:</p>
+                          <ul className="list-disc pl-5 space-y-1 text-sm">
+                            <li>Missing OPENAI_API_KEY in the project settings</li>
+                            <li>Invalid or expired API key</li>
+                          </ul>
+                          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                            <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDocs}>
+                              <ExternalLink className="w-3 h-3" />
+                              Supabase Functions Documentation
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDashboard}>
+                              <ExternalLink className="w-3 h-3" />
+                              View Edge Functions
+                            </Button>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                  
+                  {(isConnectionError || isTimeoutError) && (
+                    <div className="mt-3">
+                      <Alert variant="destructive" className="bg-destructive/5">
+                        <AlertTitle className="flex items-center gap-2">
+                          {isConnectionError ? "Connection Error" : "Request Timeout"}
+                        </AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">We couldn't reach the AI service. This might be due to:</p>
+                          <ul className="list-disc pl-5 space-y-1 text-sm">
+                            <li>Network connectivity issues</li>
+                            <li>Supabase Edge Function not responding</li>
+                            {isTimeoutError && <li>Request was too complex and timed out</li>}
+                          </ul>
                           
-                          <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
-                            Use Template Strategy
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  </div>}
-                
-                {!isAPIKeyError && !isConnectionError && !isTimeoutError && <div className="mt-4">
-                    <Button variant="default" size="sm" onClick={handleRetryGeneration} className="mr-2 flex items-center gap-1">
-                      <RefreshCcw className="w-3 h-3" />
-                      Retry
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
-                      Use Template Strategy
-                    </Button>
-                  </div>}
+                          <div className="mt-4 flex gap-2">
+                            <Button variant="default" size="sm" onClick={handleRetryGeneration} className="flex items-center gap-1">
+                              <RefreshCcw className="w-3 h-3" />
+                              Retry Generation
+                            </Button>
+                            
+                            <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
+                              Use Template Strategy
+                            </Button>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                  
+                  {!isAPIKeyError && !isConnectionError && !isTimeoutError && (
+                    <div className="mt-4">
+                      <Button variant="default" size="sm" onClick={handleRetryGeneration} className="mr-2 flex items-center gap-1">
+                        <RefreshCcw className="w-3 h-3" />
+                        Retry
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
+                        Use Template Strategy
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>}
+            )}
 
-          <div className="flex justify-end mt-6">
-            <Button className="w-full" onClick={handleGenerateStrategy} disabled={isLoading || !strategyDescription || !selectedAsset}>
-              {isLoading ? <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating Strategy...
-                </> : "Generate Strategy"}
-            </Button>
-          </div>
+            <div className="flex justify-end mt-6">
+              <Button className="w-full" onClick={handleGenerateStrategy} disabled={isLoading || !strategyDescription || !selectedAsset}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating Strategy...
+                  </>
+                ) : "Generate Strategy"}
+              </Button>
+            </div>
+          </>
         ) : (
           <div className="space-y-6">
             <div className="flex flex-col mb-6">
@@ -335,7 +349,8 @@ const AIStrategy = () => {
           </div>
         )}
       </main>
-    </div>;
+    </div>
+  );
 };
 
 export default AIStrategy;

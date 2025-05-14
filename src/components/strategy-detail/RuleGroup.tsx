@@ -6,6 +6,7 @@ import { Plus, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 interface RuleGroupProps {
   title: string;
   color: string;
@@ -21,6 +22,7 @@ interface RuleGroupProps {
   newlyAddedConditionId?: string | null;
   onClearNewlyAddedCondition?: () => void;
 }
+
 export const RuleGroup = ({
   title,
   color,
@@ -37,6 +39,7 @@ export const RuleGroup = ({
   onClearNewlyAddedCondition
 }: RuleGroupProps) => {
   const isOrGroup = title.includes("OR");
+  
   const handleDeleteInequality = (index: number) => {
     if (!onInequitiesChange) return;
     const updatedInequalities = [...inequalities];
@@ -68,10 +71,17 @@ export const RuleGroup = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                
+                <Button variant="ghost" size="icon" className="h-5 w-5 ml-1">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>{description}</p>
+              <TooltipContent className="w-80 p-4">
+                <p className="text-sm">
+                  {isOrGroup ? 
+                    "In the OR group, only a subset of conditions need to be met. This is useful for confirmatory signals where any one of several indicators can validate your trading decision." :
+                    "In the AND group, all conditions must be met simultaneously. Use this for essential criteria that form the foundation of your trading strategy."
+                  }
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

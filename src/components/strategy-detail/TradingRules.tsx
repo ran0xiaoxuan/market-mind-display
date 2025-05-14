@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -263,9 +264,36 @@ export const TradingRules = ({
         <TabsContent value="entry" className="mt-0">
           <div className="space-y-6">
             {validatedEntryRules.length > 0 ? <>
-                <RuleGroup title="AND Group" color="blue" description="All conditions must be met." inequalities={validatedEntryRules[0]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} className="bg-blue-50/50 border border-blue-100" onAddRule={() => handleAddCondition(true, 0)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />
+                <RuleGroup 
+                  title="AND Group" 
+                  color="blue" 
+                  description="All conditions in this group must be met simultaneously for a valid entry signal." 
+                  inequalities={validatedEntryRules[0]?.inequalities || []} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
+                  className="bg-blue-50/50 border border-blue-100" 
+                  onAddRule={() => handleAddCondition(true, 0)} 
+                  showValidation={showValidation} 
+                  newlyAddedConditionId={newlyAddedConditionId} 
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                />
                 
-                {validatedEntryRules.length > 1 && <RuleGroup title="OR Group" color="amber" description={`At least ${validatedEntryRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedEntryRules[1]?.inequalities || []).length)} conditions must be met.`} inequalities={validatedEntryRules[1]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} requiredConditions={validatedEntryRules[1]?.requiredConditions} onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} className="bg-amber-50/50 border border-amber-100" onAddRule={() => handleAddCondition(true, 1)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />}
+                {validatedEntryRules.length > 1 && 
+                <RuleGroup 
+                  title="OR Group" 
+                  color="amber" 
+                  description={`At least ${validatedEntryRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedEntryRules[1]?.inequalities || []).length)} conditions must be met to confirm the entry signal.`} 
+                  inequalities={validatedEntryRules[1]?.inequalities || []} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 
+                  requiredConditions={validatedEntryRules[1]?.requiredConditions} 
+                  onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
+                  className="bg-amber-50/50 border border-amber-100" 
+                  onAddRule={() => handleAddCondition(true, 1)} 
+                  showValidation={showValidation} 
+                  newlyAddedConditionId={newlyAddedConditionId} 
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                />}
               </> : editable ? <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
                 <p className="text-muted-foreground mb-4">No entry rules defined yet</p>
                 <Button onClick={handleAddFirstEntryRuleGroup}>
@@ -280,9 +308,36 @@ export const TradingRules = ({
         <TabsContent value="exit" className="mt-0">
           <div className="space-y-6">
             {validatedExitRules.length > 0 ? <>
-                <RuleGroup title="AND Group" color="blue" description="All conditions must be met." inequalities={validatedExitRules[0]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} className="bg-blue-50/50 border border-blue-100" onAddRule={() => handleAddCondition(false, 0)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />
+                <RuleGroup 
+                  title="AND Group" 
+                  color="blue" 
+                  description="All conditions in this group must be met simultaneously for a valid exit signal." 
+                  inequalities={validatedExitRules[0]?.inequalities || []} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
+                  className="bg-blue-50/50 border border-blue-100" 
+                  onAddRule={() => handleAddCondition(false, 0)} 
+                  showValidation={showValidation} 
+                  newlyAddedConditionId={newlyAddedConditionId} 
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                />
                 
-                {validatedExitRules.length > 1 && <RuleGroup title="OR Group" color="amber" description={`At least ${validatedExitRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedExitRules[1]?.inequalities || []).length)} conditions must be met.`} inequalities={validatedExitRules[1]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} requiredConditions={validatedExitRules[1]?.requiredConditions} onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} className="bg-amber-50/50 border border-amber-100" onAddRule={() => handleAddCondition(false, 1)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />}
+                {validatedExitRules.length > 1 && 
+                <RuleGroup 
+                  title="OR Group" 
+                  color="amber" 
+                  description={`At least ${validatedExitRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedExitRules[1]?.inequalities || []).length)} conditions must be met to confirm the exit signal.`} 
+                  inequalities={validatedExitRules[1]?.inequalities || []} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} 
+                  requiredConditions={validatedExitRules[1]?.requiredConditions} 
+                  onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
+                  className="bg-amber-50/50 border border-amber-100" 
+                  onAddRule={() => handleAddCondition(false, 1)} 
+                  showValidation={showValidation} 
+                  newlyAddedConditionId={newlyAddedConditionId} 
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                />}
               </> : editable ? <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
                 <p className="text-muted-foreground mb-4">No exit rules defined yet</p>
                 <Button onClick={handleAddFirstExitRuleGroup}>

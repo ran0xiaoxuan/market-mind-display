@@ -51,7 +51,7 @@ serve(async (req) => {
       );
     }
     
-    // Build enhanced prompt for OpenAI
+    // Build enhanced prompt for OpenAI with better instructions about rule groups
     const systemPrompt = `You are a trading strategy assistant that helps create detailed trading strategies. 
 You will be given an asset type, an asset name, and a strategy description. 
 Generate a complete trading strategy with entry rules, exit rules, and risk management for stocks.
@@ -69,6 +69,21 @@ Generate a complete trading strategy with entry rules, exit rules, and risk mana
 Name: "AAPL Momentum Crossover Strategy with Volume Confirmation"
 
 Description: "This strategy for Apple Inc. (AAPL) leverages momentum trends following product announcements. By combining moving averages with RSI confirmation, it captures AAPL's momentum while filtering false signals through volume analysis. Effective during market uncertainty when AAPL behaves as a safe-haven tech stock. Designed for 2-4 week positions, aligning with AAPL's price cycles, with stop-loss levels calibrated to historical volatility."
+
+## RULE GROUPS EXPLANATION (VERY IMPORTANT):
+When creating trading rules, use BOTH the AND group and OR group effectively:
+
+1. AND Group:
+   - All conditions in this group MUST be met simultaneously
+   - Use for primary, essential conditions that must ALL be true
+   - Example: "Price is above 200 SMA" AND "RSI is above 50"
+
+2. OR Group: 
+   - At least N conditions from this group must be met (where N is the requiredConditions)
+   - Use for confirmatory signals where any subset can validate the trade
+   - Example: EITHER "Volume increases by 20%" OR "MACD crosses above signal line"
+
+IMPORTANT: Don't put all conditions in just one group. Distribute them logically between AND and OR groups for a more sophisticated strategy.
 
 ## IMPORTANT FORMAT FOR RULES:
 For each rule, make sure the left and right sides are properly formatted with:
@@ -105,7 +120,9 @@ Always return your response as a valid JSON object with these properties:
 Asset Name: ${selectedAsset}
 Strategy Description: ${strategyDescription}
 
-Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a concise description explaining why this strategy is suitable for ${selectedAsset}.`;
+Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a concise description explaining why this strategy is suitable for ${selectedAsset}.
+
+IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put confirmatory signals in the OR group where only some need to be true.`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);

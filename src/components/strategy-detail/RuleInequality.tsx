@@ -84,14 +84,31 @@ export const RuleInequality = ({
                        hasEmptyRequiredFields('left') || 
                        hasEmptyRequiredFields('right');
 
-  // Format the inequality for display
+  // Format the inequality side for display
   const formatSideForDisplay = (side: any) => {
     if (!side || !side.type) {
       return "Unknown";
     }
     
     if (side.type === "INDICATOR") {
-      return side.indicator || "Unknown indicator";
+      // Display indicator with key parameters if available
+      if (side.indicator) {
+        let displayText = side.indicator;
+        
+        // Add important parameters in parentheses if they exist
+        const params = [];
+        if (side.parameters?.period) params.push(`period: ${side.parameters.period}`);
+        if (side.parameters?.fast) params.push(`fast: ${side.parameters.fast}`);
+        if (side.parameters?.slow) params.push(`slow: ${side.parameters.slow}`);
+        if (side.parameters?.signal) params.push(`signal: ${side.parameters.signal}`);
+        
+        if (params.length > 0) {
+          displayText += ` (${params.join(", ")})`;
+        }
+        
+        return displayText;
+      }
+      return "Unknown indicator";
     } else if (side.type === "VALUE") {
       return side.value || "0";
     } else {
@@ -99,17 +116,31 @@ export const RuleInequality = ({
     }
   };
 
+  // Get the human-readable condition symbol
   const getConditionSymbol = (condition: string) => {
     switch (condition) {
       case 'CROSSES_ABOVE': return 'crosses above';
       case 'CROSSES_BELOW': return 'crosses below';
-      case 'GREATER_THAN': return '>';
-      case 'LESS_THAN': return '<';
-      case 'EQUAL': return '=';
-      case 'GREATER_THAN_OR_EQUAL': return '≥';
-      case 'LESS_THAN_OR_EQUAL': return '≤';
+      case 'GREATER_THAN': return 'is greater than';
+      case 'LESS_THAN': return 'is less than';
+      case 'EQUAL': return 'equals';
+      case 'GREATER_THAN_OR_EQUAL': return 'is greater than or equal to';
+      case 'LESS_THAN_OR_EQUAL': return 'is less than or equal to';
       default: return condition || 'unknown';
     }
+  };
+
+  // Generate a human-readable description of the inequality
+  const getReadableCondition = () => {
+    if (!localInequality.condition || !localInequality.left.type || !localInequality.right.type) {
+      return "Incomplete condition";
+    }
+    
+    const leftSide = formatSideForDisplay(localInequality.left);
+    const rightSide = formatSideForDisplay(localInequality.right);
+    const conditionText = getConditionSymbol(localInequality.condition);
+    
+    return `${leftSide} ${conditionText} ${rightSide}`;
   };
 
   // Compact display when not in edit mode
@@ -118,9 +149,7 @@ export const RuleInequality = ({
       <div className={`p-3 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-1 overflow-hidden">
-            <span className="text-sm font-medium truncate">{formatSideForDisplay(localInequality.left)}</span>
-            <span className="text-xs text-gray-500 px-1">{getConditionSymbol(localInequality.condition)}</span>
-            <span className="text-sm font-medium truncate">{formatSideForDisplay(localInequality.right)}</span>
+            <span className="text-sm font-medium">{getReadableCondition()}</span>
             
             {isIncomplete && showValidation && (
               <Badge variant="destructive" className="ml-2">Incomplete</Badge>

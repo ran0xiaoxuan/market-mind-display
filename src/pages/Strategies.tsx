@@ -8,15 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
-import { usePagination } from "@/hooks/usePagination";
-import { PaginationControls } from "@/components/PaginationControls";
-
 const Strategies = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
-  
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
@@ -35,28 +31,11 @@ const Strategies = () => {
 
   // Filter strategies based on search term and status filter
   const filteredStrategies = strategies.filter(strategy => {
-    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         (strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === "all" || 
-                         (statusFilter === "active" && strategy.isActive) || 
-                         (statusFilter === "inactive" && !strategy.isActive);
+    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || statusFilter === "active" && strategy.isActive || statusFilter === "inactive" && !strategy.isActive;
     return matchesSearch && matchesStatus;
   });
-  
-  // Setup pagination
-  const { 
-    pagination, 
-    paginatedItems, 
-    goToPage 
-  } = usePagination({ 
-    totalItems: filteredStrategies.length
-  });
-  
-  // Get current page of strategies
-  const currentStrategies = paginatedItems(filteredStrategies);
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -71,12 +50,7 @@ const Strategies = () => {
           
           <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
             <div className="w-full sm:w-2/3">
-              <Input 
-                placeholder="Search strategies..." 
-                value={searchTerm} 
-                onChange={e => setSearchTerm(e.target.value)} 
-                className="w-full" 
-              />
+              <Input placeholder="Search strategies..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
             </div>
             <div className="w-full sm:w-1/4 lg:w-1/5">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -92,45 +66,15 @@ const Strategies = () => {
             </div>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />
-              ))}
-            </div>
-          ) : filteredStrategies.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {currentStrategies.map(strategy => (
-                  <StrategyCard 
-                    key={strategy.id} 
-                    name={strategy.name} 
-                    description={strategy.description || "No description provided"} 
-                    updatedAt={new Date(strategy.updatedAt || Date.now())} 
-                    asset={strategy.targetAsset || "Unknown"} 
-                    status={strategy.isActive ? "active" : "inactive"} 
-                    id={strategy.id} 
-                  />
-                ))}
-              </div>
-              
-              {/* Pagination controls */}
-              <div className="mt-8 flex justify-center">
-                <PaginationControls 
-                  pagination={pagination}
-                  onPageChange={goToPage}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-12">
+          {loading ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />)}
+            </div> : filteredStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {filteredStrategies.map(strategy => <StrategyCard key={strategy.id} name={strategy.name} description={strategy.description || "No description provided"} updatedAt={new Date(strategy.updatedAt || Date.now())} asset={strategy.targetAsset || "Unknown"} status={strategy.isActive ? "active" : "inactive"} id={strategy.id} />)}
+            </div> : <div className="text-center py-12">
               <p className="text-muted-foreground">No strategies found.</p>
-            </div>
-          )}
+            </div>}
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Strategies;

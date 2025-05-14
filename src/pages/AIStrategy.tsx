@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { useNavigate } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
@@ -42,13 +41,15 @@ const AIStrategy = () => {
   const handleGenerateStrategy = async () => {
     // Validation checks
     if (!selectedAsset) {
-      toast("Asset selection required", {
+      toast({
+        title: "Asset selection required",
         description: "Please select an asset for your trading strategy"
       });
       return;
     }
     if (!strategyDescription) {
-      toast("Strategy description required", {
+      toast({
+        title: "Strategy description required",
         description: "Please provide a description of your trading strategy"
       });
       return;
@@ -70,9 +71,9 @@ const AIStrategy = () => {
       setGeneratedStrategy(strategy);
       setRetryCount(0); // Reset retry count on success
 
-      toast("Strategy generated", {
+      toast({
+        title: "Strategy generated",
         description: "AI has successfully generated a trading strategy based on your description",
-        icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
     } catch (error: any) {
       console.error("Error generating strategy:", error);
@@ -83,9 +84,10 @@ const AIStrategy = () => {
 
       // Check if this is a connection error
       const isConnectionError = errorMessage.includes("Failed to fetch") || errorMessage.includes("Network error") || errorMessage.includes("connection") || errorType === "connection_error" || !navigator.onLine;
-      toast("Failed to generate strategy", {
+      toast({
+        title: "Failed to generate strategy",
         description: isConnectionError ? "There was an error connecting to the AI service. Please check your connection and try again." : "There was an error generating your strategy. Please try again or use a simpler description.",
-        icon: <AlertCircle className="h-4 w-4 text-destructive" />
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -96,7 +98,8 @@ const AIStrategy = () => {
     setRetryCount(prev => prev + 1);
     // If we've tried 3+ times, suggest using a simpler description
     if (retryCount >= 2) {
-      toast("Consider simplifying your description", {
+      toast({
+        title: "Consider simplifying your description",
         description: "Try using fewer requirements or simpler language for better results"
       });
     }
@@ -110,9 +113,9 @@ const AIStrategy = () => {
     }) => {
       const fallbackStrategy = generateFallbackStrategy("stocks", selectedAsset, strategyDescription);
       setGeneratedStrategy(fallbackStrategy);
-      toast("Using template strategy", {
+      toast({
+        title: "Using template strategy",
         description: "Using a template strategy since the AI service is unavailable",
-        icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
     });
   };
@@ -121,7 +124,8 @@ const AIStrategy = () => {
     if (!generatedStrategy) return;
     
     if (!user) {
-      toast("Authentication required", {
+      toast({
+        title: "Authentication required",
         description: "Please log in to save your strategy"
       });
       navigate(`/auth/login`);
@@ -138,9 +142,9 @@ const AIStrategy = () => {
       console.log("Strategy saved with ID:", strategyId);
       
       // Show success toast
-      toast("Strategy saved", {
+      toast({
+        title: "Strategy saved",
         description: "Your strategy has been saved successfully",
-        icon: <CheckCircle className="h-4 w-4 text-green-500" />
       });
 
       // Navigate to the strategy details page
@@ -150,20 +154,23 @@ const AIStrategy = () => {
       
       // Check if this is an authentication error
       if (error.message?.includes("authentication") || error.code === 'PGRST301') {
-        toast("Authentication required", {
+        toast({
+          title: "Authentication required",
           description: "Please log in to save your strategy",
-          icon: <AlertCircle className="h-4 w-4 text-destructive" />
+          variant: "destructive"
         });
         navigate(`/auth/login`);
       } else if (error.message?.includes("row-level security") || error.code === 'PGRST204') {
-        toast("Permission error", {
+        toast({
+          title: "Permission error",
           description: "You don't have permission to save this strategy. Please log out and log back in.",
-          icon: <AlertCircle className="h-4 w-4 text-destructive" />
+          variant: "destructive"
         });
       } else {
-        toast("Failed to save strategy", {
+        toast({
+          title: "Failed to save strategy",
           description: error.message || "Please try again later",
-          icon: <AlertCircle className="h-4 w-4 text-destructive" />
+          variant: "destructive"
         });
       }
     } finally {

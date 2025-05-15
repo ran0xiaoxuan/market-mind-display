@@ -5,8 +5,9 @@ import { SettingsTabs } from "@/components/SettingsTabs";
 import { AccountSettings } from "@/components/settings/AccountSettings";
 import { TradingSettings } from "@/components/settings/TradingSettings";
 import { ContactUs } from "@/components/settings/ContactUs";
+import { AISettings } from "@/components/settings/AISettings";
 
-type SettingsTab = "account" | "trading" | "contact";
+type SettingsTab = "account" | "trading" | "contact" | "ai";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
@@ -27,6 +28,7 @@ export default function Settings() {
             {activeTab === "account" && <AccountSettings />}
             {activeTab === "trading" && <TradingSettings />}
             {activeTab === "contact" && <ContactUs />}
+            {activeTab === "ai" && <AISettings />}
           </div>
         </div>
       </main>

@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // OpenAI API configuration
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY_NEW') || Deno.env.get('OPENAI_API_KEY');
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 // CORS headers
 const corsHeaders = {

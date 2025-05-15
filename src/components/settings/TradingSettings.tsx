@@ -497,19 +497,6 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      <div>
-        <h2 className="text-xl font-medium mb-2">Signal Notification Settings</h2>
-        <p className="text-sm text-muted-foreground mb-6">Configure which types of signals to send</p>
-        
-        <Card className={isPro ? "" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
-          <CardHeader className={isPro ? "pb-0" : "hidden"}>
-            <CardTitle className="text-lg">Alert Types</CardTitle>
-            <CardDescription>Customize which trading events will trigger notifications</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            {renderSignalNotificationTypes()}
-          </CardContent>
-        </Card>
-      </div>
+      
     </div>;
 }

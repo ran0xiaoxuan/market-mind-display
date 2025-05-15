@@ -488,7 +488,7 @@ export function TradingSettings() {
         
         <Card className={isPro ? "" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
           <CardHeader className={isPro ? "pb-0" : "hidden"}>
-            <CardTitle className="text-lg">Notification Channels</CardTitle>
+            <CardTitle className="text-lg">Notification Platforms</CardTitle>
             <CardDescription>Connect your accounts to receive alerts on your preferred platforms</CardDescription>
           </CardHeader>
           <CardContent className="p-6">

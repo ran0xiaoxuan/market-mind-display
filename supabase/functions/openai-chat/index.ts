@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-const API_URL = "https://api.openai.com/v1/chat/completions"; // Updated to standard OpenAI API URL
+const API_URL = "https://api.gptsapi.net/v1/chat/completions";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

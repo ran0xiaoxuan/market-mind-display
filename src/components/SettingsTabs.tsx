@@ -1,7 +1,7 @@
 
-import { User, Bell, Contact, Sparkles } from "lucide-react";
+import { User, Bell, Contact } from "lucide-react";
 
-type SettingsTab = "account" | "trading" | "contact" | "ai";
+type SettingsTab = "account" | "trading" | "contact";
 
 interface SettingsTabsProps {
   activeTab: SettingsTab;
@@ -10,10 +10,9 @@ interface SettingsTabsProps {
 
 export function SettingsTabs({ activeTab, setActiveTab }: SettingsTabsProps) {
   const tabs = [
-    { id: "account" as const, label: "Account", icon: <User className="h-4 w-4" /> },
-    { id: "trading" as const, label: "Notifications", icon: <Bell className="h-4 w-4" /> },
-    { id: "ai" as const, label: "AI Service", icon: <Sparkles className="h-4 w-4" /> },
-    { id: "contact" as const, label: "Contact Us", icon: <Contact className="h-4 w-4" /> },
+    { id: "account" as const, label: "Account" },
+    { id: "trading" as const, label: "Notifications" },
+    { id: "contact" as const, label: "Contact Us" },
   ];
 
   return (
@@ -28,7 +27,6 @@ export function SettingsTabs({ activeTab, setActiveTab }: SettingsTabsProps) {
               : "hover:bg-secondary"
           }`}
         >
-          {tab.icon}
           {tab.label}
         </button>
       ))}

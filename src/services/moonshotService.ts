@@ -31,25 +31,6 @@ export interface ChatCompletionResponse {
   };
 }
 
-// Function to set a new OpenAI API key in Supabase Edge Function Secrets
-export const setOpenAIApiKey = async (apiKey: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase.functions.invoke("set-openai-key", {
-      body: { apiKey }
-    });
-
-    if (error) {
-      console.error("Error setting OpenAI API key:", error);
-      throw new Error(`Failed to set API key: ${error.message}`);
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error in setOpenAIApiKey:", error);
-    throw error;
-  }
-};
-
 export const sendChatCompletion = async (
   request: ChatCompletionRequest
 ): Promise<ChatCompletionResponse> => {

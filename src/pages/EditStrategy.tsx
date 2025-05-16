@@ -72,7 +72,11 @@ const EditStrategy = () => {
         // Set basic strategy data to state
         setStrategyName(strategy.name);
         setDescription(strategy.description || "");
+        
+        // Ensure timeframe is properly set from strategy data
+        console.log("Setting timeframe from strategy data:", strategy.timeframe);
         setTimeframe(strategy.timeframe || "");
+        
         setTargetAsset(strategy.targetAsset || "");
         setIsActive(strategy.isActive);
         
@@ -455,7 +459,10 @@ const EditStrategy = () => {
               
               <div>
                 <Label htmlFor="timeframe">Timeframe</Label>
-                <Select value={timeframe} onValueChange={setTimeframe}>
+                <Select 
+                  value={timeframe} 
+                  onValueChange={setTimeframe}
+                >
                   <SelectTrigger id="timeframe" className="mt-1">
                     <SelectValue placeholder="Select Timeframe" />
                   </SelectTrigger>

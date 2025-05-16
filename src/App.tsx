@@ -49,10 +49,10 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/strategy/:id" element={<StrategyDetail />} />
+          <Route path="/strategy/:strategyId/edit" element={<EditStrategy />} />
           <Route path="/ai-strategy" element={<AIStrategy />} />
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/backtest-history" element={<BacktestHistory />} />
-          <Route path="/edit-strategy/:strategyId" element={<EditStrategy />} />
           <Route path="/edit-history/:id" element={<EditHistory />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />

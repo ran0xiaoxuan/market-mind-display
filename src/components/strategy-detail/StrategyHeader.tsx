@@ -69,7 +69,7 @@ export const StrategyHeader = ({
             variant="outline" 
             size="sm" 
             className="h-9 px-2.5 border border-input" 
-            onClick={() => navigate(`/edit-strategy/${strategyId}`)}
+            onClick={() => navigate(`/strategy/${strategyId}/edit`)}
           >
             <Edit className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Edit</span>

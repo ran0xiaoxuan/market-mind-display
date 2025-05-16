@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Routes,
   Route,
@@ -7,7 +7,6 @@ import {
   Outlet,
 } from "react-router-dom";
 import { Toaster } from "sonner";
-import { supabase } from "./integrations/supabase/client";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";

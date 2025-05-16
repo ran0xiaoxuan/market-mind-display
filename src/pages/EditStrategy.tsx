@@ -25,7 +25,7 @@ import { toast } from "sonner";
 const EditStrategy = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { strategyId } = useParams<{ strategyId: string }>();
+  const { id } = useParams<{ id: string }>(); // Changed from strategyId to id
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -71,7 +71,7 @@ const EditStrategy = () => {
   // Fetch strategy data when component mounts
   useEffect(() => {
     const fetchStrategyData = async () => {
-      if (!strategyId) {
+      if (!id) { // Changed from strategyId to id
         toast({
           title: "Error",
           description: "No strategy ID provided",
@@ -83,10 +83,10 @@ const EditStrategy = () => {
       
       try {
         setLoading(true);
-        console.log(`Fetching strategy with ID: ${strategyId}`);
+        console.log(`Fetching strategy with ID: ${id}`); // Changed from strategyId to id
         
         // Fetch strategy basic data (now including risk management data)
-        const strategy = await getStrategyById(strategyId);
+        const strategy = await getStrategyById(id); // Changed from strategyId to id
         if (!strategy) {
           toast({
             title: "Strategy Not Found",
@@ -124,7 +124,7 @@ const EditStrategy = () => {
         });
         
         // Fetch trading rules
-        const rulesData = await getTradingRulesForStrategy(strategyId);
+        const rulesData = await getTradingRulesForStrategy(id); // Changed from strategyId to id
         
         // Check if we have valid rules
         if (rulesData) {
@@ -175,7 +175,7 @@ const EditStrategy = () => {
     };
     
     fetchStrategyData();
-  }, [strategyId, navigate, toast, form]);
+  }, [id, navigate, toast, form]); // Changed from strategyId to id
 
   // Fetch API key on component mount
   useEffect(() => {
@@ -306,7 +306,7 @@ const EditStrategy = () => {
   };
   
   const handleSave = async () => {
-    if (!strategyId) return;
+    if (!id) return; // Changed from strategyId to id
     
     try {
       setIsSaving(true);
@@ -326,7 +326,7 @@ const EditStrategy = () => {
           max_buy_volume: maxBuyVolume,
           updated_at: new Date().toISOString()
         })
-        .eq('id', strategyId);
+        .eq('id', id); // Changed from strategyId to id
 
       if (strategyError) {
         throw new Error(`Error updating strategy: ${strategyError.message}`);
@@ -336,7 +336,7 @@ const EditStrategy = () => {
       const { data: existingRuleGroups, error: ruleGroupsError } = await supabase
         .from('rule_groups')
         .select('id, rule_type')
-        .eq('strategy_id', strategyId);
+        .eq('strategy_id', id); // Changed from strategyId to id
 
       if (ruleGroupsError) {
         throw new Error(`Error fetching rule groups: ${ruleGroupsError.message}`);
@@ -361,7 +361,7 @@ const EditStrategy = () => {
         const { error: deleteGroupsError } = await supabase
           .from('rule_groups')
           .delete()
-          .eq('strategy_id', strategyId);
+          .eq('strategy_id', id);
 
         if (deleteGroupsError) {
           throw new Error(`Error deleting rule groups: ${deleteGroupsError.message}`);
@@ -376,7 +376,7 @@ const EditStrategy = () => {
         const { data: entryGroup, error: entryGroupError } = await supabase
           .from('rule_groups')
           .insert({
-            strategy_id: strategyId,
+            strategy_id: id, // Changed from strategyId to id
             rule_type: 'entry',
             group_order: groupIndex + 1,
             logic: group.logic,
@@ -426,7 +426,7 @@ const EditStrategy = () => {
         const { data: exitGroup, error: exitGroupError } = await supabase
           .from('rule_groups')
           .insert({
-            strategy_id: strategyId,
+            strategy_id: id, // Changed from strategyId to id
             rule_type: 'exit',
             group_order: groupIndex + 1,
             logic: group.logic,
@@ -472,7 +472,7 @@ const EditStrategy = () => {
         title: "Strategy updated",
         description: "Your strategy has been successfully updated."
       });
-      navigate(`/strategy/${strategyId}`);
+      navigate(`/strategy/${id}`); // Changed from strategyId to id
     } catch (error) {
       console.error("Error saving strategy:", error);
       toast({

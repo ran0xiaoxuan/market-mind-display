@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, X } from "lucide-react";
 
 export function ContactUs() {
   return (
@@ -15,7 +14,11 @@ export function ContactUs() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <MessageSquare className="h-10 w-10 text-indigo-600" />
+              <img 
+                src="/lovable-uploads/6a521ef5-b54b-46fd-9cab-8644b0d9a54d.png" 
+                alt="Discord Logo" 
+                className="h-10 w-10"
+              />
               <div>
                 <h3 className="font-medium">Join our Discord</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -27,7 +30,11 @@ export function ContactUs() {
                 className="w-full border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                 onClick={() => window.open('https://discord.gg/tradingapp', '_blank')}
               >
-                <MessageSquare className="mr-2 h-4 w-4" />
+                <img 
+                  src="/lovable-uploads/6a521ef5-b54b-46fd-9cab-8644b0d9a54d.png" 
+                  alt="Discord Logo" 
+                  className="mr-2 h-4 w-4" 
+                />
                 Join Discord
               </Button>
             </div>
@@ -37,7 +44,11 @@ export function ContactUs() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <X className="h-10 w-10 text-black" />
+              <img 
+                src="/lovable-uploads/937c84bf-6c2e-426b-87f8-c1ada1bef19d.png" 
+                alt="X Logo" 
+                className="h-10 w-10"
+              />
               <div>
                 <h3 className="font-medium">Follow us on X</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -49,7 +60,11 @@ export function ContactUs() {
                 className="w-full border-black/20 hover:bg-black/5 hover:text-black"
                 onClick={() => window.open('https://twitter.com/tradingappofficial', '_blank')}
               >
-                <X className="mr-2 h-4 w-4" />
+                <img 
+                  src="/lovable-uploads/937c84bf-6c2e-426b-87f8-c1ada1bef19d.png" 
+                  alt="X Logo" 
+                  className="mr-2 h-4 w-4" 
+                />
                 Follow on X
               </Button>
             </div>

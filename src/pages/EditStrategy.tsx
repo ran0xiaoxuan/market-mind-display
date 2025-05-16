@@ -52,9 +52,7 @@ const EditStrategy = () => {
   useEffect(() => {
     const fetchStrategyData = async () => {
       if (!id) {
-        toast({
-          description: "No strategy ID provided"
-        });
+        toast("No strategy ID provided");
         navigate('/strategies');
         return;
       }
@@ -66,9 +64,7 @@ const EditStrategy = () => {
         // Fetch strategy basic data
         const strategy = await getStrategyById(id);
         if (!strategy) {
-          toast({
-            description: "The requested strategy could not be found"
-          });
+          toast("The requested strategy could not be found");
           navigate('/strategies');
           return;
         }
@@ -127,9 +123,7 @@ const EditStrategy = () => {
         console.log("Strategy data loaded successfully");
       } catch (error) {
         console.error("Error fetching strategy data:", error);
-        toast({
-          description: "Failed to load strategy details"
-        });
+        toast("Failed to load strategy details");
       } finally {
         setLoading(false);
       }
@@ -150,9 +144,7 @@ const EditStrategy = () => {
           console.log("API key retrieved successfully for EditStrategy");
         } else {
           console.error("API key not found in EditStrategy");
-          toast({
-            description: "Unable to connect to financial data service"
-          });
+          toast("Unable to connect to financial data service");
         }
       } catch (error) {
         console.error("Error fetching API key in EditStrategy:", error);
@@ -190,15 +182,11 @@ const EditStrategy = () => {
       setSearchResults(stockResults);
       
       if (stockResults.length === 0 && query.length > 0) {
-        toast({
-          description: `No assets found matching "${query}"`
-        });
+        toast(`No assets found matching "${query}"`);
       }
     } catch (error) {
       console.error(`Error searching assets:`, error);
-      toast({
-        description: "Could not connect to financial data service"
-      });
+      toast("Could not connect to financial data service");
       setSearchResults([]);
     } finally {
       setIsLoading(false);
@@ -389,15 +377,15 @@ const EditStrategy = () => {
         }
       }
 
-      toast({
-        description: "Your strategy has been successfully updated."
-      });
+      toast("Your strategy has been successfully updated.");
       navigate(`/strategy/${id}`);
     } catch (error) {
       console.error("Error saving strategy:", error);
-      toast({
-        description: error instanceof Error ? error.message : "An unknown error occurred"
-      });
+      if (error instanceof Error) {
+        toast(error.message);
+      } else {
+        toast("An unknown error occurred");
+      }
     } finally {
       setIsSaving(false);
     }

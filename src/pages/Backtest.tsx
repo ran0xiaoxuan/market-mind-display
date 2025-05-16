@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon } from "lucide-react";
@@ -5,7 +6,6 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +17,7 @@ import { useLocation } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { StrategySelect } from "@/components/backtest/StrategySelect";
 
 const Backtest = () => {
   const location = useLocation();
@@ -202,39 +203,23 @@ const Backtest = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
+          <Card className="shadow-sm border-zinc-200">
             <CardContent className="pt-6">
               <h2 className="text-xl font-bold mb-1">Backtest Parameters</h2>
               <p className="text-muted-foreground text-sm mb-6">Configure the parameters for your backtest.</p>
 
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label htmlFor="strategy" className="text-sm font-medium">
-                    Strategy
-                  </label>
-                  <Select value={strategy} onValueChange={setStrategy} disabled={isLoading || runningBacktest}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={isLoading ? "Loading strategies..." : "Select strategy"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {strategies.length > 0 ? (
-                        strategies.map((strategyItem) => (
-                          <SelectItem key={strategyItem.id} value={strategyItem.id}>
-                            {strategyItem.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="none" disabled>
-                          {isLoading ? "Loading strategies..." : "No strategies available"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <StrategySelect
+                  selectedStrategy={strategy}
+                  strategies={strategies}
+                  isLoading={isLoading}
+                  onSelectStrategy={setStrategy}
+                  disabled={runningBacktest}
+                />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Time Period</label>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs text-muted-foreground">Start Date</label>
                       <Popover>
@@ -248,13 +233,14 @@ const Backtest = () => {
                             {startDate ? format(startDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0 bg-white" align="start">
                           <Calendar 
                             mode="single" 
                             selected={startDate} 
                             onSelect={setStartDate}
                             disabled={disableFutureDates} 
                             initialFocus
+                            className="p-3 pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>
@@ -272,13 +258,14 @@ const Backtest = () => {
                             {endDate ? format(endDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0 bg-white" align="start">
                           <Calendar 
                             mode="single" 
                             selected={endDate} 
                             onSelect={setEndDate}
                             disabled={disableFutureDates} 
                             initialFocus
+                            className="p-3 pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>
@@ -297,12 +284,13 @@ const Backtest = () => {
                     onChange={e => setInitialCapital(e.target.value)} 
                     placeholder="10000" 
                     disabled={runningBacktest}
+                    className="bg-background"
                   />
                 </div>
 
                 <Button 
                   onClick={runBacktest} 
-                  className="w-full bg-zinc-950 hover:bg-zinc-800" 
+                  className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" 
                   disabled={runningBacktest}
                 >
                   {runningBacktest ? (
@@ -320,7 +308,7 @@ const Backtest = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm border-zinc-200">
             <CardContent className="pt-6">
               <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
               <p className="text-muted-foreground text-sm mb-6">

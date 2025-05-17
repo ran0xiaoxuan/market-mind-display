@@ -334,7 +334,6 @@ export const RuleInequality = ({
         <div className="flex flex-col md:flex-row items-start justify-start gap-4 p-3 bg-white rounded-lg border border-gray-100">
           {/* Left side */}
           <div className="w-full md:w-1/3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <div className="text-center mb-2 font-medium text-sm text-blue-700">Left Side</div>
             <Select value={localInequality.left.type} onValueChange={value => updateInequality('left', 'type', value)}>
               <SelectTrigger className={`${!localInequality.left.type && showValidation ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select type" />
@@ -384,7 +383,6 @@ export const RuleInequality = ({
           
           {/* Right side */}
           <div className="w-full md:w-1/3 p-3 bg-amber-50 rounded-lg border border-amber-100">
-            <div className="text-center mb-2 font-medium text-sm text-amber-700">Right Side</div>
             <Select value={localInequality.right.type} onValueChange={value => updateInequality('right', 'type', value)}>
               <SelectTrigger className={`${!localInequality.right.type && showValidation ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select type" />

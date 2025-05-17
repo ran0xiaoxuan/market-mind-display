@@ -79,11 +79,12 @@ When creating trading rules, use BOTH the AND group and OR group effectively:
    - Example: "Price is above 200 SMA" AND "RSI is above 50"
 
 2. OR Group: 
+   - MUST CONTAIN AT LEAST 2 CONDITIONS
    - At least N conditions from this group must be met (where N is the requiredConditions)
    - Use for confirmatory signals where any subset can validate the trade
    - Example: EITHER "Volume increases by 20%" OR "MACD crosses above signal line"
 
-IMPORTANT: Don't put all conditions in just one group. Distribute them logically between AND and OR groups for a more sophisticated strategy.
+IMPORTANT: Don't put all conditions in just one group. Distribute them logically between AND and OR groups for a more sophisticated strategy. ALWAYS PUT AT LEAST 2 CONDITIONS IN THE OR GROUP.
 
 ## IMPORTANT FORMAT FOR RULES:
 For each rule, make sure the left and right sides are properly formatted with:
@@ -122,7 +123,7 @@ Strategy Description: ${strategyDescription}
 
 Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a concise description explaining why this strategy is suitable for ${selectedAsset}.
 
-IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put confirmatory signals in the OR group where only some need to be true.`;
+IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put AT LEAST 2 CONDITIONS in the OR group where only some need to be true.`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);

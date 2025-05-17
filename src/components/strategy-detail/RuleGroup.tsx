@@ -6,6 +6,8 @@ import { Plus, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
 interface RuleGroupProps {
   title: string;
   color: string;
@@ -21,6 +23,7 @@ interface RuleGroupProps {
   newlyAddedConditionId?: string | null;
   onClearNewlyAddedCondition?: () => void;
 }
+
 export const RuleGroup = ({
   title,
   color,
@@ -37,6 +40,7 @@ export const RuleGroup = ({
   onClearNewlyAddedCondition
 }: RuleGroupProps) => {
   const isOrGroup = title.includes("OR");
+  
   const handleDeleteInequality = (index: number) => {
     if (!onInequitiesChange) return;
     const updatedInequalities = [...inequalities];
@@ -61,6 +65,10 @@ export const RuleGroup = ({
 
   // Check if there are missing required fields in the inequalities - only show when showValidation is true
   const hasIncompleteRules = showValidation && editable && inequalities.some(inequality => !inequality.left?.type || !inequality.condition || !inequality.right?.type || inequality.left?.type === 'INDICATOR' && !inequality.left?.indicator || inequality.right?.type === 'INDICATOR' && !inequality.right?.indicator || inequality.right?.type === 'VALUE' && inequality.right?.value === undefined);
+  
+  // Check if OR group has fewer than 2 conditions
+  const shouldHaveMoreConditions = isOrGroup && inequalities.length < 2 && editable;
+  
   return <div className={`rounded-lg p-4 ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
@@ -68,11 +76,15 @@ export const RuleGroup = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                
+                <Button variant="ghost" size="icon" className="h-7 w-7 ml-1">
+                  <Info className="h-4 w-4" />
+                </Button>
               </TooltipTrigger>
               <TooltipContent className="w-80 p-4">
                 <p className="text-sm">
-                  {isOrGroup ? "In the OR group, only a subset of conditions need to be met. This is useful for confirmatory signals where any one of several indicators can validate your trading decision." : "In the AND group, all conditions must be met simultaneously. Use this for essential criteria that form the foundation of your trading strategy."}
+                  {isOrGroup ? 
+                    "In the OR group, only a subset of conditions need to be met. This is useful for confirmatory signals where any one of several indicators can validate your trading decision. For reliability, it's recommended to have at least 2 conditions in this group." : 
+                    "In the AND group, all conditions must be met simultaneously. Use this for essential criteria that form the foundation of your trading strategy."}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -88,6 +100,15 @@ export const RuleGroup = ({
       {hasIncompleteRules && showValidation && <div className="text-sm text-red-500 mb-2">
           Some conditions are incomplete
         </div>}
+      
+      {shouldHaveMoreConditions && (
+        <Alert className="mb-3 bg-amber-50 text-amber-800 border border-amber-200">
+          <Info className="h-4 w-4 text-amber-600" />
+          <AlertDescription>
+            For better strategy reliability, add at least 2 conditions to the OR group.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {inequalities.length > 0 ? <div className="space-y-3 mt-4">
           {inequalities.map((inequality, index) => <RuleInequality key={inequality.id} inequality={inequality} editable={editable} onChange={updatedInequality => handleInequalityChange(index, updatedInequality)} onDelete={() => handleDeleteInequality(index)} showValidation={showValidation} isNewlyAdded={newlyAddedConditionId === inequality.id} onEditingComplete={onClearNewlyAddedCondition} />)}

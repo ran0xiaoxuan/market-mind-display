@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -231,7 +230,24 @@ export const TradingRules = ({
   const handleClearNewlyAddedCondition = () => {
     setNewlyAddedConditionId(null);
   };
-  
+
+  const ensureMultipleConditionsInOrGroup = (rules: RuleGroupData[]) => {
+    if (rules.length > 1 && rules[1]?.logic === "OR") {
+      const orGroup = rules[1];
+      if (orGroup.inequalities.length < 2 && editable) {
+        return (
+          <Alert className="mb-2 bg-amber-50 text-amber-800 border-amber-200">
+            <Info className="h-4 w-4 text-amber-600" />
+            <AlertDescription>
+              For better strategy reliability, add at least 2 conditions to the OR group.
+            </AlertDescription>
+          </Alert>
+        );
+      }
+    }
+    return null;
+  };
+
   return <Card className="p-6">
       {hasNoRules && !editable && <Alert variant="default" className="mb-4">
           <AlertCircle className="h-4 w-4" />
@@ -257,6 +273,25 @@ export const TradingRules = ({
               </Badge>
             </TabsTrigger>
           </TabsList>
+          
+          {editable && 
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm p-4">
+                <p className="text-sm mb-2 font-medium">Trading Rule Structure:</p>
+                <ul className="space-y-2 list-disc pl-4 text-sm">
+                  <li><span className="font-medium">AND Group:</span> All conditions must be met simultaneously for a valid signal.</li>
+                  <li><span className="font-medium">OR Group:</span> Should contain at least 2 conditions. Only the specified number of conditions need to be true for confirmation.</li>
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          }
         </div>
         
         <Separator className="mb-6" />
@@ -264,6 +299,8 @@ export const TradingRules = ({
         <TabsContent value="entry" className="mt-0">
           <div className="space-y-6">
             {validatedEntryRules.length > 0 ? <>
+                {editable && ensureMultipleConditionsInOrGroup(validatedEntryRules)}
+                
                 <RuleGroup 
                   title="AND Group" 
                   color="blue" 
@@ -308,6 +345,8 @@ export const TradingRules = ({
         <TabsContent value="exit" className="mt-0">
           <div className="space-y-6">
             {validatedExitRules.length > 0 ? <>
+                {editable && ensureMultipleConditionsInOrGroup(validatedExitRules)}
+                
                 <RuleGroup 
                   title="AND Group" 
                   color="blue" 

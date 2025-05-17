@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Inequality } from "./types";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -143,36 +142,79 @@ export const RuleInequality = ({
     return `${leftSide} ${conditionText} ${rightSide}`;
   };
 
+  // Get color based on condition type
+  const getConditionColor = () => {
+    switch (localInequality.condition) {
+      case 'CROSSES_ABOVE': 
+      case 'GREATER_THAN':
+      case 'GREATER_THAN_OR_EQUAL': 
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'CROSSES_BELOW':
+      case 'LESS_THAN':
+      case 'LESS_THAN_OR_EQUAL':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'EQUAL':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   // Compact display when not in edit mode
   const renderCompactDisplay = () => {
+    const conditionColor = getConditionColor();
+    
     return (
-      <div className={`p-3 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-1 overflow-hidden">
-            <span className="text-sm font-medium">{getReadableCondition()}</span>
+      <div className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              {isIncomplete && showValidation && (
+                <Badge variant="destructive" className="h-6">Incomplete</Badge>
+              )}
+              
+              {!isIncomplete && !showValidation && localInequality.explanation && (
+                <Badge variant="secondary" className="h-6 bg-purple-100 text-purple-800 border border-purple-200">
+                  With explanation
+                </Badge>
+              )}
+            </div>
             
-            {isIncomplete && showValidation && (
-              <Badge variant="destructive" className="ml-2">Incomplete</Badge>
+            {editable && (
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)} className="h-7 px-3 text-xs">
+                  Edit
+                </Button>
+                {onDelete && (
+                  <Button variant="ghost" size="sm" onClick={onDelete} className="h-7 px-2 text-xs text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           
-          {editable && (
-            <div className="flex gap-1 ml-2">
-              <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)} className="h-7 px-2 text-xs">
-                Edit
-              </Button>
-              {onDelete && (
-                <Button variant="ghost" size="sm" onClick={onDelete} className="h-7 px-2 text-xs text-destructive">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="px-3 py-1.5 rounded-md bg-blue-50 border border-blue-100 text-sm">
+              {formatSideForDisplay(localInequality.left)}
             </div>
+            
+            <div className={`px-3 py-1.5 rounded-md ${conditionColor} font-medium text-sm flex items-center`}>
+              {getConditionSymbol(localInequality.condition)}
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </div>
+            
+            <div className="px-3 py-1.5 rounded-md bg-amber-50 border border-amber-100 text-sm">
+              {formatSideForDisplay(localInequality.right)}
+            </div>
+          </div>
+          
+          {localInequality.explanation && (
+            <p className="text-xs text-muted-foreground mt-1 bg-gray-50 p-2 rounded border border-gray-100">
+              {localInequality.explanation}
+            </p>
           )}
         </div>
-        
-        {localInequality.explanation && (
-          <p className="text-xs text-muted-foreground mt-1">{localInequality.explanation}</p>
-        )}
       </div>
     );
   };

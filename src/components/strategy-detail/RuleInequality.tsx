@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Inequality } from "./types";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Input } from "@/components/ui/input";
 import { IndicatorParameter } from "./IndicatorParameter";
 import { AvailableIndicators } from "./AvailableIndicators";
+
 interface RuleInequalityProps {
   inequality: Inequality;
   editable?: boolean;
@@ -330,8 +330,8 @@ export const RuleInequality = ({
     return <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 space-y-4">
         <h3 className="text-lg font-semibold text-center mb-2">Define Inequality Condition</h3>
         
-        {/* Visual equation builder */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-3 bg-white rounded-lg border border-gray-100">
+        {/* Visual equation builder - Changed items-center to items-start to align contents to the top */}
+        <div className="flex flex-col md:flex-row items-start justify-start gap-4 p-3 bg-white rounded-lg border border-gray-100">
           {/* Left side */}
           <div className="w-full md:w-1/3 p-3 bg-blue-50 rounded-lg border border-blue-100">
             <div className="text-center mb-2 font-medium text-sm text-blue-700">Left Side</div>
@@ -427,4 +427,3 @@ export const RuleInequality = ({
   };
   return isOpen && editable ? renderEditMode() : renderCompactDisplay();
 };
-

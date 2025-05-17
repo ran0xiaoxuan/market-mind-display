@@ -348,7 +348,7 @@ export const RuleInequality = ({
             {renderSideInputs('left')}
           </div>
           
-          {/* Condition operator - Updated to only show the four required operators */}
+          {/* Condition operator - Updated to remove the symbols from text */}
           <div className="w-full md:w-1/5">
             <div className="text-center mb-2 font-medium text-sm">Operator</div>
             <Select value={localInequality.condition} onValueChange={value => setLocalInequality({
@@ -363,13 +363,11 @@ export const RuleInequality = ({
                   <SelectItem value="CROSSES_ABOVE">
                     <div className="flex items-center">
                       <span>Crosses Above</span>
-                      <ChevronRight className="ml-2 h-4 w-4" />
                     </div>
                   </SelectItem>
                   <SelectItem value="CROSSES_BELOW">
                     <div className="flex items-center">
                       <span>Crosses Below</span>
-                      <ChevronLeft className="ml-2 h-4 w-4" />
                     </div>
                   </SelectItem>
                   <SelectItem value="GREATER_THAN">&gt;</SelectItem>

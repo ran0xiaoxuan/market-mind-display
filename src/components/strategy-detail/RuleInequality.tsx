@@ -170,9 +170,8 @@ export const RuleInequality = ({
     const conditionSymbol = getConditionSymbol(localInequality.condition);
     return <div className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
         <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            
-            
+          <div className="flex justify-end items-center">
+            {/* Moved buttons to the top-right by changing justify-between to justify-end */}
             {editable && <div className="flex gap-1">
                 <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)} className="h-7 px-3 text-xs">
                   Edit

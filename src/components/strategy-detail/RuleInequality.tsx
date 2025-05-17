@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Inequality } from "./types";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowRight } from "lucide-react";
+import { Trash2, ArrowRight, ChevronRight, ChevronLeft, Equal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -100,37 +101,26 @@ export const RuleInequality = ({
     }
   };
 
-  // Get the human-readable condition symbol
+  // Get the human-readable condition symbol and icon
   const getConditionSymbol = (condition: string) => {
     switch (condition) {
       case 'CROSSES_ABOVE':
-        return 'crosses above';
+        return { text: 'crosses above', icon: <ChevronRight className="h-4 w-4" /> };
       case 'CROSSES_BELOW':
-        return 'crosses below';
+        return { text: 'crosses below', icon: <ChevronLeft className="h-4 w-4" /> };
       case 'GREATER_THAN':
-        return 'is greater than';
+        return { text: '>', icon: null };
       case 'LESS_THAN':
-        return 'is less than';
+        return { text: '<', icon: null };
       case 'EQUAL':
-        return 'equals';
+        return { text: '=', icon: <Equal className="h-4 w-4" /> };
       case 'GREATER_THAN_OR_EQUAL':
-        return 'is greater than or equal to';
+        return { text: '≥', icon: null };
       case 'LESS_THAN_OR_EQUAL':
-        return 'is less than or equal to';
+        return { text: '≤', icon: null };
       default:
-        return condition || 'unknown';
+        return { text: condition || 'unknown', icon: null };
     }
-  };
-
-  // Generate a human-readable description of the inequality
-  const getReadableCondition = () => {
-    if (!localInequality.condition || !localInequality.left.type || !localInequality.right.type) {
-      return "Incomplete condition";
-    }
-    const leftSide = formatSideForDisplay(localInequality.left);
-    const rightSide = formatSideForDisplay(localInequality.right);
-    const conditionText = getConditionSymbol(localInequality.condition);
-    return `${leftSide} ${conditionText} ${rightSide}`;
   };
 
   // Get color based on condition type
@@ -154,45 +144,57 @@ export const RuleInequality = ({
   // Compact display when not in edit mode
   const renderCompactDisplay = () => {
     const conditionColor = getConditionColor();
-    return <div className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
+    const conditionSymbol = getConditionSymbol(localInequality.condition);
+    
+    return (
+      <div className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               {isIncomplete && showValidation && <Badge variant="destructive" className="h-6">Incomplete</Badge>}
               
-              {!isIncomplete && !showValidation && localInequality.explanation}
+              {!isIncomplete && !showValidation && localInequality.explanation && (
+                <span className="text-sm text-muted-foreground">{localInequality.explanation}</span>
+              )}
             </div>
             
-            {editable && <div className="flex gap-1">
+            {editable && (
+              <div className="flex gap-1">
                 <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)} className="h-7 px-3 text-xs">
                   Edit
                 </Button>
-                {onDelete && <Button variant="ghost" size="sm" onClick={onDelete} className="h-7 px-2 text-xs text-destructive">
+                {onDelete && (
+                  <Button variant="ghost" size="sm" onClick={onDelete} className="h-7 px-2 text-xs text-destructive">
                     <Trash2 className="h-3.5 w-3.5" />
-                  </Button>}
-              </div>}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="px-3 py-1.5 rounded-md bg-blue-50 border border-blue-100 text-sm">
+          {/* New mathematical inequality display */}
+          <div className="flex items-center justify-center gap-3 py-3">
+            <div className="px-4 py-2 rounded-md bg-blue-50 border border-blue-100 text-sm font-medium min-w-[100px] text-center">
               {formatSideForDisplay(localInequality.left)}
             </div>
             
-            <div className={`px-3 py-1.5 rounded-md ${conditionColor} font-medium text-sm flex items-center`}>
-              {getConditionSymbol(localInequality.condition)}
-              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            <div className={`flex items-center justify-center px-3 py-2 rounded-md ${conditionColor} font-bold text-lg min-w-[50px] text-center`}>
+              {conditionSymbol.icon || conditionSymbol.text}
             </div>
             
-            <div className="px-3 py-1.5 rounded-md bg-amber-50 border border-amber-100 text-sm">
+            <div className="px-4 py-2 rounded-md bg-amber-50 border border-amber-100 text-sm font-medium min-w-[100px] text-center">
               {formatSideForDisplay(localInequality.right)}
             </div>
           </div>
           
-          {localInequality.explanation && <p className="text-xs text-muted-foreground mt-1 bg-gray-50 p-2 rounded border border-gray-100">
+          {localInequality.explanation && (
+            <p className="text-xs text-muted-foreground mt-1 bg-gray-50 p-2 rounded border border-gray-100">
               {localInequality.explanation}
-            </p>}
+            </p>
+          )}
         </div>
-      </div>;
+      </div>
+    );
   };
 
   // Expanded edit mode display
@@ -222,11 +224,16 @@ export const RuleInequality = ({
       };
       setLocalInequality(updatedInequality);
     };
-    return <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 space-y-4">
-        {/* Left side configuration */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Left Side</label>
+    
+    return (
+      <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 space-y-4">
+        <h3 className="text-lg font-semibold text-center mb-2">Define Inequality Condition</h3>
+        
+        {/* Visual equation builder */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-3 bg-white rounded-lg border border-gray-100">
+          {/* Left side */}
+          <div className="w-full md:w-1/3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <div className="text-center mb-2 font-medium text-sm text-blue-700">Left Side</div>
             <Select value={localInequality.left.type} onValueChange={value => updateInequality('left', 'type', value)}>
               <SelectTrigger className={`${!localInequality.left.type && showValidation ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select type" />
@@ -239,55 +246,101 @@ export const RuleInequality = ({
               </SelectContent>
             </Select>
             
-            {localInequality.left.type === 'INDICATOR' ? <div className="space-y-2">
-                <AvailableIndicators selectedIndicator={localInequality.left.indicator || ''} onSelectIndicator={indicator => updateInequality('left', 'indicator', indicator)} className={`${!localInequality.left.indicator && showValidation ? 'border-red-500' : ''}`} />
+            {localInequality.left.type === 'INDICATOR' ? (
+              <div className="mt-2">
+                <AvailableIndicators 
+                  selectedIndicator={localInequality.left.indicator || ''} 
+                  onSelectIndicator={indicator => updateInequality('left', 'indicator', indicator)} 
+                  className={`${!localInequality.left.indicator && showValidation ? 'border-red-500' : ''}`} 
+                />
                 
-                {localInequality.left.indicator && <div className="space-y-1">
+                {localInequality.left.indicator && (
+                  <div className="mt-2 space-y-1">
                     <label className="text-xs text-muted-foreground">Parameters</label>
                     <div className="grid grid-cols-2 gap-1">
-                      <IndicatorParameter name="period" value={localInequality.left.parameters?.period || '14'} onChange={value => updateParameters('left', 'period', value)} />
+                      <IndicatorParameter 
+                        name="period" 
+                        value={localInequality.left.parameters?.period || '14'} 
+                        onChange={value => updateParameters('left', 'period', value)} 
+                      />
                       
-                      {/* Add more parameters as needed based on indicator type */}
-                      {localInequality.left.indicator === 'MACD' && <>
-                          <IndicatorParameter name="fast" value={localInequality.left.parameters?.fast || '12'} onChange={value => updateParameters('left', 'fast', value)} />
-                          <IndicatorParameter name="slow" value={localInequality.left.parameters?.slow || '26'} onChange={value => updateParameters('left', 'slow', value)} />
-                          <IndicatorParameter name="signal" value={localInequality.left.parameters?.signal || '9'} onChange={value => updateParameters('left', 'signal', value)} />
-                        </>}
+                      {localInequality.left.indicator === 'MACD' && (
+                        <>
+                          <IndicatorParameter 
+                            name="fast" 
+                            value={localInequality.left.parameters?.fast || '12'} 
+                            onChange={value => updateParameters('left', 'fast', value)} 
+                          />
+                          <IndicatorParameter 
+                            name="slow" 
+                            value={localInequality.left.parameters?.slow || '26'} 
+                            onChange={value => updateParameters('left', 'slow', value)} 
+                          />
+                          <IndicatorParameter 
+                            name="signal" 
+                            value={localInequality.left.parameters?.signal || '9'} 
+                            onChange={value => updateParameters('left', 'signal', value)} 
+                          />
+                        </>
+                      )}
                       
-                      {/* Optional source parameter for most indicators */}
-                      <IndicatorParameter name="source" value={localInequality.left.parameters?.source || 'close'} onChange={value => updateParameters('left', 'source', value)} />
+                      <IndicatorParameter 
+                        name="source" 
+                        value={localInequality.left.parameters?.source || 'close'} 
+                        onChange={value => updateParameters('left', 'source', value)} 
+                      />
                     </div>
-                  </div>}
-              </div> : localInequality.left.type === 'VALUE' ? <Input type="text" value={localInequality.left.value || ''} onChange={e => updateInequality('left', 'value', e.target.value)} placeholder="Enter value" className={`${!localInequality.left.value && showValidation ? 'border-red-500' : ''}`} /> : null}
+                  </div>
+                )}
+              </div>
+            ) : localInequality.left.type === 'VALUE' ? (
+              <Input 
+                type="text" 
+                value={localInequality.left.value || ''} 
+                onChange={e => updateInequality('left', 'value', e.target.value)} 
+                placeholder="Enter value" 
+                className={`mt-2 ${!localInequality.left.value && showValidation ? 'border-red-500' : ''}`} 
+              />
+            ) : null}
           </div>
           
-          {/* Condition */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Condition</label>
-            <Select value={localInequality.condition} onValueChange={value => setLocalInequality({
-            ...localInequality,
-            condition: value
-          })}>
+          {/* Condition operator */}
+          <div className="w-full md:w-1/5">
+            <div className="text-center mb-2 font-medium text-sm">Operator</div>
+            <Select 
+              value={localInequality.condition} 
+              onValueChange={value => setLocalInequality({...localInequality, condition: value})}
+            >
               <SelectTrigger className={`${!localInequality.condition && showValidation ? 'border-red-500' : ''}`}>
-                <SelectValue placeholder="Select condition" />
+                <SelectValue placeholder="Select operator" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="CROSSES_ABOVE">Crosses Above</SelectItem>
-                  <SelectItem value="CROSSES_BELOW">Crosses Below</SelectItem>
-                  <SelectItem value="GREATER_THAN">Greater Than</SelectItem>
-                  <SelectItem value="LESS_THAN">Less Than</SelectItem>
-                  <SelectItem value="EQUAL">Equal</SelectItem>
-                  <SelectItem value="GREATER_THAN_OR_EQUAL">Greater Than or Equal</SelectItem>
-                  <SelectItem value="LESS_THAN_OR_EQUAL">Less Than or Equal</SelectItem>
+                  <SelectItem value="CROSSES_ABOVE">
+                    <div className="flex items-center">
+                      <span>Crosses Above</span>
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="CROSSES_BELOW">
+                    <div className="flex items-center">
+                      <span>Crosses Below</span>
+                      <ChevronLeft className="ml-2 h-4 w-4" />
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="GREATER_THAN">{`>`}</SelectItem>
+                  <SelectItem value="LESS_THAN">{`<`}</SelectItem>
+                  <SelectItem value="EQUAL">=</SelectItem>
+                  <SelectItem value="GREATER_THAN_OR_EQUAL">≥</SelectItem>
+                  <SelectItem value="LESS_THAN_OR_EQUAL">≤</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
           </div>
           
-          {/* Right side configuration */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Right Side</label>
+          {/* Right side */}
+          <div className="w-full md:w-1/3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <div className="text-center mb-2 font-medium text-sm text-amber-700">Right Side</div>
             <Select value={localInequality.right.type} onValueChange={value => updateInequality('right', 'type', value)}>
               <SelectTrigger className={`${!localInequality.right.type && showValidation ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select type" />
@@ -300,36 +353,74 @@ export const RuleInequality = ({
               </SelectContent>
             </Select>
             
-            {localInequality.right.type === 'INDICATOR' ? <div className="space-y-2">
-                <AvailableIndicators selectedIndicator={localInequality.right.indicator || ''} onSelectIndicator={indicator => updateInequality('right', 'indicator', indicator)} className={`${!localInequality.right.indicator && showValidation ? 'border-red-500' : ''}`} />
+            {localInequality.right.type === 'INDICATOR' ? (
+              <div className="mt-2">
+                <AvailableIndicators 
+                  selectedIndicator={localInequality.right.indicator || ''} 
+                  onSelectIndicator={indicator => updateInequality('right', 'indicator', indicator)} 
+                  className={`${!localInequality.right.indicator && showValidation ? 'border-red-500' : ''}`} 
+                />
                 
-                {localInequality.right.indicator && <div className="space-y-1">
+                {localInequality.right.indicator && (
+                  <div className="mt-2 space-y-1">
                     <label className="text-xs text-muted-foreground">Parameters</label>
                     <div className="grid grid-cols-2 gap-1">
-                      <IndicatorParameter name="period" value={localInequality.right.parameters?.period || '14'} onChange={value => updateParameters('right', 'period', value)} />
+                      <IndicatorParameter 
+                        name="period" 
+                        value={localInequality.right.parameters?.period || '14'} 
+                        onChange={value => updateParameters('right', 'period', value)} 
+                      />
                       
-                      {/* Add more parameters as needed based on indicator type */}
-                      {localInequality.right.indicator === 'MACD' && <>
-                          <IndicatorParameter name="fast" value={localInequality.right.parameters?.fast || '12'} onChange={value => updateParameters('right', 'fast', value)} />
-                          <IndicatorParameter name="slow" value={localInequality.right.parameters?.slow || '26'} onChange={value => updateParameters('right', 'slow', value)} />
-                          <IndicatorParameter name="signal" value={localInequality.right.parameters?.signal || '9'} onChange={value => updateParameters('right', 'signal', value)} />
-                        </>}
+                      {localInequality.right.indicator === 'MACD' && (
+                        <>
+                          <IndicatorParameter 
+                            name="fast" 
+                            value={localInequality.right.parameters?.fast || '12'} 
+                            onChange={value => updateParameters('right', 'fast', value)} 
+                          />
+                          <IndicatorParameter 
+                            name="slow" 
+                            value={localInequality.right.parameters?.slow || '26'} 
+                            onChange={value => updateParameters('right', 'slow', value)} 
+                          />
+                          <IndicatorParameter 
+                            name="signal" 
+                            value={localInequality.right.parameters?.signal || '9'} 
+                            onChange={value => updateParameters('right', 'signal', value)} 
+                          />
+                        </>
+                      )}
                       
-                      {/* Optional source parameter for most indicators */}
-                      <IndicatorParameter name="source" value={localInequality.right.parameters?.source || 'close'} onChange={value => updateParameters('right', 'source', value)} />
+                      <IndicatorParameter 
+                        name="source" 
+                        value={localInequality.right.parameters?.source || 'close'} 
+                        onChange={value => updateParameters('right', 'source', value)} 
+                      />
                     </div>
-                  </div>}
-              </div> : localInequality.right.type === 'VALUE' ? <Input type="text" value={localInequality.right.value || ''} onChange={e => updateInequality('right', 'value', e.target.value)} placeholder="Enter value" className={`${!localInequality.right.value && showValidation ? 'border-red-500' : ''}`} /> : null}
+                  </div>
+                )}
+              </div>
+            ) : localInequality.right.type === 'VALUE' ? (
+              <Input 
+                type="text" 
+                value={localInequality.right.value || ''} 
+                onChange={e => updateInequality('right', 'value', e.target.value)} 
+                placeholder="Enter value" 
+                className={`mt-2 ${!localInequality.right.value && showValidation ? 'border-red-500' : ''}`} 
+              />
+            ) : null}
           </div>
         </div>
         
         {/* Explanation field */}
         <div>
           <label className="text-sm font-medium">Explanation (optional)</label>
-          <Input type="text" value={localInequality.explanation || ''} onChange={e => setLocalInequality({
-          ...localInequality,
-          explanation: e.target.value
-        })} placeholder="Explain this rule (optional)" />
+          <Input 
+            type="text" 
+            value={localInequality.explanation || ''} 
+            onChange={e => setLocalInequality({...localInequality, explanation: e.target.value})} 
+            placeholder="Explain this rule (optional)" 
+          />
         </div>
         
         {/* Action buttons */}
@@ -341,7 +432,9 @@ export const RuleInequality = ({
             Save
           </Button>
         </div>
-      </div>;
+      </div>
+    );
   };
+  
   return isOpen && editable ? renderEditMode() : renderCompactDisplay();
 };

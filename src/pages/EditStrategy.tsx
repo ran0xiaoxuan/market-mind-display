@@ -234,7 +234,12 @@ const EditStrategy = () => {
     setIsSearchOpen(false);
   };
   const handleCancel = () => {
-    navigate(-1);
+    // Navigate to the strategy detail page instead of going back in history
+    if (id) {
+      navigate(`/strategy/${id}`);
+    } else {
+      navigate('/strategies');
+    }
   };
   const handleSave = async () => {
     if (!id) return;
@@ -422,7 +427,8 @@ const EditStrategy = () => {
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-2">
-            <Link to="/strategies" className="text-sm flex items-center text-muted-foreground hover:text-foreground">
+            {/* Update Link to point to the strategy detail page */}
+            <Link to={`/strategy/${id}`} className="text-sm flex items-center text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Link>
           </div>

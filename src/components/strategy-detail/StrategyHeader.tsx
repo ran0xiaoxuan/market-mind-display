@@ -74,10 +74,25 @@ export const StrategyHeader = ({
             <Edit className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Edit</span>
           </Button>
-            
-          <Button variant="outline" className="h-9 px-2.5 border border-input" onClick={handleBacktestClick}>
+          
+          <Button 
+            variant="outline" 
+            className="h-9 px-2.5 border border-input" 
+            onClick={handleBacktestClick}
+          >
             <PlayIcon className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Backtest</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 px-2.5 border border-input text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleDeleteStrategy}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">{isDeleting ? "Deleting..." : "Delete"}</span>
           </Button>
             
           <DropdownMenu>
@@ -87,7 +102,6 @@ export const StrategyHeader = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate(`/edit-history/${strategyId}`)}>
                 <History className="h-4 w-4 mr-2" />
                 Edit History
@@ -95,11 +109,6 @@ export const StrategyHeader = ({
               <DropdownMenuItem onClick={() => navigate(`/backtest-history?strategyId=${strategyId}`)}>
                 <LineChart className="h-4 w-4 mr-2" />
                 Backtest History
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDeleteStrategy} disabled={isDeleting}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                {isDeleting ? "Deleting..." : "Delete Strategy"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -307,7 +307,6 @@ export const RuleInequality = ({
                   <SelectItem value="high">High</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="close">Close</SelectItem>
-                  <SelectItem value="volume" disabled={true}>Volume</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

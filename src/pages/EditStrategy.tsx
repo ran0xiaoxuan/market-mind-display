@@ -75,6 +75,7 @@ const EditStrategy = () => {
         console.log("Setting timeframe from strategy data:", strategy.timeframe);
         setTimeframe(strategy.timeframe || "");
         setTargetAsset(strategy.targetAsset || "");
+        setTargetAssetName(strategy.targetAssetName || ""); // Add this line to capture asset name if available
         setIsActive(strategy.isActive);
 
         // Set risk management data - strip any currency or percent symbols for form values
@@ -87,7 +88,8 @@ const EditStrategy = () => {
           stopLoss: cleanStopLoss,
           takeProfit: cleanTakeProfit,
           singleBuyVolume: cleanSingleBuyVolume,
-          maxBuyVolume: cleanMaxBuyVolume
+          maxBuyVolume: cleanMaxBuyVolume,
+          timeframe: strategy.timeframe
         });
         
         setStopLoss(cleanStopLoss);

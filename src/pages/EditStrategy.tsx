@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Save, X, Search, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
-import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
+import { RuleGroupData } from "@/components/strategy-detail/types";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
@@ -17,13 +17,10 @@ import { debounce } from "lodash";
 import { getStrategyById, getTradingRulesForStrategy } from "@/services/strategyService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 const EditStrategy = () => {
   const navigate = useNavigate();
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -80,11 +77,23 @@ const EditStrategy = () => {
         setTargetAsset(strategy.targetAsset || "");
         setIsActive(strategy.isActive);
 
-        // Set risk management data
-        setStopLoss(strategy.stopLoss || "5");
-        setTakeProfit(strategy.takeProfit || "15");
-        setSingleBuyVolume(strategy.singleBuyVolume || "1000");
-        setMaxBuyVolume(strategy.maxBuyVolume || "5000");
+        // Set risk management data - strip any currency or percent symbols for form values
+        const cleanStopLoss = strategy.stopLoss?.replace(/[%$]/g, '') || "";
+        const cleanTakeProfit = strategy.takeProfit?.replace(/[%$]/g, '') || "";
+        const cleanSingleBuyVolume = strategy.singleBuyVolume?.replace(/[$,]/g, '') || "";
+        const cleanMaxBuyVolume = strategy.maxBuyVolume?.replace(/[$,]/g, '') || "";
+        
+        console.log("Setting risk management data:", {
+          stopLoss: cleanStopLoss,
+          takeProfit: cleanTakeProfit,
+          singleBuyVolume: cleanSingleBuyVolume,
+          maxBuyVolume: cleanMaxBuyVolume
+        });
+        
+        setStopLoss(cleanStopLoss);
+        setTakeProfit(cleanTakeProfit);
+        setSingleBuyVolume(cleanSingleBuyVolume);
+        setMaxBuyVolume(cleanMaxBuyVolume);
 
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(id);
@@ -231,9 +240,7 @@ const EditStrategy = () => {
       setIsSaving(true);
 
       // Update strategy information
-      const {
-        error: strategyError
-      } = await supabase.from('strategies').update({
+      const { error: strategyError } = await supabase.from('strategies').update({
         name: strategyName,
         description: description,
         timeframe: timeframe,
@@ -245,6 +252,7 @@ const EditStrategy = () => {
         max_buy_volume: maxBuyVolume,
         updated_at: new Date().toISOString()
       }).eq('id', id);
+      
       if (strategyError) {
         throw new Error(`Error updating strategy: ${strategyError.message}`);
       }
@@ -391,7 +399,8 @@ const EditStrategy = () => {
     setExitRules(rules);
   };
   if (loading) {
-    return <div className="min-h-screen flex flex-col bg-background">
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         <main className="flex-1 p-6 flex items-center justify-center">
           <div className="text-center">
@@ -400,9 +409,12 @@ const EditStrategy = () => {
             <p className="text-muted-foreground">Please wait while we fetch the strategy details</p>
           </div>
         </main>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen flex flex-col bg-background">
+  
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
@@ -416,7 +428,6 @@ const EditStrategy = () => {
             <h1 className="text-2xl font-bold">Edit Strategy</h1>
             
             <div className="flex gap-2">
-              
               <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Changes
               </Button>
@@ -489,7 +500,6 @@ const EditStrategy = () => {
                   </CommandList>
                 </CommandDialog>
               </div>
-              
             </div>
           </Card>
           
@@ -528,6 +538,8 @@ const EditStrategy = () => {
           </Card>
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default EditStrategy;

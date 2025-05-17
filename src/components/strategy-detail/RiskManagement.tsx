@@ -39,6 +39,7 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
 
   // Remove the % symbol if it's present at the end of the string
   const formatPercentage = (value: string) => {
+    if (!value) return "0%";
     return value.endsWith('%') ? value : `${value}%`;
   };
 

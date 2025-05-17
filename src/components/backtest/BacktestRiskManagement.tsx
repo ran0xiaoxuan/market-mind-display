@@ -1,4 +1,6 @@
 
+import { formatCurrency } from "@/lib/utils";
+
 interface RiskManagementProps {
   parameters: {
     [key: string]: string | number;
@@ -6,17 +8,23 @@ interface RiskManagementProps {
 }
 
 export function BacktestRiskManagement({ parameters }: RiskManagementProps) {
+  // Format values with proper symbols
+  const formatPercentage = (value: string | number | undefined) => {
+    if (value === undefined || value === '') return "0%";
+    return typeof value === 'string' && value.endsWith('%') ? value : `${value}%`;
+  };
+
   return (
     <div className="border-t pt-4">
       <h4 className="text-sm text-muted-foreground mb-3 flex items-center gap-2">Risk Management</h4>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Stop Loss</p>
-          <p className="font-medium text-red-500">-2.5%</p>
+          <p className="font-medium text-red-500">{formatPercentage(parameters["Stop Loss"] || "-2.5")}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Take Profit</p>
-          <p className="font-medium text-green-500">+5.0%</p>
+          <p className="font-medium text-green-500">{formatPercentage(parameters["Take Profit"] || "5.0")}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Single Buy Volume</p>

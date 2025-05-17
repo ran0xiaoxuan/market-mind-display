@@ -10,6 +10,7 @@ export interface Strategy {
   isActive: boolean;
   timeframe: string;
   targetAsset: string;
+  targetAssetName?: string; // Added targetAssetName property
   userId: string;
   stopLoss: string;
   takeProfit: string;
@@ -50,6 +51,7 @@ const mapDbStrategyToInterface = (dbStrategy: any): Strategy => {
     isActive: dbStrategy.is_active,
     timeframe: dbStrategy.timeframe,
     targetAsset: dbStrategy.target_asset,
+    targetAssetName: dbStrategy.target_asset_name, // Add mapping for targetAssetName
     userId: dbStrategy.user_id,
     stopLoss: dbStrategy.stop_loss,
     takeProfit: dbStrategy.take_profit,

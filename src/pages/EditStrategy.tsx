@@ -247,6 +247,7 @@ const EditStrategy = () => {
         description: description,
         timeframe: timeframe,
         target_asset: targetAsset,
+        target_asset_name: targetAssetName, // Add this line to save the asset name to the database
         is_active: isActive,
         stop_loss: stopLoss,
         take_profit: takeProfit,

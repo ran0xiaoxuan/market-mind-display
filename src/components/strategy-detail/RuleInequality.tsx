@@ -343,7 +343,7 @@ export const RuleInequality = ({
                 <SelectGroup>
                   <SelectItem value="INDICATOR">Indicator</SelectItem>
                   <SelectItem value="PRICE">Price</SelectItem>
-                  <SelectItem value="VALUE">Value</SelectItem>
+                  {/* Removed "VALUE" option for left side */}
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -427,3 +427,4 @@ export const RuleInequality = ({
   };
   return isOpen && editable ? renderEditMode() : renderCompactDisplay();
 };
+

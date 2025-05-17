@@ -351,7 +351,7 @@ export const RuleInequality = ({
             {renderSideInputs('left')}
           </div>
           
-          {/* Condition operator */}
+          {/* Condition operator - Updated to only show the four required operators */}
           <div className="w-full md:w-1/5">
             <div className="text-center mb-2 font-medium text-sm">Operator</div>
             <Select value={localInequality.condition} onValueChange={value => setLocalInequality({
@@ -377,9 +377,6 @@ export const RuleInequality = ({
                   </SelectItem>
                   <SelectItem value="GREATER_THAN">{`>`}</SelectItem>
                   <SelectItem value="LESS_THAN">{`<`}</SelectItem>
-                  <SelectItem value="EQUAL">=</SelectItem>
-                  <SelectItem value="GREATER_THAN_OR_EQUAL">≥</SelectItem>
-                  <SelectItem value="LESS_THAN_OR_EQUAL">≤</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

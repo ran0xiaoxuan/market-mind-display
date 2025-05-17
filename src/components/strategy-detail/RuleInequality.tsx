@@ -112,12 +112,10 @@ export const RuleInequality = ({
       case 'CROSSES_ABOVE':
         return {
           text: 'crosses above',
-          icon: <ChevronRight className="h-4 w-4" />
         };
       case 'CROSSES_BELOW':
         return {
           text: 'crosses below',
-          icon: <ChevronLeft className="h-4 w-4" />
         };
       case 'GREATER_THAN':
         return {

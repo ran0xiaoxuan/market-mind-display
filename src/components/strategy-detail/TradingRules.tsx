@@ -261,9 +261,7 @@ export const TradingRules = ({
           {editable && <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Info className="h-4 w-4" />
-                </Button>
+                
               </TooltipTrigger>
               <TooltipContent className="max-w-sm p-4">
                 <p className="text-sm mb-2 font-medium">Trading Rule Structure:</p>

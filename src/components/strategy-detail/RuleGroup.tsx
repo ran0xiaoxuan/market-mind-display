@@ -93,12 +93,7 @@ export const RuleGroup = ({
           Some conditions are incomplete
         </div>}
       
-      {shouldHaveMoreConditions && <Alert className="mb-3 bg-amber-50 text-amber-800 border border-amber-200">
-          <Info className="h-4 w-4 text-amber-600" />
-          <AlertDescription>
-            For better strategy reliability, add at least 2 conditions to the OR group.
-          </AlertDescription>
-        </Alert>}
+      {shouldHaveMoreConditions}
       
       {inequalities.length > 0 ? <div className="space-y-3 mt-4">
           {inequalities.map((inequality, index) => <RuleInequality key={inequality.id} inequality={inequality} editable={editable} onChange={updatedInequality => handleInequalityChange(index, updatedInequality)} onDelete={() => handleDeleteInequality(index)} showValidation={showValidation} isNewlyAdded={newlyAddedConditionId === inequality.id} onEditingComplete={onClearNewlyAddedCondition} />)}

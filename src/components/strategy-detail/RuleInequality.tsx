@@ -374,8 +374,8 @@ export const RuleInequality = ({
                       <ChevronLeft className="ml-2 h-4 w-4" />
                     </div>
                   </SelectItem>
-                  <SelectItem value="GREATER_THAN">{`>`}</SelectItem>
-                  <SelectItem value="LESS_THAN">{`<`}</SelectItem>
+                  <SelectItem value="GREATER_THAN">&gt;</SelectItem>
+                  <SelectItem value="LESS_THAN">&lt;</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

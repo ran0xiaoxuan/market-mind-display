@@ -170,9 +170,8 @@ export const RuleInequality = ({
     const conditionSymbol = getConditionSymbol(localInequality.condition);
     return <div className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
         <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            
-            
+          <div className="flex justify-end items-center">
+            {/* Moved buttons to the top-right by changing justify-between to justify-end */}
             {editable && <div className="flex gap-1">
                 <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)} className="h-7 px-3 text-xs">
                   Edit
@@ -238,7 +237,39 @@ export const RuleInequality = ({
         {/* Visual equation builder */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-3 bg-white rounded-lg border border-gray-100">
           {/* Left side */}
-          
+          <div className="w-full md:w-1/3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <div className="text-center mb-2 font-medium text-sm text-blue-700">Left Side</div>
+            <Select value={localInequality.left.type} onValueChange={value => updateInequality('left', 'type', value)}>
+              <SelectTrigger className={`${!localInequality.left.type && showValidation ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="INDICATOR">Indicator</SelectItem>
+                  <SelectItem value="VALUE">Value</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            
+            {localInequality.left.type === 'INDICATOR' ? <div className="mt-2">
+                <AvailableIndicators selectedIndicator={localInequality.left.indicator || ''} onSelectIndicator={indicator => updateInequality('left', 'indicator', indicator)} className={`${!localInequality.left.indicator && showValidation ? 'border-red-500' : ''}`} />
+                
+                {localInequality.left.indicator && <div className="mt-2 space-y-1">
+                    <label className="text-xs text-muted-foreground">Parameters</label>
+                    <div className="grid grid-cols-2 gap-1">
+                      <IndicatorParameter name="period" value={localInequality.left.parameters?.period || '14'} onChange={value => updateParameters('left', 'period', value)} />
+                      
+                      {localInequality.left.indicator === 'MACD' && <>
+                          <IndicatorParameter name="fast" value={localInequality.left.parameters?.fast || '12'} onChange={value => updateParameters('left', 'fast', value)} />
+                          <IndicatorParameter name="slow" value={localInequality.left.parameters?.slow || '26'} onChange={value => updateParameters('left', 'slow', value)} />
+                          <IndicatorParameter name="signal" value={localInequality.left.parameters?.signal || '9'} onChange={value => updateParameters('left', 'signal', value)} />
+                        </>}
+                      
+                      <IndicatorParameter name="source" value={localInequality.left.parameters?.source || 'close'} onChange={value => updateParameters('left', 'source', value)} />
+                    </div>
+                  </div>}
+              </div> : localInequality.left.type === 'VALUE' ? <Input type="text" value={localInequality.left.value || ''} onChange={e => updateInequality('left', 'value', e.target.value)} placeholder="Enter value" className={`mt-2 ${!localInequality.left.value && showValidation ? 'border-red-500' : ''}`} /> : null}
+          </div>
           
           {/* Condition operator */}
           <div className="w-full md:w-1/5">
@@ -275,7 +306,39 @@ export const RuleInequality = ({
           </div>
           
           {/* Right side */}
-          
+          <div className="w-full md:w-1/3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <div className="text-center mb-2 font-medium text-sm text-amber-700">Right Side</div>
+            <Select value={localInequality.right.type} onValueChange={value => updateInequality('right', 'type', value)}>
+              <SelectTrigger className={`${!localInequality.right.type && showValidation ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="INDICATOR">Indicator</SelectItem>
+                  <SelectItem value="VALUE">Value</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            
+            {localInequality.right.type === 'INDICATOR' ? <div className="mt-2">
+                <AvailableIndicators selectedIndicator={localInequality.right.indicator || ''} onSelectIndicator={indicator => updateInequality('right', 'indicator', indicator)} className={`${!localInequality.right.indicator && showValidation ? 'border-red-500' : ''}`} />
+                
+                {localInequality.right.indicator && <div className="mt-2 space-y-1">
+                    <label className="text-xs text-muted-foreground">Parameters</label>
+                    <div className="grid grid-cols-2 gap-1">
+                      <IndicatorParameter name="period" value={localInequality.right.parameters?.period || '14'} onChange={value => updateParameters('right', 'period', value)} />
+                      
+                      {localInequality.right.indicator === 'MACD' && <>
+                          <IndicatorParameter name="fast" value={localInequality.right.parameters?.fast || '12'} onChange={value => updateParameters('right', 'fast', value)} />
+                          <IndicatorParameter name="slow" value={localInequality.right.parameters?.slow || '26'} onChange={value => updateParameters('right', 'slow', value)} />
+                          <IndicatorParameter name="signal" value={localInequality.right.parameters?.signal || '9'} onChange={value => updateParameters('right', 'signal', value)} />
+                        </>}
+                      
+                      <IndicatorParameter name="source" value={localInequality.right.parameters?.source || 'close'} onChange={value => updateParameters('right', 'source', value)} />
+                    </div>
+                  </div>}
+              </div> : localInequality.right.type === 'VALUE' ? <Input type="text" value={localInequality.right.value || ''} onChange={e => updateInequality('right', 'value', e.target.value)} placeholder="Enter value" className={`mt-2 ${!localInequality.right.value && showValidation ? 'border-red-500' : ''}`} /> : null}
+          </div>
         </div>
         
         {/* Explanation field */}

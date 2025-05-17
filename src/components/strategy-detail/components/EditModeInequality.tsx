@@ -101,6 +101,9 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
                 <SelectItem value="CROSSES_BELOW">Crosses Below</SelectItem>
                 <SelectItem value="GREATER_THAN">&gt;</SelectItem>
                 <SelectItem value="LESS_THAN">&lt;</SelectItem>
+                <SelectItem value="EQUAL">=</SelectItem>
+                <SelectItem value="GREATER_THAN_OR_EQUAL">≥</SelectItem>
+                <SelectItem value="LESS_THAN_OR_EQUAL">≤</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

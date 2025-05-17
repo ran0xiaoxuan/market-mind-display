@@ -51,7 +51,7 @@ serve(async (req) => {
       );
     }
     
-    // Build enhanced prompt for OpenAI with better instructions about rule groups
+    // Build enhanced prompt for OpenAI with better instructions about rule groups and operators
     const systemPrompt = `You are a trading strategy assistant that helps create detailed trading strategies. 
 You will be given an asset type, an asset name, and a strategy description. 
 Generate a complete trading strategy with entry rules, exit rules, and risk management for stocks.
@@ -88,10 +88,11 @@ IMPORTANT: Don't put all conditions in just one group. Distribute them logically
 
 ## IMPORTANT FORMAT FOR RULES:
 For each rule, make sure the left and right sides are properly formatted with:
-- type: Must be either "INDICATOR" or "VALUE" - never leave this empty or unknown
+- type: Must be either "INDICATOR", "PRICE", or "VALUE" - never leave this empty or unknown
 - indicator: Required name of the indicator (e.g., "SMA", "RSI") when type is "INDICATOR"
 - parameters: Required appropriate parameters for the indicator (e.g., period, source)
 - value: Required actual value when type is "VALUE"
+- condition: MUST be one of the following specific values: "CROSSES_ABOVE", "CROSSES_BELOW", "GREATER_THAN", "LESS_THAN", "EQUAL", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL"
 - Do NOT include valueType field unless absolutely necessary for special cases
 
 Always return your response as a valid JSON object with these properties:
@@ -105,9 +106,9 @@ Always return your response as a valid JSON object with these properties:
   - requiredConditions: number (only required for OR logic)
   - inequalities: array of inequality objects with:
     - id: unique identifier
-    - left: {type, indicator, parameters, value} (type must be "INDICATOR" or "VALUE")
-    - condition: string describing condition
-    - right: {type, indicator, parameters, value} (type must be "INDICATOR" or "VALUE")
+    - left: {type, indicator, parameters, value} (type must be "INDICATOR", "PRICE", or "VALUE")
+    - condition: MUST be one of: "CROSSES_ABOVE", "CROSSES_BELOW", "GREATER_THAN", "LESS_THAN", "EQUAL", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL"
+    - right: {type, indicator, parameters, value} (type must be "INDICATOR", "PRICE", or "VALUE")
     - explanation: string explaining the rule
 - exitRules: Same structure as entryRules but for exit conditions
 - riskManagement: {
@@ -123,7 +124,9 @@ Strategy Description: ${strategyDescription}
 
 Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a concise description explaining why this strategy is suitable for ${selectedAsset}.
 
-IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put AT LEAST 2 CONDITIONS in the OR group where only some need to be true.`;
+IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put AT LEAST 2 CONDITIONS in the OR group where only some need to be true.
+
+MOST IMPORTANT: Every inequality MUST have a valid condition from this list: "CROSSES_ABOVE", "CROSSES_BELOW", "GREATER_THAN", "LESS_THAN", "EQUAL", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL". Do not leave any condition field empty or with invalid values.`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);
@@ -215,7 +218,7 @@ IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading
 
       console.log("Successfully parsed strategy JSON:", strategyJSON);
       
-      // Process the strategy rules to ensure all types are set correctly
+      // Process the strategy rules to ensure all types and conditions are set correctly
       if (strategyJSON.entryRules && Array.isArray(strategyJSON.entryRules)) {
         strategyJSON.entryRules.forEach(ruleGroup => {
           if (ruleGroup.inequalities && Array.isArray(ruleGroup.inequalities)) {
@@ -242,6 +245,24 @@ IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading
                 if (inequality.right.valueType) {
                   delete inequality.right.valueType;
                 }
+              }
+              
+              // Ensure condition is valid
+              if (!inequality.condition || inequality.condition === '') {
+                // Default to GREATER_THAN as a fallback
+                inequality.condition = 'GREATER_THAN';
+              } else if (!['CROSSES_ABOVE', 'CROSSES_BELOW', 'GREATER_THAN', 'LESS_THAN', 'EQUAL', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL'].includes(inequality.condition)) {
+                // Map any invalid conditions to valid ones
+                const conditionMap = {
+                  '>': 'GREATER_THAN',
+                  '<': 'LESS_THAN',
+                  '=': 'EQUAL',
+                  '>=': 'GREATER_THAN_OR_EQUAL',
+                  '<=': 'LESS_THAN_OR_EQUAL',
+                  'CROSS_ABOVE': 'CROSSES_ABOVE',
+                  'CROSS_BELOW': 'CROSSES_BELOW'
+                };
+                inequality.condition = conditionMap[inequality.condition] || 'GREATER_THAN';
               }
             });
           }
@@ -271,6 +292,24 @@ IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading
                 if (inequality.right.valueType) {
                   delete inequality.right.valueType;
                 }
+              }
+              
+              // Ensure condition is valid
+              if (!inequality.condition || inequality.condition === '') {
+                // Default to GREATER_THAN as a fallback
+                inequality.condition = 'GREATER_THAN';
+              } else if (!['CROSSES_ABOVE', 'CROSSES_BELOW', 'GREATER_THAN', 'LESS_THAN', 'EQUAL', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL'].includes(inequality.condition)) {
+                // Map any invalid conditions to valid ones
+                const conditionMap = {
+                  '>': 'GREATER_THAN',
+                  '<': 'LESS_THAN',
+                  '=': 'EQUAL',
+                  '>=': 'GREATER_THAN_OR_EQUAL',
+                  '<=': 'LESS_THAN_OR_EQUAL',
+                  'CROSS_ABOVE': 'CROSSES_ABOVE',
+                  'CROSS_BELOW': 'CROSSES_BELOW'
+                };
+                inequality.condition = conditionMap[inequality.condition] || 'GREATER_THAN';
               }
             });
           }

@@ -28,11 +28,11 @@ export function BacktestRiskManagement({ parameters }: RiskManagementProps) {
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Single Buy Volume</p>
-          <p className="font-medium">${parameters["Single Buy Volume"] || "1,000"}</p>
+          <p className="font-medium">{formatCurrency(parameters["Single Buy Volume"] || "1000")}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Max Buy Volume</p>
-          <p className="font-medium">${parameters["Max Buy Volume"] || "5,000"}</p>
+          <p className="font-medium">{formatCurrency(parameters["Max Buy Volume"] || "5000")}</p>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface RiskManagementProps {
   riskManagement: {
@@ -41,17 +42,6 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
   const formatPercentage = (value: string) => {
     if (!value) return "0%";
     return value.endsWith('%') ? value : `${value}%`;
-  };
-
-  // Format currency values - always display with $ prefix
-  const formatCurrency = (value: string) => {
-    if (!value) return "$0";
-    
-    // Remove any percentage signs if they exist
-    const cleanValue = value.replace(/%/g, '').trim();
-    
-    // Check if the value already starts with $ symbol
-    return cleanValue.startsWith('$') ? cleanValue : `$${cleanValue}`;
   };
 
   return (

@@ -309,8 +309,8 @@ export const RuleInequality = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="GREATER_THAN">Greater Than (>)</SelectItem>
-                      <SelectItem value="LESS_THAN">Less Than (<)</SelectItem>
+                      <SelectItem value="GREATER_THAN">Greater Than ({'>'})</SelectItem>
+                      <SelectItem value="LESS_THAN">Less Than ({'<'})</SelectItem>
                       <SelectItem value="EQUAL">Equal (=)</SelectItem>
                       <SelectItem value="GREATER_THAN_OR_EQUAL">Greater Than or Equal (≥)</SelectItem>
                       <SelectItem value="LESS_THAN_OR_EQUAL">Less Than or Equal (≤)</SelectItem>

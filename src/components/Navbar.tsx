@@ -29,7 +29,7 @@ const InterceptableNavLink = ({
   return <NavLink to={to === "/" ? "/dashboard" : to} // Redirect root to dashboard
   end={end} onClick={onClick ? handleClick : undefined} className={({
     isActive
-  }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
+  }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "text-primary" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
       {children}
     </NavLink>;
 };
@@ -53,12 +53,12 @@ export const Navbar = ({
     // Ensure "/" routes go to dashboard
     const targetPath = to === "/" ? "/dashboard" : to;
 
-    // Standard styling for all links - removing shadow from active state
+    // Standard styling for all links - removing background from active state
     return onNavigate ? <InterceptableNavLink to={targetPath} onClick={onNavigate} end={end}>
         {children}
       </InterceptableNavLink> : <NavLink to={targetPath} end={end} className={({
       isActive
-    }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
+    }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "text-primary" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
         {children}
       </NavLink>;
   };

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -10,6 +9,19 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Standard timeframe formats to ensure consistency
+const STANDARD_TIMEFRAMES = {
+  "1m": "1 Minute",
+  "5m": "5 Minutes", 
+  "15m": "15 Minutes",
+  "30m": "30 Minutes",
+  "1h": "1 Hour",
+  "4h": "4 Hours",
+  "Daily": "Daily",
+  "Weekly": "Weekly",
+  "Monthly": "Monthly"
 };
 
 serve(async (req) => {
@@ -67,7 +79,8 @@ Generate a complete trading strategy with entry rules, exit rules, and risk mana
 
 ## TIMEFRAME FORMAT:
 - Always use "Daily" for daily timeframes, never use "1d"
-- Other valid timeframes: "Weekly", "Monthly", "Hourly", "4-Hour", "15-Minute"
+- Other valid timeframes: "Weekly", "Monthly", "1h", "4h", "15m", "30m", "5m", "1m"
+- Use these exact values: "1m", "5m", "15m", "30m", "1h", "4h", "Daily", "Weekly", "Monthly"
 
 ## EXAMPLE TITLE AND DESCRIPTION:
 Name: "AAPL Momentum Crossover Strategy with Volume Confirmation"
@@ -102,7 +115,7 @@ For each rule, make sure the left and right sides are properly formatted with:
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name (MUST include the asset symbol)
 - description: A concise explanation of what the strategy does (60-80 words)
-- timeframe: The trading timeframe (e.g., "Daily", "Weekly", "Monthly", "Hourly", "4-Hour", "15-Minute")
+- timeframe: The trading timeframe - MUST be one of: "1m", "5m", "15m", "30m", "1h", "4h", "Daily", "Weekly", "Monthly"
 - targetAsset: The symbol of the asset to trade
 - entryRules: An array of rule groups for entry, each with:
   - id: unique identifier
@@ -132,7 +145,8 @@ IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading
 
 MOST IMPORTANT: Every inequality MUST have a valid condition from this list: "CROSSES_ABOVE", "CROSSES_BELOW", "GREATER_THAN", "LESS_THAN", "EQUAL", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL". Do not leave any condition field empty or with invalid values.
 
-REMEMBER: Use "Daily" for daily timeframes, never use "1d".`;
+REMEMBER: Use "Daily" for daily timeframes, never use "1d". 
+Use ONLY these exact timeframe values: "1m", "5m", "15m", "30m", "1h", "4h", "Daily", "Weekly", "Monthly"`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);
@@ -224,9 +238,40 @@ REMEMBER: Use "Daily" for daily timeframes, never use "1d".`;
 
       console.log("Successfully parsed strategy JSON:", strategyJSON);
       
-      // Ensure timeframe is in the correct format
+      // Ensure timeframe is in the correct standardized format
       if (strategyJSON.timeframe === "1d") {
         strategyJSON.timeframe = "Daily";
+      } else if (!Object.keys(STANDARD_TIMEFRAMES).includes(strategyJSON.timeframe)) {
+        // Try to normalize other non-standard formats to our standard list
+        const lowerTimeframe = strategyJSON.timeframe.toLowerCase();
+        
+        // Map variants to standard formats
+        if (lowerTimeframe.includes("minute") || lowerTimeframe.includes("minutes")) {
+          if (lowerTimeframe.includes("1 ")) strategyJSON.timeframe = "1m";
+          else if (lowerTimeframe.includes("5 ")) strategyJSON.timeframe = "5m";
+          else if (lowerTimeframe.includes("15 ")) strategyJSON.timeframe = "15m";
+          else if (lowerTimeframe.includes("30 ")) strategyJSON.timeframe = "30m";
+          else strategyJSON.timeframe = "15m"; // Default if no match
+        } 
+        else if (lowerTimeframe.includes("hour") || lowerTimeframe.includes("hours")) {
+          if (lowerTimeframe.includes("1 ") || lowerTimeframe === "hourly") strategyJSON.timeframe = "1h";
+          else if (lowerTimeframe.includes("4 ")) strategyJSON.timeframe = "4h";
+          else strategyJSON.timeframe = "1h"; // Default if no match
+        }
+        else if (lowerTimeframe.includes("day") || lowerTimeframe === "daily") {
+          strategyJSON.timeframe = "Daily";
+        }
+        else if (lowerTimeframe.includes("week") || lowerTimeframe === "weekly") {
+          strategyJSON.timeframe = "Weekly";
+        }
+        else if (lowerTimeframe.includes("month") || lowerTimeframe === "monthly") {
+          strategyJSON.timeframe = "Monthly";
+        }
+        else {
+          // If still can't match, default to Daily
+          console.warn(`Could not map timeframe "${strategyJSON.timeframe}" to standard format, defaulting to Daily`);
+          strategyJSON.timeframe = "Daily";
+        }
       }
       
       // Process the strategy rules to ensure all types and conditions are set correctly
@@ -372,9 +417,40 @@ REMEMBER: Use "Daily" for daily timeframes, never use "1d".`;
         const fallbackJSON = JSON.parse(fixedJson);
         console.log("Managed to parse with fixes:", fallbackJSON);
         
-        // Ensure timeframe is in the correct format
+        // Ensure timeframe is in the correct standardized format
         if (fallbackJSON.timeframe === "1d") {
           fallbackJSON.timeframe = "Daily";
+        } else if (!Object.keys(STANDARD_TIMEFRAMES).includes(fallbackJSON.timeframe)) {
+          // Try to normalize other non-standard formats to our standard list
+          const lowerTimeframe = fallbackJSON.timeframe.toLowerCase();
+          
+          // Map variants to standard formats
+          if (lowerTimeframe.includes("minute") || lowerTimeframe.includes("minutes")) {
+            if (lowerTimeframe.includes("1 ")) fallbackJSON.timeframe = "1m";
+            else if (lowerTimeframe.includes("5 ")) fallbackJSON.timeframe = "5m";
+            else if (lowerTimeframe.includes("15 ")) fallbackJSON.timeframe = "15m";
+            else if (lowerTimeframe.includes("30 ")) fallbackJSON.timeframe = "30m";
+            else fallbackJSON.timeframe = "15m"; // Default if no match
+          } 
+          else if (lowerTimeframe.includes("hour") || lowerTimeframe.includes("hours")) {
+            if (lowerTimeframe.includes("1 ") || lowerTimeframe === "hourly") fallbackJSON.timeframe = "1h";
+            else if (lowerTimeframe.includes("4 ")) fallbackJSON.timeframe = "4h";
+            else fallbackJSON.timeframe = "1h"; // Default if no match
+          }
+          else if (lowerTimeframe.includes("day") || lowerTimeframe === "daily") {
+            fallbackJSON.timeframe = "Daily";
+          }
+          else if (lowerTimeframe.includes("week") || lowerTimeframe === "weekly") {
+            fallbackJSON.timeframe = "Weekly";
+          }
+          else if (lowerTimeframe.includes("month") || lowerTimeframe === "monthly") {
+            fallbackJSON.timeframe = "Monthly";
+          }
+          else {
+            // If still can't match, default to Daily
+            console.warn(`Could not map timeframe "${fallbackJSON.timeframe}" to standard format, defaulting to Daily`);
+            fallbackJSON.timeframe = "Daily";
+          }
         }
         
         return new Response(

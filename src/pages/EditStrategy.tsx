@@ -18,6 +18,19 @@ import { getStrategyById, getTradingRulesForStrategy } from "@/services/strategy
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Define standard timeframe options to ensure consistency across the application
+export const TIMEFRAME_OPTIONS = [
+  { value: "1m", label: "1 Minute" },
+  { value: "5m", label: "5 Minutes" },
+  { value: "15m", label: "15 Minutes" },
+  { value: "30m", label: "30 Minutes" },
+  { value: "1h", label: "1 Hour" },
+  { value: "4h", label: "4 Hours" },
+  { value: "Daily", label: "Daily" },
+  { value: "Weekly", label: "Weekly" },
+  { value: "Monthly", label: "Monthly" },
+];
+
 const EditStrategy = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -71,11 +84,17 @@ const EditStrategy = () => {
         setStrategyName(strategy.name);
         setDescription(strategy.description || "");
 
-        // Ensure timeframe is properly set from strategy data
-        console.log("Setting timeframe from strategy data:", strategy.timeframe);
-        setTimeframe(strategy.timeframe || "");
+        // Process timeframe to ensure it matches our standard options format
+        let normalizedTimeframe = strategy.timeframe;
+        // Legacy conversion for any timeframe values not already standardized
+        if (strategy.timeframe === "1d") {
+          normalizedTimeframe = "Daily";
+        }
+        
+        console.log("Setting timeframe from strategy data:", normalizedTimeframe);
+        setTimeframe(normalizedTimeframe || "");
         setTargetAsset(strategy.targetAsset || "");
-        setTargetAssetName(strategy.targetAssetName || ""); // Add this line to capture asset name if available
+        setTargetAssetName(strategy.targetAssetName || "");
         setIsActive(strategy.isActive);
 
         // Set risk management data - strip any currency or percent symbols for form values
@@ -89,7 +108,7 @@ const EditStrategy = () => {
           takeProfit: cleanTakeProfit,
           singleBuyVolume: cleanSingleBuyVolume,
           maxBuyVolume: cleanMaxBuyVolume,
-          timeframe: strategy.timeframe
+          timeframe: normalizedTimeframe
         });
         
         setStopLoss(cleanStopLoss);
@@ -250,9 +269,9 @@ const EditStrategy = () => {
       const { error: strategyError } = await supabase.from('strategies').update({
         name: strategyName,
         description: description,
-        timeframe: timeframe,
+        timeframe: timeframe, 
         target_asset: targetAsset,
-        target_asset_name: targetAssetName, // Add this line to save the asset name to the database
+        target_asset_name: targetAssetName,
         is_active: isActive,
         stop_loss: stopLoss,
         take_profit: takeProfit,
@@ -465,15 +484,11 @@ const EditStrategy = () => {
                     <SelectValue placeholder="Select Timeframe" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1m">1 Minute</SelectItem>
-                    <SelectItem value="5m">5 Minutes</SelectItem>
-                    <SelectItem value="15m">15 Minutes</SelectItem>
-                    <SelectItem value="30m">30 Minutes</SelectItem>
-                    <SelectItem value="1h">1 Hour</SelectItem>
-                    <SelectItem value="4h">4 Hours</SelectItem>
-                    <SelectItem value="Daily">Daily</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
+                    {TIMEFRAME_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

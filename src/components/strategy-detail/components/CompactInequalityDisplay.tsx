@@ -96,25 +96,6 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
     }
   };
 
-  // Get color based on condition type
-  const getConditionColor = () => {
-    switch (inequality.condition) {
-      case 'CROSSES_ABOVE':
-      case 'GREATER_THAN':
-      case 'GREATER_THAN_OR_EQUAL':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'CROSSES_BELOW':
-      case 'LESS_THAN':
-      case 'LESS_THAN_OR_EQUAL':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'EQUAL':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const conditionColor = getConditionColor();
   const conditionSymbol = getConditionSymbol(inequality.condition);
   
   return (
@@ -140,7 +121,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
             {formatSideForDisplay(inequality.left)}
           </div>
           
-          <div className={`flex items-center justify-center px-3 py-2 rounded-md ${conditionColor} font-bold text-lg min-w-[50px] text-center`}>
+          <div className="flex items-center justify-center px-3 py-2 rounded-md bg-gray-100 border border-gray-200 font-bold text-lg min-w-[50px] text-center">
             {conditionSymbol.icon || conditionSymbol.text}
           </div>
           

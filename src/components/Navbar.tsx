@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
+import { Brain } from "lucide-react";
 
 type NavLinkProps = {
   to: string;
@@ -52,7 +53,8 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
     // Special styling for AI Strategy link
     if (to === "/ai-strategy") {
       const aiStrategyContent = (
-        <div className="bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-all hover:shadow-md hover:scale-105">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md shadow-sm transition-all hover:shadow-md hover:scale-105">
+          <Brain className="w-4 h-4" />
           <span>AI Strategy</span>
         </div>
       );
@@ -65,14 +67,7 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
         <NavLink
           to={to}
           end={end}
-          className={({ isActive }) =>
-            cn(
-              "transition-all hover:shadow-md hover:scale-105",
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : ""
-            )
-          }
+          className="transition-all"
         >
           {aiStrategyContent}
         </NavLink>

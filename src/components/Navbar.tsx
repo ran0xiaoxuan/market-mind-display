@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +5,6 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
 import { Brain } from "lucide-react";
-
 type NavLinkProps = {
   to: string;
   onClick?: (path: string) => void;
@@ -33,18 +31,15 @@ const InterceptableNavLink = ({
       {children}
     </NavLink>;
 };
-
 interface NavbarProps {
   onNavigate?: (path: string) => void;
 }
-
 export const Navbar = ({
   onNavigate
 }: NavbarProps = {}) => {
   const {
     session
   } = useAuth();
-  
   const NavItem = ({
     to,
     children,
@@ -52,25 +47,21 @@ export const Navbar = ({
   }: Omit<NavLinkProps, 'onClick'>) => {
     // Special styling for AI Strategy link
     if (to === "/ai-strategy") {
-      return onNavigate ? (
-        <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
+      return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
           <div className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md">
-            <Brain size={16} />
+            
             <span>AI Strategy</span>
           </div>
-        </InterceptableNavLink>
-      ) : (
-        <NavLink to={to} end={end} className={({
-          isActive
-        }) => cn("bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "ring-1 ring-primary-foreground" : "hover:bg-primary/90")}>
+        </InterceptableNavLink> : <NavLink to={to} end={end} className={({
+        isActive
+      }) => cn("bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "ring-1 ring-primary-foreground" : "hover:bg-primary/90")}>
           <div className="flex items-center gap-2">
             <Brain size={16} />
             <span>AI Strategy</span>
           </div>
-        </NavLink>
-      );
+        </NavLink>;
     }
-    
+
     // Standard styling for all other links
     return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
         {children}
@@ -80,7 +71,6 @@ export const Navbar = ({
         {children}
       </NavLink>;
   };
-  
   return <header className="border-b sticky top-0 z-30 bg-background shadow-sm">
       <div className="container max-w-full px-4 md:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center">

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -7,16 +8,22 @@ import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+
 export function StrategyList() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [filteredStrategies, setFilteredStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  
   const fetchStrategies = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await getStrategies();
-      setStrategies(data.slice(0, 6)); // Changed from 4 to 6 strategies
+      setStrategies(data);
+      applyFilter(data, showActiveOnly);
     } catch (err) {
       console.error("Error fetching strategies:", err);
       setError("Failed to load strategies");
@@ -27,6 +34,15 @@ export function StrategyList() {
       setLoading(false);
     }
   };
+  
+  const applyFilter = (strategies: Strategy[], activeOnly: boolean) => {
+    if (activeOnly) {
+      setFilteredStrategies(strategies.filter(s => s.isActive).slice(0, 6));
+    } else {
+      setFilteredStrategies(strategies.slice(0, 6));
+    }
+  };
+
   useEffect(() => {
     fetchStrategies();
 
@@ -49,6 +65,11 @@ export function StrategyList() {
       window.removeEventListener('strategy-deleted', handleStrategyUpdate);
     };
   }, []);
+  
+  useEffect(() => {
+    applyFilter(strategies, showActiveOnly);
+  }, [showActiveOnly, strategies]);
+
   const formatTimeAgo = (dateString: string) => {
     try {
       if (!dateString) return "Unknown";
@@ -61,10 +82,26 @@ export function StrategyList() {
       return "Unknown";
     }
   };
+  
+  const toggleActiveFilter = () => {
+    setShowActiveOnly(!showActiveOnly);
+  };
+
   return <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="text-xl">Your Strategies</CardTitle>
-        
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl">Your Strategies</CardTitle>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-muted-foreground">
+              {showActiveOnly ? "Active only" : "All"}
+            </span>
+            <Switch
+              checked={showActiveOnly}
+              onCheckedChange={toggleActiveFilter}
+              aria-label="Toggle active strategies only"
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <div className="divide-y">
@@ -76,7 +113,7 @@ export function StrategyList() {
               <Button variant="outline" size="sm" className="mt-2 mx-auto block" onClick={() => fetchStrategies()}>
                 Retry
               </Button>
-            </div> : strategies.length > 0 ? strategies.map(strategy => <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
+            </div> : filteredStrategies.length > 0 ? filteredStrategies.map(strategy => <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
                 <div>
                   <div className="flex items-center">
                     <p className="font-medium">{strategy.name}</p>
@@ -96,7 +133,7 @@ export function StrategyList() {
                   </Button>
                 </Link>
               </div>) : <div className="px-6 py-4 text-center text-muted-foreground">
-              No strategies available
+              {showActiveOnly ? "No active strategies available" : "No strategies available"}
             </div>}
         </div>
       </CardContent>

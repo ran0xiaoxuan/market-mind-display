@@ -35,7 +35,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
         {sideObj.indicator && (
           <div className="mt-2 space-y-1">
             <label className="text-xs text-muted-foreground">Parameters</label>
-            <div className="grid grid-cols-2 gap-1">
+            <div className="grid grid-cols-2 gap-2">
               <IndicatorParameter 
                 name="period" 
                 value={sideObj.parameters?.period || '14'} 

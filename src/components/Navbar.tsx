@@ -52,9 +52,7 @@ export const Navbar = ({
             
             <span>AI Strategy</span>
           </div>
-        </InterceptableNavLink> : <NavLink to={to} end={end} className={({
-        isActive
-      }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "ring-1 ring-primary-foreground" : "hover:bg-primary/90")}>
+        </InterceptableNavLink> : <NavLink to={to} end={end} className="">
           <div className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md">
             
             <span>AI Strategy</span>

@@ -6,10 +6,16 @@ import { PerformanceChart } from "@/components/PerformanceChart";
 import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
 import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 type TimeRange = "7d" | "30d" | "all";
+
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [period, setPeriod] = useState<string>("Last Week");
+  const [activeTab, setActiveTab] = useState<"summary" | "signals">("summary");
+
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
     // Update period selector based on time range
@@ -95,7 +101,22 @@ const Dashboard = () => {
       };
     }
   };
+
+  // Sample trading signals data - would typically come from an API
+  const getTradingSignals = () => {
+    return [
+      { date: "05/15/2025", symbol: "AAPL", type: "Buy", price: "$198.45", signal: "Moving Average Crossover" },
+      { date: "05/12/2025", symbol: "MSFT", type: "Sell", price: "$415.60", signal: "RSI Overbought" },
+      { date: "05/10/2025", symbol: "NVDA", type: "Buy", price: "$920.75", signal: "Support Level Bounce" },
+      { date: "05/08/2025", symbol: "TSLA", type: "Sell", price: "$175.30", signal: "Resistance Rejection" },
+      { date: "05/05/2025", symbol: "AMZN", type: "Buy", price: "$182.60", signal: "MACD Bullish Crossover" },
+      { date: "05/03/2025", symbol: "META", type: "Buy", price: "$480.25", signal: "Breakout Confirmation" }
+    ];
+  };
+
   const metrics = getMetricCardData(timeRange);
+  const tradingSignals = getTradingSignals();
+  
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-4 md:p-6">
@@ -125,14 +146,53 @@ const Dashboard = () => {
           <div className="space-y-6 md:col-span-2 lg:col-span-5">
             <Card>
               <div className="p-6">
-                <h2 className="text-xl font-bold">Performance Overview</h2>
-                
+                <h2 className="text-xl font-bold">Trading Signals & Performance</h2>
               </div>
 
-              <PerformanceChart type="equity" timeRange={timeRange} showBenchmark={true} />
-              <div className="p-6">
-                <PerformanceMetrics type="equity" timeRange={timeRange} />
-              </div>
+              <Tabs defaultValue="summary" onValueChange={(value) => setActiveTab(value as "summary" | "signals")} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 px-6">
+                  <TabsTrigger value="summary">Performance</TabsTrigger>
+                  <TabsTrigger value="signals">Signals</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="summary" className="p-0">
+                  <PerformanceChart type="equity" timeRange={timeRange} showBenchmark={true} />
+                  <div className="p-6">
+                    <PerformanceMetrics type="equity" timeRange={timeRange} />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="signals">
+                  <div className="p-6">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Symbol</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Signal</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tradingSignals.map((signal, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{signal.date}</TableCell>
+                              <TableCell className="font-medium">{signal.symbol}</TableCell>
+                              <TableCell className={signal.type === "Buy" ? "text-green-600" : "text-red-600"}>
+                                {signal.type}
+                              </TableCell>
+                              <TableCell>{signal.price}</TableCell>
+                              <TableCell>{signal.signal}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </Card>
           </div>
           <div className="md:col-span-1 lg:col-span-3">
@@ -142,4 +202,5 @@ const Dashboard = () => {
       </main>
     </div>;
 };
+
 export default Dashboard;

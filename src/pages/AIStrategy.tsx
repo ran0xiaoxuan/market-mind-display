@@ -13,7 +13,6 @@ import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Navbar } from "@/components/Navbar";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -258,7 +257,6 @@ const AIStrategy = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onNavigate={handleNavigationAttempt} />
       <main className="max-w-4xl mx-auto p-6">
         {!generatedStrategy ? (
           <>

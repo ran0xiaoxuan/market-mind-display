@@ -56,7 +56,7 @@ export const Navbar = ({
         isActive
       }) => cn("bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "ring-1 ring-primary-foreground" : "hover:bg-primary/90")}>
           <div className="flex items-center gap-2">
-            <Brain size={16} />
+            
             <span>AI Strategy</span>
           </div>
         </NavLink>;

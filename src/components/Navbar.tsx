@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +5,6 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
 import { Brain } from "lucide-react";
-
 type NavLinkProps = {
   to: string;
   onClick?: (path: string) => void;
@@ -33,11 +31,9 @@ const InterceptableNavLink = ({
       {children}
     </NavLink>;
 };
-
 interface NavbarProps {
   onNavigate?: (path: string) => void;
 }
-
 export const Navbar = ({
   onNavigate
 }: NavbarProps = {}) => {
@@ -53,14 +49,14 @@ export const Navbar = ({
     if (to === "/ai-strategy") {
       return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
           <div className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md">
-            <Brain size={18} />
+            
             <span>AI Strategy</span>
           </div>
         </InterceptableNavLink> : <NavLink to={to} end={end} className={({
         isActive
-      }) => cn("hover:no-underline", isActive ? "" : "")}>
+      }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "ring-1 ring-primary-foreground" : "hover:bg-primary/90")}>
           <div className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md">
-            <Brain size={18} />
+            
             <span>AI Strategy</span>
           </div>
         </NavLink>;

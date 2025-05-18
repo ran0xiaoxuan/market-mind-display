@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +5,6 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
 import { Brain } from "lucide-react";
-
 type NavLinkProps = {
   to: string;
   onClick?: (path: string) => void;
@@ -33,18 +31,15 @@ const InterceptableNavLink = ({
       {children}
     </NavLink>;
 };
-
 interface NavbarProps {
   onNavigate?: (path: string) => void;
 }
-
 export const Navbar = ({
   onNavigate
 }: NavbarProps = {}) => {
   const {
     session
   } = useAuth();
-  
   const NavItem = ({
     to,
     children,
@@ -61,7 +56,7 @@ export const Navbar = ({
         isActive
       }) => cn("bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "ring-1 ring-primary-foreground" : "hover:bg-primary/90")}>
           <div className="flex items-center gap-2">
-            <Brain size={18} />
+            
             <span>AI Strategy</span>
           </div>
         </NavLink>;
@@ -76,7 +71,6 @@ export const Navbar = ({
         {children}
       </NavLink>;
   };
-  
   return <header className="border-b sticky top-0 z-30 bg-background shadow-sm">
       <div className="container max-w-full px-4 md:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center">

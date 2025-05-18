@@ -53,7 +53,7 @@ export const Navbar = ({
     // Ensure "/" routes go to dashboard
     const targetPath = to === "/" ? "/dashboard" : to;
 
-    // Standard styling for all links - ensuring consistent spacing
+    // Standard styling for all links - removing shadow from active state
     return onNavigate ? <InterceptableNavLink to={targetPath} onClick={onNavigate} end={end}>
         {children}
       </InterceptableNavLink> : <NavLink to={targetPath} end={end} className={({

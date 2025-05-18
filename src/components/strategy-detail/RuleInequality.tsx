@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Inequality } from "./types";
 import { CompactInequalityDisplay } from "./components/CompactInequalityDisplay";
@@ -49,8 +50,15 @@ export const RuleInequality = ({
   };
   
   const handleCancelChanges = () => {
+    // Reset local inequality to the original
     setLocalInequality(inequality);
     setIsOpen(false);
+    
+    // If this is a newly added condition, we want to delete it entirely
+    if (isNewlyAdded && onDelete) {
+      onDelete();
+    }
+    
     if (onEditingComplete) {
       onEditingComplete();
     }
@@ -98,6 +106,7 @@ export const RuleInequality = ({
           onDelete={onDelete}
         />
       )}
+      <Toaster />
     </>
   );
 };

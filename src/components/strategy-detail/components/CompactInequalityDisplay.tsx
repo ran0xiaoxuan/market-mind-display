@@ -117,7 +117,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
         </div>
         
         <div className="flex items-center justify-center gap-3 py-3">
-          <div className="px-4 py-2 rounded-md bg-blue-50 border border-blue-100 text-sm font-medium min-w-[100px] text-center">
+          <div className="px-4 py-2 rounded-md bg-gray-50 border border-gray-200 text-sm font-medium min-w-[100px] text-center">
             {formatSideForDisplay(inequality.left)}
           </div>
           
@@ -125,7 +125,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
             {conditionSymbol.icon || conditionSymbol.text}
           </div>
           
-          <div className="px-4 py-2 rounded-md bg-amber-50 border border-amber-100 text-sm font-medium min-w-[100px] text-center">
+          <div className="px-4 py-2 rounded-md bg-gray-50 border border-gray-200 text-sm font-medium min-w-[100px] text-center">
             {formatSideForDisplay(inequality.right)}
           </div>
         </div>

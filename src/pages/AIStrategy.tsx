@@ -1,9 +1,10 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useBeforeUnload } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +14,17 @@ import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const AIStrategy = () => {
   const { user } = useAuth();
@@ -24,7 +36,29 @@ const AIStrategy = () => {
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Handle beforeunload event (browser refresh/close)
+  useBeforeUnload(
+    (event) => {
+      if (generatedStrategy) {
+        event.preventDefault();
+        // Return a string to show a browser confirmation dialog
+        return "You have an unsaved strategy. Are you sure you want to leave?";
+      }
+    }
+  );
+
+  // Add effect to handle navigation attempts when there's an unsaved strategy
+  useEffect(() => {
+    // If we have a pending navigation and no strategy, or the dialog is closed without action
+    if (pendingNavigation && !showSaveDialog) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  }, [pendingNavigation, showSaveDialog, navigate]);
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
@@ -178,6 +212,30 @@ const AIStrategy = () => {
     }
   };
 
+  const handleNavigationAttempt = (path: string) => {
+    if (generatedStrategy) {
+      setPendingNavigation(path);
+      setShowSaveDialog(true);
+    } else {
+      navigate(path);
+    }
+  };
+
+  const handleDialogCancel = () => {
+    setShowSaveDialog(false);
+    setPendingNavigation(null);
+  };
+
+  const handleDialogContinue = () => {
+    setShowSaveDialog(false);
+    // Navigation will happen in the useEffect
+  };
+
+  const handleDialogSave = async () => {
+    await handleSaveStrategy();
+    setShowSaveDialog(false);
+  };
+
   const handleReset = () => {
     setGeneratedStrategy(null);
     setStrategyDescription("");
@@ -200,7 +258,7 @@ const AIStrategy = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar onNavigate={handleNavigationAttempt} />
       <main className="max-w-4xl mx-auto p-6">
         {!generatedStrategy ? (
           <>
@@ -356,6 +414,27 @@ const AIStrategy = () => {
           </div>
         )}
       </main>
+
+      {/* Save Strategy Dialog */}
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Strategy</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have a generated strategy that hasn't been saved. Would you like to save it before leaving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDialogCancel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDialogContinue} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Leave without saving
+            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDialogSave}>
+              Save Strategy
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

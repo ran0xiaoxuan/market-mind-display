@@ -1,87 +1,110 @@
 
-import { Link, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { UserMenu } from "./UserMenu";
-import { Button } from "./ui/button";
-import { Logo } from "./Logo";
+import { useAuth } from "@/contexts/AuthContext";
+import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/UserMenu";
 
-const navItems = [
-  { name: "Dashboard", href: "/" },
-  { name: "Strategies", href: "/strategies" },
-  { name: "Backtest", href: "/backtest" },
-  { name: "Analytics", href: "/analytics" },
-];
+type NavLinkProps = {
+  to: string;
+  onClick?: (path: string) => void;
+  children: React.ReactNode;
+  end?: boolean;
+};
 
-export function Navbar() {
-  const location = useLocation();
-  
-  // We'll implement this properly when we have real auth
-  const isAuthenticated = true;
-  
+// Modified NavLink component that can intercept navigation attempts
+const InterceptableNavLink = ({ to, onClick, children, end }: NavLinkProps) => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      e.preventDefault();
+      onClick(to);
+    }
+  };
+
   return (
-    <nav className="border-b">
-      <div className="flex h-16 items-center px-4 justify-between">
-        <div className="flex gap-6 md:gap-10 items-center">
-          <Logo />
-          
-          {/* Dashboard link */}
-          <Link
-            key="Dashboard"
-            to="/"
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-primary flex items-center h-10",
-              location.pathname === "/" ? "text-primary" : "text-foreground"
-            )}
-          >
-            Dashboard
-          </Link>
-          
-          {/* AI Strategy button - now with white text on hover, but no icon */}
-          <Link to="/ai-strategy">
-            <Button 
-              variant="ghost" 
-              className={cn(
-                "bg-gradient-to-r from-black via-gray-700 to-gray-900 text-white font-medium px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-2",
-                "hover:text-white", // Change to white text on hover
-                location.pathname === "/ai-strategy" ? "ring-2 ring-gray-500" : ""
-              )}
-            >
-              AI Strategy
-            </Button>
-          </Link>
-          
-          {/* Remaining nav items excluding Dashboard since it's handled separately */}
-          {navItems.slice(1).map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary flex items-center h-10",
-                location.pathname === item.href ? "text-primary" : "text-foreground"
-              )}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </div>
-        
-        {isAuthenticated ? (
-          <UserMenu />
-        ) : (
-          <div className="flex items-center gap-2">
-            <Link to="/auth/login">
-              <Button variant="ghost" size="sm">
-                Log in
-              </Button>
-            </Link>
-            <Link to="/auth/signup">
-              <Button size="sm">
-                Sign up
-              </Button>
-            </Link>
-          </div>
-        )}
-      </div>
-    </nav>
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick ? handleClick : undefined}
+      className={({ isActive }) =>
+        cn(
+          "px-4 py-2 rounded-md text-sm font-medium transition-colors",
+          isActive
+            ? "bg-secondary text-secondary-foreground"
+            : "hover:bg-secondary/80 hover:text-secondary-foreground"
+        )
+      }
+    >
+      {children}
+    </NavLink>
   );
+};
+
+interface NavbarProps {
+  onNavigate?: (path: string) => void;
 }
+
+export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
+  const { session } = useAuth();
+
+  const NavItem = ({ to, children, end }: Omit<NavLinkProps, 'onClick'>) => {
+    return onNavigate ? (
+      <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
+        {children}
+      </InterceptableNavLink>
+    ) : (
+      <NavLink
+        to={to}
+        end={end}
+        className={({ isActive }) =>
+          cn(
+            "px-4 py-2 rounded-md text-sm font-medium transition-colors",
+            isActive
+              ? "bg-secondary text-secondary-foreground"
+              : "hover:bg-secondary/80 hover:text-secondary-foreground"
+          )
+        }
+      >
+        {children}
+      </NavLink>
+    );
+  };
+
+  return (
+    <header className="border-b sticky top-0 z-30 bg-background">
+      <div className="container flex h-16 items-center">
+        <div className="mr-4">
+          <NavItem to="/" end>
+            <Logo />
+          </NavItem>
+        </div>
+        <nav className="flex items-center space-x-2 text-sm">
+          {session ? (
+            <>
+              <NavItem to="/dashboard">Dashboard</NavItem>
+              <NavItem to="/strategies">Strategies</NavItem>
+              <NavItem to="/ai-strategy">AI Strategy</NavItem>
+              <NavItem to="/backtest">Backtest</NavItem>
+              <NavItem to="/analytics">Analytics</NavItem>
+            </>
+          ) : (
+            <>
+              <NavItem to="/login">Login</NavItem>
+              <NavItem to="/signup">Sign Up</NavItem>
+            </>
+          )}
+        </nav>
+        <div className="ml-auto flex items-center">
+          {session ? (
+            <UserMenu />
+          ) : (
+            <Button asChild>
+              <NavItem to="/signup">Get Started</NavItem>
+            </Button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};

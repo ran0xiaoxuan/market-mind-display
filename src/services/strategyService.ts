@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -23,6 +24,7 @@ export interface GeneratedStrategy {
   description: string;
   timeframe: string;
   targetAsset: string;
+  targetAssetName?: string; // Add targetAssetName field
   entryRules: RuleGroupData[];
   exitRules: RuleGroupData[];
   riskManagement: {
@@ -68,6 +70,7 @@ const mapInterfaceToDbStrategy = (strategy: Omit<Strategy, 'id' | 'createdAt' | 
     is_active: strategy.isActive,
     timeframe: strategy.timeframe,
     target_asset: strategy.targetAsset,
+    target_asset_name: strategy.targetAssetName, // Add mapping for target_asset_name
     user_id: strategy.userId,
     stop_loss: strategy.stopLoss,
     take_profit: strategy.takeProfit,
@@ -307,6 +310,7 @@ export const updateStrategy = async (id: string, updates: Partial<Strategy>): Pr
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.timeframe !== undefined) dbUpdates.timeframe = updates.timeframe;
     if (updates.targetAsset !== undefined) dbUpdates.target_asset = updates.targetAsset;
+    if (updates.targetAssetName !== undefined) dbUpdates.target_asset_name = updates.targetAssetName; // Add target_asset_name mapping
     if (updates.userId !== undefined) dbUpdates.user_id = updates.userId;
     if (updates.stopLoss !== undefined) dbUpdates.stop_loss = updates.stopLoss;
     if (updates.takeProfit !== undefined) dbUpdates.take_profit = updates.takeProfit;
@@ -376,6 +380,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         description: strategy.description,
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
+        target_asset_name: strategy.targetAssetName, // Add target_asset_name
         stop_loss: strategy.riskManagement.stopLoss,
         take_profit: strategy.riskManagement.takeProfit,
         single_buy_volume: strategy.riskManagement.singleBuyVolume,

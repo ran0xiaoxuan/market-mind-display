@@ -271,7 +271,7 @@ const EditStrategy = () => {
         description: description,
         timeframe: timeframe, 
         target_asset: targetAsset,
-        target_asset_name: targetAssetName,
+        target_asset_name: targetAssetName, // Ensure target_asset_name is included
         is_active: isActive,
         stop_loss: stopLoss,
         take_profit: takeProfit,

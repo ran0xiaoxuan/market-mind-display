@@ -210,6 +210,7 @@ export type Database = {
           stop_loss: string | null
           take_profit: string | null
           target_asset: string | null
+          target_asset_name: string | null
           timeframe: string
           updated_at: string
           user_id: string
@@ -225,6 +226,7 @@ export type Database = {
           stop_loss?: string | null
           take_profit?: string | null
           target_asset?: string | null
+          target_asset_name?: string | null
           timeframe: string
           updated_at?: string
           user_id: string
@@ -240,6 +242,7 @@ export type Database = {
           stop_loss?: string | null
           take_profit?: string | null
           target_asset?: string | null
+          target_asset_name?: string | null
           timeframe?: string
           updated_at?: string
           user_id?: string

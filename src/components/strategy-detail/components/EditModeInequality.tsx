@@ -1,10 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { InequalitySide } from "./InequalitySide";
+import { toast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 
 interface EditModeInequalityProps {
   localInequality: Inequality;
@@ -23,6 +25,8 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
   onSave,
   onCancel
 }) => {
+  const [validationTriggered, setValidationTriggered] = useState(false);
+  
   const updateInequality = (side: 'left' | 'right', field: string, value: any) => {
     const updatedInequality = {
       ...localInequality,
@@ -49,6 +53,72 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
     };
     setLocalInequality(updatedInequality);
   };
+
+  const validateInequality = (): {isValid: boolean, missingFields: string[]} => {
+    const missingFields: string[] = [];
+    
+    if (!localInequality.condition) {
+      missingFields.push("Operator");
+    }
+    
+    // Validate left side
+    if (!localInequality.left.type) {
+      missingFields.push("Left type");
+    } else {
+      if (localInequality.left.type === 'INDICATOR' && !localInequality.left.indicator) {
+        missingFields.push("Left indicator");
+      }
+      if (localInequality.left.type === 'PRICE' && !localInequality.left.value) {
+        missingFields.push("Left price value");
+      }
+    }
+    
+    // Validate right side
+    if (!localInequality.right.type) {
+      missingFields.push("Right type");
+    } else {
+      if (localInequality.right.type === 'INDICATOR' && !localInequality.right.indicator) {
+        missingFields.push("Right indicator");
+      }
+      if (localInequality.right.type === 'VALUE' && 
+          (localInequality.right.value === undefined || localInequality.right.value === "")) {
+        missingFields.push("Right value");
+      }
+    }
+    
+    return { isValid: missingFields.length === 0, missingFields };
+  };
+  
+  const handleSave = () => {
+    setValidationTriggered(true);
+    const validation = validateInequality();
+    
+    if (!validation.isValid) {
+      // Show toast notification with the missing fields
+      toast({
+        title: "Unable to save condition",
+        description: (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>Please fill out all required fields:</span>
+            </div>
+            <ul className="list-disc pl-5 text-sm">
+              {validation.missingFields.map((field, index) => (
+                <li key={index}>{field}</li>
+              ))}
+            </ul>
+          </div>
+        ),
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // If valid, proceed with saving
+    onSave();
+    setValidationTriggered(false);
+  };
   
   return (
     <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 space-y-4">
@@ -61,7 +131,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
             value={localInequality.left.type} 
             onValueChange={value => updateInequality('left', 'type', value)}
           >
-            <SelectTrigger className={`${!localInequality.left.type && showValidation ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`${(!localInequality.left.type && (showValidation || validationTriggered)) ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +148,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
             sideObj={localInequality.left}
             updateInequality={updateInequality}
             updateParameters={updateParameters}
-            showValidation={showValidation}
+            showValidation={showValidation || validationTriggered}
           />
         </div>
         
@@ -92,7 +162,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
               condition: value
             })}
           >
-            <SelectTrigger className={`${!localInequality.condition && showValidation ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`${(!localInequality.condition && (showValidation || validationTriggered)) ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="Select operator" />
             </SelectTrigger>
             <SelectContent>
@@ -115,7 +185,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
             value={localInequality.right.type} 
             onValueChange={value => updateInequality('right', 'type', value)}
           >
-            <SelectTrigger className={`${!localInequality.right.type && showValidation ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`${(!localInequality.right.type && (showValidation || validationTriggered)) ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +202,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
             sideObj={localInequality.right}
             updateInequality={updateInequality}
             updateParameters={updateParameters}
-            showValidation={showValidation}
+            showValidation={showValidation || validationTriggered}
           />
         </div>
       </div>
@@ -156,7 +226,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
         <Button variant="outline" size="sm" onClick={onCancel}>
           Cancel
         </Button>
-        <Button size="sm" onClick={onSave} disabled={isIncomplete && showValidation}>
+        <Button size="sm" onClick={handleSave}>
           Save
         </Button>
       </div>

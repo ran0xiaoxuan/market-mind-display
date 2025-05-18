@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Inequality } from "./types";
 import { CompactInequalityDisplay } from "./components/CompactInequalityDisplay";
 import { EditModeInequality } from "./components/EditModeInequality";
+import { Toaster } from "@/components/ui/toaster";
 
 interface RuleInequalityProps {
   inequality: Inequality;
@@ -77,27 +77,27 @@ export const RuleInequality = ({
   const isIncomplete = !localInequality.condition || hasEmptyRequiredFields('left') || hasEmptyRequiredFields('right');
 
   // Render appropriate view based on mode
-  if (isOpen && editable) {
-    return (
-      <EditModeInequality
-        localInequality={localInequality}
-        setLocalInequality={setLocalInequality}
-        isIncomplete={isIncomplete}
-        showValidation={showValidation}
-        onSave={handleSaveChanges}
-        onCancel={handleCancelChanges}
-      />
-    );
-  }
-  
   return (
-    <CompactInequalityDisplay
-      inequality={localInequality}
-      editable={editable}
-      isIncomplete={isIncomplete}
-      showValidation={showValidation}
-      onEdit={() => setIsOpen(true)}
-      onDelete={onDelete}
-    />
+    <>
+      {isOpen && editable ? (
+        <EditModeInequality
+          localInequality={localInequality}
+          setLocalInequality={setLocalInequality}
+          isIncomplete={isIncomplete}
+          showValidation={showValidation}
+          onSave={handleSaveChanges}
+          onCancel={handleCancelChanges}
+        />
+      ) : (
+        <CompactInequalityDisplay
+          inequality={localInequality}
+          editable={editable}
+          isIncomplete={isIncomplete}
+          showValidation={showValidation}
+          onEdit={() => setIsOpen(true)}
+          onDelete={onDelete}
+        />
+      )}
+    </>
   );
 };

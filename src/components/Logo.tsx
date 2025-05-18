@@ -17,7 +17,8 @@ export function Logo({ size = "md" }: LogoProps) {
       <img 
         src="/lovable-uploads/1dfc06f9-436b-4a12-b1b4-1d71d36807db.png" 
         alt="StratAlge Logo" 
-        className={sizeClasses[size]} 
+        className={sizeClasses[size]}
+        style={{ filter: 'none' }} /* Removing any shadow filter */
       />
       <span className="font-bold">StratAlge</span>
     </Link>

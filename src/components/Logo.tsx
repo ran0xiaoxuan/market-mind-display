@@ -13,14 +13,14 @@ export function Logo({ size = "md" }: LogoProps) {
   };
   
   return (
-    <Link to="/dashboard" className="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <img 
         src="/lovable-uploads/1dfc06f9-436b-4a12-b1b4-1d71d36807db.png" 
         alt="StratAlge Logo" 
         className={sizeClasses[size]}
-        style={{ filter: 'none' }} /* Removing any shadow filter */
+        style={{ filter: 'none' }}
       />
       <span className="font-bold">StratAlge</span>
-    </Link>
+    </div>
   );
 }

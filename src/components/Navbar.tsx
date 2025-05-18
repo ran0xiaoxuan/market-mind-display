@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,7 +48,7 @@ export const Navbar = ({
     // Special styling for AI Strategy link
     if (to === "/ai-strategy") {
       const aiStrategyContent = <div className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md shadow-sm transition-all hover:shadow-md hover:scale-105">
-          <Brain size={18} className="text-primary-foreground" />
+          
           <span>AI Strategy</span>
         </div>;
       return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>

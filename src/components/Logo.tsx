@@ -13,7 +13,7 @@ export function Logo({ size = "md" }: LogoProps) {
   };
   
   return (
-    <Link to="/" className="flex items-center gap-2">
+    <Link to="/dashboard" className="flex items-center gap-2">
       <img 
         src="/lovable-uploads/1dfc06f9-436b-4a12-b1b4-1d71d36807db.png" 
         alt="StratAlge Logo" 

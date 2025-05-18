@@ -38,6 +38,7 @@ function App() {
   return (
     <>
       <Routes>
+        {/* Redirect root to dashboard if logged in, otherwise to login */}
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

@@ -65,6 +65,10 @@ Generate a complete trading strategy with entry rules, exit rules, and risk mana
    - The expected timeframe for results
    - The risk/reward profile of the strategy
 
+## TIMEFRAME FORMAT:
+- Always use "Daily" for daily timeframes, never use "1d"
+- Other valid timeframes: "Weekly", "Monthly", "Hourly", "4-Hour", "15-Minute"
+
 ## EXAMPLE TITLE AND DESCRIPTION:
 Name: "AAPL Momentum Crossover Strategy with Volume Confirmation"
 
@@ -98,7 +102,7 @@ For each rule, make sure the left and right sides are properly formatted with:
 Always return your response as a valid JSON object with these properties:
 - name: The strategy name (MUST include the asset symbol)
 - description: A concise explanation of what the strategy does (60-80 words)
-- timeframe: The trading timeframe (e.g., "1d", "4h", "15m")
+- timeframe: The trading timeframe (e.g., "Daily", "Weekly", "Monthly", "Hourly", "4-Hour", "15-Minute")
 - targetAsset: The symbol of the asset to trade
 - entryRules: An array of rule groups for entry, each with:
   - id: unique identifier
@@ -126,7 +130,9 @@ Generate a detailed trading strategy as a JSON object. Remember to include "${se
 
 IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put AT LEAST 2 CONDITIONS in the OR group where only some need to be true.
 
-MOST IMPORTANT: Every inequality MUST have a valid condition from this list: "CROSSES_ABOVE", "CROSSES_BELOW", "GREATER_THAN", "LESS_THAN", "EQUAL", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL". Do not leave any condition field empty or with invalid values.`;
+MOST IMPORTANT: Every inequality MUST have a valid condition from this list: "CROSSES_ABOVE", "CROSSES_BELOW", "GREATER_THAN", "LESS_THAN", "EQUAL", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL". Do not leave any condition field empty or with invalid values.
+
+REMEMBER: Use "Daily" for daily timeframes, never use "1d".`;
 
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);
@@ -217,6 +223,11 @@ MOST IMPORTANT: Every inequality MUST have a valid condition from this list: "CR
       }
 
       console.log("Successfully parsed strategy JSON:", strategyJSON);
+      
+      // Ensure timeframe is in the correct format
+      if (strategyJSON.timeframe === "1d") {
+        strategyJSON.timeframe = "Daily";
+      }
       
       // Process the strategy rules to ensure all types and conditions are set correctly
       if (strategyJSON.entryRules && Array.isArray(strategyJSON.entryRules)) {
@@ -360,6 +371,11 @@ MOST IMPORTANT: Every inequality MUST have a valid condition from this list: "CR
         
         const fallbackJSON = JSON.parse(fixedJson);
         console.log("Managed to parse with fixes:", fallbackJSON);
+        
+        // Ensure timeframe is in the correct format
+        if (fallbackJSON.timeframe === "1d") {
+          fallbackJSON.timeframe = "Daily";
+        }
         
         return new Response(
           JSON.stringify(fallbackJSON),

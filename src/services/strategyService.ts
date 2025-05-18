@@ -144,7 +144,7 @@ export const generateFallbackStrategy = (
   const strategy: GeneratedStrategy = {
     name: `${asset} Stock Strategy`,
     description: description || `A simple stock strategy for ${asset}`,
-    timeframe: '1d',
+    timeframe: 'Daily',
     targetAsset: asset,
     entryRules: [
       {

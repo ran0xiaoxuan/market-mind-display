@@ -1,11 +1,9 @@
-
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
-import { Brain } from "lucide-react";
 
 type NavLinkProps = {
   to: string;
@@ -55,7 +53,6 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
       return onNavigate ? (
         <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
           <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-all hover:shadow-md hover:scale-105">
-            <Brain className="w-4 h-4" />
             <span>AI Strategy</span>
           </div>
         </InterceptableNavLink>
@@ -73,7 +70,6 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
           }
         >
           <div className="flex items-center gap-1.5 px-4 py-2 rounded-md">
-            <Brain className="w-4 h-4" />
             <span>AI Strategy</span>
           </div>
         </NavLink>

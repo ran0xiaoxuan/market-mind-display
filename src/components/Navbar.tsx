@@ -50,11 +50,15 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
   const NavItem = ({ to, children, end }: Omit<NavLinkProps, 'onClick'>) => {
     // Special styling for AI Strategy link
     if (to === "/ai-strategy") {
+      const aiStrategyContent = (
+        <div className="bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-all hover:shadow-md hover:scale-105">
+          <span>AI Strategy</span>
+        </div>
+      );
+      
       return onNavigate ? (
         <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
-          <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-all hover:shadow-md hover:scale-105">
-            <span>AI Strategy</span>
-          </div>
+          {aiStrategyContent}
         </InterceptableNavLink>
       ) : (
         <NavLink
@@ -65,13 +69,11 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
               "transition-all hover:shadow-md hover:scale-105",
               isActive
                 ? "bg-primary text-primary-foreground"
-                : "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground"
+                : ""
             )
           }
         >
-          <div className="flex items-center gap-1.5 px-4 py-2 rounded-md">
-            <span>AI Strategy</span>
-          </div>
+          {aiStrategyContent}
         </NavLink>
       );
     }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
@@ -40,7 +39,7 @@ const Strategies = () => {
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
-            <h1 className="text-3xl font-bold">Trading Strategies</h1>
+            <h1 className="text-3xl font-bold">Strategies</h1>
             <div className="flex gap-2 mt-4 sm:mt-0">
               <Link to="/ai-strategy">
                 <Button className="bg-black text-white hover:bg-black/90">Create Strategy with AI</Button>

@@ -1,4 +1,3 @@
-
 import { IndicatorParameters } from "./types";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -37,7 +36,6 @@ export const IndicatorParameter = ({
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="close">Close</SelectItem>
-                <SelectItem value="volume">Volume</SelectItem>
                 <SelectItem value="hl2">HL2 (High+Low)/2</SelectItem>
                 <SelectItem value="hlc3">HLC3 (High+Low+Close)/3</SelectItem>
                 <SelectItem value="ohlc4">OHLC4 (Open+High+Low+Close)/4</SelectItem>

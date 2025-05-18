@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
@@ -257,6 +258,7 @@ const AIStrategy = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar onNavigate={handleNavigationAttempt} />
       <main className="max-w-4xl mx-auto p-6">
         {!generatedStrategy ? (
           <>

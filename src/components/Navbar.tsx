@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +5,6 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
 import { Brain } from "lucide-react";
-
 type NavLinkProps = {
   to: string;
   onClick?: (path: string) => void;
@@ -15,90 +13,61 @@ type NavLinkProps = {
 };
 
 // Modified NavLink component that can intercept navigation attempts
-const InterceptableNavLink = ({ to, onClick, children, end }: NavLinkProps) => {
+const InterceptableNavLink = ({
+  to,
+  onClick,
+  children,
+  end
+}: NavLinkProps) => {
   const handleClick = (e: React.MouseEvent) => {
     if (onClick) {
       e.preventDefault();
       onClick(to);
     }
   };
-
-  return (
-    <NavLink
-      to={to}
-      end={end}
-      onClick={onClick ? handleClick : undefined}
-      className={({ isActive }) =>
-        cn(
-          "px-4 py-2 rounded-md text-sm font-medium transition-colors",
-          isActive
-            ? "bg-secondary text-secondary-foreground"
-            : "hover:bg-secondary/80 hover:text-secondary-foreground"
-        )
-      }
-    >
+  return <NavLink to={to} end={end} onClick={onClick ? handleClick : undefined} className={({
+    isActive
+  }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
       {children}
-    </NavLink>
-  );
+    </NavLink>;
 };
-
 interface NavbarProps {
   onNavigate?: (path: string) => void;
 }
-
-export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
-  const { session } = useAuth();
-
-  const NavItem = ({ to, children, end }: Omit<NavLinkProps, 'onClick'>) => {
+export const Navbar = ({
+  onNavigate
+}: NavbarProps = {}) => {
+  const {
+    session
+  } = useAuth();
+  const NavItem = ({
+    to,
+    children,
+    end
+  }: Omit<NavLinkProps, 'onClick'>) => {
     // Special styling for AI Strategy link
     if (to === "/ai-strategy") {
-      const aiStrategyContent = (
-        <div className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md shadow-sm transition-all hover:shadow-md hover:scale-105">
-          <Brain className="w-4 h-4" />
+      const aiStrategyContent = <div className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md shadow-sm transition-all hover:shadow-md hover:scale-105">
+          
           <span>AI Strategy</span>
-        </div>
-      );
-      
-      return onNavigate ? (
-        <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
+        </div>;
+      return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
           {aiStrategyContent}
-        </InterceptableNavLink>
-      ) : (
-        <NavLink
-          to={to}
-          end={end}
-          className="transition-all"
-        >
+        </InterceptableNavLink> : <NavLink to={to} end={end} className="transition-all">
           {aiStrategyContent}
-        </NavLink>
-      );
+        </NavLink>;
     }
-    
-    // Standard styling for other links
-    return onNavigate ? (
-      <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
-        {children}
-      </InterceptableNavLink>
-    ) : (
-      <NavLink
-        to={to}
-        end={end}
-        className={({ isActive }) =>
-          cn(
-            "px-4 py-2 rounded-md text-sm font-medium transition-colors",
-            isActive
-              ? "bg-secondary text-secondary-foreground"
-              : "hover:bg-secondary/80 hover:text-secondary-foreground"
-          )
-        }
-      >
-        {children}
-      </NavLink>
-    );
-  };
 
-  return (
-    <header className="border-b sticky top-0 z-30 bg-background">
+    // Standard styling for other links
+    return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
+        {children}
+      </InterceptableNavLink> : <NavLink to={to} end={end} className={({
+      isActive
+    }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
+        {children}
+      </NavLink>;
+  };
+  return <header className="border-b sticky top-0 z-30 bg-background">
       <div className="container flex h-16 items-center">
         <div className="mr-4">
           <NavItem to="/" end>
@@ -106,31 +75,22 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
           </NavItem>
         </div>
         <nav className="flex items-center space-x-4 text-sm">
-          {session ? (
-            <>
+          {session ? <>
               <NavItem to="/dashboard">Dashboard</NavItem>
               <NavItem to="/strategies">Strategies</NavItem>
               <NavItem to="/ai-strategy">AI Strategy</NavItem>
               <NavItem to="/backtest">Backtest</NavItem>
               <NavItem to="/analytics">Analytics</NavItem>
-            </>
-          ) : (
-            <>
+            </> : <>
               <NavItem to="/login">Login</NavItem>
               <NavItem to="/signup">Sign Up</NavItem>
-            </>
-          )}
+            </>}
         </nav>
         <div className="ml-auto flex items-center">
-          {session ? (
-            <UserMenu />
-          ) : (
-            <Button asChild>
+          {session ? <UserMenu /> : <Button asChild>
               <NavItem to="/signup">Get Started</NavItem>
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };

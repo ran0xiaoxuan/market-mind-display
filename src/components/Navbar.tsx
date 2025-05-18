@@ -1,3 +1,4 @@
+
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,7 +79,7 @@ export const Navbar = ({
               <Logo />
             </NavItem>
           </div>
-          <nav className="flex items-center space-x-4">
+          <nav className="flex items-center space-x-2">
             {session ? <>
                 <NavItem to="/dashboard">Dashboard</NavItem>
                 <NavItem to="/strategies">Strategies</NavItem>

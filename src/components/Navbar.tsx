@@ -5,7 +5,6 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
 import { Brain } from "lucide-react";
-
 type NavLinkProps = {
   to: string;
   onClick?: (path: string) => void;
@@ -26,33 +25,30 @@ const InterceptableNavLink = ({
       onClick(to);
     }
   };
-  
-  return (
-    <NavLink 
-      to={to === "/" ? "/dashboard" : to} // Redirect root to dashboard
-      end={end} 
-      onClick={onClick ? handleClick : undefined} 
-      className={({isActive}) => cn(
-        "px-4 py-2 rounded-md text-sm font-medium transition-colors", 
-        isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground"
-      )}
-    >
+  return <NavLink to={to === "/" ? "/dashboard" : to} // Redirect root to dashboard
+  end={end} onClick={onClick ? handleClick : undefined} className={({
+    isActive
+  }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
       {children}
-    </NavLink>
-  );
+    </NavLink>;
 };
-
 interface NavbarProps {
   onNavigate?: (path: string) => void;
 }
-
-export const Navbar = ({onNavigate}: NavbarProps = {}) => {
-  const {session} = useAuth();
-  
-  const NavItem = ({to, children, end}: Omit<NavLinkProps, 'onClick'>) => {
+export const Navbar = ({
+  onNavigate
+}: NavbarProps = {}) => {
+  const {
+    session
+  } = useAuth();
+  const NavItem = ({
+    to,
+    children,
+    end
+  }: Omit<NavLinkProps, 'onClick'>) => {
     // Ensure "/" routes go to dashboard
     const targetPath = to === "/" ? "/dashboard" : to;
-    
+
     // Special styling for AI Strategy link but maintain consistent dimensions
     if (to === "/ai-strategy") {
       return onNavigate ? <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
@@ -61,34 +57,20 @@ export const Navbar = ({onNavigate}: NavbarProps = {}) => {
             <span>AI Strategy</span>
           </div>
         </InterceptableNavLink> : <NavLink to={to} end={end} className="">
-          <div className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium">
-            
-            <span>AI Strategy</span>
-          </div>
+          
         </NavLink>;
     }
 
     // Standard styling for all other links - ensuring consistent spacing
-    return onNavigate ? (
-      <InterceptableNavLink to={targetPath} onClick={onNavigate} end={end}>
+    return onNavigate ? <InterceptableNavLink to={targetPath} onClick={onNavigate} end={end}>
         {children}
-      </InterceptableNavLink>
-    ) : (
-      <NavLink 
-        to={targetPath} 
-        end={end} 
-        className={({isActive}) => cn(
-          "px-4 py-2 rounded-md text-sm font-medium transition-colors", 
-          isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground"
-        )}
-      >
+      </InterceptableNavLink> : <NavLink to={targetPath} end={end} className={({
+      isActive
+    }) => cn("px-4 py-2 rounded-md text-sm font-medium transition-colors", isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/80 hover:text-secondary-foreground")}>
         {children}
-      </NavLink>
-    );
+      </NavLink>;
   };
-
-  return (
-    <header className="border-b sticky top-0 z-30 bg-background shadow-sm">
+  return <header className="border-b sticky top-0 z-30 bg-background shadow-sm">
       <div className="container max-w-full px-4 md:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center">
           <div className="mr-6">
@@ -116,6 +98,5 @@ export const Navbar = ({onNavigate}: NavbarProps = {}) => {
             </Button>}
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };

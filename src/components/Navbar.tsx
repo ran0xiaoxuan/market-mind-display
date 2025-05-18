@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/UserMenu";
+import { Brain } from "lucide-react";
 
 type NavLinkProps = {
   to: string;
@@ -49,6 +50,37 @@ export const Navbar = ({ onNavigate }: NavbarProps = {}) => {
   const { session } = useAuth();
 
   const NavItem = ({ to, children, end }: Omit<NavLinkProps, 'onClick'>) => {
+    // Special styling for AI Strategy link
+    if (to === "/ai-strategy") {
+      return onNavigate ? (
+        <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
+          <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-all hover:shadow-md hover:scale-105">
+            <Brain className="w-4 h-4" />
+            <span>AI Strategy</span>
+          </div>
+        </InterceptableNavLink>
+      ) : (
+        <NavLink
+          to={to}
+          end={end}
+          className={({ isActive }) =>
+            cn(
+              "transition-all hover:shadow-md hover:scale-105",
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground"
+            )
+          }
+        >
+          <div className="flex items-center gap-1.5 px-4 py-2 rounded-md">
+            <Brain className="w-4 h-4" />
+            <span>AI Strategy</span>
+          </div>
+        </NavLink>
+      );
+    }
+    
+    // Standard styling for other links
     return onNavigate ? (
       <InterceptableNavLink to={to} onClick={onNavigate} end={end}>
         {children}

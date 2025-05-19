@@ -267,12 +267,7 @@ const Recommendations = () => {
                   <CardFooter className="pt-2 flex justify-between border-t">
                     
                     <div className="flex">
-                      <Button variant="ghost" size="sm" className="p-0 h-8 w-8" onClick={e => {
-                  e.stopPropagation();
-                  showStrategyDetails(strategy);
-                }}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      
                       {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
                   e.stopPropagation();
                   deleteStrategy(strategy.id);

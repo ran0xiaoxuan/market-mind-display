@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +19,11 @@ interface RecommendedStrategy extends Strategy {
   user_id: string; 
   recommendation_count?: number; 
   rating?: number;
+  is_active: boolean;
+  target_asset: string;
+  target_asset_name: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const Recommendations = () => {
@@ -52,6 +56,7 @@ const Recommendations = () => {
         
       if (error) throw error;
       
+      // The data returned has the correct snake_case property names that match our interface
       setStrategies(data as RecommendedStrategy[]);
     } catch (error) {
       console.error("Error fetching recommended strategies:", error);
@@ -89,13 +94,12 @@ const Recommendations = () => {
       
       // Update the recommendation count
       // Using a metadata field since we don't have a recommendation_count column
-      const metaUpdate = {
-        recommendation_count: ((strategy.recommendation_count || 0) + 1)
-      };
-      
       await supabase
         .from('strategies')
-        .update(metaUpdate)
+        .update({
+          // Using the existing recommendation_count or 0 if undefined
+          recommendation_count: ((strategy.recommendation_count || 0) + 1)
+        })
         .eq('id', strategy.id);
         
       toast.success("Strategy added to your collection");

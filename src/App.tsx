@@ -18,7 +18,7 @@ import Backtest from "./pages/Backtest";
 import BacktestHistory from "./pages/BacktestHistory";
 import EditStrategy from "./pages/EditStrategy";
 import EditHistory from "./pages/EditHistory";
-import Analytics from "./pages/Analytics";
+import Recommendations from "./pages/Recommendations";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AITest from "./pages/AITest";
@@ -54,7 +54,7 @@ function App() {
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/backtest-history" element={<BacktestHistory />} />
           <Route path="/edit-history/:id" element={<EditHistory />} />
-          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/recommendations" element={<Recommendations />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/ai-test" element={<AITest />} />
         </Route>

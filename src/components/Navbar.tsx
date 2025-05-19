@@ -76,7 +76,7 @@ export const Navbar = ({
                 <NavItem to="/dashboard">Dashboard</NavItem>
                 <NavItem to="/strategies">Strategies</NavItem>
                 <NavItem to="/backtest">Backtest</NavItem>
-                <NavItem to="/analytics">Analytics</NavItem>
+                <NavItem to="/recommendations">Recommendations</NavItem>
               </> : <>
                 <NavItem to="/login">Login</NavItem>
                 <NavItem to="/signup">Sign Up</NavItem>

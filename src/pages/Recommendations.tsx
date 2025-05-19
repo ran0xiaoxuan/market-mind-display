@@ -261,16 +261,7 @@ const Recommendations = () => {
                         {strategy.description || "No description provided"}
                       </p>
                       
-                      <div className="grid grid-cols-2 gap-2 mt-3">
-                        <div className="flex items-center text-xs text-slate-600">
-                          <Shield className="h-3 w-3 mr-1 text-red-500" />
-                          <span>Stop: {strategy.stop_loss || "N/A"}</span>
-                        </div>
-                        <div className="flex items-center text-xs text-slate-600">
-                          <Shield className="h-3 w-3 mr-1 text-green-500" />
-                          <span>Take: {strategy.take_profit || "N/A"}</span>
-                        </div>
-                      </div>
+                      
                     </div>
                   </CardContent>
                   <CardFooter className="pt-2 flex justify-between border-t">

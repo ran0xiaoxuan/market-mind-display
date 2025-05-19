@@ -157,6 +157,41 @@ export type Database = {
         }
         Relationships: []
       }
+      recommended_strategies: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_official: boolean | null
+          recommended_by: string | null
+          strategy_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_official?: boolean | null
+          recommended_by?: string | null
+          strategy_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_official?: boolean | null
+          recommended_by?: string | null
+          strategy_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommended_strategies_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rule_groups: {
         Row: {
           created_at: string

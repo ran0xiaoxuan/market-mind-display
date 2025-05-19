@@ -37,6 +37,7 @@ interface RecommendedStrategy {
   recommendation_count?: number;
   rating?: number;
 }
+
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,20 +60,43 @@ const Recommendations = () => {
   // Admin check - only this email can add/delete official recommendations
   const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
 
-  // Fetch recommended strategies - using a special user ID to mark official strategies
+  // Fetch recommended strategies from our new recommendations table
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
-      // For this implementation, we'll use a special admin user ID to mark official strategies
-      // In a real app, you might want to use a dedicated table or add a column to the strategies table
-      const {
-        data,
-        error
-      } = await supabase.from('strategies').select('*').eq('user_id', isAdmin ? session?.user?.id : 'admin-recommendations');
-      if (error) throw error;
-
-      // Now we can directly set the data as RecommendedStrategy[] since our interface matches the DB structure
-      setStrategies(data as RecommendedStrategy[]);
+      
+      // Get strategies from the recommended_strategies table joined with actual strategy details
+      const { data: recommendedData, error: recommendedError } = await supabase
+        .from('recommended_strategies')
+        .select('strategy_id, is_official');
+      
+      if (recommendedError) throw recommendedError;
+      
+      if (recommendedData && recommendedData.length > 0) {
+        // Get the actual strategy details for each recommended strategy
+        const strategyIds = recommendedData.map(rec => rec.strategy_id);
+        
+        const { data: strategiesData, error: strategiesError } = await supabase
+          .from('strategies')
+          .select('*')
+          .in('id', strategyIds);
+          
+        if (strategiesError) throw strategiesError;
+        
+        // Add any additional metadata from recommended_strategies if needed
+        const enhancedStrategies = strategiesData.map(strategy => {
+          // Find the corresponding recommendation record
+          const recommendation = recommendedData.find(rec => rec.strategy_id === strategy.id);
+          return {
+            ...strategy,
+            is_official: recommendation?.is_official || false
+          };
+        });
+        
+        setStrategies(enhancedStrategies as RecommendedStrategy[]);
+      } else {
+        setStrategies([]);
+      }
     } catch (error) {
       console.error("Error fetching recommended strategies:", error);
       toast.error("Failed to load recommendations");
@@ -96,24 +120,20 @@ const Recommendations = () => {
         target_asset: strategy.target_asset,
         timeframe: strategy.timeframe,
         is_active: true,
-        user_id: session.user.id
-        // Copy other relevant fields
+        user_id: session.user.id,
+        stop_loss: strategy.stop_loss,
+        take_profit: strategy.take_profit,
+        single_buy_volume: strategy.single_buy_volume,
+        max_buy_volume: strategy.max_buy_volume
       };
+      
       const {
         data,
         error
       } = await supabase.from('strategies').insert(newUserStrategy).select();
+      
       if (error) throw error;
 
-      // Instead of directly updating recommendation_count which might not exist in the schema,
-      // we'll use a different approach - we'll track applications separately
-      // Note: In a real application, you might want to add this column to your schema
-
-      // For now, just update the local state to reflect the change
-      setStrategies(prevStrategies => prevStrategies.map(s => s.id === strategy.id ? {
-        ...s,
-        recommendation_count: (s.recommendation_count || 0) + 1
-      } : s));
       toast.success("Strategy added to your collection");
     } catch (error) {
       console.error("Error applying strategy:", error);
@@ -125,15 +145,30 @@ const Recommendations = () => {
   const deleteStrategy = async (id: string) => {
     if (!isAdmin) return;
     try {
-      const {
-        error
-      } = await supabase.from('strategies').delete().eq('id', id);
-      if (error) throw error;
-      toast.success("Strategy deleted");
+      // First find the recommendation record
+      const { data: recommendedData, error: findError } = await supabase
+        .from('recommended_strategies')
+        .select('id')
+        .eq('strategy_id', id)
+        .single();
+      
+      if (findError) throw findError;
+      
+      if (recommendedData) {
+        // Delete from recommendations table
+        const { error: deleteError } = await supabase
+          .from('recommended_strategies')
+          .delete()
+          .eq('id', recommendedData.id);
+        
+        if (deleteError) throw deleteError;
+      }
+      
+      toast.success("Strategy removed from recommendations");
       fetchRecommendedStrategies();
     } catch (error) {
-      console.error("Error deleting strategy:", error);
-      toast.error("Failed to delete strategy");
+      console.error("Error deleting recommended strategy:", error);
+      toast.error("Failed to delete recommendation");
     }
   };
 
@@ -145,18 +180,34 @@ const Recommendations = () => {
         toast.error("Name and asset are required");
         return;
       }
-      const {
-        error
-      } = await supabase.from('strategies').insert({
-        name: newStrategy.name,
-        description: newStrategy.description,
-        target_asset: newStrategy.targetAsset,
-        timeframe: newStrategy.timeframe,
-        user_id: 'admin-recommendations',
-        // Use a special ID to mark recommendations
-        is_active: true
-      });
-      if (error) throw error;
+      
+      // First create the strategy
+      const { data: strategyData, error: strategyError } = await supabase
+        .from('strategies')
+        .insert({
+          name: newStrategy.name,
+          description: newStrategy.description,
+          target_asset: newStrategy.targetAsset,
+          timeframe: newStrategy.timeframe,
+          user_id: session?.user?.id,
+          is_active: true
+        })
+        .select()
+        .single();
+      
+      if (strategyError) throw strategyError;
+      
+      // Then add it to recommendations
+      const { error: recommendError } = await supabase
+        .from('recommended_strategies')
+        .insert({
+          strategy_id: strategyData.id,
+          recommended_by: session?.user?.id,
+          is_official: true
+        });
+      
+      if (recommendError) throw recommendError;
+
       toast.success("Official strategy added");
       setShowUploadDialog(false);
       setNewStrategy({
@@ -181,16 +232,20 @@ const Recommendations = () => {
 
   // Filter strategies based on search and asset filter
   const filteredStrategies = strategies.filter(strategy => {
-    const matchesSearch = strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      strategy.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAsset = assetFilter === "all" || strategy.target_asset?.toLowerCase() === assetFilter.toLowerCase();
     return matchesSearch && matchesAsset;
   });
 
   // Get unique assets for filter dropdown
   const uniqueAssets = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+  
   useEffect(() => {
     fetchRecommendedStrategies();
   }, []);
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">

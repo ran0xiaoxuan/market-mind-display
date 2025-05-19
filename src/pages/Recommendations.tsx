@@ -241,9 +241,7 @@ const Recommendations = () => {
                       <div>
                         <CardTitle className="text-xl text-slate-800">{strategy.name}</CardTitle>
                         <div className="flex items-center mt-1 space-x-2">
-                          <Badge variant="outline" className="bg-slate-100">
-                            {strategy.timeframe}
-                          </Badge>
+                          
                           {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
                               {strategy.target_asset}
                             </Badge>}

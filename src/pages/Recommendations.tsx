@@ -300,11 +300,7 @@ const Recommendations = () => {
               {selectedStrategy?.timeframe && <Badge variant="outline" className="bg-slate-100">
                   {selectedStrategy.timeframe}
                 </Badge>}
-              {selectedStrategy?.updated_at && <span className="text-xs text-muted-foreground">
-                  Updated {formatDistanceToNow(new Date(selectedStrategy.updated_at), {
-                addSuffix: true
-              })}
-                </span>}
+              {selectedStrategy?.updated_at}
             </DialogDescription>
           </DialogHeader>
           

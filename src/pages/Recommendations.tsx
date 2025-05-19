@@ -300,7 +300,7 @@ const Recommendations = () => {
           <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full grid grid-cols-3 mb-4">
               <TabsTrigger value="overview" className="flex items-center">
-                <Info className="h-4 w-4 mr-2" />
+                
                 Overview
               </TabsTrigger>
               <TabsTrigger value="risk" className="flex items-center">

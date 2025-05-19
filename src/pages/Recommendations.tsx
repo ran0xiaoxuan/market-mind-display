@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ interface RecommendedStrategy extends Strategy {
   created_at: string;
   updated_at: string;
 }
+
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ const Recommendations = () => {
       } = await supabase.from('strategies').select('*').eq('user_id', isAdmin ? session?.user?.id : 'admin-recommendations');
       if (error) throw error;
 
-      // The data returned has the correct snake_case property names that match our interface
+      // Cast the data to RecommendedStrategy[] as it matches our interface
       setStrategies(data as RecommendedStrategy[]);
     } catch (error) {
       console.error("Error fetching recommended strategies:", error);
@@ -93,7 +95,6 @@ const Recommendations = () => {
       // Update the recommendation count
       // Using a metadata field since we don't have a recommendation_count column
       await supabase.from('strategies').update({
-        // Using the existing recommendation_count or 0 if undefined
         recommendation_count: (strategy.recommendation_count || 0) + 1
       }).eq('id', strategy.id);
       toast.success("Strategy added to your collection");

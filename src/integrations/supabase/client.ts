@@ -10,6 +10,14 @@ export const supabase = createClient<Database>(
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
-    }
+    },
+    db: {
+      schema: 'public',
+    },
+    global: {
+      headers: {
+        'x-my-custom-header': 'recommendations-app'
+      },
+    },
   }
 );

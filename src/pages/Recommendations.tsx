@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,37 +67,32 @@ const Recommendations = () => {
       setLoading(true);
       
       // Get strategies from the recommended_strategies table joined with actual strategy details
-      const { data: recommendedData, error: recommendedError } = await supabase
-        .from('recommended_strategies')
-        .select('strategy_id, is_official');
+      const { data: recommendedStrategies, error } = await supabase
+        .from('strategies')
+        .select(`
+          *,
+          recommended_strategies:recommended_strategies(*)
+        `)
+        .not('recommended_strategies', 'is', null);
       
-      if (recommendedError) throw recommendedError;
-      
-      if (recommendedData && recommendedData.length > 0) {
-        // Get the actual strategy details for each recommended strategy
-        const strategyIds = recommendedData.map(rec => rec.strategy_id);
-        
-        const { data: strategiesData, error: strategiesError } = await supabase
-          .from('strategies')
-          .select('*')
-          .in('id', strategyIds);
-          
-        if (strategiesError) throw strategiesError;
-        
-        // Add any additional metadata from recommended_strategies if needed
-        const enhancedStrategies = strategiesData.map(strategy => {
-          // Find the corresponding recommendation record
-          const recommendation = recommendedData.find(rec => rec.strategy_id === strategy.id);
-          return {
-            ...strategy,
-            is_official: recommendation?.is_official || false
-          };
-        });
-        
-        setStrategies(enhancedStrategies as RecommendedStrategy[]);
-      } else {
-        setStrategies([]);
+      if (error) {
+        console.error("Error fetching recommended strategies:", error);
+        throw error;
       }
+
+      // Filter to only include items that actually have recommendations
+      const validRecommendations = recommendedStrategies?.filter(
+        strategy => strategy.recommended_strategies && strategy.recommended_strategies.length > 0
+      ) || [];
+
+      // Map to the format expected by the UI
+      const processedStrategies = validRecommendations.map(strategy => ({
+        ...strategy,
+        is_official: strategy.recommended_strategies?.[0]?.is_official || false
+      }));
+      
+      setStrategies(processedStrategies as RecommendedStrategy[]);
+      
     } catch (error) {
       console.error("Error fetching recommended strategies:", error);
       toast.error("Failed to load recommendations");
@@ -540,3 +536,4 @@ const Recommendations = () => {
     </div>;
 };
 export default Recommendations;
+

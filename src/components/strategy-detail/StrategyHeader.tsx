@@ -7,6 +7,16 @@ import { toast } from "sonner";
 import { History, LineChart, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { deleteStrategy } from "@/services/strategyService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface StrategyHeaderProps {
   strategyId: string;
@@ -19,18 +29,15 @@ export const StrategyHeader = ({
 }: StrategyHeaderProps) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleDeleteStrategy = async () => {
-    if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone.")) {
-      return;
-    }
-    
     try {
       setIsDeleting(true);
       console.log("Deleting strategy with ID:", strategyId);
       await deleteStrategy(strategyId);
       toast.success("Strategy deleted", {
-        description: "The strategy has been successfully deleted"
+        description: "Your strategy has been successfully deleted"
       });
 
       // Navigate to strategies page after successful deletion
@@ -88,7 +95,7 @@ export const StrategyHeader = ({
             variant="outline" 
             size="sm" 
             className="h-9 px-2.5 border border-input text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleDeleteStrategy}
+            onClick={() => setShowDeleteDialog(true)}
             disabled={isDeleting}
           >
             <Trash2 className="h-4 w-4 mr-1" />
@@ -114,6 +121,28 @@ export const StrategyHeader = ({
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Strategy</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{strategyName}</span>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={handleDeleteStrategy}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

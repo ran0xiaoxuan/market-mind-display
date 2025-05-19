@@ -15,7 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Trash, Star } from "lucide-react";
 
-// Define a recommended strategy type based on the actual database columns
+// Define a recommended strategy type based on the actual database columns returned by Supabase
 interface RecommendedStrategy extends Strategy {
   user_id: string;
   recommendation_count?: number;
@@ -58,7 +58,7 @@ const Recommendations = () => {
       } = await supabase.from('strategies').select('*').eq('user_id', isAdmin ? session?.user?.id : 'admin-recommendations');
       if (error) throw error;
 
-      // Cast the data to RecommendedStrategy[] as it matches our interface
+      // Cast the data to RecommendedStrategy[] as it matches our interface now
       setStrategies(data as RecommendedStrategy[]);
     } catch (error) {
       console.error("Error fetching recommended strategies:", error);
@@ -168,9 +168,11 @@ const Recommendations = () => {
 
   // Get unique assets for filter dropdown
   const uniqueAssets = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+  
   useEffect(() => {
     fetchRecommendedStrategies();
   }, []);
+  
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -242,8 +244,8 @@ const Recommendations = () => {
                     
                     {strategy.updated_at && <p className="text-xs text-muted-foreground mt-4">
                         Updated {formatDistanceToNow(new Date(strategy.updated_at), {
-                  addSuffix: true
-                })}
+                          addSuffix: true
+                        })}
                       </p>}
                   </CardContent>
                   <CardFooter className="flex justify-between">
@@ -278,9 +280,9 @@ const Recommendations = () => {
                   Strategy Name
                 </label>
                 <Input id="name" value={newStrategy.name} onChange={e => setNewStrategy({
-              ...newStrategy,
-              name: e.target.value
-            })} placeholder="Enter strategy name" />
+                  ...newStrategy,
+                  name: e.target.value
+                })} placeholder="Enter strategy name" />
               </div>
               
               <div className="grid gap-2">
@@ -288,9 +290,9 @@ const Recommendations = () => {
                   Target Asset
                 </label>
                 <Input id="asset" value={newStrategy.targetAsset} onChange={e => setNewStrategy({
-              ...newStrategy,
-              targetAsset: e.target.value
-            })} placeholder="e.g., BTC/USD, SPY, AAPL" />
+                  ...newStrategy,
+                  targetAsset: e.target.value
+                })} placeholder="e.g., BTC/USD, SPY, AAPL" />
               </div>
               
               <div className="grid gap-2">
@@ -298,9 +300,9 @@ const Recommendations = () => {
                   Timeframe
                 </label>
                 <Select value={newStrategy.timeframe} onValueChange={value => setNewStrategy({
-              ...newStrategy,
-              timeframe: value
-            })}>
+                  ...newStrategy,
+                  timeframe: value
+                })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select timeframe" />
                   </SelectTrigger>
@@ -322,9 +324,9 @@ const Recommendations = () => {
                   Description
                 </label>
                 <Textarea id="description" value={newStrategy.description} onChange={e => setNewStrategy({
-              ...newStrategy,
-              description: e.target.value
-            })} placeholder="Enter strategy description" rows={3} />
+                  ...newStrategy,
+                  description: e.target.value
+                })} placeholder="Enter strategy description" rows={3} />
               </div>
             </div>
             

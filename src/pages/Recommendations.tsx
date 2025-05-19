@@ -297,9 +297,7 @@ const Recommendations = () => {
               {selectedStrategy?.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
                   {selectedStrategy.target_asset}
                 </Badge>}
-              {selectedStrategy?.timeframe && <Badge variant="outline" className="bg-slate-100">
-                  {selectedStrategy.timeframe}
-                </Badge>}
+              {selectedStrategy?.timeframe}
               {selectedStrategy?.updated_at}
             </DialogDescription>
           </DialogHeader>

@@ -259,12 +259,7 @@ const Recommendations = () => {
                   <CardFooter className="flex justify-between">
                     
                     
-                    <Button variant="ghost" size="icon" onClick={e => {
-                e.stopPropagation();
-                showStrategyDetails(strategy);
-              }}>
-                      <Eye className="h-4 w-4 text-primary" />
-                    </Button>
+                    
                     
                     {isAdmin && <Button variant="ghost" size="icon" onClick={e => {
                 e.stopPropagation();

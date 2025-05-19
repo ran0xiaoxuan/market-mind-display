@@ -304,7 +304,7 @@ const Recommendations = () => {
                 Overview
               </TabsTrigger>
               <TabsTrigger value="risk" className="flex items-center">
-                <Shield className="h-4 w-4 mr-2" />
+                
                 Risk Management
               </TabsTrigger>
               <TabsTrigger value="rules" className="flex items-center">

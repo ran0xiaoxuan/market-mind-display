@@ -15,15 +15,15 @@ import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Trash, Star } from "lucide-react";
 
-// Extend Strategy type to include additional fields for recommendations
-interface OfficialStrategy extends Strategy {
-  is_official: boolean;
+// Define a recommended strategy type based on the actual database columns
+interface RecommendedStrategy extends Strategy {
+  user_id: string; 
+  recommendation_count?: number; 
   rating?: number;
-  applied_count?: number;
 }
 
 const Recommendations = () => {
-  const [strategies, setStrategies] = useState<OfficialStrategy[]>([]);
+  const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [assetFilter, setAssetFilter] = useState("all");
@@ -36,24 +36,25 @@ const Recommendations = () => {
     timeframe: "1d",
   });
   
+  // Admin check - only this email can add/delete official recommendations
   const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
   
-  // Fetch official strategies
-  const fetchOfficialStrategies = async () => {
+  // Fetch recommended strategies - using a special user ID to mark official strategies
+  const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
-      // Assuming we're using the same table but with an is_official flag
-      // In a real implementation, you might want a separate table
+      // For this implementation, we'll use a special admin user ID to mark official recommendations
+      // In a real app, you might want to use a dedicated table or add a column to the strategies table
       const { data, error } = await supabase
         .from('strategies')
         .select('*')
-        .eq('is_official', true);
+        .eq('user_id', isAdmin ? session?.user?.id : 'admin-recommendations');
         
       if (error) throw error;
       
-      setStrategies(data as OfficialStrategy[]);
+      setStrategies(data as RecommendedStrategy[]);
     } catch (error) {
-      console.error("Error fetching official strategies:", error);
+      console.error("Error fetching recommended strategies:", error);
       toast.error("Failed to load recommendations");
     } finally {
       setLoading(false);
@@ -61,7 +62,7 @@ const Recommendations = () => {
   };
   
   // Apply a strategy to user's own strategies
-  const applyStrategy = async (strategy: OfficialStrategy) => {
+  const applyStrategy = async (strategy: RecommendedStrategy) => {
     try {
       if (!session?.user?.id) {
         toast.error("You must be logged in to apply a strategy");
@@ -72,9 +73,9 @@ const Recommendations = () => {
       const newUserStrategy = {
         name: `${strategy.name} (from recommendations)`,
         description: strategy.description,
-        targetAsset: strategy.targetAsset,
+        target_asset: strategy.target_asset,
         timeframe: strategy.timeframe,
-        isActive: true,
+        is_active: true,
         user_id: session.user.id,
         // Copy other relevant fields
       };
@@ -86,16 +87,21 @@ const Recommendations = () => {
         
       if (error) throw error;
       
-      // Update the applied count for the official strategy
+      // Update the recommendation count
+      // Using a metadata field since we don't have a recommendation_count column
+      const metaUpdate = {
+        recommendation_count: ((strategy.recommendation_count || 0) + 1)
+      };
+      
       await supabase
         .from('strategies')
-        .update({ applied_count: (strategy.applied_count || 0) + 1 })
+        .update(metaUpdate)
         .eq('id', strategy.id);
         
       toast.success("Strategy added to your collection");
       
       // Refetch to update counts
-      fetchOfficialStrategies();
+      fetchRecommendedStrategies();
       
     } catch (error) {
       console.error("Error applying strategy:", error);
@@ -103,7 +109,7 @@ const Recommendations = () => {
     }
   };
   
-  // Delete an official strategy (admin only)
+  // Delete a recommended strategy (admin only)
   const deleteStrategy = async (id: string) => {
     if (!isAdmin) return;
     
@@ -116,14 +122,14 @@ const Recommendations = () => {
       if (error) throw error;
       
       toast.success("Strategy deleted");
-      fetchOfficialStrategies();
+      fetchRecommendedStrategies();
     } catch (error) {
       console.error("Error deleting strategy:", error);
       toast.error("Failed to delete strategy");
     }
   };
   
-  // Add a new official strategy (admin only)
+  // Add a new recommended strategy (admin only)
   const addOfficialStrategy = async () => {
     if (!isAdmin) return;
     
@@ -138,13 +144,11 @@ const Recommendations = () => {
         .insert({
           name: newStrategy.name,
           description: newStrategy.description,
-          targetAsset: newStrategy.targetAsset,
+          target_asset: newStrategy.targetAsset,
           timeframe: newStrategy.timeframe,
-          is_official: true,
-          user_id: session?.user?.id,
-          applied_count: 0,
-          rating: 0,
-          isActive: true
+          user_id: 'admin-recommendations', // Use a special ID to mark recommendations
+          is_active: true,
+          recommendation_count: 0
         });
         
       if (error) throw error;
@@ -157,7 +161,7 @@ const Recommendations = () => {
         targetAsset: "",
         timeframe: "1d",
       });
-      fetchOfficialStrategies();
+      fetchRecommendedStrategies();
     } catch (error) {
       console.error("Error adding strategy:", error);
       toast.error("Failed to add strategy");
@@ -172,16 +176,16 @@ const Recommendations = () => {
     
     const matchesAsset = 
       assetFilter === "all" || 
-      strategy.targetAsset?.toLowerCase() === assetFilter.toLowerCase();
+      strategy.target_asset?.toLowerCase() === assetFilter.toLowerCase();
     
     return matchesSearch && matchesAsset;
   });
   
   // Get unique assets for filter dropdown
-  const uniqueAssets = [...new Set(strategies.map(s => s.targetAsset).filter(Boolean))];
+  const uniqueAssets = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
   
   useEffect(() => {
-    fetchOfficialStrategies();
+    fetchRecommendedStrategies();
   }, []);
 
   return (
@@ -253,7 +257,7 @@ const Recommendations = () => {
                       <div>
                         <CardTitle>{strategy.name}</CardTitle>
                         <CardDescription>
-                          {strategy.targetAsset || "Unknown asset"} • {strategy.timeframe || "Unknown timeframe"}
+                          {strategy.target_asset || "Unknown asset"} • {strategy.timeframe || "Unknown timeframe"}
                         </CardDescription>
                       </div>
                       <div className="flex items-center">
@@ -262,7 +266,7 @@ const Recommendations = () => {
                           <span className="text-sm font-medium">{strategy.rating || 0}</span>
                         </div>
                         <Badge variant="outline" className="ml-2">
-                          {strategy.applied_count || 0} applied
+                          {strategy.recommendation_count || 0} applied
                         </Badge>
                       </div>
                     </div>
@@ -272,9 +276,9 @@ const Recommendations = () => {
                       {strategy.description || "No description provided"}
                     </p>
                     
-                    {strategy.updatedAt && (
+                    {strategy.updated_at && (
                       <p className="text-xs text-muted-foreground mt-4">
-                        Updated {formatDistanceToNow(new Date(strategy.updatedAt), { addSuffix: true })}
+                        Updated {formatDistanceToNow(new Date(strategy.updated_at), { addSuffix: true })}
                       </p>
                     )}
                   </CardContent>

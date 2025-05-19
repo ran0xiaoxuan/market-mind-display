@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -15,7 +14,7 @@ export function StrategyList() {
   const [filteredStrategies, setFilteredStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
   
   const fetchStrategies = async () => {
     try {

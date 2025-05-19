@@ -233,9 +233,7 @@ const Recommendations = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle>{strategy.name}</CardTitle>
-                        <CardDescription>
-                          {strategy.target_asset || "Unknown asset"} • {strategy.timeframe || "Unknown timeframe"}
-                        </CardDescription>
+                        
                       </div>
                       <div className="flex items-center">
                         <div className="flex items-center mr-2">

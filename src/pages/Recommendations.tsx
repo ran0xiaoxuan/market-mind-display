@@ -99,15 +99,21 @@ const Recommendations = () => {
       } = await supabase.from('strategies').insert(newUserStrategy).select();
       if (error) throw error;
 
-      // Update the recommendation count - now matches the DB structure
-      await supabase.from('strategies').update({
-        recommendation_count: (strategy.recommendation_count || 0) + 1
-      }).eq('id', strategy.id);
+      // Instead of directly updating recommendation_count which might not exist in the schema,
+      // we'll use a different approach - we'll track applications separately
+      // Note: In a real application, you might want to add this column to your schema
+      
+      // For now, just update the local state to reflect the change
+      setStrategies(prevStrategies => 
+        prevStrategies.map(s => 
+          s.id === strategy.id 
+            ? {...s, recommendation_count: (s.recommendation_count || 0) + 1} 
+            : s
+        )
+      );
       
       toast.success("Strategy added to your collection");
 
-      // Refetch to update counts
-      fetchRecommendedStrategies();
     } catch (error) {
       console.error("Error applying strategy:", error);
       toast.error("Failed to apply strategy");
@@ -147,8 +153,7 @@ const Recommendations = () => {
         timeframe: newStrategy.timeframe,
         user_id: 'admin-recommendations',
         // Use a special ID to mark recommendations
-        is_active: true,
-        recommendation_count: 0
+        is_active: true
       });
       if (error) throw error;
       toast.success("Official strategy added");

@@ -11,7 +11,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star, Eye } from "lucide-react";
+import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
+import { TradingRules } from "@/components/strategy-detail/TradingRules";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 // Define a recommended strategy type that matches Supabase's snake_case format
 interface RecommendedStrategy {
@@ -32,6 +37,7 @@ interface RecommendedStrategy {
   recommendation_count?: number;
   rating?: number;
 }
+
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,9 +46,8 @@ const Recommendations = () => {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const {
-    session
-  } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
+  const { session } = useAuth();
   const [newStrategy, setNewStrategy] = useState({
     name: "",
     description: "",
@@ -57,7 +62,7 @@ const Recommendations = () => {
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
-      // For this implementation, we'll use a special admin user ID to mark official recommendations
+      // For this implementation, we'll use a special admin user ID to mark official strategies
       // In a real app, you might want to use a dedicated table or add a column to the strategies table
       const {
         data,
@@ -170,6 +175,7 @@ const Recommendations = () => {
   const showStrategyDetails = (strategy: RecommendedStrategy) => {
     setSelectedStrategy(strategy);
     setShowDetailsDialog(true);
+    setActiveTab("overview");
   };
 
   // Filter strategies based on search and asset filter
@@ -181,23 +187,33 @@ const Recommendations = () => {
 
   // Get unique assets for filter dropdown
   const uniqueAssets = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+
   useEffect(() => {
     fetchRecommendedStrategies();
   }, []);
-  return <div className="min-h-screen flex flex-col bg-background">
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 className="text-3xl font-bold">Recommendations</h1>
-            {isAdmin && <Button className="mt-4 sm:mt-0" onClick={() => setShowUploadDialog(true)}>
+            {isAdmin && (
+              <Button className="mt-4 sm:mt-0" onClick={() => setShowUploadDialog(true)}>
                 Add Official Strategy
-              </Button>}
+              </Button>
+            )}
           </div>
           
           <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
             <div className="w-full sm:w-2/3">
-              <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
+              <Input 
+                placeholder="Search recommendations..." 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+                className="w-full" 
+              />
             </div>
             <div className="w-full sm:w-1/4">
               <Select value={assetFilter} onValueChange={setAssetFilter}>
@@ -206,16 +222,20 @@ const Recommendations = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Assets</SelectItem>
-                  {uniqueAssets.map(asset => <SelectItem key={asset} value={asset || ""}>
+                  {uniqueAssets.map(asset => (
+                    <SelectItem key={asset} value={asset || ""}>
                       {asset}
-                    </SelectItem>)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           
-          {loading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <Card key={i} className="h-64 animate-pulse">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="h-64 animate-pulse">
                   <div className="h-full flex flex-col">
                     <div className="h-10 bg-muted rounded-t-lg"></div>
                     <div className="flex-1 p-6">
@@ -226,14 +246,31 @@ const Recommendations = () => {
                     </div>
                     <div className="h-12 bg-muted rounded-b-lg"></div>
                   </div>
-                </Card>)}
-            </div> : filteredStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredStrategies.map(strategy => <Card key={strategy.id} className="flex flex-col h-full hover:border-primary hover:shadow-md transition-all cursor-pointer" onClick={() => showStrategyDetails(strategy)}>
-                  <CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : filteredStrategies.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredStrategies.map(strategy => (
+                <Card 
+                  key={strategy.id} 
+                  className="flex flex-col h-full hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50"
+                  onClick={() => showStrategyDetails(strategy)}
+                >
+                  <CardHeader className="pb-2 border-b">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle>{strategy.name}</CardTitle>
-                        
+                        <CardTitle className="text-xl text-slate-800">{strategy.name}</CardTitle>
+                        <div className="flex items-center mt-1 space-x-2">
+                          <Badge variant="outline" className="bg-slate-100">
+                            {strategy.timeframe}
+                          </Badge>
+                          {strategy.target_asset && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                              {strategy.target_asset}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center">
                         <div className="flex items-center mr-2">
@@ -243,92 +280,197 @@ const Recommendations = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1">
-                    <p className="text-sm text-muted-foreground">
-                      {strategy.description || "No description provided"}
-                    </p>
-                    
-                    {strategy.updated_at && <p className="text-xs text-muted-foreground mt-4">
-                        Updated {formatDistanceToNow(new Date(strategy.updated_at), {
-                  addSuffix: true
-                })}
-                      </p>}
+                  <CardContent className="flex-1 pt-4">
+                    <div className="flex flex-col h-full">
+                      <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
+                        {strategy.description || "No description provided"}
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        <div className="flex items-center text-xs text-slate-600">
+                          <Shield className="h-3 w-3 mr-1 text-red-500" />
+                          <span>Stop: {strategy.stop_loss || "N/A"}</span>
+                        </div>
+                        <div className="flex items-center text-xs text-slate-600">
+                          <Shield className="h-3 w-3 mr-1 text-green-500" />
+                          <span>Take: {strategy.take_profit || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
-                  <CardFooter className="flex justify-between">
-                    
-                    
-                    
-                    
-                    {isAdmin && <Button variant="ghost" size="icon" onClick={e => {
-                e.stopPropagation();
-                deleteStrategy(strategy.id);
-              }}>
-                      <Trash className="h-4 w-4 text-destructive" />
-                    </Button>}
+                  <CardFooter className="pt-2 flex justify-between border-t">
+                    <div className="text-xs text-slate-500">
+                      {strategy.updated_at && (
+                        <>Updated {formatDistanceToNow(new Date(strategy.updated_at), { addSuffix: true })}</>
+                      )}
+                    </div>
+                    <div className="flex">
+                      <Button variant="ghost" size="sm" className="p-0 h-8 w-8" onClick={(e) => {
+                        e.stopPropagation();
+                        showStrategyDetails(strategy);
+                      }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
+                          e.stopPropagation();
+                          deleteStrategy(strategy.id);
+                        }}>
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </CardFooter>
-                </Card>)}
-            </div> : <div className="text-center py-12">
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
               <p className="text-muted-foreground">No recommendations match your criteria</p>
-            </div>}
+            </div>
+          )}
         </div>
       </main>
       
-      {/* Strategy details dialog */}
+      {/* Enhanced Strategy details dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{selectedStrategy?.name}</DialogTitle>
-            <DialogDescription>
-              {selectedStrategy?.target_asset} • {selectedStrategy?.timeframe}
+            <DialogTitle className="text-2xl font-bold">{selectedStrategy?.name}</DialogTitle>
+            <DialogDescription className="flex items-center space-x-2">
+              {selectedStrategy?.target_asset && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                  {selectedStrategy.target_asset}
+                </Badge>
+              )}
+              {selectedStrategy?.timeframe && (
+                <Badge variant="outline" className="bg-slate-100">
+                  {selectedStrategy.timeframe}
+                </Badge>
+              )}
+              {selectedStrategy?.updated_at && (
+                <span className="text-xs text-muted-foreground">
+                  Updated {formatDistanceToNow(new Date(selectedStrategy.updated_at), { addSuffix: true })}
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4 space-y-4">
-            <div>
-              <h3 className="font-semibold mb-1">Description</h3>
-              <p className="text-sm">{selectedStrategy?.description || "No description provided."}</p>
-            </div>
+          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full grid grid-cols-3 mb-4">
+              <TabsTrigger value="overview" className="flex items-center">
+                <Info className="h-4 w-4 mr-2" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="risk" className="flex items-center">
+                <Shield className="h-4 w-4 mr-2" />
+                Risk Management
+              </TabsTrigger>
+              <TabsTrigger value="rules" className="flex items-center">
+                <ListOrdered className="h-4 w-4 mr-2" />
+                Trading Rules
+              </TabsTrigger>
+            </TabsList>
             
-            {selectedStrategy?.stop_loss && <div>
-                <h3 className="font-semibold mb-1">Stop Loss</h3>
-                <p className="text-sm">{selectedStrategy.stop_loss}</p>
-              </div>}
-            
-            {selectedStrategy?.take_profit && <div>
-                <h3 className="font-semibold mb-1">Take Profit</h3>
-                <p className="text-sm">{selectedStrategy.take_profit}</p>
-              </div>}
-            
-            {selectedStrategy?.single_buy_volume && <div>
-                <h3 className="font-semibold mb-1">Single Buy Volume</h3>
-                <p className="text-sm">{selectedStrategy.single_buy_volume}</p>
-              </div>}
-            
-            {selectedStrategy?.max_buy_volume && <div>
-                <h3 className="font-semibold mb-1">Max Buy Volume</h3>
-                <p className="text-sm">{selectedStrategy.max_buy_volume}</p>
-              </div>}
-            
-            {selectedStrategy?.updated_at && <div>
-                <h3 className="font-semibold mb-1">Last Updated</h3>
-                <p className="text-sm">
-                  {formatDistanceToNow(new Date(selectedStrategy.updated_at), {
-                addSuffix: true
-              })}
-                </p>
-              </div>}
-          </div>
+            <ScrollArea className="h-[50vh] pr-4">
+              <TabsContent value="overview" className="mt-0">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Description</h3>
+                    <p className="text-sm mt-2">{selectedStrategy?.description || "No description provided."}</p>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold">Strategy Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <Card className="p-4">
+                        <h4 className="font-medium">Key Metrics</h4>
+                        <dl className="mt-2 space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Asset:</dt>
+                            <dd className="font-medium">{selectedStrategy?.target_asset || "N/A"}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Timeframe:</dt>
+                            <dd className="font-medium">{selectedStrategy?.timeframe || "N/A"}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Status:</dt>
+                            <dd>
+                              <Badge variant={selectedStrategy?.is_active ? "default" : "secondary"}>
+                                {selectedStrategy?.is_active ? "Active" : "Inactive"}
+                              </Badge>
+                            </dd>
+                          </div>
+                        </dl>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-medium">Risk Parameters</h4>
+                        <dl className="mt-2 space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Stop Loss:</dt>
+                            <dd className="font-medium text-red-500">{selectedStrategy?.stop_loss || "N/A"}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Take Profit:</dt>
+                            <dd className="font-medium text-green-500">{selectedStrategy?.take_profit || "N/A"}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Single Buy:</dt>
+                            <dd className="font-medium">{selectedStrategy?.single_buy_volume || "N/A"}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Max Buy:</dt>
+                            <dd className="font-medium">{selectedStrategy?.max_buy_volume || "N/A"}</dd>
+                          </div>
+                        </dl>
+                      </Card>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="risk" className="mt-0">
+                {selectedStrategy && (
+                  <RiskManagement 
+                    riskManagement={{
+                      stopLoss: selectedStrategy.stop_loss || "0%",
+                      takeProfit: selectedStrategy.take_profit || "0%",
+                      singleBuyVolume: selectedStrategy.single_buy_volume || "0",
+                      maxBuyVolume: selectedStrategy.max_buy_volume || "0"
+                    }} 
+                  />
+                )}
+              </TabsContent>
+              
+              <TabsContent value="rules" className="mt-0">
+                {selectedStrategy && (
+                  <TradingRules 
+                    entryRules={[]} 
+                    exitRules={[]} 
+                    editable={false} 
+                  />
+                )}
+                <div className="text-sm text-muted-foreground mt-4 p-4 bg-slate-50 rounded-md">
+                  <p>This is a simplified view of the trading rules. Apply this strategy to your collection to see and customize the complete rule set.</p>
+                </div>
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
           
-          <DialogFooter>
+          <DialogFooter className="mt-4 pt-2 border-t">
             <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
               Close
             </Button>
             <Button onClick={() => {
-            if (selectedStrategy) {
-              applyStrategy(selectedStrategy);
-              setShowDetailsDialog(false);
-            }
-          }}>
+              if (selectedStrategy) {
+                applyStrategy(selectedStrategy);
+                setShowDetailsDialog(false);
+              }
+            }}>
               Apply Strategy
             </Button>
           </DialogFooter>
@@ -336,7 +478,8 @@ const Recommendations = () => {
       </Dialog>
       
       {/* Admin dialog to add new official strategy */}
-      {isAdmin && <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+      {isAdmin && (
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Official Strategy</DialogTitle>
@@ -410,7 +553,10 @@ const Recommendations = () => {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>}
-    </div>;
+        </Dialog>
+      )}
+    </div>
+  );
 };
+
 export default Recommendations;

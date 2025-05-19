@@ -10,21 +10,28 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Strategy } from "@/services/strategyService";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Trash, Star } from "lucide-react";
 
-// Define a recommended strategy type based on the actual database columns returned by Supabase
-interface RecommendedStrategy extends Strategy {
+// Define a recommended strategy type that matches Supabase's snake_case format
+interface RecommendedStrategy {
+  id: string;
   user_id: string;
-  recommendation_count?: number;
-  rating?: number;
+  name: string;
+  description: string | null;
   is_active: boolean;
-  target_asset: string;
-  target_asset_name: string;
+  timeframe: string;
+  target_asset: string | null;
+  target_asset_name: string | null;
   created_at: string;
   updated_at: string;
+  stop_loss: string | null;
+  take_profit: string | null;
+  single_buy_volume: string | null;
+  max_buy_volume: string | null;
+  recommendation_count?: number;
+  rating?: number;
 }
 
 const Recommendations = () => {
@@ -58,7 +65,7 @@ const Recommendations = () => {
       } = await supabase.from('strategies').select('*').eq('user_id', isAdmin ? session?.user?.id : 'admin-recommendations');
       if (error) throw error;
 
-      // Cast the data to RecommendedStrategy[] as it matches our interface now
+      // Now we can directly set the data as RecommendedStrategy[] since our interface matches the DB structure
       setStrategies(data as RecommendedStrategy[]);
     } catch (error) {
       console.error("Error fetching recommended strategies:", error);
@@ -92,11 +99,11 @@ const Recommendations = () => {
       } = await supabase.from('strategies').insert(newUserStrategy).select();
       if (error) throw error;
 
-      // Update the recommendation count
-      // Using a metadata field since we don't have a recommendation_count column
+      // Update the recommendation count - now matches the DB structure
       await supabase.from('strategies').update({
         recommendation_count: (strategy.recommendation_count || 0) + 1
       }).eq('id', strategy.id);
+      
       toast.success("Strategy added to your collection");
 
       // Refetch to update counts
@@ -161,8 +168,10 @@ const Recommendations = () => {
 
   // Filter strategies based on search and asset filter
   const filteredStrategies = strategies.filter(strategy => {
-    const matchesSearch = strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesAsset = assetFilter === "all" || strategy.target_asset?.toLowerCase() === assetFilter.toLowerCase();
+    const matchesSearch = strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         strategy.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesAsset = assetFilter === "all" || 
+                         strategy.target_asset?.toLowerCase() === assetFilter.toLowerCase();
     return matchesSearch && matchesAsset;
   });
 

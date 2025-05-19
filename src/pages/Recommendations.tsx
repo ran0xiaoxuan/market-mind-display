@@ -293,7 +293,6 @@ const Recommendations = () => {
                   {selectedStrategy.target_asset}
                 </Badge>}
               {selectedStrategy?.timeframe}
-              {selectedStrategy?.updated_at}
             </DialogDescription>
           </DialogHeader>
           

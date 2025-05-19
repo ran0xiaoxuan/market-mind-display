@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star } from "lucide-react";
+import { Trash, Star, Eye } from "lucide-react";
 
 // Define a recommended strategy type that matches Supabase's snake_case format
 interface RecommendedStrategy {
@@ -38,6 +39,8 @@ const Recommendations = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [assetFilter, setAssetFilter] = useState("all");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const {
     session
   } = useAuth();
@@ -164,6 +167,12 @@ const Recommendations = () => {
     }
   };
 
+  // Show strategy details in dialog
+  const showStrategyDetails = (strategy: RecommendedStrategy) => {
+    setSelectedStrategy(strategy);
+    setShowDetailsDialog(true);
+  };
+
   // Filter strategies based on search and asset filter
   const filteredStrategies = strategies.filter(strategy => {
     const matchesSearch = strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -220,7 +229,11 @@ const Recommendations = () => {
                   </div>
                 </Card>)}
             </div> : filteredStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredStrategies.map(strategy => <Card key={strategy.id} className="flex flex-col h-full">
+              {filteredStrategies.map(strategy => <Card 
+                  key={strategy.id} 
+                  className="flex flex-col h-full hover:border-primary hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => showStrategyDetails(strategy)}
+                >
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -234,7 +247,6 @@ const Recommendations = () => {
                           <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
                           <span className="text-sm font-medium">{strategy.rating || 0}</span>
                         </div>
-                        
                       </div>
                     </div>
                   </CardHeader>
@@ -250,13 +262,37 @@ const Recommendations = () => {
                       </p>}
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => applyStrategy(strategy)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        applyStrategy(strategy);
+                      }}
+                    >
                       Apply Strategy
                     </Button>
                     
-                    {isAdmin && <Button variant="ghost" size="icon" onClick={() => deleteStrategy(strategy.id)}>
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showStrategyDetails(strategy);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 text-primary" />
+                    </Button>
+                    
+                    {isAdmin && <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteStrategy(strategy.id);
+                      }}
+                    >
+                      <Trash className="h-4 w-4 text-destructive" />
+                    </Button>}
                   </CardFooter>
                 </Card>)}
             </div> : <div className="text-center py-12">
@@ -264,6 +300,83 @@ const Recommendations = () => {
             </div>}
         </div>
       </main>
+      
+      {/* Strategy details dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedStrategy?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedStrategy?.target_asset} • {selectedStrategy?.timeframe}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-1">Description</h3>
+              <p className="text-sm">{selectedStrategy?.description || "No description provided."}</p>
+            </div>
+            
+            {selectedStrategy?.stop_loss && (
+              <div>
+                <h3 className="font-semibold mb-1">Stop Loss</h3>
+                <p className="text-sm">{selectedStrategy.stop_loss}</p>
+              </div>
+            )}
+            
+            {selectedStrategy?.take_profit && (
+              <div>
+                <h3 className="font-semibold mb-1">Take Profit</h3>
+                <p className="text-sm">{selectedStrategy.take_profit}</p>
+              </div>
+            )}
+            
+            {selectedStrategy?.single_buy_volume && (
+              <div>
+                <h3 className="font-semibold mb-1">Single Buy Volume</h3>
+                <p className="text-sm">{selectedStrategy.single_buy_volume}</p>
+              </div>
+            )}
+            
+            {selectedStrategy?.max_buy_volume && (
+              <div>
+                <h3 className="font-semibold mb-1">Max Buy Volume</h3>
+                <p className="text-sm">{selectedStrategy.max_buy_volume}</p>
+              </div>
+            )}
+            
+            {selectedStrategy?.updated_at && (
+              <div>
+                <h3 className="font-semibold mb-1">Last Updated</h3>
+                <p className="text-sm">
+                  {formatDistanceToNow(new Date(selectedStrategy.updated_at), {
+                    addSuffix: true
+                  })}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDetailsDialog(false)}
+            >
+              Close
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedStrategy) {
+                  applyStrategy(selectedStrategy);
+                  setShowDetailsDialog(false);
+                }
+              }}
+            >
+              Apply Strategy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Admin dialog to add new official strategy */}
       {isAdmin && <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>

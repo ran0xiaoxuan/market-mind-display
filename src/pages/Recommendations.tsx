@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,8 @@ interface RecommendedStrategy {
   max_buy_volume: string | null;
   recommendation_count?: number;
   rating?: number;
+  is_public?: boolean;
+  is_official?: boolean;
 }
 
 const Recommendations = () => {
@@ -125,28 +128,27 @@ const Recommendations = () => {
       
       // Get strategies from the recommended_strategies table joined with actual strategy details
       const { data: recommendedStrategies, error } = await supabase
-        .from('strategies')
+        .from('recommended_strategies')
         .select(`
           *,
-          recommended_strategies:recommended_strategies(*)
-        `)
-        .not('recommended_strategies', 'is', null);
+          strategies:strategy_id(*)
+        `);
       
       if (error) {
         console.error("Error fetching recommended strategies:", error);
         throw error;
       }
 
-      // Filter to only include items that actually have recommendations
-      const validRecommendations = recommendedStrategies?.filter(
-        strategy => strategy.recommended_strategies && strategy.recommended_strategies.length > 0
-      ) || [];
+      console.log("Recommended strategies data:", recommendedStrategies);
 
-      // Map to the format expected by the UI
-      const processedStrategies = validRecommendations.map(strategy => ({
-        ...strategy,
-        is_official: strategy.recommended_strategies?.[0]?.is_official || false
-      }));
+      // Process the returned data to format it correctly
+      const processedStrategies = recommendedStrategies
+        .filter(rec => rec.strategies !== null) // Filter out any records with null strategy data
+        .map(rec => ({
+          ...rec.strategies,
+          is_official: rec.is_official || false,
+          is_public: rec.is_public || false
+        }));
       
       setStrategies(processedStrategies as RecommendedStrategy[]);
       
@@ -234,13 +236,14 @@ const Recommendations = () => {
         return;
       }
 
-      // Add the selected strategy to recommendations
+      // Add the selected strategy to recommendations as public and official
       const { error: recommendError } = await supabase
         .from('recommended_strategies')
         .insert({
           strategy_id: selectedStrategyId,
           recommended_by: session?.user?.id,
-          is_official: true
+          is_official: true,
+          is_public: true  // Mark as public so all users can see it
         });
       
       if (recommendError) throw recommendError;
@@ -360,18 +363,20 @@ const Recommendations = () => {
                       <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
                         {strategy.description || "No description provided"}
                       </p>
-                      
-                      
                     </div>
                   </CardContent>
                   <CardFooter className="pt-2 flex justify-between border-t">
-                    
                     <div className="flex">
+                      {strategy.is_official && 
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 mr-2">
+                          Official
+                        </Badge>
+                      }
                       
                       {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
-                  e.stopPropagation();
-                  deleteStrategy(strategy.id);
-                }}>
+                        e.stopPropagation();
+                        deleteStrategy(strategy.id);
+                      }}>
                           <Trash className="h-4 w-4" />
                         </Button>}
                     </div>
@@ -398,15 +403,12 @@ const Recommendations = () => {
           <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full grid grid-cols-3 mb-4">
               <TabsTrigger value="overview" className="flex items-center">
-                
                 Overview
               </TabsTrigger>
               <TabsTrigger value="risk" className="flex items-center">
-                
                 Risk Management
               </TabsTrigger>
               <TabsTrigger value="rules" className="flex items-center">
-                
                 Trading Rules
               </TabsTrigger>
             </TabsList>

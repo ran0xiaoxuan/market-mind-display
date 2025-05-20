@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check } from "lucide-react";
+import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
@@ -20,7 +19,6 @@ import { Separator } from "@/components/ui/separator";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { Strategy } from "@/services/strategyService";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Loader2 } from "lucide-react";
 
 // Define a recommended strategy type that matches Supabase's snake_case format
 interface RecommendedStrategy {
@@ -82,11 +80,18 @@ const Recommendations = () => {
       const strategiesData = data.map(strategy => ({
         id: strategy.id,
         name: strategy.name,
-        description: strategy.description,
-        targetAsset: strategy.target_asset,
+        description: strategy.description || "",
+        targetAsset: strategy.target_asset || "",
+        targetAssetName: strategy.target_asset_name || "",
         isActive: strategy.is_active,
         timeframe: strategy.timeframe,
+        createdAt: strategy.created_at,
         updatedAt: strategy.updated_at,
+        userId: strategy.user_id,
+        stopLoss: strategy.stop_loss || "",
+        takeProfit: strategy.take_profit || "",
+        singleBuyVolume: strategy.single_buy_volume || "",
+        maxBuyVolume: strategy.max_buy_volume || ""
       }));
       
       setUserStrategies(strategiesData);

@@ -24,8 +24,10 @@ export function UserMenu() {
     }
   };
 
-  // Extract display name, username and email from user
+  // Correctly extract display name from user metadata
+  // User metadata stores the display name, which is what we want to show
   const displayName = user?.user_metadata?.display_name;
+  // Only fall back to these if display name is not available
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const email = user?.email || "user@example.com";
   const isPro = user?.user_metadata?.is_pro === true;

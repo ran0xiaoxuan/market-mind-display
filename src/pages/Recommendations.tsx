@@ -7,17 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered } from "lucide-react";
+import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { StrategySelect } from "@/components/backtest/StrategySelect";
+import { Strategy } from "@/services/strategyService";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Loader2 } from "lucide-react";
 
 // Define a recommended strategy type that matches Supabase's snake_case format
 interface RecommendedStrategy {
@@ -51,15 +54,64 @@ const Recommendations = () => {
   const {
     session
   } = useAuth();
-  const [newStrategy, setNewStrategy] = useState({
-    name: "",
-    description: "",
-    targetAsset: "",
-    timeframe: "1d"
-  });
-
+  
   // Admin check - only this email can add/delete official recommendations
   const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
+  
+  // Strategy selection related states
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userStrategies, setUserStrategies] = useState<Strategy[]>([]);
+  const [loadingUserStrategies, setLoadingUserStrategies] = useState(false);
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>("");
+  const [filteredUserStrategies, setFilteredUserStrategies] = useState<Strategy[]>([]);
+
+  // Fetch the admin's personal strategies for selection
+  const fetchUserStrategies = async () => {
+    if (!isAdmin || !session?.user?.id) return;
+    
+    try {
+      setLoadingUserStrategies(true);
+      const { data, error } = await supabase
+        .from('strategies')
+        .select('*')
+        .eq('user_id', session.user.id);
+      
+      if (error) throw error;
+      
+      const strategiesData = data.map(strategy => ({
+        id: strategy.id,
+        name: strategy.name,
+        description: strategy.description,
+        targetAsset: strategy.target_asset,
+        isActive: strategy.is_active,
+        timeframe: strategy.timeframe,
+        updatedAt: strategy.updated_at,
+      }));
+      
+      setUserStrategies(strategiesData);
+      setFilteredUserStrategies(strategiesData);
+    } catch (error) {
+      console.error("Error fetching user strategies:", error);
+      toast.error("Failed to load your strategies");
+    } finally {
+      setLoadingUserStrategies(false);
+    }
+  };
+
+  // Filter user strategies based on search query
+  useEffect(() => {
+    if (isSearchOpen && searchQuery && userStrategies.length > 0) {
+      const filtered = userStrategies.filter(
+        strategy => 
+          strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          (strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setFilteredUserStrategies(filtered);
+    } else {
+      setFilteredUserStrategies(userStrategies);
+    }
+  }, [searchQuery, userStrategies, isSearchOpen]);
 
   // Fetch recommended strategies from our new recommendations table
   const fetchRecommendedStrategies = async () => {
@@ -168,55 +220,41 @@ const Recommendations = () => {
     }
   };
 
-  // Add a new recommended strategy (admin only)
+  // Add a new recommended strategy (admin only) - Updated to use an existing strategy
   const addOfficialStrategy = async () => {
     if (!isAdmin) return;
     try {
-      if (!newStrategy.name || !newStrategy.targetAsset) {
-        toast.error("Name and asset are required");
+      if (!selectedStrategyId) {
+        toast.error("Please select a strategy");
         return;
       }
-      
-      // First create the strategy
-      const { data: strategyData, error: strategyError } = await supabase
-        .from('strategies')
-        .insert({
-          name: newStrategy.name,
-          description: newStrategy.description,
-          target_asset: newStrategy.targetAsset,
-          timeframe: newStrategy.timeframe,
-          user_id: session?.user?.id,
-          is_active: true
-        })
-        .select()
-        .single();
-      
-      if (strategyError) throw strategyError;
-      
-      // Then add it to recommendations
+
+      // Add the selected strategy to recommendations
       const { error: recommendError } = await supabase
         .from('recommended_strategies')
         .insert({
-          strategy_id: strategyData.id,
+          strategy_id: selectedStrategyId,
           recommended_by: session?.user?.id,
           is_official: true
         });
       
       if (recommendError) throw recommendError;
 
-      toast.success("Official strategy added");
+      toast.success("Official strategy added to recommendations");
       setShowUploadDialog(false);
-      setNewStrategy({
-        name: "",
-        description: "",
-        targetAsset: "",
-        timeframe: "1d"
-      });
+      setSelectedStrategyId("");
       fetchRecommendedStrategies();
     } catch (error) {
       console.error("Error adding strategy:", error);
       toast.error("Failed to add strategy");
     }
+  };
+
+  // Handle strategy selection from command dialog
+  const handleStrategySelect = (strategyId: string) => {
+    setSelectedStrategyId(strategyId);
+    setIsSearchOpen(false);
+    setSearchQuery("");
   };
 
   // Show strategy details in dialog
@@ -240,7 +278,10 @@ const Recommendations = () => {
   
   useEffect(() => {
     fetchRecommendedStrategies();
-  }, []);
+    if (isAdmin) {
+      fetchUserStrategies();
+    }
+  }, [isAdmin]);
 
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -248,7 +289,10 @@ const Recommendations = () => {
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 className="text-3xl font-bold">Recommendations</h1>
-            {isAdmin && <Button className="mt-4 sm:mt-0" onClick={() => setShowUploadDialog(true)}>
+            {isAdmin && <Button className="mt-4 sm:mt-0" onClick={() => {
+              fetchUserStrategies();  // Refresh strategies list when opening dialog
+              setShowUploadDialog(true);
+            }}>
                 Add Official Strategy
               </Button>}
           </div>
@@ -457,83 +501,110 @@ const Recommendations = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Admin dialog to add new official strategy */}
+      {/* Admin dialog to select an existing strategy */}
       {isAdmin && <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Official Strategy</DialogTitle>
               <DialogDescription>
-                Create a new official strategy recommendation that will be visible to all users.
+                Select one of your existing strategies to recommend to all users.
               </DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Strategy Name
-                </label>
-                <Input id="name" value={newStrategy.name} onChange={e => setNewStrategy({
-              ...newStrategy,
-              name: e.target.value
-            })} placeholder="Enter strategy name" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Strategy</label>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left font-normal h-10 bg-background"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  {userStrategies.find(s => s.id === selectedStrategyId)?.name || "Select a strategy"}
+                </Button>
               </div>
-              
-              <div className="grid gap-2">
-                <label htmlFor="asset" className="text-sm font-medium">
-                  Target Asset
-                </label>
-                <Input id="asset" value={newStrategy.targetAsset} onChange={e => setNewStrategy({
-              ...newStrategy,
-              targetAsset: e.target.value
-            })} placeholder="e.g., BTC/USD, SPY, AAPL" />
-              </div>
-              
-              <div className="grid gap-2">
-                <label htmlFor="timeframe" className="text-sm font-medium">
-                  Timeframe
-                </label>
-                <Select value={newStrategy.timeframe} onValueChange={value => setNewStrategy({
-              ...newStrategy,
-              timeframe: value
-            })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select timeframe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1m">1 Minute</SelectItem>
-                    <SelectItem value="5m">5 Minutes</SelectItem>
-                    <SelectItem value="15m">15 Minutes</SelectItem>
-                    <SelectItem value="30m">30 Minutes</SelectItem>
-                    <SelectItem value="1h">1 Hour</SelectItem>
-                    <SelectItem value="4h">4 Hours</SelectItem>
-                    <SelectItem value="1d">1 Day</SelectItem>
-                    <SelectItem value="1w">1 Week</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <label htmlFor="description" className="text-sm font-medium">
-                  Description
-                </label>
-                <Textarea id="description" value={newStrategy.description} onChange={e => setNewStrategy({
-              ...newStrategy,
-              description: e.target.value
-            })} placeholder="Enter strategy description" rows={3} />
-              </div>
+
+              {selectedStrategyId && (
+                <div className="bg-muted/50 p-3 rounded-md">
+                  <h4 className="font-medium text-sm">Selected Strategy</h4>
+                  <p className="text-sm mt-1">{userStrategies.find(s => s.id === selectedStrategyId)?.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {userStrategies.find(s => s.id === selectedStrategyId)?.description || "No description"}
+                  </p>
+                </div>
+              )}
             </div>
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={addOfficialStrategy}>
-                Add Strategy
+              <Button onClick={addOfficialStrategy} disabled={!selectedStrategyId}>
+                Add to Recommendations
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>}
+        
+        {/* Command dialog for strategy selection */}
+        <CommandDialog 
+          open={isSearchOpen} 
+          onOpenChange={(open) => {
+            setIsSearchOpen(open);
+            if (!open) {
+              setSearchQuery("");
+            }
+          }}
+        >
+          <DialogTitle className="sr-only">
+            Search Strategies
+          </DialogTitle>
+          <CommandInput 
+            placeholder="Search your strategies..." 
+            value={searchQuery} 
+            onValueChange={setSearchQuery}
+            autoFocus={true}
+          />
+          <CommandList>
+            <CommandEmpty>
+              {loadingUserStrategies ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  {searchQuery ? "No strategies found" : "Type to search your strategies"}
+                </p>
+              )}
+            </CommandEmpty>
+            
+            {filteredUserStrategies.length > 0 && (
+              <CommandGroup heading="Your Strategies">
+                {filteredUserStrategies.map((strategy) => (
+                  <CommandItem 
+                    key={strategy.id} 
+                    value={`${strategy.name} ${strategy.description || ''}`}
+                    onSelect={() => handleStrategySelect(strategy.id)}
+                  >
+                    <div className="flex items-center">
+                      {selectedStrategyId === strategy.id && (
+                        <Check className="mr-2 h-4 w-4 text-primary" />
+                      )}
+                      <div className="flex flex-col">
+                        <span>{strategy.name}</span>
+                        {strategy.description && (
+                          <span className="text-xs text-muted-foreground line-clamp-1">
+                            {strategy.description}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </CommandDialog>
     </div>;
 };
 export default Recommendations;
-

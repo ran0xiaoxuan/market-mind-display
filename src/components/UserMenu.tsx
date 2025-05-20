@@ -24,7 +24,8 @@ export function UserMenu() {
     }
   };
 
-  // Extract username and email from user
+  // Extract display name, username and email from user
+  const displayName = user?.user_metadata?.display_name;
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const email = user?.email || "user@example.com";
   const isPro = user?.user_metadata?.is_pro === true;
@@ -39,7 +40,7 @@ export function UserMenu() {
       
       <PopoverContent className="w-64 p-0" align="end">
         <div className="p-4 border-b">
-          <p className="font-medium">{username}</p>
+          <p className="font-medium">{displayName || username}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
           <div className="mt-2">
             <Badge variant={isPro ? 'pro' : 'free'}>
@@ -69,4 +70,3 @@ export function UserMenu() {
     </Popover>
   );
 }
-

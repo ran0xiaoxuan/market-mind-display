@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +40,33 @@ interface RecommendedStrategy {
   rating?: number;
   is_public?: boolean;
   is_official?: boolean;
+}
+
+// Define an interface for the data structure returned by Supabase for joined queries
+interface RecommendedStrategyRecord {
+  id: string;
+  strategy_id: string;
+  recommended_by: string;
+  is_official: boolean;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+  strategies: {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string | null;
+    is_active: boolean;
+    timeframe: string;
+    target_asset: string | null;
+    target_asset_name: string | null;
+    created_at: string;
+    updated_at: string;
+    stop_loss: string | null;
+    take_profit: string | null;
+    single_buy_volume: string | null;
+    max_buy_volume: string | null;
+  };
 }
 
 const Recommendations = () => {
@@ -142,7 +168,7 @@ const Recommendations = () => {
       console.log("Recommended strategies data:", recommendedStrategies);
 
       // Process the returned data to format it correctly
-      const processedStrategies = recommendedStrategies
+      const processedStrategies = (recommendedStrategies as RecommendedStrategyRecord[])
         .filter(rec => rec.strategies !== null) // Filter out any records with null strategy data
         .map(rec => ({
           ...rec.strategies,

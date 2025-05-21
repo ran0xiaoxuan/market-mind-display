@@ -32,7 +32,7 @@ serve(async (req) => {
       );
     }
 
-    const { messages, model = "gpt-3.5-turbo", stream = false, temperature = 0.7, max_tokens } = await req.json();
+    const { messages, model = "gpt-4o-mini", stream = false, temperature = 0.7, max_tokens } = await req.json();
 
     console.log("Sending request to OpenAI:", { messages, model, stream });
 

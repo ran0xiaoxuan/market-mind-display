@@ -31,6 +31,16 @@ export interface ChatCompletionResponse {
   };
 }
 
+/**
+ * Sends a chat completion request to the OpenAI API through a Supabase Edge Function
+ * 
+ * @param request - The chat completion request object
+ * @returns A Promise that resolves to a ChatCompletionResponse
+ * 
+ * Available models:
+ * - gpt-4o-mini: Fast, cost-effective model with good performance
+ * - gpt-4o: More powerful model with enhanced reasoning capabilities
+ */
 export const sendChatCompletion = async (
   request: ChatCompletionRequest
 ): Promise<ChatCompletionResponse> => {
@@ -38,7 +48,7 @@ export const sendChatCompletion = async (
     const { data, error } = await supabase.functions.invoke("openai-chat", {
       body: {
         messages: request.messages,
-        model: request.model || "gpt-3.5-turbo",
+        model: request.model || "gpt-4o-mini", // Updated default model to gpt-4o-mini
         temperature: request.temperature || 0.7,
         max_tokens: request.max_tokens,
         stream: request.stream || false

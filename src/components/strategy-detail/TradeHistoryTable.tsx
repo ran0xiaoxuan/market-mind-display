@@ -1,9 +1,6 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { ArrowDownUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Trade {
   id?: string | number;
@@ -16,39 +13,29 @@ interface Trade {
   profitPercentage?: string | null;
   strategyName?: string;
   targetAsset?: string;
-  strategyId?: string;
 }
 
 interface TradeHistoryTableProps {
   trades: Trade[];
-  maxRows?: number;
-  onViewAllClick?: () => void;
-  showViewAllButton?: boolean;
 }
 
 export const TradeHistoryTable = ({
-  trades = [],
-  maxRows,
-  onViewAllClick,
-  showViewAllButton = false
+  trades = []
 }: TradeHistoryTableProps) => {
-  const navigate = useNavigate();
   // Ensure we have valid trades array
   const safeTrades = Array.isArray(trades) ? trades : [];
-  const displayTrades = maxRows ? safeTrades.slice(0, maxRows) : safeTrades;
-  const hasMoreTrades = maxRows && safeTrades.length > maxRows;
   
-  const handleRowClick = useCallback((trade: Trade) => {
-    if (trade.strategyId) {
-      navigate(`/strategy/${trade.strategyId}`);
-    }
-  }, [navigate]);
-
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/20">
+            <TableHead className="whitespace-nowrap font-medium">
+              <div className="flex items-center gap-1">
+                Trade # <ArrowDownUp size={14} className="text-muted-foreground" />
+              </div>
+            </TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Strategy</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Asset</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Date</TableHead>
@@ -58,33 +45,23 @@ export const TradeHistoryTable = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {displayTrades.length > 0 ? (
-            displayTrades.map((trade, index) => {
+          {safeTrades.length > 0 ? (
+            safeTrades.map((trade, index) => {
+              const tradeId = trade.id || (index + 1);
               const isBuy = trade.type.toLowerCase().includes('buy');
               const isProfitPositive = trade.profit ? !trade.profit.includes('-') : false;
               const isProfitNegative = trade.profit ? trade.profit.includes('-') : false;
               
               return (
-                <TableRow 
-                  key={index} 
-                  className="cursor-pointer hover:bg-muted/60"
-                  onClick={() => handleRowClick(trade)}
-                >
+                <TableRow key={index}>
+                  <TableCell className="font-medium">
+                    {tradeId}
+                  </TableCell>
                   <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="max-w-[160px] truncate">
-                            {trade.targetAsset || "—"}
-                          </div>
-                        </TooltipTrigger>
-                        {trade.targetAsset && (
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p>{trade.targetAsset}</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
+                    {trade.strategyName || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {trade.targetAsset || "—"}
                   </TableCell>
                   <TableCell>
                     {trade.type}
@@ -126,24 +103,13 @@ export const TradeHistoryTable = ({
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No trade history available
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
-
-      {showViewAllButton && (
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={onViewAllClick}
-            className="px-4 py-2 text-sm font-medium text-primary hover:underline"
-          >
-            {hasMoreTrades ? `View All (${safeTrades.length})` : "View All Trades"}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

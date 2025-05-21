@@ -1,54 +1,37 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { popularStocks, searchLocalAssets } from "@/data/assetData";
 
 export interface Asset {
   symbol: string;
   name: string;
 }
 
-// Cache the API key to avoid redundant calls
-let cachedApiKey: string | null = null;
-
 /**
  * Fetches the FMP API key securely from the Supabase edge function
  */
 export const getFmpApiKey = async (): Promise<string | null> => {
-  // Return cached key if available
-  if (cachedApiKey) {
-    console.log("Using cached FMP API key");
-    return cachedApiKey;
-  }
-  
   try {
-    console.log("Attempting to fetch FMP API key from edge function...");
     const { data, error } = await supabase.functions.invoke('get-fmp-key', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
-      }
     });
     
     if (error || !data?.apiKey) {
       console.error("Error fetching FMP API key:", error || "No API key returned");
       toast({
         title: "API Key Error",
-        description: "Failed to retrieve API key. Using local data instead.",
+        description: "Failed to retrieve API key. Please try again.",
         variant: "destructive"
       });
       return null;
     }
 
-    console.log("Successfully retrieved FMP API key");
-    cachedApiKey = data.apiKey;
     return data.apiKey;
   } catch (error) {
     console.error("Exception fetching FMP API key:", error);
     toast({
-      title: "API Connection Error",
-      description: "Could not connect to API service. Using local data instead.",
+      title: "API Key Error",
+      description: "Failed to retrieve API key. Please try again.",
       variant: "destructive"
     });
     return null;
@@ -58,22 +41,10 @@ export const getFmpApiKey = async (): Promise<string | null> => {
 /**
  * Searches for stocks based on the query
  */
-export const searchStocks = async (query: string, apiKey?: string | null): Promise<Asset[]> => {
+export const searchStocks = async (query: string, apiKey: string): Promise<Asset[]> => {
   try {
-    // If no query, return popular stocks
-    if (!query || query.trim() === '') {
-      return popularStocks;
-    }
-    
-    // If no API key provided, try to fetch it
     if (!apiKey) {
-      apiKey = await getFmpApiKey();
-    }
-    
-    // If we still don't have an API key, use local fallback
-    if (!apiKey) {
-      console.log("No API key available, using local stock data");
-      return searchLocalAssets(query);
+      throw new Error("API key is required");
     }
     
     const endpoint = `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`;
@@ -87,7 +58,7 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
         'Origin': window.location.origin
       },
       mode: 'cors',
-      signal: AbortSignal.timeout(8000) // 8 second timeout
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
     
     if (!response.ok) {
@@ -99,20 +70,12 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     // Console log for debugging
     console.log(`Stock search for "${query}" returned ${data.length} results`);
     
-    if (data.length === 0) {
-      // If no results from API, try local fallback
-      return searchLocalAssets(query);
-    }
-    
     return data.map((item: any) => ({
       symbol: item.symbol,
       name: item.name || item.symbol
     }));
   } catch (error) {
     console.error("Error searching stocks:", error);
-    
-    // Use local fallback data on error
-    console.log("Using local stock data due to API error");
-    return searchLocalAssets(query);
+    throw error;
   }
 };

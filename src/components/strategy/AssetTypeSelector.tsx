@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,12 +8,10 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
 import { popularStocks, searchLocalAssets } from "@/data/assetData";
-
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
-
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -31,13 +28,23 @@ export const AssetTypeSelector = ({
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
+        setIsLoading(true);
         const key = await getFmpApiKey();
         if (key) {
           setApiKey(key);
           console.log("API key retrieved successfully");
+        } else {
+          console.error("API key not found");
+          toast({
+            title: "API Connection Issue",
+            description: "Unable to connect to financial data service",
+            variant: "destructive"
+          });
         }
       } catch (error) {
         console.error("Error fetching API key:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchApiKey();
@@ -66,20 +73,27 @@ export const AssetTypeSelector = ({
   const searchAssets = useCallback(debounce(async (query: string) => {
     // Only search if query is not empty
     if (!query || query.trim() === "") {
-      setSearchResults(popularStocks.slice(0, 6)); // Show popular stocks when no query
+      setSearchResults([]);
       setIsLoading(false);
       return;
     }
-    
     setIsLoading(true);
     setIsSearchError(false);
-    
     try {
-      // Search stocks using cached or fresh API key
-      const results = await searchStocks(query, apiKey);
-      setSearchResults(results);
-      
-      if (results.length === 0 && query.length > 0) {
+      // If no API key, try to fetch it
+      if (!apiKey) {
+        const key = await getFmpApiKey();
+        if (key) {
+          setApiKey(key);
+        } else {
+          throw new Error("No API key available");
+        }
+      }
+
+      // Search stocks
+      const stockResults = await searchStocks(query, apiKey || "");
+      setSearchResults(stockResults);
+      if (stockResults.length === 0 && query.length > 0 && !isSearchError) {
         toast({
           title: "No Results Found",
           description: `No stocks found matching "${query}"`
@@ -87,20 +101,44 @@ export const AssetTypeSelector = ({
       }
     } catch (error) {
       console.error(`Error searching stocks:`, error);
-      setIsSearchError(true);
-      
-      // Show error toast only if we have a query
-      if (query.length > 0) {
-        toast({
-          title: "Search Failed",
-          description: "Using local data instead of live market data.",
-          variant: "destructive"
-        });
+      if (isSearchError) {
+        // Skip showing another error toast if we already showed one
+        return;
       }
-      
-      // Use local fallback data
-      const localResults = searchLocalAssets(query);
-      setSearchResults(localResults);
+      setIsSearchError(true);
+
+      // Attempt to get a fresh API key and retry
+      try {
+        const newKey = await getFmpApiKey();
+        if (newKey && newKey !== apiKey) {
+          setApiKey(newKey);
+
+          // Retry the search with the new key
+          const retryStockResults = await searchStocks(query, newKey);
+          setSearchResults(retryStockResults);
+          if (retryStockResults.length === 0 && query.length > 0) {
+            toast({
+              title: "No Results Found",
+              description: `No stocks found matching "${query}"`
+            });
+          }
+        }
+      } catch (retryError) {
+        console.error("Retry search failed:", retryError);
+
+        // Show error toast only if we have a query
+        if (query.length > 0) {
+          toast({
+            title: "Search Failed",
+            description: "Could not connect to financial data service",
+            variant: "destructive"
+          });
+        }
+
+        // Use local fallback data
+        const localResults = searchLocalAssets(query);
+        setSearchResults(localResults);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +159,8 @@ export const AssetTypeSelector = ({
   // Handle search dialog open
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
-    setSearchResults(popularStocks.slice(0, 6)); // Show popular stocks on dialog open
+    // Don't auto-search on open anymore
+    setSearchResults([]);
   };
 
   // Select asset and close dialog
@@ -130,78 +169,51 @@ export const AssetTypeSelector = ({
     setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
   };
-
-  return (
-    <Card className="p-6 mb-10 border">
+  return <Card className="p-6 mb-10 border">
       <h2 className="text-xl font-semibold mb-2">Target Asset</h2>
       
       <div className="mb-6 relative">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start text-left font-normal h-10" 
-          onClick={handleSearchOpen}
-        >
+        
+
+        <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for a stock..."}
         </Button>
         
-        <CommandDialog 
-          open={isSearchOpen} 
-          onOpenChange={(open) => {
-            setIsSearchOpen(open);
-            if (!open) {
-              setTimeout(() => {
-                setSearchQuery("");
-                setIsSearchError(false);
-              }, 100);
-            }
-          }}
-        >
+        <CommandDialog open={isSearchOpen} onOpenChange={open => {
+        setIsSearchOpen(open);
+        if (!open) {
+          // Clear the search query when closing the dialog
+          setTimeout(() => {
+            setSearchQuery("");
+            setIsSearchError(false);
+          }, 100);
+        }
+      }}>
           <DialogTitle className="sr-only">
             Search Stocks
           </DialogTitle>
-          <CommandInput 
-            placeholder="Type to search for stocks..." 
-            value={searchQuery} 
-            onValueChange={setSearchQuery} 
-            autoFocus={true} 
-          />
+          <CommandInput placeholder="Type to search for stocks..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
           <CommandList>
             <CommandEmpty>
-              {isLoading ? (
-                <div className="flex items-center justify-center p-4">
+              {isLoading ? <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchQuery.trim() === "" ? (
-                <p className="p-4 text-center text-sm text-muted-foreground">
+                </div> : searchQuery.trim() === "" ? <p className="p-4 text-center text-sm text-muted-foreground">
                   Type to search for stocks
-                </p>
-              ) : (
-                <p className="p-4 text-center text-sm text-muted-foreground">
+                </p> : <p className="p-4 text-center text-sm text-muted-foreground">
                   No stocks found
-                </p>
-              )}
+                </p>}
             </CommandEmpty>
-            
-            {searchResults.length > 0 && (
-              <CommandGroup heading={searchQuery ? "Search Results" : "Popular Stocks"}>
-                {searchResults.map(asset => (
-                  <CommandItem 
-                    key={asset.symbol} 
-                    value={`${asset.symbol} ${asset.name}`} 
-                    onSelect={() => handleSelectAsset(asset)}
-                  >
+            {searchResults.length > 0 && <CommandGroup heading="Search Results">
+                {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
                     <div className="flex flex-col">
                       <span>{asset.symbol}</span>
                       <span className="text-xs text-muted-foreground">{asset.name}</span>
                     </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+                  </CommandItem>)}
+              </CommandGroup>}
           </CommandList>
         </CommandDialog>
       </div>
-    </Card>
-  );
+    </Card>;
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -79,7 +80,7 @@ const StrategyDetail = () => {
           .order("date", { ascending: true });
         
         if (!tradesError && tradesData) {
-          // Format trade data for display with strategyId
+          // Format trade data for display
           const formattedTrades = tradesData.map(trade => ({
             id: trade.id,
             date: new Date(trade.date).toLocaleDateString(),
@@ -88,8 +89,7 @@ const StrategyDetail = () => {
             price: `$${trade.price.toFixed(2)}`,
             contracts: trade.contracts,
             profit: trade.profit !== null ? `$${trade.profit.toFixed(2)}` : null,
-            profitPercentage: trade.profit_percentage !== null ? `${trade.profit_percentage.toFixed(2)}%` : null,
-            strategyId: id // Use the current strategy ID for these trades
+            profitPercentage: trade.profit_percentage !== null ? `${trade.profit_percentage.toFixed(2)}%` : null
           }));
           
           setTrades(formattedTrades);

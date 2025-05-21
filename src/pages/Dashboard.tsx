@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MetricCard } from "@/components/MetricCard";
@@ -7,14 +6,12 @@ import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
 import { useState } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
-import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 
 type TimeRange = "7d" | "30d" | "all";
 
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [period, setPeriod] = useState<string>("Last Week");
-  const [isTradeHistoryModalOpen, setIsTradeHistoryModalOpen] = useState(false);
 
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
@@ -102,7 +99,7 @@ const Dashboard = () => {
     }
   };
 
-  // Sample trade history data with strategyId included
+  // Sample trade history data
   const getTradeHistoryData = (timeRange: TimeRange) => {
     if (timeRange === "7d") {
       return [{
@@ -114,8 +111,7 @@ const Dashboard = () => {
         contracts: 100,
         profit: "+$320.50",
         profitPercentage: "+1.8%",
-        strategyName: "Mean Reversion", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440000", // Added strategyId
+        strategyName: "Mean Reversion",
         targetAsset: "AAPL"
       }, {
         id: "T1002",
@@ -126,8 +122,7 @@ const Dashboard = () => {
         contracts: 50,
         profit: "-$145.20",
         profitPercentage: "-0.7%",
-        strategyName: "Trend Following", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440001", // Added strategyId
+        strategyName: "Trend Following",
         targetAsset: "TSLA"
       }, {
         id: "T1003",
@@ -138,8 +133,7 @@ const Dashboard = () => {
         contracts: 25,
         profit: null,
         profitPercentage: null,
-        strategyName: "Breakout", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440002", // Added strategyId
+        strategyName: "Breakout",
         targetAsset: "NVDA"
       }, {
         id: "T1004",
@@ -150,8 +144,7 @@ const Dashboard = () => {
         contracts: 150,
         profit: "+$420.30",
         profitPercentage: "+1.5%",
-        strategyName: "Range Trading", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440003", // Added strategyId
+        strategyName: "Range Trading",
         targetAsset: "MSFT"
       }, {
         id: "T1005",
@@ -162,8 +155,7 @@ const Dashboard = () => {
         contracts: 75,
         profit: null,
         profitPercentage: null,
-        strategyName: "Momentum", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440004", // Added strategyId
+        strategyName: "Momentum",
         targetAsset: "AMZN"
       }];
     } else if (timeRange === "30d") {
@@ -176,8 +168,7 @@ const Dashboard = () => {
         contracts: 100,
         profit: null,
         profitPercentage: null,
-        strategyName: "Mean Reversion", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440005", // Added strategyId
+        strategyName: "Mean Reversion",
         targetAsset: "AAPL"
       }, {
         id: "T1002",
@@ -188,8 +179,7 @@ const Dashboard = () => {
         contracts: 50,
         profit: "-$145.20",
         profitPercentage: "-0.7%",
-        strategyName: "Trend Following", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440006", // Added strategyId
+        strategyName: "Trend Following",
         targetAsset: "TSLA"
       }, {
         id: "T1003",
@@ -200,8 +190,7 @@ const Dashboard = () => {
         contracts: 25,
         profit: null,
         profitPercentage: null,
-        strategyName: "Breakout", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440007", // Added strategyId
+        strategyName: "Breakout",
         targetAsset: "NVDA"
       }, {
         id: "T1004",
@@ -212,8 +201,7 @@ const Dashboard = () => {
         contracts: 150,
         profit: "+$420.30",
         profitPercentage: "+1.5%",
-        strategyName: "Range Trading", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440008", // Added strategyId
+        strategyName: "Range Trading",
         targetAsset: "MSFT"
       }, {
         id: "T1005",
@@ -224,8 +212,7 @@ const Dashboard = () => {
         contracts: 75,
         profit: null,
         profitPercentage: null,
-        strategyName: "Momentum", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440009", // Added strategyId
+        strategyName: "Momentum",
         targetAsset: "AMZN"
       }, {
         id: "T1006",
@@ -236,8 +223,7 @@ const Dashboard = () => {
         contracts: 40,
         profit: "+$380.60",
         profitPercentage: "+1.8%",
-        strategyName: "Bollinger Strategy", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440010", // Added strategyId
+        strategyName: "Bollinger Strategy",
         targetAsset: "GOOG"
       }, {
         id: "T1007",
@@ -248,8 +234,7 @@ const Dashboard = () => {
         contracts: 200,
         profit: null,
         profitPercentage: null,
-        strategyName: "Fibonacci Strategy", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440011", // Added strategyId
+        strategyName: "Fibonacci Strategy",
         targetAsset: "GOOG"
       }, {
         id: "T1008",
@@ -260,8 +245,7 @@ const Dashboard = () => {
         contracts: 80,
         profit: "-$320.15",
         profitPercentage: "-1.5%",
-        strategyName: "Volume Analysis", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440012", // Added strategyId
+        strategyName: "Volume Analysis",
         targetAsset: "META"
       }];
     } else {
@@ -274,8 +258,7 @@ const Dashboard = () => {
         contracts: 100,
         profit: null,
         profitPercentage: null,
-        strategyName: "Mean Reversion", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440013", // Added strategyId
+        strategyName: "Mean Reversion",
         targetAsset: "AAPL"
       }, {
         id: "T1002",
@@ -286,8 +269,7 @@ const Dashboard = () => {
         contracts: 50,
         profit: "-$145.20",
         profitPercentage: "-0.7%",
-        strategyName: "Trend Following", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440014", // Added strategyId
+        strategyName: "Trend Following",
         targetAsset: "TSLA"
       }, {
         id: "T1003",
@@ -298,8 +280,7 @@ const Dashboard = () => {
         contracts: 25,
         profit: null,
         profitPercentage: null,
-        strategyName: "Breakout", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440015", // Added strategyId
+        strategyName: "Breakout",
         targetAsset: "NVDA"
       }, {
         id: "T1004",
@@ -310,8 +291,7 @@ const Dashboard = () => {
         contracts: 150,
         profit: "+$420.30",
         profitPercentage: "+1.5%",
-        strategyName: "Range Trading", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440016", // Added strategyId
+        strategyName: "Range Trading",
         targetAsset: "MSFT"
       }, {
         id: "T1005",
@@ -322,8 +302,7 @@ const Dashboard = () => {
         contracts: 75,
         profit: null,
         profitPercentage: null,
-        strategyName: "Momentum", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440017", // Added strategyId
+        strategyName: "Momentum",
         targetAsset: "AMZN"
       }, {
         id: "T1006",
@@ -334,8 +313,7 @@ const Dashboard = () => {
         contracts: 40,
         profit: "+$380.60",
         profitPercentage: "+1.8%",
-        strategyName: "Bollinger Strategy", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440018", // Added strategyId
+        strategyName: "Bollinger Strategy",
         targetAsset: "GOOG"
       }, {
         id: "T1007",
@@ -346,8 +324,7 @@ const Dashboard = () => {
         contracts: 200,
         profit: null,
         profitPercentage: null,
-        strategyName: "Fibonacci Strategy", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440019", // Added strategyId
+        strategyName: "Fibonacci Strategy",
         targetAsset: "GOOG"
       }, {
         id: "T1008",
@@ -358,8 +335,7 @@ const Dashboard = () => {
         contracts: 80,
         profit: "-$320.15",
         profitPercentage: "-1.5%",
-        strategyName: "Volume Analysis", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440020", // Added strategyId
+        strategyName: "Volume Analysis",
         targetAsset: "META"
       }, {
         id: "T1009",
@@ -370,8 +346,7 @@ const Dashboard = () => {
         contracts: 35,
         profit: "+$425.50",
         profitPercentage: "+1.9%",
-        strategyName: "Trend Breakout", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440021", // Added strategyId
+        strategyName: "Trend Breakout",
         targetAsset: "AMD"
       }, {
         id: "T1010",
@@ -382,8 +357,7 @@ const Dashboard = () => {
         contracts: 120,
         profit: "+$620.75",
         profitPercentage: "+2.8%",
-        strategyName: "Head and Shoulders", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440022", // Added strategyId
+        strategyName: "Head and Shoulders",
         targetAsset: "AMD"
       }, {
         id: "T1011",
@@ -394,8 +368,7 @@ const Dashboard = () => {
         contracts: 60,
         profit: null,
         profitPercentage: null,
-        strategyName: "Cross Signals", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440023", // Added strategyId
+        strategyName: "Cross Signals",
         targetAsset: "AMD"
       }, {
         id: "T1012",
@@ -406,8 +379,7 @@ const Dashboard = () => {
         contracts: 90,
         profit: "-$280.30",
         profitPercentage: "-0.6%",
-        strategyName: "Divergence Strategy", // Fallback name
-        strategyId: "550e8400-e29b-41d4-a716-446655440024", // Added strategyId
+        strategyName: "Divergence Strategy",
         targetAsset: "INTC"
       }];
     }
@@ -415,17 +387,6 @@ const Dashboard = () => {
 
   const metrics = getMetricCardData(timeRange);
   const tradeHistory = getTradeHistoryData(timeRange);
-
-  // Fixed number of trades to show in the dashboard view
-  const MAX_VISIBLE_TRADES = 5;
-  
-  const openTradeHistoryModal = () => {
-    setIsTradeHistoryModalOpen(true);
-  };
-
-  const closeTradeHistoryModal = () => {
-    setIsTradeHistoryModalOpen(false);
-  };
   
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -460,12 +421,7 @@ const Dashboard = () => {
               </div>
 
               <div className="px-6 pb-6">
-                <TradeHistoryTable 
-                  trades={tradeHistory} 
-                  maxRows={MAX_VISIBLE_TRADES}
-                  showViewAllButton={true}
-                  onViewAllClick={openTradeHistoryModal}
-                />
+                <TradeHistoryTable trades={tradeHistory} />
               </div>
             </Card>
           </div>
@@ -474,14 +430,6 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
-
-      {/* Trade History Modal */}
-      <TradeHistoryModal
-        isOpen={isTradeHistoryModalOpen}
-        onClose={closeTradeHistoryModal}
-        trades={tradeHistory}
-        title="All Trade History"
-      />
     </div>;
 };
 

@@ -1,7 +1,8 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Trade {
@@ -15,74 +16,39 @@ interface Trade {
   profitPercentage?: string | null;
   strategyName?: string;
   targetAsset?: string;
-  strategyId?: string; // Added strategyId field
+  strategyId?: string;
 }
 
 interface TradeHistoryTableProps {
   trades: Trade[];
+  maxRows?: number;
+  onViewAllClick?: () => void;
+  showViewAllButton?: boolean;
 }
 
 export const TradeHistoryTable = ({
-  trades = []
+  trades = [],
+  maxRows,
+  onViewAllClick,
+  showViewAllButton = false
 }: TradeHistoryTableProps) => {
+  const navigate = useNavigate();
   // Ensure we have valid trades array
   const safeTrades = Array.isArray(trades) ? trades : [];
-  const [strategiesMap, setStrategiesMap] = useState<Record<string, string>>({});
-  const [isLoadingStrategies, setIsLoadingStrategies] = useState(false);
+  const displayTrades = maxRows ? safeTrades.slice(0, maxRows) : safeTrades;
+  const hasMoreTrades = maxRows && safeTrades.length > maxRows;
   
-  // Fetch strategy names from Supabase when component mounts
-  useEffect(() => {
-    const fetchStrategyNames = async () => {
-      // Extract unique strategy IDs from trades
-      const strategyIds = safeTrades
-        .filter(trade => trade.strategyId)
-        .map(trade => trade.strategyId);
-      
-      if (strategyIds.length === 0) return;
-      
-      try {
-        setIsLoadingStrategies(true);
-        const { data, error } = await supabase
-          .from('strategies')
-          .select('id, name')
-          .in('id', strategyIds);
-        
-        if (error) {
-          console.error("Error fetching strategy names:", error);
-          return;
-        }
-        
-        // Create a map of strategy IDs to names
-        const strategiesMap: Record<string, string> = {};
-        data.forEach(strategy => {
-          strategiesMap[strategy.id] = strategy.name;
-        });
-        
-        setStrategiesMap(strategiesMap);
-      } catch (err) {
-        console.error("Error in fetchStrategyNames:", err);
-      } finally {
-        setIsLoadingStrategies(false);
-      }
-    };
-    
-    fetchStrategyNames();
-  }, [safeTrades]);
-  
-  // Function to get strategy name from ID or fall back to name in trade data
-  const getStrategyName = (trade: Trade) => {
-    if (trade.strategyId && strategiesMap[trade.strategyId]) {
-      return strategiesMap[trade.strategyId];
+  const handleRowClick = useCallback((trade: Trade) => {
+    if (trade.strategyId) {
+      navigate(`/strategy/${trade.strategyId}`);
     }
-    return trade.strategyName || "—";
-  };
-  
+  }, [navigate]);
+
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/20">
-            <TableHead className="whitespace-nowrap font-medium">Strategy</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Asset</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Date</TableHead>
@@ -92,33 +58,33 @@ export const TradeHistoryTable = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {safeTrades.length > 0 ? (
-            safeTrades.map((trade, index) => {
+          {displayTrades.length > 0 ? (
+            displayTrades.map((trade, index) => {
               const isBuy = trade.type.toLowerCase().includes('buy');
               const isProfitPositive = trade.profit ? !trade.profit.includes('-') : false;
               const isProfitNegative = trade.profit ? trade.profit.includes('-') : false;
-              const strategyName = getStrategyName(trade);
               
               return (
-                <TableRow key={index}>
+                <TableRow 
+                  key={index} 
+                  className="cursor-pointer hover:bg-muted/60"
+                  onClick={() => handleRowClick(trade)}
+                >
                   <TableCell>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="max-w-[160px] truncate">
-                            {isLoadingStrategies ? "Loading..." : strategyName}
+                            {trade.targetAsset || "—"}
                           </div>
                         </TooltipTrigger>
-                        {strategyName && strategyName !== "—" && (
+                        {trade.targetAsset && (
                           <TooltipContent side="top" className="max-w-xs">
-                            <p>{strategyName}</p>
+                            <p>{trade.targetAsset}</p>
                           </TooltipContent>
                         )}
                       </Tooltip>
                     </TooltipProvider>
-                  </TableCell>
-                  <TableCell>
-                    {trade.targetAsset || "—"}
                   </TableCell>
                   <TableCell>
                     {trade.type}
@@ -160,13 +126,24 @@ export const TradeHistoryTable = ({
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No trade history available
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
+
+      {showViewAllButton && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={onViewAllClick}
+            className="px-4 py-2 text-sm font-medium text-primary hover:underline"
+          >
+            {hasMoreTrades ? `View All (${safeTrades.length})` : "View All Trades"}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

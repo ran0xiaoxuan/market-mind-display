@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MetricCard } from "@/components/MetricCard";
@@ -6,12 +7,14 @@ import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
 import { useState } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
+import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 
 type TimeRange = "7d" | "30d" | "all";
 
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [period, setPeriod] = useState<string>("Last Week");
+  const [isTradeHistoryModalOpen, setIsTradeHistoryModalOpen] = useState(false);
 
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
@@ -412,6 +415,17 @@ const Dashboard = () => {
 
   const metrics = getMetricCardData(timeRange);
   const tradeHistory = getTradeHistoryData(timeRange);
+
+  // Fixed number of trades to show in the dashboard view
+  const MAX_VISIBLE_TRADES = 5;
+  
+  const openTradeHistoryModal = () => {
+    setIsTradeHistoryModalOpen(true);
+  };
+
+  const closeTradeHistoryModal = () => {
+    setIsTradeHistoryModalOpen(false);
+  };
   
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -446,7 +460,12 @@ const Dashboard = () => {
               </div>
 
               <div className="px-6 pb-6">
-                <TradeHistoryTable trades={tradeHistory} />
+                <TradeHistoryTable 
+                  trades={tradeHistory} 
+                  maxRows={MAX_VISIBLE_TRADES}
+                  showViewAllButton={true}
+                  onViewAllClick={openTradeHistoryModal}
+                />
               </div>
             </Card>
           </div>
@@ -455,6 +474,14 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Trade History Modal */}
+      <TradeHistoryModal
+        isOpen={isTradeHistoryModalOpen}
+        onClose={closeTradeHistoryModal}
+        trades={tradeHistory}
+        title="All Trade History"
+      />
     </div>;
 };
 

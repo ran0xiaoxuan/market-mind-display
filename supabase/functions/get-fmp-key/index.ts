@@ -16,8 +16,6 @@ serve(async (req) => {
   try {
     // Get FMP API key from environment variable
     const fmpApiKey = Deno.env.get("FMP_API_KEY");
-    
-    // Check if API key exists - this was previously failing
     if (!fmpApiKey) {
       console.error("FMP API key not configured in Supabase secrets");
       return new Response(
@@ -30,9 +28,6 @@ serve(async (req) => {
       );
     }
 
-    // For debug purposes, log that we're providing the key (without exposing it)
-    console.log("FMP API key found in environment variables");
-
     // Create client to check authentication
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -40,15 +35,35 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
     );
 
-    // Get the user from the request - making authentication optional
+    // Get the user from the request
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
     if (userError) {
-      console.log("Authentication not provided or invalid, proceeding with limited access");
+      console.error("Auth error in get-fmp-key:", userError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Authentication error", 
+          success: false,
+          message: userError.message 
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Return the API key regardless of authentication
-    // This allows the API to work even without login
+    if (!user) {
+      console.error("No authenticated user found");
+      return new Response(
+        JSON.stringify({ 
+          error: "Unauthorized", 
+          success: false,
+          message: "Authentication required" 
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Providing FMP API key to user: ${user.id}`);
+    
+    // Return the API key
     return new Response(
       JSON.stringify({ 
         apiKey: fmpApiKey,

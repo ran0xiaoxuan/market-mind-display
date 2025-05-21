@@ -1,6 +1,6 @@
 
-import { ArrowDownUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Trade {
   id?: string | number;
@@ -49,7 +49,20 @@ export const TradeHistoryTable = ({
               return (
                 <TableRow key={index}>
                   <TableCell>
-                    {trade.strategyName || "—"}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="max-w-[160px] truncate">
+                            {trade.strategyName || "—"}
+                          </div>
+                        </TooltipTrigger>
+                        {trade.strategyName && (
+                          <TooltipContent side="top" className="max-w-xs">
+                            <p>{trade.strategyName}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
                     {trade.targetAsset || "—"}

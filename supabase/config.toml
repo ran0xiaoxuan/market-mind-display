@@ -5,7 +5,7 @@ project_id = "lqfhhqhswdqpsliskxrr"
 verify_jwt = false
 
 [functions.get-fmp-key]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-taapi-key]
 verify_jwt = true

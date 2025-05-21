@@ -1,19 +1,20 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
-// Configure CORS headers to be permissive for development
+// Configure more permissive CORS headers for better compatibility
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Origin": "*", // Allow all origins
+  "Access-Control-Allow-Headers": "*", // Allow all headers
+  "Access-Control-Allow-Methods": "GET, OPTIONS, POST", // Allow all required methods
+  "Access-Control-Max-Age": "86400", // Cache preflight requests for 24 hours
 };
 
 serve(async (req) => {
-  console.log("get-fmp-key function called");
+  console.log("[get-fmp-key] Function called with method:", req.method);
 
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("Handling CORS preflight request");
+    console.log("[get-fmp-key] Handling CORS preflight request");
     return new Response(null, { 
       status: 204,
       headers: corsHeaders 
@@ -23,15 +24,16 @@ serve(async (req) => {
   try {
     // Get FMP API key from environment variable
     const fmpApiKey = Deno.env.get("FMP_API_KEY");
-    console.log("FMP API key availability:", fmpApiKey ? "Available" : "Not available");
+    console.log("[get-fmp-key] API key availability:", fmpApiKey ? "Available" : "Not available");
     
     if (!fmpApiKey) {
-      console.error("FMP API key not configured in Supabase secrets");
+      console.error("[get-fmp-key] FMP API key not configured in Supabase secrets");
       return new Response(
         JSON.stringify({ 
           error: "FMP API key not configured",
           success: false,
-          message: "Please configure the FMP_API_KEY in Supabase secrets" 
+          message: "Please configure the FMP_API_KEY in Supabase secrets",
+          errorType: "missing_key"
         }),
         { 
           status: 500, 
@@ -42,12 +44,13 @@ serve(async (req) => {
 
     // Validate the API key format (basic check)
     if (typeof fmpApiKey !== 'string' || fmpApiKey.trim().length < 10) {
-      console.error("FMP API key appears to be invalid");
+      console.error("[get-fmp-key] FMP API key appears to be invalid");
       return new Response(
         JSON.stringify({ 
           error: "Invalid API key format",
           success: false,
-          message: "The FMP_API_KEY environment variable contains an invalid API key" 
+          message: "The FMP_API_KEY environment variable contains an invalid API key",
+          errorType: "invalid_key_format"
         }),
         { 
           status: 500, 
@@ -57,7 +60,7 @@ serve(async (req) => {
     }
 
     // Return the API key
-    console.log("Successfully providing FMP API key to client");
+    console.log("[get-fmp-key] Successfully providing FMP API key to client");
     
     return new Response(
       JSON.stringify({ 
@@ -75,12 +78,14 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error("Error in get-fmp-key function:", error);
+    console.error("[get-fmp-key] Error:", error);
     return new Response(
       JSON.stringify({ 
         error: "Server error",
         success: false,
-        message: error.message || "Unknown error occurred" 
+        message: error.message || "Unknown error occurred",
+        errorType: "server_error",
+        stack: Deno.env.get("ENVIRONMENT") === "development" ? error.stack : undefined
       }),
       { 
         status: 500, 

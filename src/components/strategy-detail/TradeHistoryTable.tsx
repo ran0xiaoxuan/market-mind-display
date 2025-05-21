@@ -11,8 +11,6 @@ interface Trade {
   contracts: number;
   profit: string | null;
   profitPercentage?: string | null;
-  strategyName?: string;
-  targetAsset?: string;
 }
 
 interface TradeHistoryTableProps {
@@ -35,8 +33,6 @@ export const TradeHistoryTable = ({
                 Trade # <ArrowDownUp size={14} className="text-muted-foreground" />
               </div>
             </TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Strategy</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Asset</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Date</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
@@ -58,12 +54,6 @@ export const TradeHistoryTable = ({
                     {tradeId}
                   </TableCell>
                   <TableCell>
-                    {trade.strategyName || "—"}
-                  </TableCell>
-                  <TableCell>
-                    {trade.targetAsset || "—"}
-                  </TableCell>
-                  <TableCell>
                     {trade.type}
                   </TableCell>
                   <TableCell>
@@ -76,7 +66,7 @@ export const TradeHistoryTable = ({
                     {trade.contracts}
                   </TableCell>
                   <TableCell>
-                    {!isBuy && trade.profit && (
+                    {trade.profit && (
                       <div className="flex flex-col">
                         <span className={
                           isProfitPositive ? "text-green-600" : 
@@ -94,16 +84,13 @@ export const TradeHistoryTable = ({
                         )}
                       </div>
                     )}
-                    {isBuy && (
-                      <span className="text-gray-400">—</span>
-                    )}
                   </TableCell>
                 </TableRow>
               );
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No trade history available
               </TableCell>
             </TableRow>

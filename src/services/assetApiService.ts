@@ -12,28 +12,26 @@ export interface Asset {
  */
 export const getFmpApiKey = async (): Promise<string | null> => {
   try {
+    console.log("Fetching FMP API key from Supabase edge function...");
+    
     const { data, error } = await supabase.functions.invoke('get-fmp-key', {
       method: 'GET',
     });
     
-    if (error || !data?.apiKey) {
-      console.error("Error fetching FMP API key:", error || "No API key returned");
-      toast({
-        title: "API Key Error",
-        description: "Failed to retrieve API key. Please try again.",
-        variant: "destructive"
-      });
+    if (error) {
+      console.error("Error from Edge Function:", error);
+      return null;
+    }
+    
+    if (!data?.apiKey) {
+      console.error("No API key returned from Edge Function");
       return null;
     }
 
+    console.log("Successfully retrieved FMP API key");
     return data.apiKey;
   } catch (error) {
     console.error("Exception fetching FMP API key:", error);
-    toast({
-      title: "API Key Error",
-      description: "Failed to retrieve API key. Please try again.",
-      variant: "destructive"
-    });
     return null;
   }
 };
@@ -50,7 +48,7 @@ export const searchStocks = async (query: string, apiKey: string): Promise<Asset
     const endpoint = `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`;
     const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`;
     
-    console.log("Calling FMP API for stocks with URL:", url.replace(apiKey, "API_KEY_HIDDEN"));
+    console.log("Calling FMP API for stocks search...");
     
     const response = await fetch(url, { 
       headers: { 
@@ -58,7 +56,7 @@ export const searchStocks = async (query: string, apiKey: string): Promise<Asset
         'Origin': window.location.origin
       },
       mode: 'cors',
-      signal: AbortSignal.timeout(15000) // 15 second timeout
+      signal: AbortSignal.timeout(10000) // 10 second timeout (reduced from 15)
     });
     
     if (!response.ok) {

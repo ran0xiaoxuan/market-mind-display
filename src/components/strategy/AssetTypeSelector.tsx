@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Search, AlertCircle } from "lucide-react";
 import { debounce } from "lodash";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { DialogTitle } from "@/components/ui/dialog";
+import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
 import { popularStocks, searchLocalAssets } from "@/data/assetData";
@@ -29,24 +29,38 @@ export const AssetTypeSelector = ({
   const [isSearchError, setIsSearchError] = useState(false);
   const [isConnectionError, setIsConnectionError] = useState(false);
   const [isShowingPopular, setIsShowingPopular] = useState(false);
+  const [apiKeyRetries, setApiKeyRetries] = useState(0);
 
-  // Fetch API key on component mount
+  // Fetch API key on component mount with retry logic
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
         setIsLoading(true);
+        console.log(`Attempting to fetch API key (attempt ${apiKeyRetries + 1})`);
         const key = await getFmpApiKey();
+        
         if (key) {
           setApiKey(key);
           setIsConnectionError(false);
           console.log("API key retrieved successfully");
         } else {
           console.error("API key not found");
-          setIsConnectionError(true);
-          toast({
-            title: "Using Local Data",
-            description: "Using local stock data due to connection issues",
-          });
+          
+          // Only show connection error toast after a couple retries
+          if (apiKeyRetries >= 1) {
+            setIsConnectionError(true);
+            toast({
+              title: "Using Local Stock Data",
+              description: "Connection to stock API unavailable. Using local data instead.",
+            });
+          } else {
+            // Retry after a delay (only retry once)
+            if (apiKeyRetries < 2) {
+              setTimeout(() => {
+                setApiKeyRetries(prev => prev + 1);
+              }, 2000);
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching API key:", error);
@@ -55,8 +69,9 @@ export const AssetTypeSelector = ({
         setIsLoading(false);
       }
     };
+    
     fetchApiKey();
-  }, []);
+  }, [apiKeyRetries]);
 
   // Set selected asset details when selectedAsset changes
   useEffect(() => {
@@ -222,7 +237,8 @@ export const AssetTypeSelector = ({
             }
           }}
         >
-          <DialogTitle className="sr-only">Search Stocks</DialogTitle>
+          <DialogTitle>Search Stocks</DialogTitle>
+          <DialogDescription>Search for stocks by name or ticker symbol</DialogDescription>
           <CommandInput 
             placeholder="Type to search for stocks..." 
             value={searchQuery} 

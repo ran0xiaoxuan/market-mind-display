@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,10 +27,9 @@ serve(async (req) => {
       );
     }
 
-    // Return the API key - Note: We're removing authentication check temporarily to debug
-    console.log("Providing FMP API key to user");
+    // Return the API key - Public endpoint for development purposes
+    console.log("Providing FMP API key to client");
     
-    // Return the API key
     return new Response(
       JSON.stringify({ 
         apiKey: fmpApiKey,
@@ -42,7 +40,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json",
-          "Cache-Control": "no-cache, no-store"
+          "Cache-Control": "no-store, max-age=0"
         } 
       }
     );

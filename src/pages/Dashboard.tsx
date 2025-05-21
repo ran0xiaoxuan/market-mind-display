@@ -6,10 +6,13 @@ import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
 import { useState } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
+
 type TimeRange = "7d" | "30d" | "all";
+
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [period, setPeriod] = useState<string>("Last Week");
+
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
     // Update period selector based on time range
@@ -107,7 +110,9 @@ const Dashboard = () => {
         price: "$178.45",
         contracts: 100,
         profit: "+$320.50",
-        profitPercentage: "+1.8%"
+        profitPercentage: "+1.8%",
+        strategyName: "Mean Reversion",
+        targetAsset: "AAPL"
       }, {
         id: "T1002",
         date: "2025-05-19",
@@ -116,7 +121,9 @@ const Dashboard = () => {
         price: "$402.10",
         contracts: 50,
         profit: "-$145.20",
-        profitPercentage: "-0.7%"
+        profitPercentage: "-0.7%",
+        strategyName: "Trend Following",
+        targetAsset: "TSLA"
       }, {
         id: "T1003",
         date: "2025-05-18",
@@ -124,8 +131,10 @@ const Dashboard = () => {
         signal: "Support Level",
         price: "$924.30",
         contracts: 25,
-        profit: "+$560.75",
-        profitPercentage: "+2.4%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Breakout",
+        targetAsset: "NVDA"
       }, {
         id: "T1004",
         date: "2025-05-17",
@@ -134,7 +143,9 @@ const Dashboard = () => {
         price: "$185.60",
         contracts: 150,
         profit: "+$420.30",
-        profitPercentage: "+1.5%"
+        profitPercentage: "+1.5%",
+        strategyName: "Range Trading",
+        targetAsset: "MSFT"
       }, {
         id: "T1005",
         date: "2025-05-15",
@@ -142,8 +153,10 @@ const Dashboard = () => {
         signal: "MACD Signal",
         price: "$345.25",
         contracts: 75,
-        profit: "-$210.40",
-        profitPercentage: "-0.8%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Momentum",
+        targetAsset: "AMZN"
       }];
     } else if (timeRange === "30d") {
       return [{
@@ -153,8 +166,10 @@ const Dashboard = () => {
         signal: "RSI Oversold",
         price: "$178.45",
         contracts: 100,
-        profit: "+$320.50",
-        profitPercentage: "+1.8%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Mean Reversion",
+        targetAsset: "AAPL"
       }, {
         id: "T1002",
         date: "2025-05-19",
@@ -163,7 +178,9 @@ const Dashboard = () => {
         price: "$402.10",
         contracts: 50,
         profit: "-$145.20",
-        profitPercentage: "-0.7%"
+        profitPercentage: "-0.7%",
+        strategyName: "Trend Following",
+        targetAsset: "TSLA"
       }, {
         id: "T1003",
         date: "2025-05-18",
@@ -171,8 +188,10 @@ const Dashboard = () => {
         signal: "Support Level",
         price: "$924.30",
         contracts: 25,
-        profit: "+$560.75",
-        profitPercentage: "+2.4%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Breakout",
+        targetAsset: "NVDA"
       }, {
         id: "T1004",
         date: "2025-05-17",
@@ -181,7 +200,9 @@ const Dashboard = () => {
         price: "$185.60",
         contracts: 150,
         profit: "+$420.30",
-        profitPercentage: "+1.5%"
+        profitPercentage: "+1.5%",
+        strategyName: "Range Trading",
+        targetAsset: "MSFT"
       }, {
         id: "T1005",
         date: "2025-05-15",
@@ -189,8 +210,10 @@ const Dashboard = () => {
         signal: "MACD Signal",
         price: "$345.25",
         contracts: 75,
-        profit: "-$210.40",
-        profitPercentage: "-0.8%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Momentum",
+        targetAsset: "AMZN"
       }, {
         id: "T1006",
         date: "2025-05-10",
@@ -199,7 +222,9 @@ const Dashboard = () => {
         price: "$532.75",
         contracts: 40,
         profit: "+$380.60",
-        profitPercentage: "+1.8%"
+        profitPercentage: "+1.8%",
+        strategyName: "Bollinger Strategy",
+        targetAsset: "GOOG"
       }, {
         id: "T1007",
         date: "2025-05-05",
@@ -207,8 +232,10 @@ const Dashboard = () => {
         signal: "Fibonacci Level",
         price: "$125.40",
         contracts: 200,
-        profit: "+$750.25",
-        profitPercentage: "+3.0%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Fibonacci Strategy",
+        targetAsset: "GOOG"
       }, {
         id: "T1008",
         date: "2025-04-25",
@@ -217,7 +244,9 @@ const Dashboard = () => {
         price: "$276.30",
         contracts: 80,
         profit: "-$320.15",
-        profitPercentage: "-1.5%"
+        profitPercentage: "-1.5%",
+        strategyName: "Volume Analysis",
+        targetAsset: "META"
       }];
     } else {
       return [{
@@ -227,8 +256,10 @@ const Dashboard = () => {
         signal: "RSI Oversold",
         price: "$178.45",
         contracts: 100,
-        profit: "+$320.50",
-        profitPercentage: "+1.8%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Mean Reversion",
+        targetAsset: "AAPL"
       }, {
         id: "T1002",
         date: "2025-05-19",
@@ -237,7 +268,9 @@ const Dashboard = () => {
         price: "$402.10",
         contracts: 50,
         profit: "-$145.20",
-        profitPercentage: "-0.7%"
+        profitPercentage: "-0.7%",
+        strategyName: "Trend Following",
+        targetAsset: "TSLA"
       }, {
         id: "T1003",
         date: "2025-05-18",
@@ -245,8 +278,10 @@ const Dashboard = () => {
         signal: "Support Level",
         price: "$924.30",
         contracts: 25,
-        profit: "+$560.75",
-        profitPercentage: "+2.4%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Breakout",
+        targetAsset: "NVDA"
       }, {
         id: "T1004",
         date: "2025-05-17",
@@ -255,7 +290,9 @@ const Dashboard = () => {
         price: "$185.60",
         contracts: 150,
         profit: "+$420.30",
-        profitPercentage: "+1.5%"
+        profitPercentage: "+1.5%",
+        strategyName: "Range Trading",
+        targetAsset: "MSFT"
       }, {
         id: "T1005",
         date: "2025-05-15",
@@ -263,8 +300,10 @@ const Dashboard = () => {
         signal: "MACD Signal",
         price: "$345.25",
         contracts: 75,
-        profit: "-$210.40",
-        profitPercentage: "-0.8%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Momentum",
+        targetAsset: "AMZN"
       }, {
         id: "T1006",
         date: "2025-05-10",
@@ -273,7 +312,9 @@ const Dashboard = () => {
         price: "$532.75",
         contracts: 40,
         profit: "+$380.60",
-        profitPercentage: "+1.8%"
+        profitPercentage: "+1.8%",
+        strategyName: "Bollinger Strategy",
+        targetAsset: "GOOG"
       }, {
         id: "T1007",
         date: "2025-05-05",
@@ -281,8 +322,10 @@ const Dashboard = () => {
         signal: "Fibonacci Level",
         price: "$125.40",
         contracts: 200,
-        profit: "+$750.25",
-        profitPercentage: "+3.0%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Fibonacci Strategy",
+        targetAsset: "GOOG"
       }, {
         id: "T1008",
         date: "2025-04-25",
@@ -291,7 +334,9 @@ const Dashboard = () => {
         price: "$276.30",
         contracts: 80,
         profit: "-$320.15",
-        profitPercentage: "-1.5%"
+        profitPercentage: "-1.5%",
+        strategyName: "Volume Analysis",
+        targetAsset: "META"
       }, {
         id: "T1009",
         date: "2025-04-10",
@@ -300,7 +345,9 @@ const Dashboard = () => {
         price: "$642.80",
         contracts: 35,
         profit: "+$425.50",
-        profitPercentage: "+1.9%"
+        profitPercentage: "+1.9%",
+        strategyName: "Trend Breakout",
+        targetAsset: "AMD"
       }, {
         id: "T1010",
         date: "2025-03-20",
@@ -309,7 +356,9 @@ const Dashboard = () => {
         price: "$185.30",
         contracts: 120,
         profit: "+$620.75",
-        profitPercentage: "+2.8%"
+        profitPercentage: "+2.8%",
+        strategyName: "Head and Shoulders",
+        targetAsset: "AMD"
       }, {
         id: "T1011",
         date: "2025-02-15",
@@ -317,8 +366,10 @@ const Dashboard = () => {
         signal: "Golden Cross",
         price: "$358.45",
         contracts: 60,
-        profit: "+$430.20",
-        profitPercentage: "+2.0%"
+        profit: null,
+        profitPercentage: null,
+        strategyName: "Cross Signals",
+        targetAsset: "AMD"
       }, {
         id: "T1012",
         date: "2025-01-05",
@@ -327,12 +378,16 @@ const Dashboard = () => {
         price: "$476.90",
         contracts: 90,
         profit: "-$280.30",
-        profitPercentage: "-0.6%"
+        profitPercentage: "-0.6%",
+        strategyName: "Divergence Strategy",
+        targetAsset: "INTC"
       }];
     }
   };
+
   const metrics = getMetricCardData(timeRange);
   const tradeHistory = getTradeHistoryData(timeRange);
+  
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-4 md:p-6">
@@ -363,7 +418,6 @@ const Dashboard = () => {
             <Card>
               <div className="p-6">
                 <h2 className="text-xl font-bold">Trade History</h2>
-                
               </div>
 
               <div className="px-6 pb-6">
@@ -378,4 +432,5 @@ const Dashboard = () => {
       </main>
     </div>;
 };
+
 export default Dashboard;

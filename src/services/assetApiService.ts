@@ -12,6 +12,7 @@ export interface Asset {
  */
 export const getFmpApiKey = async (): Promise<string | null> => {
   try {
+    console.log("Attempting to fetch FMP API key from edge function...");
     const { data, error } = await supabase.functions.invoke('get-fmp-key', {
       method: 'GET',
     });
@@ -26,6 +27,7 @@ export const getFmpApiKey = async (): Promise<string | null> => {
       return null;
     }
 
+    console.log("Successfully retrieved FMP API key");
     return data.apiKey;
   } catch (error) {
     console.error("Exception fetching FMP API key:", error);

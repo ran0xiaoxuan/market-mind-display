@@ -151,7 +151,7 @@ Use ONLY these exact timeframe values: "1m", "5m", "15m", "30m", "1h", "4h", "Da
     console.log("Sending request to OpenAI with prompts:", { systemPrompt, userPrompt });
     console.log("API Key available:", !!openaiApiKey);
     
-    // Create the request to OpenAI API - Changed model from gpt-3.5-turbo to gpt-4o-mini
+    // Create the request to OpenAI API
     const response = await fetch(OPENAI_API_URL, {
       method: "POST",
       headers: {
@@ -159,7 +159,7 @@ Use ONLY these exact timeframe values: "1m", "5m", "15m", "30m", "1h", "4h", "Da
         "Authorization": `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // Updated to use gpt-4o-mini for better strategy generation
+        model: "gpt-3.5-turbo", // Using OpenAI's model
         messages: [
           {
             role: "system",

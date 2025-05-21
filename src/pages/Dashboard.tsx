@@ -6,7 +6,6 @@ import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
 import { useState } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
-
 type TimeRange = "7d" | "30d" | "all";
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
@@ -100,45 +99,240 @@ const Dashboard = () => {
   // Sample trade history data
   const getTradeHistoryData = (timeRange: TimeRange) => {
     if (timeRange === "7d") {
-      return [
-        { id: "T1001", date: "2025-05-20", type: "Buy", signal: "RSI Oversold", price: "$178.45", contracts: 100, profit: "+$320.50", profitPercentage: "+1.8%" },
-        { id: "T1002", date: "2025-05-19", type: "Sell", signal: "MA Crossover", price: "$402.10", contracts: 50, profit: "-$145.20", profitPercentage: "-0.7%" },
-        { id: "T1003", date: "2025-05-18", type: "Buy", signal: "Support Level", price: "$924.30", contracts: 25, profit: "+$560.75", profitPercentage: "+2.4%" },
-        { id: "T1004", date: "2025-05-17", type: "Sell", signal: "Resistance Break", price: "$185.60", contracts: 150, profit: "+$420.30", profitPercentage: "+1.5%" },
-        { id: "T1005", date: "2025-05-15", type: "Buy", signal: "MACD Signal", price: "$345.25", contracts: 75, profit: "-$210.40", profitPercentage: "-0.8%" }
-      ];
+      return [{
+        id: "T1001",
+        date: "2025-05-20",
+        type: "Buy",
+        signal: "RSI Oversold",
+        price: "$178.45",
+        contracts: 100,
+        profit: "+$320.50",
+        profitPercentage: "+1.8%"
+      }, {
+        id: "T1002",
+        date: "2025-05-19",
+        type: "Sell",
+        signal: "MA Crossover",
+        price: "$402.10",
+        contracts: 50,
+        profit: "-$145.20",
+        profitPercentage: "-0.7%"
+      }, {
+        id: "T1003",
+        date: "2025-05-18",
+        type: "Buy",
+        signal: "Support Level",
+        price: "$924.30",
+        contracts: 25,
+        profit: "+$560.75",
+        profitPercentage: "+2.4%"
+      }, {
+        id: "T1004",
+        date: "2025-05-17",
+        type: "Sell",
+        signal: "Resistance Break",
+        price: "$185.60",
+        contracts: 150,
+        profit: "+$420.30",
+        profitPercentage: "+1.5%"
+      }, {
+        id: "T1005",
+        date: "2025-05-15",
+        type: "Buy",
+        signal: "MACD Signal",
+        price: "$345.25",
+        contracts: 75,
+        profit: "-$210.40",
+        profitPercentage: "-0.8%"
+      }];
     } else if (timeRange === "30d") {
-      return [
-        { id: "T1001", date: "2025-05-20", type: "Buy", signal: "RSI Oversold", price: "$178.45", contracts: 100, profit: "+$320.50", profitPercentage: "+1.8%" },
-        { id: "T1002", date: "2025-05-19", type: "Sell", signal: "MA Crossover", price: "$402.10", contracts: 50, profit: "-$145.20", profitPercentage: "-0.7%" },
-        { id: "T1003", date: "2025-05-18", type: "Buy", signal: "Support Level", price: "$924.30", contracts: 25, profit: "+$560.75", profitPercentage: "+2.4%" },
-        { id: "T1004", date: "2025-05-17", type: "Sell", signal: "Resistance Break", price: "$185.60", contracts: 150, profit: "+$420.30", profitPercentage: "+1.5%" },
-        { id: "T1005", date: "2025-05-15", type: "Buy", signal: "MACD Signal", price: "$345.25", contracts: 75, profit: "-$210.40", profitPercentage: "-0.8%" },
-        { id: "T1006", date: "2025-05-10", type: "Sell", signal: "Bollinger Bands", price: "$532.75", contracts: 40, profit: "+$380.60", profitPercentage: "+1.8%" },
-        { id: "T1007", date: "2025-05-05", type: "Buy", signal: "Fibonacci Level", price: "$125.40", contracts: 200, profit: "+$750.25", profitPercentage: "+3.0%" },
-        { id: "T1008", date: "2025-04-25", type: "Sell", signal: "Volume Spike", price: "$276.30", contracts: 80, profit: "-$320.15", profitPercentage: "-1.5%" }
-      ];
+      return [{
+        id: "T1001",
+        date: "2025-05-20",
+        type: "Buy",
+        signal: "RSI Oversold",
+        price: "$178.45",
+        contracts: 100,
+        profit: "+$320.50",
+        profitPercentage: "+1.8%"
+      }, {
+        id: "T1002",
+        date: "2025-05-19",
+        type: "Sell",
+        signal: "MA Crossover",
+        price: "$402.10",
+        contracts: 50,
+        profit: "-$145.20",
+        profitPercentage: "-0.7%"
+      }, {
+        id: "T1003",
+        date: "2025-05-18",
+        type: "Buy",
+        signal: "Support Level",
+        price: "$924.30",
+        contracts: 25,
+        profit: "+$560.75",
+        profitPercentage: "+2.4%"
+      }, {
+        id: "T1004",
+        date: "2025-05-17",
+        type: "Sell",
+        signal: "Resistance Break",
+        price: "$185.60",
+        contracts: 150,
+        profit: "+$420.30",
+        profitPercentage: "+1.5%"
+      }, {
+        id: "T1005",
+        date: "2025-05-15",
+        type: "Buy",
+        signal: "MACD Signal",
+        price: "$345.25",
+        contracts: 75,
+        profit: "-$210.40",
+        profitPercentage: "-0.8%"
+      }, {
+        id: "T1006",
+        date: "2025-05-10",
+        type: "Sell",
+        signal: "Bollinger Bands",
+        price: "$532.75",
+        contracts: 40,
+        profit: "+$380.60",
+        profitPercentage: "+1.8%"
+      }, {
+        id: "T1007",
+        date: "2025-05-05",
+        type: "Buy",
+        signal: "Fibonacci Level",
+        price: "$125.40",
+        contracts: 200,
+        profit: "+$750.25",
+        profitPercentage: "+3.0%"
+      }, {
+        id: "T1008",
+        date: "2025-04-25",
+        type: "Sell",
+        signal: "Volume Spike",
+        price: "$276.30",
+        contracts: 80,
+        profit: "-$320.15",
+        profitPercentage: "-1.5%"
+      }];
     } else {
-      return [
-        { id: "T1001", date: "2025-05-20", type: "Buy", signal: "RSI Oversold", price: "$178.45", contracts: 100, profit: "+$320.50", profitPercentage: "+1.8%" },
-        { id: "T1002", date: "2025-05-19", type: "Sell", signal: "MA Crossover", price: "$402.10", contracts: 50, profit: "-$145.20", profitPercentage: "-0.7%" },
-        { id: "T1003", date: "2025-05-18", type: "Buy", signal: "Support Level", price: "$924.30", contracts: 25, profit: "+$560.75", profitPercentage: "+2.4%" },
-        { id: "T1004", date: "2025-05-17", type: "Sell", signal: "Resistance Break", price: "$185.60", contracts: 150, profit: "+$420.30", profitPercentage: "+1.5%" },
-        { id: "T1005", date: "2025-05-15", type: "Buy", signal: "MACD Signal", price: "$345.25", contracts: 75, profit: "-$210.40", profitPercentage: "-0.8%" },
-        { id: "T1006", date: "2025-05-10", type: "Sell", signal: "Bollinger Bands", price: "$532.75", contracts: 40, profit: "+$380.60", profitPercentage: "+1.8%" },
-        { id: "T1007", date: "2025-05-05", type: "Buy", signal: "Fibonacci Level", price: "$125.40", contracts: 200, profit: "+$750.25", profitPercentage: "+3.0%" },
-        { id: "T1008", date: "2025-04-25", type: "Sell", signal: "Volume Spike", price: "$276.30", contracts: 80, profit: "-$320.15", profitPercentage: "-1.5%" },
-        { id: "T1009", date: "2025-04-10", type: "Buy", signal: "Trend Line Break", price: "$642.80", contracts: 35, profit: "+$425.50", profitPercentage: "+1.9%" },
-        { id: "T1010", date: "2025-03-20", type: "Sell", signal: "Head and Shoulders", price: "$185.30", contracts: 120, profit: "+$620.75", profitPercentage: "+2.8%" },
-        { id: "T1011", date: "2025-02-15", type: "Buy", signal: "Golden Cross", price: "$358.45", contracts: 60, profit: "+$430.20", profitPercentage: "+2.0%" },
-        { id: "T1012", date: "2025-01-05", type: "Sell", signal: "Divergence", price: "$476.90", contracts: 90, profit: "-$280.30", profitPercentage: "-0.6%" }
-      ];
+      return [{
+        id: "T1001",
+        date: "2025-05-20",
+        type: "Buy",
+        signal: "RSI Oversold",
+        price: "$178.45",
+        contracts: 100,
+        profit: "+$320.50",
+        profitPercentage: "+1.8%"
+      }, {
+        id: "T1002",
+        date: "2025-05-19",
+        type: "Sell",
+        signal: "MA Crossover",
+        price: "$402.10",
+        contracts: 50,
+        profit: "-$145.20",
+        profitPercentage: "-0.7%"
+      }, {
+        id: "T1003",
+        date: "2025-05-18",
+        type: "Buy",
+        signal: "Support Level",
+        price: "$924.30",
+        contracts: 25,
+        profit: "+$560.75",
+        profitPercentage: "+2.4%"
+      }, {
+        id: "T1004",
+        date: "2025-05-17",
+        type: "Sell",
+        signal: "Resistance Break",
+        price: "$185.60",
+        contracts: 150,
+        profit: "+$420.30",
+        profitPercentage: "+1.5%"
+      }, {
+        id: "T1005",
+        date: "2025-05-15",
+        type: "Buy",
+        signal: "MACD Signal",
+        price: "$345.25",
+        contracts: 75,
+        profit: "-$210.40",
+        profitPercentage: "-0.8%"
+      }, {
+        id: "T1006",
+        date: "2025-05-10",
+        type: "Sell",
+        signal: "Bollinger Bands",
+        price: "$532.75",
+        contracts: 40,
+        profit: "+$380.60",
+        profitPercentage: "+1.8%"
+      }, {
+        id: "T1007",
+        date: "2025-05-05",
+        type: "Buy",
+        signal: "Fibonacci Level",
+        price: "$125.40",
+        contracts: 200,
+        profit: "+$750.25",
+        profitPercentage: "+3.0%"
+      }, {
+        id: "T1008",
+        date: "2025-04-25",
+        type: "Sell",
+        signal: "Volume Spike",
+        price: "$276.30",
+        contracts: 80,
+        profit: "-$320.15",
+        profitPercentage: "-1.5%"
+      }, {
+        id: "T1009",
+        date: "2025-04-10",
+        type: "Buy",
+        signal: "Trend Line Break",
+        price: "$642.80",
+        contracts: 35,
+        profit: "+$425.50",
+        profitPercentage: "+1.9%"
+      }, {
+        id: "T1010",
+        date: "2025-03-20",
+        type: "Sell",
+        signal: "Head and Shoulders",
+        price: "$185.30",
+        contracts: 120,
+        profit: "+$620.75",
+        profitPercentage: "+2.8%"
+      }, {
+        id: "T1011",
+        date: "2025-02-15",
+        type: "Buy",
+        signal: "Golden Cross",
+        price: "$358.45",
+        contracts: 60,
+        profit: "+$430.20",
+        profitPercentage: "+2.0%"
+      }, {
+        id: "T1012",
+        date: "2025-01-05",
+        type: "Sell",
+        signal: "Divergence",
+        price: "$476.90",
+        contracts: 90,
+        profit: "-$280.30",
+        profitPercentage: "-0.6%"
+      }];
     }
   };
-
   const metrics = getMetricCardData(timeRange);
   const tradeHistory = getTradeHistoryData(timeRange);
-  
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-4 md:p-6">
@@ -169,7 +363,7 @@ const Dashboard = () => {
             <Card>
               <div className="p-6">
                 <h2 className="text-xl font-bold">Trade History</h2>
-                <p className="text-sm text-muted-foreground mt-1">Recent trading activity across all strategies</p>
+                
               </div>
 
               <div className="px-6 pb-6">

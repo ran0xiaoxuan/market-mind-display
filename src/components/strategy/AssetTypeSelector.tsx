@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, RefreshCw } from "lucide-react";
 import { debounce } from "lodash";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -27,22 +27,44 @@ export const AssetTypeSelector = ({
   const [selectedAssetDetails, setSelectedAssetDetails] = useState<Asset | null>(null);
   const [isSearchError, setIsSearchError] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Fetch API key on component mount
+  // Fetch API key on component mount and retry if needed
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
+        setIsLoading(true);
         const key = await getFmpApiKey();
         setApiKey(key);
         setIsApiAvailable(!!key);
         console.log("API key retrieved successfully:", !!key);
+        
+        // If we have a key, let's validate it with a simple search
+        if (key) {
+          try {
+            const testResults = await searchStocks("AAPL", key);
+            const isValid = Array.isArray(testResults) && testResults.length > 0;
+            setIsApiAvailable(isValid);
+            
+            if (!isValid && retryCount < 2) {
+              console.log("API key validation failed, retrying...");
+              setRetryCount(prev => prev + 1);
+            }
+          } catch (error) {
+            console.error("API key validation failed:", error);
+            setIsApiAvailable(false);
+          }
+        }
       } catch (error) {
         console.error("Error fetching API key:", error);
         setIsApiAvailable(false);
+      } finally {
+        setIsLoading(false);
       }
     };
+    
     fetchApiKey();
-  }, []);
+  }, [retryCount]);
 
   // Set selected asset details when selectedAsset changes
   useEffect(() => {
@@ -76,8 +98,14 @@ export const AssetTypeSelector = ({
     setIsSearchError(false);
     
     try {
-      // Search stocks using cached or fresh API key
-      const results = await searchStocks(query, apiKey);
+      // Always attempt to use the FMP API first with fresh API key
+      const key = apiKey || await getFmpApiKey();
+      
+      if (!key) {
+        throw new Error("No API key available");
+      }
+      
+      const results = await searchStocks(query, key);
       setSearchResults(results);
       
       if (results.length === 0 && query.length > 0) {
@@ -94,18 +122,18 @@ export const AssetTypeSelector = ({
       if (query.length > 0) {
         toast({
           title: "Search Failed",
-          description: "Using local data instead of live market data.",
+          description: "Could not fetch live market data. Please check your connection and try again.",
           variant: "destructive"
         });
       }
       
-      // Use local fallback data
+      // Use local fallback data as last resort
       const localResults = searchLocalAssets(query);
       setSearchResults(localResults);
     } finally {
       setIsLoading(false);
     }
-  }, 300), [apiKey, isSearchError]);
+  }, 300), [apiKey]);
 
   // Reset search error state when query changes
   useEffect(() => {
@@ -122,7 +150,39 @@ export const AssetTypeSelector = ({
   // Handle search dialog open
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
-    setSearchResults(popularStocks); // Show popular stocks on dialog open
+    
+    // Try to load fresh market data for popular stocks on dialog open
+    setIsLoading(true);
+    if (isApiAvailable && apiKey) {
+      searchStocks("", apiKey)
+        .then(results => {
+          if (results.length > 0) {
+            setSearchResults(results);
+          } else {
+            setSearchResults(popularStocks);
+          }
+        })
+        .catch(() => {
+          setSearchResults(popularStocks);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setSearchResults(popularStocks);
+      setIsLoading(false);
+    }
+  };
+
+  // Retry connecting to the FMP API
+  const handleRetryApiConnection = () => {
+    setRetryCount(prev => prev + 1);
+    setIsApiAvailable(true); // Optimistically set to true until we know otherwise
+    
+    toast({
+      title: "Reconnecting to Market Data",
+      description: "Attempting to connect to live market data..."
+    });
   };
 
   // Select asset and close dialog
@@ -158,11 +218,13 @@ export const AssetTypeSelector = ({
             }
           }}
         >
-          <DialogTitle className="sr-only">
+          <DialogTitle>
             Search Stocks
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            Search for stocks by symbol or name
+          <DialogDescription>
+            {isApiAvailable 
+              ? "Search for stocks by symbol or name" 
+              : "Live market data currently unavailable. Using local data."}
           </DialogDescription>
           <CommandInput 
             placeholder="Type to search for stocks..." 
@@ -208,8 +270,17 @@ export const AssetTypeSelector = ({
       </div>
       
       {!isApiAvailable && (
-        <div className="text-xs text-muted-foreground mt-1">
-          Using local stock data. Live market data currently unavailable.
+        <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
+          <span>Using local stock data. Live market data currently unavailable.</span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 flex items-center gap-1"
+            onClick={handleRetryApiConnection}
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </Button>
         </div>
       )}
     </Card>

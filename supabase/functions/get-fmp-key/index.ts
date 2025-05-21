@@ -40,6 +40,22 @@ serve(async (req) => {
       );
     }
 
+    // Validate the API key format (basic check)
+    if (typeof fmpApiKey !== 'string' || fmpApiKey.trim().length < 10) {
+      console.error("FMP API key appears to be invalid");
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid API key format",
+          success: false,
+          message: "The FMP_API_KEY environment variable contains an invalid API key" 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
     // Return the API key
     console.log("Successfully providing FMP API key to client");
     

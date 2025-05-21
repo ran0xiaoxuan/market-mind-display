@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Search } from "lucide-react";
 import { debounce } from "lodash";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { DialogTitle } from "@/components/ui/dialog";
+import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
 import { popularStocks, searchLocalAssets } from "@/data/assetData";
@@ -26,18 +26,19 @@ export const AssetTypeSelector = ({
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [selectedAssetDetails, setSelectedAssetDetails] = useState<Asset | null>(null);
   const [isSearchError, setIsSearchError] = useState(false);
+  const [isApiAvailable, setIsApiAvailable] = useState(true);
 
   // Fetch API key on component mount
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
         const key = await getFmpApiKey();
-        if (key) {
-          setApiKey(key);
-          console.log("API key retrieved successfully");
-        }
+        setApiKey(key);
+        setIsApiAvailable(!!key);
+        console.log("API key retrieved successfully:", !!key);
       } catch (error) {
         console.error("Error fetching API key:", error);
+        setIsApiAvailable(false);
       }
     };
     fetchApiKey();
@@ -66,7 +67,7 @@ export const AssetTypeSelector = ({
   const searchAssets = useCallback(debounce(async (query: string) => {
     // Only search if query is not empty
     if (!query || query.trim() === "") {
-      setSearchResults(popularStocks.slice(0, 6)); // Show popular stocks when no query
+      setSearchResults(popularStocks); // Show popular stocks when no query
       setIsLoading(false);
       return;
     }
@@ -121,7 +122,7 @@ export const AssetTypeSelector = ({
   // Handle search dialog open
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
-    setSearchResults(popularStocks.slice(0, 6)); // Show popular stocks on dialog open
+    setSearchResults(popularStocks); // Show popular stocks on dialog open
   };
 
   // Select asset and close dialog
@@ -160,6 +161,9 @@ export const AssetTypeSelector = ({
           <DialogTitle className="sr-only">
             Search Stocks
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Search for stocks by symbol or name
+          </DialogDescription>
           <CommandInput 
             placeholder="Type to search for stocks..." 
             value={searchQuery} 
@@ -202,6 +206,12 @@ export const AssetTypeSelector = ({
           </CommandList>
         </CommandDialog>
       </div>
+      
+      {!isApiAvailable && (
+        <div className="text-xs text-muted-foreground mt-1">
+          Using local stock data. Live market data currently unavailable.
+        </div>
+      )}
     </Card>
   );
 };

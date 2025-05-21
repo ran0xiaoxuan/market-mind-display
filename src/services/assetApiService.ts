@@ -10,6 +10,8 @@ export interface Asset {
 
 // Cache the API key to avoid redundant calls
 let cachedApiKey: string | null = null;
+let lastApiKeyFetchAttempt = 0;
+const API_KEY_FETCH_COOLDOWN = 10000; // 10 seconds between fetch attempts
 
 /**
  * Fetches the FMP API key securely from the Supabase edge function
@@ -20,6 +22,15 @@ export const getFmpApiKey = async (): Promise<string | null> => {
     console.log("Using cached FMP API key");
     return cachedApiKey;
   }
+
+  // Check if we recently tried to fetch and failed
+  const now = Date.now();
+  if (now - lastApiKeyFetchAttempt < API_KEY_FETCH_COOLDOWN) {
+    console.log("Recently failed to fetch API key, using cooldown period");
+    return null;
+  }
+  
+  lastApiKeyFetchAttempt = now;
   
   try {
     console.log("Attempting to fetch FMP API key from edge function...");
@@ -31,13 +42,13 @@ export const getFmpApiKey = async (): Promise<string | null> => {
       }
     });
     
-    if (error || !data?.apiKey) {
-      console.error("Error fetching FMP API key:", error || "No API key returned");
-      toast({
-        title: "API Key Error",
-        description: "Failed to retrieve API key. Using local data instead.",
-        variant: "destructive"
-      });
+    if (error) {
+      console.error("Error from edge function:", error);
+      return null;
+    }
+    
+    if (!data?.apiKey) {
+      console.error("No API key returned from edge function");
       return null;
     }
 
@@ -46,11 +57,6 @@ export const getFmpApiKey = async (): Promise<string | null> => {
     return data.apiKey;
   } catch (error) {
     console.error("Exception fetching FMP API key:", error);
-    toast({
-      title: "API Connection Error",
-      description: "Could not connect to API service. Using local data instead.",
-      variant: "destructive"
-    });
     return null;
   }
 };
@@ -62,6 +68,7 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
   try {
     // If no query, return popular stocks
     if (!query || query.trim() === '') {
+      console.log("No query provided, returning popular stocks");
       return popularStocks;
     }
     
@@ -81,33 +88,45 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     
     console.log("Calling FMP API for stocks with URL:", url.replace(apiKey, "API_KEY_HIDDEN"));
     
-    const response = await fetch(url, { 
-      headers: { 
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
-      mode: 'cors',
-      signal: AbortSignal.timeout(8000) // 8 second timeout
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Console log for debugging
-    console.log(`Stock search for "${query}" returned ${data.length} results`);
-    
-    if (data.length === 0) {
-      // If no results from API, try local fallback
+    try {
+      const response = await fetch(url, { 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Origin': window.location.origin
+        },
+        mode: 'cors',
+        signal: AbortSignal.timeout(8000) // 8 second timeout
+      });
+      
+      if (!response.ok) {
+        console.error(`API error: ${response.status} ${response.statusText}`);
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Console log for debugging
+      console.log(`Stock search for "${query}" returned ${data.length} results`);
+      
+      if (data.length === 0) {
+        // If no results from API, try local fallback
+        return searchLocalAssets(query);
+      }
+      
+      return data.map((item: any) => ({
+        symbol: item.symbol,
+        name: item.name || item.symbol
+      }));
+    } catch (fetchError) {
+      console.error("Fetch error when calling FMP API:", fetchError);
+      // Clear the cached API key as it might be invalid
+      if (cachedApiKey) {
+        console.log("Clearing cached API key due to fetch error");
+        cachedApiKey = null;
+      }
+      // Use local fallback data
       return searchLocalAssets(query);
     }
-    
-    return data.map((item: any) => ({
-      symbol: item.symbol,
-      name: item.name || item.symbol
-    }));
   } catch (error) {
     console.error("Error searching stocks:", error);
     

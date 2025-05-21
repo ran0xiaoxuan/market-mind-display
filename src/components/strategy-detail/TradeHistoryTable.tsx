@@ -30,11 +30,6 @@ export const TradeHistoryTable = ({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/20">
-            <TableHead className="whitespace-nowrap font-medium">
-              <div className="flex items-center gap-1">
-                Trade # <ArrowDownUp size={14} className="text-muted-foreground" />
-              </div>
-            </TableHead>
             <TableHead className="whitespace-nowrap font-medium">Strategy</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Asset</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
@@ -47,16 +42,12 @@ export const TradeHistoryTable = ({
         <TableBody>
           {safeTrades.length > 0 ? (
             safeTrades.map((trade, index) => {
-              const tradeId = trade.id || (index + 1);
               const isBuy = trade.type.toLowerCase().includes('buy');
               const isProfitPositive = trade.profit ? !trade.profit.includes('-') : false;
               const isProfitNegative = trade.profit ? trade.profit.includes('-') : false;
               
               return (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    {tradeId}
-                  </TableCell>
                   <TableCell>
                     {trade.strategyName || "—"}
                   </TableCell>
@@ -103,7 +94,7 @@ export const TradeHistoryTable = ({
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 No trade history available
               </TableCell>
             </TableRow>

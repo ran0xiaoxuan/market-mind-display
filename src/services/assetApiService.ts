@@ -1,7 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { popularStocks } from "@/data/assetData";
 
 export interface Asset {
   symbol: string;
@@ -112,14 +110,16 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
       throw new Error("Unable to access market data: API key not available");
     }
     
-    // Define the correct endpoint based on whether we have a query
-    const endpoint = query 
-      ? `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`
-      : `stock/list?exchange=NASDAQ,NYSE`;
-      
+    // If no query, return empty array (no more default popular stocks)
+    if (!query.trim()) {
+      return [];
+    }
+    
+    // Define the search endpoint
+    const endpoint = `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`;
     const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`;
     
-    console.log(`Calling FMP API for ${query ? 'search' : 'popular stocks'}`);
+    console.log(`Calling FMP API for search: ${query}`);
     
     const response = await fetch(url, { 
       headers: { 'Content-Type': 'application/json' },
@@ -142,24 +142,12 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     
     console.log(`FMP API returned ${data.length} results`);
     
-    // If no results, return empty array or popular stocks depending on query
+    // If no results, return empty array
     if (data.length === 0) {
-      return query ? [] : popularStocks;
+      return [];
     }
     
-    // For stock/list endpoint, we need to transform the data slightly
-    if (!query) {
-      // Filter and limit to major stocks
-      return data
-        .filter((item: any) => item.symbol && (item.name || item.companyName))
-        .slice(0, 15)
-        .map((item: any) => ({
-          symbol: item.symbol,
-          name: item.name || item.companyName || item.symbol
-        }));
-    }
-    
-    // For search endpoint, map the results
+    // Map the results
     return data.map((item: any) => ({
       symbol: item.symbol,
       name: item.name || item.symbol

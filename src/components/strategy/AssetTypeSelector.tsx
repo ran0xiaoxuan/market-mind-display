@@ -7,10 +7,12 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, validateFmpApiKey, Asset } from "@/services/assetApiService";
+
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
+
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -102,17 +104,23 @@ export const AssetTypeSelector = ({
         throw new Error("Could not retrieve market data API key");
       }
 
-      // Fetch results from the API service
-      const results = await searchStocks(query, key);
-      setSearchResults(results);
+      // Only search if there's an actual query
+      if (query.trim().length > 0) {
+        // Fetch results from the API service
+        const results = await searchStocks(query, key);
+        setSearchResults(results);
 
-      // Show toast for no results
-      if (results.length === 0 && query.length > 0) {
-        toast({
-          title: "No Results Found",
-          description: `No stocks found matching "${query}"`,
-          variant: "default"
-        });
+        // Show toast for no results
+        if (results.length === 0) {
+          toast({
+            title: "No Results Found",
+            description: `No stocks found matching "${query}"`,
+            variant: "default"
+          });
+        }
+      } else {
+        // Clear results when query is empty
+        setSearchResults([]);
       }
     } catch (error) {
       console.error(`Error searching stocks:`, error);
@@ -145,34 +153,8 @@ export const AssetTypeSelector = ({
   const handleSearchOpen = async () => {
     setIsSearchOpen(true);
     setIsLoading(true);
-    try {
-      // Ensure we have an API key
-      const key = apiKey || (await getFmpApiKey());
-      if (!key) {
-        throw new Error("Could not retrieve market data API key");
-      }
-
-      // Load initial market data
-      const results = await searchStocks("", key);
-      setSearchResults(results);
-      if (results.length === 0) {
-        toast({
-          title: "No Data Available",
-          description: "Could not load initial market data. Please try searching for a specific stock.",
-          variant: "default"
-        });
-      }
-    } catch (error) {
-      console.error("Error loading initial market data:", error);
-      setIsSearchError(true);
-      toast({
-        title: "Market Data Unavailable",
-        description: "Could not connect to market data service. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    setSearchQuery("");
+    setSearchResults([]);
   };
 
   // Retry connecting to the FMP API
@@ -236,7 +218,7 @@ export const AssetTypeSelector = ({
                 </p>}
             </CommandEmpty>
             
-            {searchResults.length > 0 && <CommandGroup heading={searchQuery ? "Search Results" : "Popular Stocks"}>
+            {searchResults.length > 0 && <CommandGroup heading="Search Results">
                 {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
                     <div className="flex flex-col">
                       <span className="font-medium">{asset.symbol}</span>

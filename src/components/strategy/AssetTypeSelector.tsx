@@ -220,7 +220,7 @@ export const AssetTypeSelector = ({
           }, 100);
         }
       }}>
-          <DialogTitle>
+          <DialogTitle className="mx-[20px] my-[20px]">
             Search Stocks
           </DialogTitle>
           

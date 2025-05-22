@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -151,8 +152,8 @@ export const AssetTypeSelector = ({
   // Handle search dialog open
   const handleSearchOpen = async () => {
     setIsSearchOpen(true);
-    setIsLoading(true);
-    setSearchQuery("");
+    // Only set loading initially if we have a query to search
+    setIsLoading(!!searchQuery.trim().length);
     setSearchResults([]);
   };
 

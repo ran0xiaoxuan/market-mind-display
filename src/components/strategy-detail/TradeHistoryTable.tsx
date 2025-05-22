@@ -140,7 +140,7 @@ export const TradeHistoryTable = ({
           <Button 
             variant="outline" 
             onClick={onViewAllClick} 
-            className="w-full sm:w-auto"
+            className="w-full"
           >
             {hasMoreTrades ? `View All (${safeTrades.length})` : "View All Trades"}
           </Button>

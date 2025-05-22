@@ -277,8 +277,11 @@ const Recommendations = () => {
 
   // Add a new recommended strategy (admin only) - Updated to use an existing strategy
   const addOfficialStrategy = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin || !session?.user?.id) return;
+    
     try {
+      console.log("Adding official strategy with ID:", selectedStrategyId);
+      
       if (!selectedStrategyId) {
         toast.error("Please select a strategy");
         return;
@@ -288,30 +291,36 @@ const Recommendations = () => {
       const { data: existingRec, error: checkError } = await supabase
         .from('recommended_strategies')
         .select('*')
-        .eq('strategy_id', selectedStrategyId)
-        .single();
+        .eq('strategy_id', selectedStrategyId);
       
-      if (checkError && checkError.code !== 'PGRST116') { // Not found error is expected
+      // Only throw if it's not a "not found" error
+      if (checkError) {
+        console.error("Error checking existing recommendation:", checkError);
         throw checkError;
       }
       
-      if (existingRec) {
+      if (existingRec && existingRec.length > 0) {
         toast.error("This strategy is already in recommendations");
         return;
       }
 
       // Add the selected strategy to recommendations as public and official
-      const { error: recommendError } = await supabase
+      const { data: insertData, error: recommendError } = await supabase
         .from('recommended_strategies')
         .insert({
           strategy_id: selectedStrategyId,
-          recommended_by: session?.user?.id,
+          recommended_by: session.user.id,
           is_official: true,
           is_public: true  // Mark as public so all users can see it
-        });
+        })
+        .select();
       
-      if (recommendError) throw recommendError;
+      if (recommendError) {
+        console.error("Error inserting recommendation:", recommendError);
+        throw recommendError;
+      }
 
+      console.log("Successfully added strategy to recommendations:", insertData);
       toast.success("Official strategy added to recommendations");
       setShowUploadDialog(false);
       setSelectedStrategyId("");
@@ -589,7 +598,10 @@ const Recommendations = () => {
               <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={addOfficialStrategy} disabled={!selectedStrategyId}>
+              <Button onClick={addOfficialStrategy} disabled={!selectedStrategyId || loadingUserStrategies}>
+                {loadingUserStrategies ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
                 Add to Recommendations
               </Button>
             </DialogFooter>

@@ -24,8 +24,8 @@ export function UserMenu() {
     }
   };
 
-  // Correctly extract display name from user metadata
-  // User metadata stores the display name, which is what we want to show
+  // Extract display name from user metadata
+  // Always prioritize display_name from user metadata
   const displayName = user?.user_metadata?.display_name;
   // Only fall back to these if display name is not available
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";

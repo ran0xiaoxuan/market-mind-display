@@ -7,12 +7,10 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, validateFmpApiKey, Asset } from "@/services/assetApiService";
-
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
-
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -211,9 +209,7 @@ export const AssetTypeSelector = ({
             <CommandEmpty>
               {isLoading ? <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div> : searchQuery.trim() === "" ? <p className="p-4 text-center text-sm text-muted-foreground">
-                  Type to search for stocks
-                </p> : <p className="p-4 text-center text-sm text-muted-foreground">
+                </div> : searchQuery.trim() === "" ? <p className="p-4 text-center text-sm text-muted-foreground">Results will be shown here.</p> : <p className="p-4 text-center text-sm text-muted-foreground">
                   No stocks found
                 </p>}
             </CommandEmpty>

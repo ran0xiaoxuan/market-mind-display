@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, fetchPublicRecommendedStrategies } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2 } from "lucide-react";
@@ -145,67 +145,20 @@ const Recommendations = () => {
     }
   }, [searchQuery, userStrategies, isSearchOpen]);
 
-  // Fetch recommended strategies directly from the database
+  // Fetch recommended strategies - UPDATED to use the new helper function
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
       
-      console.log("Fetching recommended strategies...");
+      // Use the helper function to fetch recommended strategies
+      const collectedStrategies = await fetchPublicRecommendedStrategies();
       
-      // Step 1: Fetch all public recommendations with their related strategies using a join
-      const { data: recommendedData, error: recommendedError } = await supabase
-        .from('recommended_strategies')
-        .select(`
-          *,
-          strategies:strategy_id (*)
-        `)
-        .eq('is_public', true);
-      
-      if (recommendedError) {
-        console.error("Error fetching recommended strategies:", recommendedError);
-        setStrategies([]);
-        return;
-      }
-      
-      console.log("Recommended strategies with join data:", recommendedData);
-      
-      if (!recommendedData || recommendedData.length === 0) {
-        console.log("No recommended strategies found");
-        setStrategies([]);
-        return;
-      }
-      
-      // Map the joined data to our RecommendedStrategy format
-      const formattedStrategies: RecommendedStrategy[] = recommendedData
-        .filter(record => record.strategies) // Filter out any records without a strategy
-        .map(record => ({
-          id: record.strategies.id,
-          user_id: record.strategies.user_id,
-          name: record.strategies.name,
-          description: record.strategies.description,
-          is_active: record.strategies.is_active,
-          timeframe: record.strategies.timeframe,
-          target_asset: record.strategies.target_asset,
-          target_asset_name: record.strategies.target_asset_name,
-          created_at: record.strategies.created_at,
-          updated_at: record.strategies.updated_at,
-          stop_loss: record.strategies.stop_loss,
-          take_profit: record.strategies.take_profit,
-          single_buy_volume: record.strategies.single_buy_volume,
-          max_buy_volume: record.strategies.max_buy_volume,
-          is_official: record.is_official,
-          is_public: record.is_public,
-          // Set a default rating (can be enhanced later)
-          rating: 4 + Math.random()  // Generate a random rating between 4-5 for now
-        }));
-      
-      console.log("Formatted strategies:", formattedStrategies);
-      setStrategies(formattedStrategies);
+      console.log("Collected strategies using helper function:", collectedStrategies);
+      setStrategies(collectedStrategies);
       
     } catch (error) {
       console.error("Error in fetchRecommendedStrategies:", error);
       toast.error("Failed to load recommendations");
-      setStrategies([]);
     } finally {
       setLoading(false);
     }
@@ -432,7 +385,7 @@ const Recommendations = () => {
                     {/* Star rating moved to bottom right */}
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
-                      <span className="text-sm font-medium">{strategy.rating?.toFixed(1) || 0}</span>
+                      <span className="text-sm font-medium">{strategy.rating || 0}</span>
                     </div>
                   </CardFooter>
                 </Card>)}

@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -73,7 +73,6 @@ const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [assetFilter, setAssetFilter] = useState("all");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -298,17 +297,11 @@ const Recommendations = () => {
     setActiveTab("overview");
   };
 
-  // Filter strategies based on search and asset filter
-  const filteredStrategies = strategies.filter(strategy => {
-    const matchesSearch = 
-      strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      strategy.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesAsset = assetFilter === "all" || strategy.target_asset?.toLowerCase() === assetFilter.toLowerCase();
-    return matchesSearch && matchesAsset;
-  });
-
-  // Get unique assets for filter dropdown
-  const uniqueAssets = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+  // Filter strategies based on search term only (removed asset filter)
+  const filteredStrategies = strategies.filter(strategy => 
+    strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
   useEffect(() => {
     fetchRecommendedStrategies();
@@ -331,23 +324,13 @@ const Recommendations = () => {
               </Button>}
           </div>
           
-          <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
-            <div className="w-full sm:w-2/3">
-              <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
-            </div>
-            <div className="w-full sm:w-1/4">
-              <Select value={assetFilter} onValueChange={setAssetFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Assets" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Assets</SelectItem>
-                  {uniqueAssets.map(asset => <SelectItem key={asset} value={asset || ""}>
-                      {asset}
-                    </SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="mb-6">
+            <Input 
+              placeholder="Search recommendations..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="w-full" 
+            />
           </div>
           
           {loading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -635,3 +618,4 @@ const Recommendations = () => {
     </div>;
 };
 export default Recommendations;
+

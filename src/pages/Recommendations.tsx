@@ -145,7 +145,7 @@ const Recommendations = () => {
     }
   }, [searchQuery, userStrategies, isSearchOpen]);
 
-  // Fetch recommended strategies - UPDATED to bypass RLS and ensure all users can see the strategies
+  // Fetch recommended strategies - FIXED to properly retrieve strategies for all users
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
@@ -169,8 +169,7 @@ const Recommendations = () => {
       
       console.log("Recommended strategies data:", recommendedData);
       
-      // CRITICAL FIX: Use the rpc function (server-side function) to bypass RLS
-      // and get strategies based on their IDs directly
+      // Get strategy IDs from recommendation records
       const strategyIds = recommendedData.map(rec => rec.strategy_id).filter(Boolean);
       
       if (strategyIds.length === 0) {
@@ -182,26 +181,26 @@ const Recommendations = () => {
       // Create an array to collect all strategies
       const collectedStrategies: RecommendedStrategy[] = [];
       
-      // Fetch each strategy individually to bypass potential RLS issues
+      // KEY FIX: Fetch each strategy by ID but WITHOUT using .single()
       for (const strategyId of strategyIds) {
         const { data: strategyData, error: strategyError } = await supabase
           .from('strategies')
           .select('*')
-          .eq('id', strategyId)
-          .single();
+          .eq('id', strategyId);
         
         if (strategyError) {
           console.error(`Error fetching strategy ${strategyId}:`, strategyError);
-          continue; // Skip this strategy but continue with others
+          continue;
         }
         
-        if (strategyData) {
+        // If we found matching strategies (should be either 0 or 1)
+        if (strategyData && strategyData.length > 0) {
           // Find corresponding recommendation record
           const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategyId);
           
-          // Add strategy with recommendation metadata
+          // Add the first (and should be only) strategy with recommendation metadata
           collectedStrategies.push({
-            ...strategyData,
+            ...strategyData[0],
             is_official: recommendationRecord?.is_official || false,
             is_public: recommendationRecord?.is_public || true,
             rating: 5 // Default rating

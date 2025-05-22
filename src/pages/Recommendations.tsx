@@ -151,29 +151,53 @@ const Recommendations = () => {
     try {
       setLoading(true);
       
-      // Get strategies from the recommended_strategies table joined with actual strategy details
-      const { data: recommendedStrategies, error } = await supabase
+      // First, get the strategy IDs from recommended_strategies
+      const { data: recommendedData, error: recommendedError } = await supabase
         .from('recommended_strategies')
-        .select(`
-          *,
-          strategies:strategy_id(*)
-        `);
-      
-      if (error) {
-        console.error("Error fetching recommended strategies:", error);
-        throw error;
+        .select('*');
+        
+      if (recommendedError) {
+        console.error("Error fetching recommended strategies:", recommendedError);
+        throw recommendedError;
       }
-
-      console.log("Recommended strategies data:", recommendedStrategies);
-
+      
+      if (!recommendedData || recommendedData.length === 0) {
+        console.log("No recommended strategies found");
+        setStrategies([]);
+        setLoading(false);
+        return;
+      }
+      
+      console.log("Recommended strategies data:", recommendedData);
+      
+      // Extract strategy IDs
+      const strategyIds = recommendedData.map(rec => rec.strategy_id);
+      
+      // Now fetch the actual strategy details
+      const { data: strategyData, error: strategyError } = await supabase
+        .from('strategies')
+        .select('*')
+        .in('id', strategyIds);
+        
+      if (strategyError) {
+        console.error("Error fetching strategy details:", strategyError);
+        throw strategyError;
+      }
+      
+      console.log("Strategy details:", strategyData);
+      
       // Process the returned data to format it correctly
-      const processedStrategies = (recommendedStrategies as RecommendedStrategyRecord[])
-        .filter(rec => rec.strategies !== null) // Filter out any records with null strategy data
-        .map(rec => ({
-          ...rec.strategies,
-          is_official: rec.is_official || false,
-          is_public: rec.is_public || false
-        }));
+      const processedStrategies = strategyData.map(strategy => {
+        // Find the recommendation record for this strategy
+        const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategy.id);
+        
+        return {
+          ...strategy,
+          is_official: recommendationRecord?.is_official || false,
+          is_public: true, // All strategies in recommendations are considered public
+          rating: 5 // Default rating for now
+        };
+      });
       
       setStrategies(processedStrategies as RecommendedStrategy[]);
       
@@ -353,7 +377,6 @@ const Recommendations = () => {
                       <div>
                         <CardTitle className="text-xl text-slate-800">{strategy.name}</CardTitle>
                         <div className="flex items-center mt-1 space-x-2">
-                          
                           {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
                               {strategy.target_asset}
                             </Badge>}
@@ -618,4 +641,3 @@ const Recommendations = () => {
     </div>;
 };
 export default Recommendations;
-

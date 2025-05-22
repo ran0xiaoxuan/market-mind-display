@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,12 +15,16 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signUp, user } = useAuth();
-  const { toast } = useToast();
-
+  const {
+    signUp,
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate password match
     if (password !== confirmPassword) {
       toast({
@@ -32,7 +34,7 @@ export default function Signup() {
       });
       return;
     }
-    
+
     // Validate password length
     if (password.length < 8) {
       toast({
@@ -42,16 +44,15 @@ export default function Signup() {
       });
       return;
     }
-    
     setIsSubmitting(true);
-    
     try {
       // Include name in metadata
-      const { error } = await signUp(email, password, {
+      const {
+        error
+      } = await signUp(email, password, {
         full_name: name,
-        username: email.split("@")[0]  // Default username from email
+        username: email.split("@")[0] // Default username from email
       });
-      
       if (error) {
         toast({
           title: "Signup failed",
@@ -74,9 +75,7 @@ export default function Signup() {
   if (user) {
     return <Navigate to="/" replace />;
   }
-
-  return (
-    <AuthLayout>
+  return <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
           <h1 className="text-xl font-semibold">Create an account</h1>
@@ -86,33 +85,13 @@ export default function Signup() {
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Name
-              </label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+            
             
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                required
-                disabled={isSubmitting}
-              />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" required disabled={isSubmitting} />
             </div>
             
             <div className="space-y-2">
@@ -120,26 +99,9 @@ export default function Signup() {
                 Password
               </label>
               <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isSubmitting}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required disabled={isSubmitting} />
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)} disabled={isSubmitting}>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -152,39 +114,18 @@ export default function Signup() {
                 Confirm Password
               </label>
               <div className="relative">
-                <Input
-                  id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isSubmitting}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                <Input id="confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required disabled={isSubmitting} />
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowConfirmPassword(!showConfirmPassword)} disabled={isSubmitting}>
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
             
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
+              {isSubmitting ? <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating account...
-                </>
-              ) : (
-                "Create account"
-              )}
+                </> : "Create account"}
             </Button>
             
             <div className="text-center text-sm">
@@ -196,6 +137,5 @@ export default function Signup() {
           </form>
         </CardContent>
       </Card>
-    </AuthLayout>
-  );
+    </AuthLayout>;
 }

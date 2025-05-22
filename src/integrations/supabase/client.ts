@@ -1,3 +1,4 @@
+
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "./types";
 
@@ -27,7 +28,7 @@ export const refreshDatabaseTypes = () => {
   return true;
 };
 
-// Completely revised function to fetch public recommended strategies
+// Function to fetch public recommended strategies - updated to directly join with strategies table
 export const fetchPublicRecommendedStrategies = async () => {
   try {
     // Create a list of mock strategies for testing purposes
@@ -92,82 +93,65 @@ export const fetchPublicRecommendedStrategies = async () => {
       }
     ];
 
-    // First try to get real strategies from the database
+    // First try to get real strategies from the database using a joined query
     try {
-      // Step 1: Get all public recommendations
+      console.log("Attempting to fetch real strategies with a join query");
+      
       const { data: recommendedData, error: recommendedError } = await supabase
         .from('recommended_strategies')
-        .select('*')
+        .select(`
+          *,
+          strategies:strategy_id (*)
+        `)
         .eq('is_public', true);
       
       if (recommendedError) {
-        console.error("Error fetching recommended strategies:", recommendedError);
+        console.error("Error with join query:", recommendedError);
         // Don't throw, just return mock data
-        console.log("Falling back to mock strategies due to database error");
+        console.log("Falling back to mock strategies due to join query error");
         return mockStrategies;
       }
+      
+      console.log("Joined query results:", recommendedData);
       
       if (!recommendedData || recommendedData.length === 0) {
-        console.log("No recommended strategies found in database, using mock data");
+        console.log("No strategies found with join query, using mock data");
         return mockStrategies;
       }
       
-      console.log("Recommended strategies data:", recommendedData);
+      // Process and return the real strategies
+      const realStrategies = recommendedData
+        .filter(record => record.strategies) // Filter out any null strategies
+        .map(record => ({
+          id: record.strategies.id,
+          user_id: record.strategies.user_id,
+          name: record.strategies.name,
+          description: record.strategies.description,
+          is_active: record.strategies.is_active,
+          timeframe: record.strategies.timeframe,
+          target_asset: record.strategies.target_asset,
+          target_asset_name: record.strategies.target_asset_name,
+          created_at: record.strategies.created_at,
+          updated_at: record.strategies.updated_at,
+          stop_loss: record.strategies.stop_loss,
+          take_profit: record.strategies.take_profit,
+          single_buy_volume: record.strategies.single_buy_volume,
+          max_buy_volume: record.strategies.max_buy_volume,
+          is_official: record.is_official,
+          is_public: record.is_public,
+          rating: 4 + Math.random()  // Generate a random rating between 4-5 for now
+        }));
       
-      // Step 2: Get strategy IDs from recommendation records
-      const strategyIds = recommendedData.map(rec => rec.strategy_id).filter(Boolean);
-      
-      if (strategyIds.length === 0) {
-        console.log("No valid strategy IDs found, using mock data");
-        return mockStrategies;
+      if (realStrategies.length > 0) {
+        console.log("Returning real strategies:", realStrategies);
+        return realStrategies;
       }
       
-      // Step 3: Fetch real strategies
-      const collectedStrategies = [];
-      
-      for (const strategyId of strategyIds) {
-        try {
-          // Try to get the strategy
-          const { data: strategyData, error: strategyError } = await supabase
-            .from('strategies')
-            .select('*')
-            .eq('id', strategyId);
-          
-          if (strategyError) {
-            console.error(`Error fetching strategy ${strategyId}:`, strategyError);
-            continue;
-          }
-          
-          if (strategyData && strategyData.length > 0) {
-            // Find corresponding recommendation record
-            const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategyId);
-            
-            // Add the strategy with recommendation metadata
-            collectedStrategies.push({
-              ...strategyData[0],
-              is_official: recommendationRecord?.is_official || false,
-              is_public: recommendationRecord?.is_public || true,
-              rating: 5 // Default rating
-            });
-          }
-        } catch (innerError) {
-          console.error(`Error processing strategy ${strategyId}:`, innerError);
-        }
-      }
-      
-      console.log("Collected strategies:", collectedStrategies);
-      
-      // If we got real strategies, return them
-      if (collectedStrategies.length > 0) {
-        return collectedStrategies;
-      }
-      
-      // Otherwise fall back to mock strategies
-      console.log("No real strategies could be collected, using mock data");
+      console.log("No valid real strategies found, using mock data");
       return mockStrategies;
       
     } catch (outerError) {
-      console.error("Error in main try block:", outerError);
+      console.error("Error in fetchPublicRecommendedStrategies outer try block:", outerError);
       // Fall back to mock data
       return mockStrategies;
     }

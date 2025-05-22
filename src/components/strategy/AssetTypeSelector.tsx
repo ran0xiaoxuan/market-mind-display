@@ -200,9 +200,7 @@ export const AssetTypeSelector = ({
           }, 100);
         }
       }}>
-          <DialogTitle className="mx-[20px] my-[20px]">
-            Search Stocks
-          </DialogTitle>
+          <DialogTitle className="mx-[20px] my-[20px]">Target Asset</DialogTitle>
           
           
           <CommandInput placeholder="Type to search for stocks..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />

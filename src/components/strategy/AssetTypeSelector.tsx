@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,7 +7,6 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getFmpApiKey, searchStocks, validateFmpApiKey, Asset } from "@/services/assetApiService";
-
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
@@ -205,9 +203,7 @@ export const AssetTypeSelector = ({
           <DialogTitle className="mx-[20px] my-[20px]">
             Search Stocks
           </DialogTitle>
-          <DialogDescription className="mx-[20px] mb-2">
-            Type to search for available stocks and assets.
-          </DialogDescription>
+          
           
           <CommandInput placeholder="Type to search for stocks..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
           <CommandList>

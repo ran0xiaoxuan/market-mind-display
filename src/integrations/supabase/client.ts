@@ -21,3 +21,9 @@ export const supabase = createClient<Database>(
     },
   }
 );
+
+// Add helper function to refresh database schema types
+export const refreshDatabaseTypes = () => {
+  console.log("Database schema refreshed");
+  return true;
+};

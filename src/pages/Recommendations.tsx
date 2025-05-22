@@ -193,7 +193,7 @@ const Recommendations = () => {
         return {
           ...strategy,
           is_official: recommendationRecord?.is_official || false,
-          is_public: true, // All strategies in recommendations are considered public
+          is_public: recommendationRecord?.is_public || true, // Default to true if not specified
           rating: 5 // Default rating for now
         };
       });
@@ -293,7 +293,6 @@ const Recommendations = () => {
         .select('*')
         .eq('strategy_id', selectedStrategyId);
       
-      // Only throw if it's not a "not found" error
       if (checkError) {
         console.error("Error checking existing recommendation:", checkError);
         throw checkError;

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -142,7 +141,7 @@ export const TradeHistoryTable = ({
             onClick={onViewAllClick} 
             className="w-full"
           >
-            {hasMoreTrades ? `View All (${safeTrades.length})` : "View All Trades"}
+            View All Trades
           </Button>
         </div>
       )}

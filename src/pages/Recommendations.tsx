@@ -82,7 +82,7 @@ const Recommendations = () => {
     session
   } = useAuth();
   
-  // Admin check - only this email can add/delete official recommendations
+  // Admin check - only this specific email can add/delete official recommendations
   const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
   
   // Strategy selection related states
@@ -376,12 +376,6 @@ const Recommendations = () => {
                             </Badge>}
                         </div>
                       </div>
-                      <div className="flex items-center">
-                        <div className="flex items-center mr-2">
-                          <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
-                          <span className="text-sm font-medium">{strategy.rating || 0}</span>
-                        </div>
-                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 pt-4">
@@ -392,19 +386,19 @@ const Recommendations = () => {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-2 flex justify-between border-t">
-                    <div className="flex">
-                      {strategy.is_official && 
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 mr-2">
-                          Official
-                        </Badge>
-                      }
-                      
+                    <div>
+                      {/* Only admin can delete strategies */}
                       {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
                         e.stopPropagation();
                         deleteStrategy(strategy.id);
                       }}>
                           <Trash className="h-4 w-4" />
                         </Button>}
+                    </div>
+                    {/* Star rating moved to bottom right */}
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
+                      <span className="text-sm font-medium">{strategy.rating || 0}</span>
                     </div>
                   </CardFooter>
                 </Card>)}

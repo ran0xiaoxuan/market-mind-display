@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface Trade {
   id?: string | number;
@@ -136,12 +137,13 @@ export const TradeHistoryTable = ({
 
       {showViewAllButton && (
         <div className="mt-4 flex justify-center">
-          <button
-            onClick={onViewAllClick}
-            className="px-4 py-2 text-sm font-medium text-primary hover:underline"
+          <Button 
+            variant="outline" 
+            onClick={onViewAllClick} 
+            className="w-full sm:w-auto"
           >
             {hasMoreTrades ? `View All (${safeTrades.length})` : "View All Trades"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

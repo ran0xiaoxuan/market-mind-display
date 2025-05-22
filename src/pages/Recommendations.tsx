@@ -145,63 +145,52 @@ const Recommendations = () => {
     }
   }, [searchQuery, userStrategies, isSearchOpen]);
 
-  // Fetch recommended strategies from our new recommendations table
+  // Fetch recommended strategies - UPDATED to properly join and fetch all strategies
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
       
-      // First, get the strategy IDs from recommended_strategies
-      const { data: recommendedData, error: recommendedError } = await supabase
+      // Use a join query to get all the information in one go
+      const { data: recommendedStrategies, error: joinError } = await supabase
         .from('recommended_strategies')
-        .select('*');
+        .select(`
+          *,
+          strategies:strategy_id (*)
+        `)
+        .eq('is_public', true);
         
-      if (recommendedError) {
-        console.error("Error fetching recommended strategies:", recommendedError);
-        throw recommendedError;
+      if (joinError) {
+        console.error("Error fetching recommended strategies with join:", joinError);
+        throw joinError;
       }
       
-      if (!recommendedData || recommendedData.length === 0) {
+      console.log("Joined recommended strategies data:", recommendedStrategies);
+      
+      if (!recommendedStrategies || recommendedStrategies.length === 0) {
         console.log("No recommended strategies found");
         setStrategies([]);
-        setLoading(false);
         return;
       }
       
-      console.log("Recommended strategies data:", recommendedData);
+      // Transform the joined data into the format we need
+      const processedStrategies = recommendedStrategies
+        .filter(item => item.strategies) // Filter out any items where strategy is null
+        .map(item => {
+          const strategy = item.strategies;
+          return {
+            ...strategy,
+            id: strategy.id,
+            is_official: item.is_official || false,
+            is_public: item.is_public || true,
+            rating: 5 // Default rating
+          };
+        });
       
-      // Extract strategy IDs
-      const strategyIds = recommendedData.map(rec => rec.strategy_id);
-      
-      // Now fetch the actual strategy details
-      const { data: strategyData, error: strategyError } = await supabase
-        .from('strategies')
-        .select('*')
-        .in('id', strategyIds);
-        
-      if (strategyError) {
-        console.error("Error fetching strategy details:", strategyError);
-        throw strategyError;
-      }
-      
-      console.log("Strategy details:", strategyData);
-      
-      // Process the returned data to format it correctly
-      const processedStrategies = strategyData.map(strategy => {
-        // Find the recommendation record for this strategy
-        const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategy.id);
-        
-        return {
-          ...strategy,
-          is_official: recommendationRecord?.is_official || false,
-          is_public: recommendationRecord?.is_public || true, // Default to true if not specified
-          rating: 5 // Default rating for now
-        };
-      });
-      
+      console.log("Processed strategies:", processedStrategies);
       setStrategies(processedStrategies as RecommendedStrategy[]);
       
     } catch (error) {
-      console.error("Error fetching recommended strategies:", error);
+      console.error("Error in fetchRecommendedStrategies:", error);
       toast.error("Failed to load recommendations");
     } finally {
       setLoading(false);

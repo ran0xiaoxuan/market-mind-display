@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { popularStocks, searchLocalAssets } from "@/data/assetData";
+import { popularStocks } from "@/data/assetData";
 
 export interface Asset {
   symbol: string;
@@ -11,8 +11,8 @@ export interface Asset {
 // Cache the API key to avoid redundant calls
 let cachedApiKey: string | null = null;
 let lastApiKeyFetchAttempt = 0;
-const API_KEY_FETCH_COOLDOWN = 3000; // 3 seconds between fetch attempts
-const API_CACHE_LIFETIME = 10 * 60 * 1000; // 10 minutes
+const API_KEY_FETCH_COOLDOWN = 1000; // 1 second between fetch attempts
+const API_CACHE_LIFETIME = 5 * 60 * 1000; // 5 minutes
 let apiKeyCacheTime = 0;
 
 /**
@@ -97,7 +97,7 @@ export const validateFmpApiKey = async (apiKey: string): Promise<boolean> => {
 };
 
 /**
- * Searches for stocks based on the query
+ * Searches for stocks based on the query using live market data
  */
 export const searchStocks = async (query: string, apiKey?: string | null): Promise<Asset[]> => {
   try {
@@ -106,10 +106,10 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
       apiKey = await getFmpApiKey();
     }
     
-    // If we still don't have an API key, use local fallback
+    // If we still don't have an API key, throw an error
     if (!apiKey) {
-      console.log("No API key available, using local stock data");
-      return query ? searchLocalAssets(query) : popularStocks;
+      console.log("No API key available");
+      throw new Error("Unable to access market data: API key not available");
     }
     
     // Define the correct endpoint based on whether we have a query
@@ -142,9 +142,9 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     
     console.log(`FMP API returned ${data.length} results`);
     
-    // If no results or empty query, use popular stocks
+    // If no results, return empty array or popular stocks depending on query
     if (data.length === 0) {
-      return query ? searchLocalAssets(query) : popularStocks;
+      return query ? [] : popularStocks;
     }
     
     // For stock/list endpoint, we need to transform the data slightly
@@ -176,8 +176,7 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
       apiKeyCacheTime = 0;
     }
     
-    // Use local fallback data
-    return query ? searchLocalAssets(query) : popularStocks;
+    // Re-throw the error to be handled by the calling component
+    throw error;
   }
 };
-

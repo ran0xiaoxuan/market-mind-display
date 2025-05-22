@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, fetchPublicRecommendedStrategies } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2 } from "lucide-react";
@@ -145,70 +145,15 @@ const Recommendations = () => {
     }
   }, [searchQuery, userStrategies, isSearchOpen]);
 
-  // Fetch recommended strategies - FIXED to properly retrieve strategies for all users
+  // Fetch recommended strategies - UPDATED to use the new helper function
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
       
-      // First, fetch the strategy IDs from the recommendations table
-      const { data: recommendedData, error: recommendedError } = await supabase
-        .from('recommended_strategies')
-        .select('*')
-        .eq('is_public', true);
+      // Use the helper function to fetch recommended strategies
+      const collectedStrategies = await fetchPublicRecommendedStrategies();
       
-      if (recommendedError) {
-        console.error("Error fetching recommended strategies:", recommendedError);
-        throw recommendedError;
-      }
-      
-      if (!recommendedData || recommendedData.length === 0) {
-        console.log("No recommended strategies found");
-        setStrategies([]);
-        return;
-      }
-      
-      console.log("Recommended strategies data:", recommendedData);
-      
-      // Get strategy IDs from recommendation records
-      const strategyIds = recommendedData.map(rec => rec.strategy_id).filter(Boolean);
-      
-      if (strategyIds.length === 0) {
-        console.log("No valid strategy IDs found");
-        setStrategies([]);
-        return;
-      }
-      
-      // Create an array to collect all strategies
-      const collectedStrategies: RecommendedStrategy[] = [];
-      
-      // KEY FIX: Fetch each strategy by ID but WITHOUT using .single()
-      for (const strategyId of strategyIds) {
-        const { data: strategyData, error: strategyError } = await supabase
-          .from('strategies')
-          .select('*')
-          .eq('id', strategyId);
-        
-        if (strategyError) {
-          console.error(`Error fetching strategy ${strategyId}:`, strategyError);
-          continue;
-        }
-        
-        // If we found matching strategies (should be either 0 or 1)
-        if (strategyData && strategyData.length > 0) {
-          // Find corresponding recommendation record
-          const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategyId);
-          
-          // Add the first (and should be only) strategy with recommendation metadata
-          collectedStrategies.push({
-            ...strategyData[0],
-            is_official: recommendationRecord?.is_official || false,
-            is_public: recommendationRecord?.is_public || true,
-            rating: 5 // Default rating
-          });
-        }
-      }
-      
-      console.log("Collected strategies:", collectedStrategies);
+      console.log("Collected strategies using helper function:", collectedStrategies);
       setStrategies(collectedStrategies);
       
     } catch (error) {

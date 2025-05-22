@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -285,6 +284,22 @@ const Recommendations = () => {
         return;
       }
 
+      // Check if the strategy is already in recommendations
+      const { data: existingRec, error: checkError } = await supabase
+        .from('recommended_strategies')
+        .select('*')
+        .eq('strategy_id', selectedStrategyId)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // Not found error is expected
+        throw checkError;
+      }
+      
+      if (existingRec) {
+        toast.error("This strategy is already in recommendations");
+        return;
+      }
+
       // Add the selected strategy to recommendations as public and official
       const { error: recommendError } = await supabase
         .from('recommended_strategies')
@@ -300,7 +315,7 @@ const Recommendations = () => {
       toast.success("Official strategy added to recommendations");
       setShowUploadDialog(false);
       setSelectedStrategyId("");
-      fetchRecommendedStrategies();
+      fetchRecommendedStrategies(); // Refresh the list
     } catch (error) {
       console.error("Error adding strategy:", error);
       toast.error("Failed to add strategy");
@@ -332,7 +347,7 @@ const Recommendations = () => {
     if (isAdmin) {
       fetchUserStrategies();
     }
-  }, [isAdmin]);
+  }, [isAdmin, session?.user?.id]);
 
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -348,6 +363,7 @@ const Recommendations = () => {
               </Button>}
           </div>
           
+          {/* Search input */}
           <div className="mb-6">
             <Input 
               placeholder="Search recommendations..." 
@@ -357,6 +373,7 @@ const Recommendations = () => {
             />
           </div>
           
+          {/* Strategy cards */}
           {loading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map(i => <Card key={i} className="h-64 animate-pulse">
                   <div className="h-full flex flex-col">
@@ -589,9 +606,6 @@ const Recommendations = () => {
             }
           }}
         >
-          <DialogTitle className="sr-only">
-            Search Strategies
-          </DialogTitle>
           <CommandInput 
             placeholder="Search your strategies..." 
             value={searchQuery} 

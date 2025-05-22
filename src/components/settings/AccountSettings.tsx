@@ -35,6 +35,7 @@ export function AccountSettings() {
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const initialsForAvatar = username.charAt(0).toUpperCase();
+  
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(""); // Clear any previous errors
@@ -150,30 +151,30 @@ export function AccountSettings() {
     try {
       // Check if email has changed
       const emailChanged = email !== user?.email;
-
+      
       // Update user metadata (username)
-      const {
-        error: metadataError
-      } = await supabase.auth.updateUser({
+      const { error: metadataError } = await supabase.auth.updateUser({
         data: {
           username: name
         }
       });
+      
       if (metadataError) throw metadataError;
-
+      
       // Update email if changed
       if (emailChanged) {
-        const {
-          error: emailError
-        } = await supabase.auth.updateUser({
+        const { error: emailError } = await supabase.auth.updateUser({
           email: email
         });
+        
         if (emailError) throw emailError;
+        
         toast({
           title: "Verification email sent",
           description: "Please check your inbox to confirm your new email address."
         });
       }
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully."
@@ -230,14 +231,14 @@ export function AccountSettings() {
     setIsUpdating(true);
     try {
       const newStatus = !isPro;
-      const {
-        error
-      } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         data: {
           is_pro: newStatus
         }
       });
+      
       if (error) throw error;
+      
       setIsPro(newStatus);
       toast({
         title: `Subscription status updated`,
@@ -264,11 +265,16 @@ export function AccountSettings() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Badge variant={isPro ? "pro" : "free"} className={isPro ? "text-xs px-3 py-1" : "text-xs px-2 py-0.5"}>
+                <Badge 
+                  variant={isPro ? "pro" : "free"} 
+                  className={isPro ? "text-xs px-3 py-1" : "text-xs px-2 py-0.5"}
+                >
                   {isPro ? 'Pro' : 'Free'}
                 </Badge>
               </div>
-              {!isPro && <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>}
+              {!isPro && (
+                <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
+              )}
             </div>
             
             <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">
@@ -287,7 +293,8 @@ export function AccountSettings() {
             </div>
             
             {/* Developer testing toggle - only visible in development */}
-            {process.env.NODE_ENV === 'development' && <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-sm">Developer Mode</h3>
@@ -295,10 +302,15 @@ export function AccountSettings() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs">{isPro ? 'Pro' : 'Free'}</span>
-                    <Switch checked={isPro} onCheckedChange={toggleSubscriptionStatus} disabled={isUpdating} />
+                    <Switch 
+                      checked={isPro} 
+                      onCheckedChange={toggleSubscriptionStatus}
+                      disabled={isUpdating}
+                    />
                   </div>
                 </div>
-              </div>}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -309,7 +321,10 @@ export function AccountSettings() {
         <p className="text-sm text-muted-foreground mb-4">Update your personal information</p>
         
         <div className="grid gap-4">
-          
+          <div>
+            <label htmlFor="name" className="block text-sm mb-2">Name</label>
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} />
+          </div>
           
           <div>
             <label htmlFor="email" className="block text-sm mb-2">Email</label>

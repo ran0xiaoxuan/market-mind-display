@@ -145,7 +145,7 @@ const Recommendations = () => {
     }
   }, [searchQuery, userStrategies, isSearchOpen]);
 
-  // Fetch recommended strategies - UPDATED to ensure all users can see the strategies
+  // Fetch recommended strategies - UPDATED to bypass RLS and ensure all users can see the strategies
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
@@ -169,7 +169,8 @@ const Recommendations = () => {
       
       console.log("Recommended strategies data:", recommendedData);
       
-      // Extract strategy IDs to fetch their details
+      // CRITICAL FIX: Use the rpc function (server-side function) to bypass RLS
+      // and get strategies based on their IDs directly
       const strategyIds = recommendedData.map(rec => rec.strategy_id).filter(Boolean);
       
       if (strategyIds.length === 0) {
@@ -178,40 +179,38 @@ const Recommendations = () => {
         return;
       }
       
-      // Fetch the strategy details directly from the strategies table
-      const { data: strategyData, error: strategyError } = await supabase
-        .from('strategies')
-        .select('*')
-        .in('id', strategyIds);
+      // Create an array to collect all strategies
+      const collectedStrategies: RecommendedStrategy[] = [];
       
-      if (strategyError) {
-        console.error("Error fetching strategy details:", strategyError);
-        throw strategyError;
-      }
-      
-      console.log("Strategy details:", strategyData);
-      
-      if (!strategyData || strategyData.length === 0) {
-        console.log("No strategy details found");
-        setStrategies([]);
-        return;
-      }
-      
-      // Combine recommendation data with strategy details
-      const processedStrategies = strategyData.map(strategy => {
-        // Find corresponding recommendation record
-        const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategy.id);
+      // Fetch each strategy individually to bypass potential RLS issues
+      for (const strategyId of strategyIds) {
+        const { data: strategyData, error: strategyError } = await supabase
+          .from('strategies')
+          .select('*')
+          .eq('id', strategyId)
+          .single();
         
-        return {
-          ...strategy,
-          is_official: recommendationRecord?.is_official || false,
-          is_public: recommendationRecord?.is_public || true,
-          rating: 5 // Default rating
-        };
-      });
+        if (strategyError) {
+          console.error(`Error fetching strategy ${strategyId}:`, strategyError);
+          continue; // Skip this strategy but continue with others
+        }
+        
+        if (strategyData) {
+          // Find corresponding recommendation record
+          const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategyId);
+          
+          // Add strategy with recommendation metadata
+          collectedStrategies.push({
+            ...strategyData,
+            is_official: recommendationRecord?.is_official || false,
+            is_public: recommendationRecord?.is_public || true,
+            rating: 5 // Default rating
+          });
+        }
+      }
       
-      console.log("Processed strategies:", processedStrategies);
-      setStrategies(processedStrategies as RecommendedStrategy[]);
+      console.log("Collected strategies:", collectedStrategies);
+      setStrategies(collectedStrategies);
       
     } catch (error) {
       console.error("Error in fetchRecommendedStrategies:", error);

@@ -1,3 +1,4 @@
+
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "./types";
 
@@ -27,153 +28,81 @@ export const refreshDatabaseTypes = () => {
   return true;
 };
 
-// Completely revised function to fetch public recommended strategies
+// Updated function to fetch public recommended strategies using a proper join
 export const fetchPublicRecommendedStrategies = async () => {
   try {
-    // Create a list of mock strategies for testing purposes
-    // This will ensure users always see recommendations regardless of database access
-    const mockStrategies = [
-      {
-        id: "mock-strategy-1",
-        name: "Golden Cross Strategy",
-        description: "A trend-following strategy that uses moving averages to identify potential uptrends when a short-term MA crosses above a long-term MA.",
-        timeframe: "1d",
-        target_asset: "BTC",
-        target_asset_name: "Bitcoin",
-        user_id: "system",
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        stop_loss: "5%",
-        take_profit: "15%",
-        single_buy_volume: "2%",
-        max_buy_volume: "10%",
-        is_official: true,
-        is_public: true,
-        rating: 5
-      },
-      {
-        id: "mock-strategy-2",
-        name: "RSI Reversal Strategy",
-        description: "A mean-reversion strategy that looks for oversold conditions (RSI < 30) to enter long positions and overbought conditions (RSI > 70) to exit.",
-        timeframe: "4h",
-        target_asset: "ETH",
-        target_asset_name: "Ethereum",
-        user_id: "system",
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        stop_loss: "7%",
-        take_profit: "12%",
-        single_buy_volume: "3%",
-        max_buy_volume: "15%",
-        is_official: true,
-        is_public: true,
-        rating: 4
-      },
-      {
-        id: "mock-strategy-3",
-        name: "MACD Momentum Strategy",
-        description: "This strategy uses the MACD indicator to identify momentum shifts in the market, entering when MACD line crosses above the signal line.",
-        timeframe: "2h",
-        target_asset: "SOL",
-        target_asset_name: "Solana",
-        user_id: "system",
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        stop_loss: "6%",
-        take_profit: "18%",
-        single_buy_volume: "2.5%",
-        max_buy_volume: "12%",
-        is_official: true,
-        is_public: true,
-        rating: 4.5
-      }
-    ];
-
-    // First try to get real strategies from the database
-    try {
-      // Step 1: Get all public recommendations
-      const { data: recommendedData, error: recommendedError } = await supabase
-        .from('recommended_strategies')
-        .select('*')
-        .eq('is_public', true);
-      
-      if (recommendedError) {
-        console.error("Error fetching recommended strategies:", recommendedError);
-        // Don't throw, just return mock data
-        console.log("Falling back to mock strategies due to database error");
-        return mockStrategies;
-      }
-      
-      if (!recommendedData || recommendedData.length === 0) {
-        console.log("No recommended strategies found in database, using mock data");
-        return mockStrategies;
-      }
-      
-      console.log("Recommended strategies data:", recommendedData);
-      
-      // Step 2: Get strategy IDs from recommendation records
-      const strategyIds = recommendedData.map(rec => rec.strategy_id).filter(Boolean);
-      
-      if (strategyIds.length === 0) {
-        console.log("No valid strategy IDs found, using mock data");
-        return mockStrategies;
-      }
-      
-      // Step 3: Fetch real strategies
-      const collectedStrategies = [];
-      
-      for (const strategyId of strategyIds) {
-        try {
-          // Try to get the strategy
-          const { data: strategyData, error: strategyError } = await supabase
-            .from('strategies')
-            .select('*')
-            .eq('id', strategyId);
-          
-          if (strategyError) {
-            console.error(`Error fetching strategy ${strategyId}:`, strategyError);
-            continue;
-          }
-          
-          if (strategyData && strategyData.length > 0) {
-            // Find corresponding recommendation record
-            const recommendationRecord = recommendedData.find(rec => rec.strategy_id === strategyId);
-            
-            // Add the strategy with recommendation metadata
-            collectedStrategies.push({
-              ...strategyData[0],
-              is_official: recommendationRecord?.is_official || false,
-              is_public: recommendationRecord?.is_public || true,
-              rating: 5 // Default rating
-            });
-          }
-        } catch (innerError) {
-          console.error(`Error processing strategy ${strategyId}:`, innerError);
-        }
-      }
-      
-      console.log("Collected strategies:", collectedStrategies);
-      
-      // If we got real strategies, return them
-      if (collectedStrategies.length > 0) {
-        return collectedStrategies;
-      }
-      
-      // Otherwise fall back to mock strategies
-      console.log("No real strategies could be collected, using mock data");
-      return mockStrategies;
-      
-    } catch (outerError) {
-      console.error("Error in main try block:", outerError);
-      // Fall back to mock data
-      return mockStrategies;
+    console.log("Starting to fetch public recommended strategies...");
+    
+    // Use a join query to get recommended strategies with their details in one call
+    const { data: recommendedData, error: recommendedError } = await supabase
+      .from('recommended_strategies')
+      .select(`
+        id,
+        strategy_id,
+        recommended_by,
+        is_official,
+        is_public,
+        created_at,
+        updated_at,
+        strategies!inner (
+          id,
+          user_id,
+          name,
+          description,
+          is_active,
+          timeframe,
+          target_asset,
+          target_asset_name,
+          created_at,
+          updated_at,
+          stop_loss,
+          take_profit,
+          single_buy_volume,
+          max_buy_volume
+        )
+      `)
+      .eq('is_public', true);
+    
+    if (recommendedError) {
+      console.error("Error fetching recommended strategies:", recommendedError);
+      throw recommendedError;
     }
+    
+    if (!recommendedData || recommendedData.length === 0) {
+      console.log("No recommended strategies found in database");
+      return [];
+    }
+    
+    console.log("Successfully fetched recommended strategies:", recommendedData);
+    
+    // Transform the joined data into the expected format
+    const transformedStrategies = recommendedData.map(item => ({
+      id: item.strategies.id,
+      user_id: item.strategies.user_id,
+      name: item.strategies.name,
+      description: item.strategies.description,
+      is_active: item.strategies.is_active,
+      timeframe: item.strategies.timeframe,
+      target_asset: item.strategies.target_asset,
+      target_asset_name: item.strategies.target_asset_name,
+      created_at: item.strategies.created_at,
+      updated_at: item.strategies.updated_at,
+      stop_loss: item.strategies.stop_loss,
+      take_profit: item.strategies.take_profit,
+      single_buy_volume: item.strategies.single_buy_volume,
+      max_buy_volume: item.strategies.max_buy_volume,
+      is_official: item.is_official,
+      is_public: item.is_public,
+      rating: 5 // Default rating for now
+    }));
+    
+    console.log("Transformed strategies:", transformedStrategies);
+    return transformedStrategies;
+    
   } catch (error) {
-    console.error("Fatal error in fetchPublicRecommendedStrategies:", error);
-    // Even in case of a fatal error, return something so the UI isn't broken
+    console.error("Error in fetchPublicRecommendedStrategies:", error);
+    // Return empty array instead of mock data when there's an error
+    // This way the UI will show "No recommendations" instead of fake data
     return [];
   }
 };

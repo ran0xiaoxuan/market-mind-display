@@ -68,8 +68,10 @@ export const fetchPublicRecommendedStrategies = async () => {
       throw recommendedError;
     }
     
+    console.log("Raw recommended data from Supabase:", recommendedData);
+    
     if (!recommendedData || recommendedData.length === 0) {
-      console.log("No recommended strategies found in database");
+      console.log("No public recommended strategies found in database");
       return [];
     }
     
@@ -96,7 +98,7 @@ export const fetchPublicRecommendedStrategies = async () => {
       rating: 5 // Default rating for now
     }));
     
-    console.log("Transformed strategies:", transformedStrategies);
+    console.log("Transformed strategies for UI:", transformedStrategies);
     return transformedStrategies;
     
   } catch (error) {

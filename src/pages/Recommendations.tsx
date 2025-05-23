@@ -67,7 +67,6 @@ interface RecommendedStrategyRecord {
     max_buy_volume: string | null;
   };
 }
-
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,10 +78,10 @@ const Recommendations = () => {
   const {
     session
   } = useAuth();
-  
+
   // Admin check - only this specific email can add/delete official recommendations
   const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
-  
+
   // Strategy selection related states
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,16 +93,13 @@ const Recommendations = () => {
   // Fetch the admin's personal strategies for selection
   const fetchUserStrategies = async () => {
     if (!isAdmin || !session?.user?.id) return;
-    
     try {
       setLoadingUserStrategies(true);
-      const { data, error } = await supabase
-        .from('strategies')
-        .select('*')
-        .eq('user_id', session.user.id);
-      
+      const {
+        data,
+        error
+      } = await supabase.from('strategies').select('*').eq('user_id', session.user.id);
       if (error) throw error;
-      
       const strategiesData = data.map(strategy => ({
         id: strategy.id,
         name: strategy.name,
@@ -120,7 +116,6 @@ const Recommendations = () => {
         singleBuyVolume: strategy.single_buy_volume || "",
         maxBuyVolume: strategy.max_buy_volume || ""
       }));
-      
       setUserStrategies(strategiesData);
       setFilteredUserStrategies(strategiesData);
     } catch (error) {
@@ -134,11 +129,7 @@ const Recommendations = () => {
   // Filter user strategies based on search query
   useEffect(() => {
     if (isSearchOpen && searchQuery && userStrategies.length > 0) {
-      const filtered = userStrategies.filter(
-        strategy => 
-          strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          (strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      const filtered = userStrategies.filter(strategy => strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()));
       setFilteredUserStrategies(filtered);
     } else {
       setFilteredUserStrategies(userStrategies);
@@ -149,13 +140,11 @@ const Recommendations = () => {
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
-      
+
       // Use the helper function to fetch recommended strategies
       const collectedStrategies = await fetchPublicRecommendedStrategies();
-      
       console.log("Collected strategies using helper function:", collectedStrategies);
       setStrategies(collectedStrategies);
-      
     } catch (error) {
       console.error("Error in fetchRecommendedStrategies:", error);
       toast.error("Failed to load recommendations");
@@ -185,14 +174,11 @@ const Recommendations = () => {
         single_buy_volume: strategy.single_buy_volume,
         max_buy_volume: strategy.max_buy_volume
       };
-      
       const {
         data,
         error
       } = await supabase.from('strategies').insert(newUserStrategy).select();
-      
       if (error) throw error;
-
       toast.success("Strategy added to your collection");
     } catch (error) {
       console.error("Error applying strategy:", error);
@@ -205,24 +191,18 @@ const Recommendations = () => {
     if (!isAdmin) return;
     try {
       // First find the recommendation record
-      const { data: recommendedData, error: findError } = await supabase
-        .from('recommended_strategies')
-        .select('id')
-        .eq('strategy_id', id)
-        .single();
-      
+      const {
+        data: recommendedData,
+        error: findError
+      } = await supabase.from('recommended_strategies').select('id').eq('strategy_id', id).single();
       if (findError) throw findError;
-      
       if (recommendedData) {
         // Delete from recommendations table
-        const { error: deleteError } = await supabase
-          .from('recommended_strategies')
-          .delete()
-          .eq('id', recommendedData.id);
-        
+        const {
+          error: deleteError
+        } = await supabase.from('recommended_strategies').delete().eq('id', recommendedData.id);
         if (deleteError) throw deleteError;
       }
-      
       toast.success("Strategy removed from recommendations");
       fetchRecommendedStrategies();
     } catch (error) {
@@ -234,47 +214,41 @@ const Recommendations = () => {
   // Add a new recommended strategy (admin only) - Updated to use an existing strategy
   const addOfficialStrategy = async () => {
     if (!isAdmin || !session?.user?.id) return;
-    
     try {
       console.log("Adding official strategy with ID:", selectedStrategyId);
-      
       if (!selectedStrategyId) {
         toast.error("Please select a strategy");
         return;
       }
 
       // Check if the strategy is already in recommendations
-      const { data: existingRec, error: checkError } = await supabase
-        .from('recommended_strategies')
-        .select('*')
-        .eq('strategy_id', selectedStrategyId);
-      
+      const {
+        data: existingRec,
+        error: checkError
+      } = await supabase.from('recommended_strategies').select('*').eq('strategy_id', selectedStrategyId);
       if (checkError) {
         console.error("Error checking existing recommendation:", checkError);
         throw checkError;
       }
-      
       if (existingRec && existingRec.length > 0) {
         toast.error("This strategy is already in recommendations");
         return;
       }
 
       // Add the selected strategy to recommendations as public and official
-      const { data: insertData, error: recommendError } = await supabase
-        .from('recommended_strategies')
-        .insert({
-          strategy_id: selectedStrategyId,
-          recommended_by: session.user.id,
-          is_official: true,
-          is_public: true
-        })
-        .select();
-      
+      const {
+        data: insertData,
+        error: recommendError
+      } = await supabase.from('recommended_strategies').insert({
+        strategy_id: selectedStrategyId,
+        recommended_by: session.user.id,
+        is_official: true,
+        is_public: true
+      }).select();
       if (recommendError) {
         console.error("Error inserting recommendation:", recommendError);
         throw recommendError;
       }
-
       console.log("Successfully added strategy to recommendations:", insertData);
       toast.success("Official strategy added to recommendations");
       setShowUploadDialog(false);
@@ -301,18 +275,13 @@ const Recommendations = () => {
   };
 
   // Filter strategies based on search term only (removed asset filter)
-  const filteredStrategies = strategies.filter(strategy => 
-    strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+  const filteredStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase()));
   useEffect(() => {
     fetchRecommendedStrategies();
     if (isAdmin) {
       fetchUserStrategies();
     }
   }, [isAdmin, session?.user?.id]);
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
@@ -320,21 +289,16 @@ const Recommendations = () => {
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 className="text-3xl font-bold">Recommendations</h1>
             {isAdmin && <Button className="mt-4 sm:mt-0" onClick={() => {
-              fetchUserStrategies();  // Refresh strategies list when opening dialog
-              setShowUploadDialog(true);
-            }}>
+            fetchUserStrategies(); // Refresh strategies list when opening dialog
+            setShowUploadDialog(true);
+          }}>
                 Add Official Strategy
               </Button>}
           </div>
           
           {/* Search input */}
           <div className="mb-6">
-            <Input 
-              placeholder="Search recommendations..." 
-              value={searchTerm} 
-              onChange={e => setSearchTerm(e.target.value)} 
-              className="w-full" 
-            />
+            <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
           </div>
           
           {/* Strategy cards */}
@@ -376,9 +340,9 @@ const Recommendations = () => {
                     <div>
                       {/* Only admin can delete strategies */}
                       {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
-                        e.stopPropagation();
-                        deleteStrategy(strategy.id);
-                      }}>
+                  e.stopPropagation();
+                  deleteStrategy(strategy.id);
+                }}>
                           <Trash className="h-4 w-4" />
                         </Button>}
                     </div>
@@ -444,14 +408,7 @@ const Recommendations = () => {
                             <dt className="text-muted-foreground">Timeframe:</dt>
                             <dd className="font-medium">{selectedStrategy?.timeframe || "N/A"}</dd>
                           </div>
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Status:</dt>
-                            <dd>
-                              <Badge variant={selectedStrategy?.is_active ? "default" : "secondary"}>
-                                {selectedStrategy?.is_active ? "Active" : "Inactive"}
-                              </Badge>
-                            </dd>
-                          </div>
+                          
                         </dl>
                       </Card>
                       
@@ -528,25 +485,19 @@ const Recommendations = () => {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Strategy</label>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-left font-normal h-10 bg-background"
-                  onClick={() => setIsSearchOpen(true)}
-                >
+                <Button variant="outline" className="w-full justify-start text-left font-normal h-10 bg-background" onClick={() => setIsSearchOpen(true)}>
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   {userStrategies.find(s => s.id === selectedStrategyId)?.name || "Select a strategy"}
                 </Button>
               </div>
 
-              {selectedStrategyId && (
-                <div className="bg-muted/50 p-3 rounded-md">
+              {selectedStrategyId && <div className="bg-muted/50 p-3 rounded-md">
                   <h4 className="font-medium text-sm">Selected Strategy</h4>
                   <p className="text-sm mt-1">{userStrategies.find(s => s.id === selectedStrategyId)?.name}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {userStrategies.find(s => s.id === selectedStrategyId)?.description || "No description"}
                   </p>
-                </div>
-              )}
+                </div>}
             </div>
             
             <DialogFooter>
@@ -554,9 +505,7 @@ const Recommendations = () => {
                 Cancel
               </Button>
               <Button onClick={addOfficialStrategy} disabled={!selectedStrategyId || loadingUserStrategies}>
-                {loadingUserStrategies ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : null}
+                {loadingUserStrategies ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Add to Recommendations
               </Button>
             </DialogFooter>
@@ -564,59 +513,35 @@ const Recommendations = () => {
         </Dialog>}
         
         {/* Command dialog for strategy selection */}
-        <CommandDialog 
-          open={isSearchOpen} 
-          onOpenChange={(open) => {
-            setIsSearchOpen(open);
-            if (!open) {
-              setSearchQuery("");
-            }
-          }}
-        >
-          <CommandInput 
-            placeholder="Search your strategies..." 
-            value={searchQuery} 
-            onValueChange={setSearchQuery}
-            autoFocus={true}
-          />
+        <CommandDialog open={isSearchOpen} onOpenChange={open => {
+      setIsSearchOpen(open);
+      if (!open) {
+        setSearchQuery("");
+      }
+    }}>
+          <CommandInput placeholder="Search your strategies..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
           <CommandList>
             <CommandEmpty>
-              {loadingUserStrategies ? (
-                <div className="flex items-center justify-center p-4">
+              {loadingUserStrategies ? <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <p className="p-4 text-center text-sm text-muted-foreground">
+                </div> : <p className="p-4 text-center text-sm text-muted-foreground">
                   {searchQuery ? "No strategies found" : "Type to search your strategies"}
-                </p>
-              )}
+                </p>}
             </CommandEmpty>
             
-            {filteredUserStrategies.length > 0 && (
-              <CommandGroup heading="Your Strategies">
-                {filteredUserStrategies.map((strategy) => (
-                  <CommandItem 
-                    key={strategy.id} 
-                    value={`${strategy.name} ${strategy.description || ''}`}
-                    onSelect={() => handleStrategySelect(strategy.id)}
-                  >
+            {filteredUserStrategies.length > 0 && <CommandGroup heading="Your Strategies">
+                {filteredUserStrategies.map(strategy => <CommandItem key={strategy.id} value={`${strategy.name} ${strategy.description || ''}`} onSelect={() => handleStrategySelect(strategy.id)}>
                     <div className="flex items-center">
-                      {selectedStrategyId === strategy.id && (
-                        <Check className="mr-2 h-4 w-4 text-primary" />
-                      )}
+                      {selectedStrategyId === strategy.id && <Check className="mr-2 h-4 w-4 text-primary" />}
                       <div className="flex flex-col">
                         <span>{strategy.name}</span>
-                        {strategy.description && (
-                          <span className="text-xs text-muted-foreground line-clamp-1">
+                        {strategy.description && <span className="text-xs text-muted-foreground line-clamp-1">
                             {strategy.description}
-                          </span>
-                        )}
+                          </span>}
                       </div>
                     </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+                  </CommandItem>)}
+              </CommandGroup>}
           </CommandList>
         </CommandDialog>
     </div>;

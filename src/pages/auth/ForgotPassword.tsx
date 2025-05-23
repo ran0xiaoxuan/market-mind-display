@@ -84,7 +84,6 @@ export default function ForgotPassword() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
                   required
                   disabled={isSubmitting}
                 />
@@ -103,7 +102,7 @@ export default function ForgotPassword() {
               
               <div className="text-center text-sm">
                 Remember your password?{" "}
-                <Link to="/auth/login" className="text-primary hover:underline">
+                <Link to="/login" className="text-primary hover:underline">
                   Login
                 </Link>
               </div>

@@ -69,7 +69,6 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
                 required
                 disabled={isSubmitting}
               />
@@ -81,7 +80,7 @@ export default function Login() {
                   Password
                 </label>
                 <Link
-                  to="/auth/forgot-password"
+                  to="/forgot-password"
                   className="text-sm text-muted-foreground hover:text-primary"
                 >
                   Forgot password?
@@ -93,7 +92,6 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
                   required
                   disabled={isSubmitting}
                 />

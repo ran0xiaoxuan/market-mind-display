@@ -21,7 +21,6 @@ export function AccountSettings() {
   const {
     user
   } = useAuth();
-  const [name, setName] = useState(user?.user_metadata?.username || user?.email?.split('@')[0] || "");
   const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL);
@@ -151,15 +150,6 @@ export function AccountSettings() {
     try {
       // Check if email has changed
       const emailChanged = email !== user?.email;
-      
-      // Update user metadata (username)
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: {
-          username: name
-        }
-      });
-      
-      if (metadataError) throw metadataError;
       
       // Update email if changed
       if (emailChanged) {
@@ -321,11 +311,6 @@ export function AccountSettings() {
         <p className="text-sm text-muted-foreground mb-4">Update your personal information</p>
         
         <div className="grid gap-4">
-          <div>
-            <label htmlFor="name" className="block text-sm mb-2">Name</label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          
           <div>
             <label htmlFor="email" className="block text-sm mb-2">Email</label>
             <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />

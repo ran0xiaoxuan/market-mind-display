@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { Strategy } from "@/services/strategyService";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { getStrategyApplyCounts, trackStrategyApplication } from "@/services/recommendationService";
 
 // Define a recommended strategy type that matches Supabase's snake_case format
 interface RecommendedStrategy {
@@ -75,6 +76,7 @@ const Recommendations = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [applyCounts, setApplyCounts] = useState<Map<string, number>>(new Map());
   const {
     session
   } = useAuth();
@@ -159,7 +161,17 @@ const Recommendations = () => {
     }
   };
 
-  // Apply a strategy to user's own strategies
+  // Fetch apply counts for all strategies
+  const fetchApplyCounts = async () => {
+    try {
+      const counts = await getStrategyApplyCounts();
+      setApplyCounts(counts);
+    } catch (error) {
+      console.error("Error fetching apply counts:", error);
+    }
+  };
+
+  // Apply a strategy to user's own strategies - Updated to track applications
   const applyStrategy = async (strategy: RecommendedStrategy) => {
     try {
       if (!session?.user?.id) {
@@ -180,11 +192,16 @@ const Recommendations = () => {
         single_buy_volume: strategy.single_buy_volume,
         max_buy_volume: strategy.max_buy_volume
       };
-      const {
-        data,
-        error
-      } = await supabase.from('strategies').insert(newUserStrategy).select();
+      
+      const { data, error } = await supabase.from('strategies').insert(newUserStrategy).select();
       if (error) throw error;
+
+      // Track the strategy application
+      await trackStrategyApplication(strategy.id, session.user.id);
+      
+      // Refresh apply counts to show updated data
+      await fetchApplyCounts();
+      
       toast.success("Strategy added to your collection");
     } catch (error) {
       console.error("Error applying strategy:", error);
@@ -284,6 +301,7 @@ const Recommendations = () => {
   const filteredStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase()));
   useEffect(() => {
     fetchRecommendedStrategies();
+    fetchApplyCounts(); // Fetch apply counts on component mount
     if (isAdmin) {
       fetchUserStrategies();
     }
@@ -353,10 +371,10 @@ const Recommendations = () => {
                           <Trash className="h-4 w-4" />
                         </Button>}
                     </div>
-                    {/* Star rating moved to bottom right */}
+                    {/* Apply count display with star icon */}
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
-                      <span className="text-sm font-medium">{strategy.rating || 0}</span>
+                      <span className="text-sm font-medium">{applyCounts.get(strategy.id) || 0}</span>
                     </div>
                   </CardFooter>
                 </Card>)}

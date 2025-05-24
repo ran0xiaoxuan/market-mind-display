@@ -23,7 +23,7 @@ export default function Settings() {
 
           <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
           
-          <div className="mt-10">
+          <div className="mt-10 min-h-[600px]">
             {activeTab === "account" && <AccountSettings />}
             {activeTab === "trading" && <TradingSettings />}
             {activeTab === "contact" && <ContactUs />}

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getHistoricalPrices, HistoricalPrice } from "./marketDataService";
 
@@ -41,6 +40,13 @@ export interface BacktestTrade {
  */
 export const runBacktestWithRealData = async (params: BacktestParams): Promise<BacktestResult> => {
   try {
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      throw new Error('Authentication required to run backtest');
+    }
+
     // Get strategy details
     const { data: strategy, error: strategyError } = await supabase
       .from('strategies')
@@ -76,11 +82,12 @@ export const runBacktestWithRealData = async (params: BacktestParams): Promise<B
       throw new Error('No historical data available for the selected period');
     }
 
-    // Create backtest record
+    // Create backtest record with user_id
     const { data: backtest, error: backtestError } = await supabase
       .from('backtests')
       .insert({
         strategy_id: params.strategyId,
+        user_id: user.id,
         start_date: params.startDate,
         end_date: params.endDate,
         initial_capital: params.initialCapital

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -83,7 +82,7 @@ const StrategyDetail = () => {
         
         if (!tradesError && tradesData) {
           // Get current prices for profit/loss calculations
-          const uniqueAssets = [...new Set(tradesData.map(trade => strategyData.target_asset).filter(Boolean))];
+          const uniqueAssets = [...new Set(tradesData.map(trade => strategyData.targetAsset).filter(Boolean))];
           const currentPrices = new Map();
           
           for (const asset of uniqueAssets) {
@@ -99,7 +98,7 @@ const StrategyDetail = () => {
 
           // Format trade data for display with real profit calculations
           const formattedTrades = tradesData.map(trade => {
-            const currentPrice = currentPrices.get(strategyData.target_asset);
+            const currentPrice = currentPrices.get(strategyData.targetAsset);
             let calculatedProfit = trade.profit;
             let calculatedProfitPercentage = trade.profit_percentage;
 
@@ -121,7 +120,7 @@ const StrategyDetail = () => {
               profit: calculatedProfit !== null ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
               profitPercentage: calculatedProfitPercentage !== null ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
               strategyId: id,
-              targetAsset: strategyData.target_asset
+              targetAsset: strategyData.targetAsset
             };
           });
           

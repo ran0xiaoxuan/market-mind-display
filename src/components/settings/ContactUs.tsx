@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 export function ContactUs() {
@@ -18,7 +19,7 @@ export function ContactUs() {
                   Connect with our community and get real-time support
                 </p>
               </div>
-              <Button variant="outline" className="w-full border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700" onClick={() => window.open('https://discord.gg/tradingapp', '_blank')}>
+              <Button variant="outline" className="w-full border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700" onClick={() => window.open('https://discord.gg/r23GKXRx43', '_blank')}>
                 
                 Join Discord
               </Button>
@@ -36,7 +37,7 @@ export function ContactUs() {
                   Stay updated with our latest news and announcements
                 </p>
               </div>
-              <Button variant="outline" className="w-full border-black/20 hover:bg-black/5 hover:text-black" onClick={() => window.open('https://twitter.com/tradingappofficial', '_blank')}>
+              <Button variant="outline" className="w-full border-black/20 hover:bg-black/5 hover:text-black" onClick={() => window.open('https://x.com/StratAIge_cc', '_blank')}>
                 
                 Follow on X
               </Button>

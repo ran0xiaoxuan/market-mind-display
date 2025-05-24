@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -17,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { getTradingRulesForStrategy, getStrategyById, getRiskManagementForStrategy } from "@/services/strategyService";
 import { Navbar } from "@/components/Navbar";
+import { getStockPrice } from "@/services/marketDataService";
 
 const StrategyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -63,34 +65,65 @@ const StrategyDetail = () => {
         setExitRules(rulesData.exitRules);
       }
       
-      // Fetch most recent backtest trades
-      const { data: backtest, error: backtestError } = await supabase
+      // Fetch real backtest trades for this strategy
+      const { data: backtests, error: backtestError } = await supabase
         .from("backtests")
         .select("id")
         .eq("strategy_id", id)
         .order("created_at", { ascending: false })
         .limit(1);
       
-      if (!backtestError && backtest && backtest.length > 0) {
+      if (!backtestError && backtests && backtests.length > 0) {
         const { data: tradesData, error: tradesError } = await supabase
           .from("backtest_trades")
           .select("*")
-          .eq("backtest_id", backtest[0].id)
-          .order("date", { ascending: true });
+          .eq("backtest_id", backtests[0].id)
+          .order("date", { ascending: false })
+          .limit(20);
         
         if (!tradesError && tradesData) {
-          // Format trade data for display with strategyId
-          const formattedTrades = tradesData.map(trade => ({
-            id: trade.id,
-            date: new Date(trade.date).toLocaleDateString(),
-            type: trade.type,
-            signal: trade.signal,
-            price: `$${trade.price.toFixed(2)}`,
-            contracts: trade.contracts,
-            profit: trade.profit !== null ? `$${trade.profit.toFixed(2)}` : null,
-            profitPercentage: trade.profit_percentage !== null ? `${trade.profit_percentage.toFixed(2)}%` : null,
-            strategyId: id // Use the current strategy ID for these trades
-          }));
+          // Get current prices for profit/loss calculations
+          const uniqueAssets = [...new Set(tradesData.map(trade => strategyData.target_asset).filter(Boolean))];
+          const currentPrices = new Map();
+          
+          for (const asset of uniqueAssets) {
+            try {
+              const priceData = await getStockPrice(asset);
+              if (priceData) {
+                currentPrices.set(asset, priceData.price);
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch price for ${asset}:`, error);
+            }
+          }
+
+          // Format trade data for display with real profit calculations
+          const formattedTrades = tradesData.map(trade => {
+            const currentPrice = currentPrices.get(strategyData.target_asset);
+            let calculatedProfit = trade.profit;
+            let calculatedProfitPercentage = trade.profit_percentage;
+
+            // For open positions (buy trades without corresponding sells), calculate unrealized P&L
+            if (trade.type === 'Buy' && currentPrice && !trade.profit) {
+              const unrealizedProfit = (currentPrice - trade.price) * trade.contracts;
+              const unrealizedProfitPercentage = ((currentPrice - trade.price) / trade.price) * 100;
+              calculatedProfit = unrealizedProfit;
+              calculatedProfitPercentage = unrealizedProfitPercentage;
+            }
+
+            return {
+              id: trade.id,
+              date: new Date(trade.date).toLocaleDateString(),
+              type: trade.type,
+              signal: trade.signal,
+              price: `$${trade.price.toFixed(2)}`,
+              contracts: trade.contracts,
+              profit: calculatedProfit !== null ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
+              profitPercentage: calculatedProfitPercentage !== null ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
+              strategyId: id,
+              targetAsset: strategyData.target_asset
+            };
+          });
           
           setTrades(formattedTrades);
         }

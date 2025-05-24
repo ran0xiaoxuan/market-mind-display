@@ -1,58 +1,109 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
+import { ArrowUpIcon, ArrowDownIcon, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import { fetchPublicRecommendedStrategies } from "@/integrations/supabase/client";
+import { getStrategyApplyCounts } from "@/services/recommendationService";
 
-type Strategy = {
+interface Strategy {
+  id: string;
   name: string;
-  return: string;
-  color: string;
-};
-
-const strategies: Strategy[] = [{
-  name: "RSI Strategy",
-  return: "+12.5%",
-  color: "bg-blue-500"
-}, {
-  name: "Ichimoku Cloud",
-  return: "+9.8%",
-  color: "bg-indigo-500"
-}, {
-  name: "Moving Average Crossover",
-  return: "+8.2%",
-  color: "bg-green-500"
-}, {
-  name: "Bollinger Bands",
-  return: "+5.7%",
-  color: "bg-amber-500"
-}, {
-  name: "MACD Strategy",
-  return: "+3.2%",
-  color: "bg-orange-500"
-}];
+  target_asset: string | null;
+  applyCount: number;
+}
 
 export function StrategyRankings() {
-  return <Card className="p-6 px-[24px]">
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Fetch recommended strategies and apply counts
+        const [recommendedStrategies, applyCounts] = await Promise.all([
+          fetchPublicRecommendedStrategies(),
+          getStrategyApplyCounts()
+        ]);
+
+        // Transform data and add apply counts
+        const strategiesWithCounts = recommendedStrategies
+          .map(strategy => ({
+            id: strategy.id,
+            name: strategy.name,
+            target_asset: strategy.target_asset,
+            applyCount: applyCounts.get(strategy.id) || 0
+          }))
+          .sort((a, b) => b.applyCount - a.applyCount) // Sort by apply count descending
+          .slice(0, 5); // Take top 5
+
+        setStrategies(strategiesWithCounts);
+      } catch (error) {
+        console.error("Error loading strategy rankings:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="p-6 px-[24px]">
+        <h3 className="text-lg font-semibold mb-4">Strategy Rankings</h3>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="flex items-center justify-between animate-pulse">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-muted"></div>
+                <div className="h-4 w-32 bg-muted rounded"></div>
+              </div>
+              <div className="h-4 w-8 bg-muted rounded"></div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6 px-[24px]">
       <h3 className="text-lg font-semibold mb-4">Strategy Rankings</h3>
-      <p className="text-sm text-muted-foreground mb-6">Strategies ranked by performance</p>
+      <p className="text-sm text-muted-foreground mb-6">Strategies ranked by number of applications</p>
       
       <div className="space-y-4">
-        {strategies.map(strategy => <div key={strategy.name} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${strategy.color}`}></div>
-              <span className="text-sm font-medium">{strategy.name}</span>
+        {strategies.length > 0 ? (
+          strategies.map((strategy, index) => (
+            <div key={strategy.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  index === 0 ? 'bg-yellow-500' :
+                  index === 1 ? 'bg-gray-400' :
+                  index === 2 ? 'bg-amber-600' :
+                  'bg-blue-500'
+                }`}></div>
+                <span className="text-sm font-medium">{strategy.name}</span>
+                {strategy.target_asset && (
+                  <Badge variant="outline" className="text-xs">
+                    {strategy.target_asset}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center">
+                <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
+                <span className="text-sm font-semibold">
+                  {strategy.applyCount}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center">
-              {parseFloat(strategy.return) > 0 ? (
-                <ArrowUpIcon className="h-4 w-4 text-green-600 mr-1" />
-              ) : parseFloat(strategy.return) < 0 ? (
-                <ArrowDownIcon className="h-4 w-4 text-red-600 mr-1" />
-              ) : null}
-              <span className={`text-sm font-semibold ${strategy.return.startsWith("+") ? "text-green-600" : strategy.return.startsWith("-") ? "text-red-600" : ""}`}>
-                {strategy.return}
-              </span>
-            </div>
-          </div>)}
+          ))
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">No strategy data available</p>
+          </div>
+        )}
       </div>
-    </Card>;
+    </Card>
+  );
 }

@@ -287,6 +287,30 @@ export type Database = {
         }
         Relationships: []
       }
+      strategy_applications: {
+        Row: {
+          applied_at: string
+          created_at: string
+          id: string
+          strategy_id: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          created_at?: string
+          id?: string
+          strategy_id: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          created_at?: string
+          id?: string
+          strategy_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       strategy_versions: {
         Row: {
           changes: string | null

@@ -19,7 +19,7 @@ export function ContactUs() {
                   Connect with our community and get real-time support
                 </p>
               </div>
-              <Button variant="outline" className="w-full border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700" onClick={() => window.open('https://discord.gg/r23GKXRx43', '_blank')}>
+              <Button variant="outline" className="w-full border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700" onClick={() => window.open('https://discord.gg/hjyC8bSrxT', '_blank')}>
                 
                 Join Discord
               </Button>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,9 +15,13 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signUp, user } = useAuth();
-  const { toast } = useToast();
-  
+  const {
+    signUp,
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -32,7 +34,6 @@ export default function Signup() {
       });
       return;
     }
-
     if (!email.includes("@") || !email.includes(".")) {
       toast({
         title: "Invalid email",
@@ -41,7 +42,6 @@ export default function Signup() {
       });
       return;
     }
-
     if (!password) {
       toast({
         title: "Password required",
@@ -50,7 +50,6 @@ export default function Signup() {
       });
       return;
     }
-
     if (password.length < 8) {
       toast({
         title: "Password too short",
@@ -59,7 +58,6 @@ export default function Signup() {
       });
       return;
     }
-
     if (!confirmPassword) {
       toast({
         title: "Confirm password required",
@@ -68,7 +66,6 @@ export default function Signup() {
       });
       return;
     }
-
     if (password !== confirmPassword) {
       toast({
         title: "Passwords do not match",
@@ -77,17 +74,17 @@ export default function Signup() {
       });
       return;
     }
-
     setIsSubmitting(true);
     try {
-      const { error } = await signUp(email, password, {
+      const {
+        error
+      } = await signUp(email, password, {
         full_name: name || email.split("@")[0],
         username: email.split("@")[0]
       });
-      
       if (error) {
         let errorMessage = "Please check your information and try again.";
-        
+
         // Provide more specific error messages based on error type
         if (error.message?.includes("User already registered")) {
           errorMessage = "An account with this email already exists. Please try logging in instead.";
@@ -102,7 +99,6 @@ export default function Signup() {
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
         toast({
           title: "Signup failed",
           description: errorMessage,
@@ -124,9 +120,7 @@ export default function Signup() {
   if (user) {
     return <Navigate to="/" replace />;
   }
-  
-  return (
-    <AuthLayout>
+  return <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
           <h1 className="text-xl font-semibold">Create an account</h1>
@@ -136,33 +130,13 @@ export default function Signup() {
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Name (optional)
-              </label>
-              <Input 
-                id="name" 
-                type="text" 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
-                disabled={isSubmitting}
-                placeholder="Enter your full name"
-              />
-            </div>
+            
 
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
                 Email *
               </label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                required 
-                disabled={isSubmitting}
-                placeholder="Enter your email address"
-              />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isSubmitting} placeholder="Enter your email address" />
             </div>
             
             <div className="space-y-2">
@@ -170,21 +144,8 @@ export default function Signup() {
                 Password *
               </label>
               <div className="relative">
-                <Input 
-                  id="password" 
-                  type={showPassword ? "text" : "password"} 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  required 
-                  disabled={isSubmitting}
-                  placeholder="Create a password"
-                />
-                <button 
-                  type="button" 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
-                  onClick={() => setShowPassword(!showPassword)} 
-                  disabled={isSubmitting}
-                >
+                <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required disabled={isSubmitting} placeholder="Create a password" />
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)} disabled={isSubmitting}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -198,35 +159,18 @@ export default function Signup() {
                 Confirm Password *
               </label>
               <div className="relative">
-                <Input 
-                  id="confirm-password" 
-                  type={showConfirmPassword ? "text" : "password"} 
-                  value={confirmPassword} 
-                  onChange={e => setConfirmPassword(e.target.value)} 
-                  required 
-                  disabled={isSubmitting}
-                  placeholder="Confirm your password"
-                />
-                <button 
-                  type="button" 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
-                  disabled={isSubmitting}
-                >
+                <Input id="confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={isSubmitting} placeholder="Confirm your password" />
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowConfirmPassword(!showConfirmPassword)} disabled={isSubmitting}>
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
             
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
+              {isSubmitting ? <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating account...
-                </>
-              ) : (
-                "Create account"
-              )}
+                </> : "Create account"}
             </Button>
             
             <div className="text-center text-sm">
@@ -238,6 +182,5 @@ export default function Signup() {
           </form>
         </CardContent>
       </Card>
-    </AuthLayout>
-  );
+    </AuthLayout>;
 }

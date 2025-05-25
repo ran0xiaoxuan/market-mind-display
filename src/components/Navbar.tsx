@@ -67,9 +67,7 @@ export const Navbar = ({
       <div className="container max-w-full px-4 md:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center">
           <div className="mr-6">
-            <NavItem to="/" end>
-              <Logo />
-            </NavItem>
+            <Logo />
           </div>
           <nav className="flex items-center space-x-2">
             {session ? <>

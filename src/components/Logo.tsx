@@ -1,6 +1,4 @@
 
-import { Link } from "react-router-dom";
-
 interface LogoProps {
   size?: "sm" | "md" | "lg";
 }

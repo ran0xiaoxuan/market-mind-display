@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
@@ -93,6 +92,7 @@ const AIStrategy = () => {
     setIsLoading(true);
     setError(null);
     setErrorType(null);
+    
     try {
       console.log("Generating strategy with parameters:", {
         assetType: 'stocks',
@@ -100,6 +100,7 @@ const AIStrategy = () => {
         strategyDescription,
         retryAttempt: retryCount
       });
+      
       const strategy = await generateStrategy('stocks', selectedAsset, strategyDescription);
       console.log("Strategy generated successfully:", strategy);
       setGeneratedStrategy(strategy);
@@ -112,17 +113,32 @@ const AIStrategy = () => {
     } catch (error: any) {
       console.error("Error generating strategy:", error);
       const errorMessage = error.message || "Unknown error";
-      const errorType = error.type || "unknown_error";
+      const errorType = error.type || "connection_error";
+      
       setError(errorMessage);
       setErrorType(errorType);
 
-      // Check if this is a connection error
-      const isConnectionError = errorMessage.includes("Failed to fetch") || errorMessage.includes("Network error") || errorMessage.includes("connection") || errorType === "connection_error" || !navigator.onLine;
-      toast({
-        title: "Failed to generate strategy",
-        description: isConnectionError ? "There was an error connecting to the AI service. Please check your connection and try again." : "There was an error generating your strategy. Please try again or use a simpler description.",
-        variant: "destructive"
-      });
+      // Show immediate fallback option for connection errors
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("Network error") || !navigator.onLine) {
+        setErrorType("connection_error");
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to AI service. You can use a template strategy instead.",
+          variant: "destructive"
+        });
+      } else if (errorType === "api_key_error") {
+        toast({
+          title: "Configuration Error",
+          description: "AI service configuration issue. Please try the template strategy.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "AI Service Error",
+          description: "There was an error generating your strategy. Try simplifying your description or use a template.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -148,8 +164,8 @@ const AIStrategy = () => {
       const fallbackStrategy = generateFallbackStrategy("stocks", selectedAsset, strategyDescription);
       setGeneratedStrategy(fallbackStrategy);
       toast({
-        title: "Using template strategy",
-        description: "Using a template strategy since the AI service is unavailable",
+        title: "Template strategy created",
+        description: "A template strategy has been created based on your asset selection",
       });
     });
   };
@@ -253,7 +269,7 @@ const AIStrategy = () => {
   };
 
   const isAPIKeyError = errorType === "api_key_error";
-  const isConnectionError = error?.includes("Failed to fetch") || error?.includes("Network error") || errorType === "connection_error";
+  const isConnectionError = errorType === "connection_error" || error?.includes("Failed to fetch") || error?.includes("Network error");
   const isTimeoutError = errorType === "timeout_error" || error?.includes("timed out");
 
   return (
@@ -276,77 +292,108 @@ const AIStrategy = () => {
             {error && (
               <div className="my-4 p-4 border border-destructive text-destructive bg-destructive/10 rounded-md flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium">
-                    {isAPIKeyError ? "API Key Error" : isConnectionError ? "Connection Error" : isTimeoutError ? "Request Timeout" : "AI Service Error"}
+                <div className="flex-1">
+                  <h4 className="font-medium mb-2">
+                    {isConnectionError ? "Connection Issue - Service Unavailable" : 
+                     isAPIKeyError ? "Configuration Error" : 
+                     isTimeoutError ? "Request Timeout" : "AI Service Error"}
                   </h4>
-                  <p className="text-sm">{error}</p>
+                  
+                  {isConnectionError && (
+                    <div>
+                      <p className="text-sm mb-3">The AI service is currently unavailable. This could be due to:</p>
+                      <ul className="list-disc pl-5 space-y-1 text-sm mb-4">
+                        <li>Network connectivity issues</li>
+                        <li>AI service temporarily down</li>
+                        <li>Server maintenance</li>
+                      </ul>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          onClick={handleUseFallbackData}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Use Template Strategy
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleRetryGeneration}>
+                          <RefreshCcw className="w-3 h-3 mr-1" />
+                          Try Again
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   
                   {isAPIKeyError && (
-                    <div className="mt-3">
-                      <Alert variant="destructive" className="bg-destructive/5">
-                        <AlertTitle className="flex items-center gap-2">
-                          Supabase Edge Function Configuration Error
-                        </AlertTitle>
-                        <AlertDescription>
-                          <p className="mb-2">The AI service could not authenticate. This is due to:</p>
-                          <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>Missing OPENAI_API_KEY in the project settings</li>
-                            <li>Invalid or expired API key</li>
-                          </ul>
-                          <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                            <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDocs}>
-                              <ExternalLink className="w-3 h-3" />
-                              Supabase Functions Documentation
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={openSupabaseDashboard}>
-                              <ExternalLink className="w-3 h-3" />
-                              View Edge Functions
-                            </Button>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
+                    <div>
+                      <p className="text-sm mb-3">AI service configuration error:</p>
+                      <ul className="list-disc pl-5 space-y-1 text-sm mb-4">
+                        <li>Missing or invalid OpenAI API key</li>
+                        <li>Edge function configuration issue</li>
+                      </ul>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          onClick={handleUseFallbackData}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Use Template Strategy
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={openSupabaseDocs}>
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Setup Guide
+                        </Button>
+                      </div>
                     </div>
                   )}
                   
-                  {(isConnectionError || isTimeoutError) && (
-                    <div className="mt-3">
-                      <Alert variant="destructive" className="bg-destructive/5">
-                        <AlertTitle className="flex items-center gap-2">
-                          {isConnectionError ? "Connection Error" : "Request Timeout"}
-                        </AlertTitle>
-                        <AlertDescription>
-                          <p className="mb-2">We couldn't reach the AI service. This might be due to:</p>
-                          <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>Network connectivity issues</li>
-                            <li>Supabase Edge Function not responding</li>
-                            {isTimeoutError && <li>Request was too complex and timed out</li>}
-                          </ul>
-                          
-                          <div className="mt-4 flex gap-2">
-                            <Button variant="default" size="sm" onClick={handleRetryGeneration} className="flex items-center gap-1">
-                              <RefreshCcw className="w-3 h-3" />
-                              Retry Generation
-                            </Button>
-                            
-                            <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
-                              Use Template Strategy
-                            </Button>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
+                  {isTimeoutError && (
+                    <div>
+                      <p className="text-sm mb-3">Request timed out. Try:</p>
+                      <ul className="list-disc pl-5 space-y-1 text-sm mb-4">
+                        <li>Simplifying your strategy description</li>
+                        <li>Using fewer technical requirements</li>
+                        <li>Trying again in a moment</li>
+                      </ul>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="outline" size="sm" onClick={handleRetryGeneration}>
+                          <RefreshCcw className="w-3 h-3 mr-1" />
+                          Retry with Current Description
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          onClick={handleUseFallbackData}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Use Template Strategy
+                        </Button>
+                      </div>
                     </div>
                   )}
                   
-                  {!isAPIKeyError && !isConnectionError && !isTimeoutError && (
-                    <div className="mt-4">
-                      <Button variant="default" size="sm" onClick={handleRetryGeneration} className="mr-2 flex items-center gap-1">
-                        <RefreshCcw className="w-3 h-3" />
-                        Retry
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleUseFallbackData}>
-                        Use Template Strategy
-                      </Button>
+                  {!isConnectionError && !isAPIKeyError && !isTimeoutError && (
+                    <div>
+                      <p className="text-sm mb-3">{error}</p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="outline" size="sm" onClick={handleRetryGeneration}>
+                          <RefreshCcw className="w-3 h-3 mr-1" />
+                          Retry
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          onClick={handleUseFallbackData}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Use Template Strategy
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -354,7 +401,11 @@ const AIStrategy = () => {
             )}
 
             <div className="flex justify-end mt-6">
-              <Button className="w-full" onClick={handleGenerateStrategy} disabled={isLoading || !strategyDescription || !selectedAsset}>
+              <Button 
+                className="w-full" 
+                onClick={handleGenerateStrategy} 
+                disabled={isLoading || !strategyDescription || !selectedAsset}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -79,13 +78,15 @@ const mapInterfaceToDbStrategy = (strategy: Omit<Strategy, 'id' | 'createdAt' | 
   };
 };
 
-// Generate strategy using AI
+// Generate strategy using AI with improved error handling
 export const generateStrategy = async (
   assetType: "stocks",
   asset: string,
   description: string
 ): Promise<GeneratedStrategy> => {
   try {
+    console.log("Attempting to generate strategy via AI service...");
+    
     // Call the Supabase Edge Function that generates the strategy
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: {
@@ -93,48 +94,81 @@ export const generateStrategy = async (
         selectedAsset: asset,
         strategyDescription: description
       }
-      // The timeoutMs property is not supported in the current type definition
-      // We'll rely on the default timeout instead
     });
 
     if (error) {
       console.error("Error from generate-strategy function:", error);
-      throw {
-        message: `Error from AI service: ${error.message}`,
-        type: error.name === 'AbortError' ? 'timeout_error' : 'api_error'
-      };
+      
+      // Determine error type for better user experience
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("fetch")) {
+        throw {
+          message: "Failed to connect to AI service. The service may be temporarily unavailable.",
+          type: "connection_error"
+        };
+      } else if (error.message?.includes("API key") || error.message?.includes("authentication")) {
+        throw {
+          message: "AI service configuration error. Please check the API key setup.",
+          type: "api_key_error"
+        };
+      } else if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+        throw {
+          message: "Request timed out. Please try again with a simpler description.",
+          type: "timeout_error"
+        };
+      } else {
+        throw {
+          message: `AI service error: ${error.message}`,
+          type: "api_error"
+        };
+      }
     }
 
     console.log("Generated strategy data:", data);
     return data as GeneratedStrategy;
   } catch (error: any) {
-    // Handle timeouts and connection errors
+    console.error("Error in generateStrategy:", error);
+    
+    // Handle network errors and connection issues
+    if (!navigator.onLine) {
+      throw {
+        message: "No internet connection. Please check your network and try again.",
+        type: "connection_error"
+      };
+    }
+    
+    if (error.message && error.message.includes('Failed to fetch')) {
+      throw {
+        message: "Unable to connect to AI service. The service may be temporarily down.",
+        type: "connection_error"
+      };
+    }
+    
+    // Handle timeouts
     if (error.message && error.message.includes('timeout')) {
       throw {
         message: "The request timed out. Please try again with a simpler description.",
         type: "timeout_error"
       };
     }
-    
-    // Handle connection errors
-    if (!navigator.onLine || error.message?.includes('Failed to fetch')) {
-      throw {
-        message: "Failed to connect to the AI service. Please check your internet connection.",
-        type: "connection_error"
-      };
-    }
 
     // Handle API key errors
-    if (error.message?.includes('API key')) {
+    if (error.message?.includes('API key') || error.type === 'api_key_error') {
       throw {
-        message: "API key error: The AI service could not authenticate. Check your Supabase Edge Function configuration.",
+        message: "AI service configuration error. The OpenAI API key may be missing or invalid.",
         type: "api_key_error"
       };
     }
 
-    // Otherwise, just pass through the error
-    console.error("Error in generateStrategy:", error);
-    throw error;
+    // If it's already a structured error, pass it through
+    if (error.type) {
+      throw error;
+    }
+
+    // Otherwise, treat as a general connection error
+    throw {
+      message: error.message || "Unable to connect to AI service. Please try again later.",
+      type: "connection_error"
+    };
   }
 };
 
@@ -143,18 +177,20 @@ export const generateFallbackStrategy = (
   asset: string,
   description: string
 ): GeneratedStrategy => {
-  // Create a template strategy for stocks
+  console.log("Generating fallback template strategy for:", asset);
+  
+  // Create a comprehensive template strategy based on the asset
   const strategy: GeneratedStrategy = {
-    name: `${asset} Stock Strategy`,
-    description: description || `A simple stock strategy for ${asset}`,
+    name: `${asset} Template Trading Strategy`,
+    description: `A template trading strategy for ${asset} based on proven technical indicators. This strategy combines moving averages for trend identification with RSI for momentum confirmation. Suitable for medium-term positions with balanced risk management. Template strategies provide a solid foundation that can be customized based on market conditions and personal preferences.`,
     timeframe: 'Daily',
     targetAsset: asset,
     entryRules: [
       {
         id: 1,
-        logic: "ALL",
+        logic: "AND",
         requiredConditions: 2,
-        explanation: "Enter when both conditions are met",
+        explanation: "Primary entry conditions - all must be met",
         inequalities: [
           {
             id: 1,
@@ -171,7 +207,7 @@ export const generateFallbackStrategy = (
               parameters: { period: "50" },
               valueType: "number"
             },
-            explanation: "Short-term moving average crosses above long-term moving average"
+            explanation: "Short-term moving average crosses above long-term moving average indicating upward trend"
           },
           {
             id: 2,
@@ -187,7 +223,49 @@ export const generateFallbackStrategy = (
               value: "50",
               valueType: "number"
             },
-            explanation: "RSI indicates bullish momentum"
+            explanation: "RSI above 50 indicates bullish momentum"
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        requiredConditions: 1,
+        explanation: "Additional confirmation signals - at least one should be met",
+        inequalities: [
+          {
+            id: 3,
+            left: {
+              type: "INDICATOR",
+              indicator: "Volume",
+              parameters: { period: "20" },
+              valueType: "number"
+            },
+            condition: "GREATER_THAN",
+            right: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "20", source: "volume" },
+              valueType: "number"
+            },
+            explanation: "Volume above average confirms strong market interest"
+          },
+          {
+            id: 4,
+            left: {
+              type: "INDICATOR",
+              indicator: "MACD",
+              parameters: { fast: "12", slow: "26", signal: "9" },
+              valueType: "number"
+            },
+            condition: "CROSSES_ABOVE",
+            right: {
+              type: "INDICATOR",
+              indicator: "MACD Signal",
+              parameters: { fast: "12", slow: "26", signal: "9" },
+              valueType: "number"
+            },
+            explanation: "MACD crossing above signal line provides trend confirmation"
           }
         ]
       }
@@ -195,7 +273,7 @@ export const generateFallbackStrategy = (
     exitRules: [
       {
         id: 1,
-        logic: "ANY",
+        logic: "OR",
         requiredConditions: 1,
         explanation: "Exit when any condition is met",
         inequalities: [
@@ -220,25 +298,42 @@ export const generateFallbackStrategy = (
             id: 2,
             left: {
               type: "INDICATOR",
-              indicator: "PRICE",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              valueType: "number"
+            },
+            condition: "GREATER_THAN",
+            right: {
+              type: "VALUE",
+              value: "70",
+              valueType: "number"
+            },
+            explanation: "RSI above 70 indicates overbought conditions"
+          },
+          {
+            id: 3,
+            left: {
+              type: "INDICATOR",
+              indicator: "RSI",
+              parameters: { period: "14" },
               valueType: "number"
             },
             condition: "LESS_THAN",
             right: {
               type: "VALUE",
-              value: "Previous low",
+              value: "30",
               valueType: "number"
             },
-            explanation: "Price breaks below support"
+            explanation: "RSI below 30 indicates oversold conditions (stop loss scenario)"
           }
         ]
       }
     ],
     riskManagement: {
       stopLoss: "5%",
-      takeProfit: "15%",
-      singleBuyVolume: "10% of portfolio",
-      maxBuyVolume: "30% of portfolio"
+      takeProfit: "12%",
+      singleBuyVolume: "$1000",
+      maxBuyVolume: "$5000"
     }
   };
 

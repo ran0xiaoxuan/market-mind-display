@@ -16,10 +16,7 @@ export default function Settings() {
       <Navbar />
       <main className="flex-1 py-6 px-4 md:px-8 lg:px-10">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-semibold">Settings</h1>
-          <p className="text-sm text-muted-foreground mb-8">
-            Manage your account settings and preferences
-          </p>
+          <h1 className="text-2xl font-semibold mb-8">Settings</h1>
 
           <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
           

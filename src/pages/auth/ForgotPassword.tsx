@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-// Import toast directly from the hooks file
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -19,15 +18,48 @@ export default function ForgotPassword() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validation
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!email.includes("@") || !email.includes(".")) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
       const { error } = await resetPassword(email);
       
       if (error) {
+        let errorMessage = "Failed to send reset link. Please try again.";
+        
+        // Provide more specific error messages
+        if (error.message?.includes("User not found")) {
+          errorMessage = "No account found with this email address. Please check your email or sign up for a new account.";
+        } else if (error.message?.includes("Email rate limit exceeded")) {
+          errorMessage = "Too many reset requests. Please wait a few minutes before trying again.";
+        } else if (error.message?.includes("Invalid email")) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast({
           title: "Error",
-          description: error.message || "Failed to send reset link. Please try again.",
+          description: errorMessage,
           variant: "destructive"
         });
       } else {
@@ -40,7 +72,7 @@ export default function ForgotPassword() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "An unexpected error occurred.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -86,6 +118,7 @@ export default function ForgotPassword() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isSubmitting}
+                  placeholder="Enter your email address"
                 />
               </div>
               

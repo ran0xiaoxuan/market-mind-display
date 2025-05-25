@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-// Import toast directly from the hooks file
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -27,16 +26,33 @@ export default function Login() {
       const { error } = await signIn(email, password);
       
       if (error) {
+        let errorMessage = "Please check your credentials and try again.";
+        
+        // Provide more specific error messages based on error type
+        if (error.message?.includes("Invalid login credentials")) {
+          errorMessage = "The email or password you entered is incorrect. Please try again.";
+        } else if (error.message?.includes("Email not confirmed")) {
+          errorMessage = "Please check your email and click the confirmation link before signing in.";
+        } else if (error.message?.includes("Too many requests")) {
+          errorMessage = "Too many login attempts. Please wait a few minutes before trying again.";
+        } else if (error.message?.includes("User not found")) {
+          errorMessage = "No account found with this email address. Please check your email or sign up.";
+        } else if (error.message?.includes("Invalid email")) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast({
           title: "Login failed",
-          description: error.message || "Please check your credentials and try again.",
+          description: errorMessage,
           variant: "destructive"
         });
       }
     } catch (error: any) {
       toast({
         title: "Login failed",
-        description: error.message || "An unexpected error occurred.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -71,6 +87,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isSubmitting}
+                placeholder="Enter your email address"
               />
             </div>
             
@@ -94,6 +111,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isSubmitting}
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"

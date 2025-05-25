@@ -17,28 +17,40 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const {
-    signUp,
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { signUp, user } = useAuth();
+  const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate password match
-    if (password !== confirmPassword) {
+    // Client-side validation with specific error messages
+    if (!email.trim()) {
       toast({
-        title: "Passwords do not match",
-        description: "Please ensure both passwords match",
+        title: "Email required",
+        description: "Please enter your email address",
         variant: "destructive"
       });
       return;
     }
 
-    // Validate password length
+    if (!email.includes("@") || !email.includes(".")) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!password) {
+      toast({
+        title: "Password required",
+        description: "Please enter a password",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (password.length < 8) {
       toast({
         title: "Password too short",
@@ -47,26 +59,60 @@ export default function Signup() {
       });
       return;
     }
+
+    if (!confirmPassword) {
+      toast({
+        title: "Confirm password required",
+        description: "Please confirm your password",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "Please ensure both passwords are identical",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Include name in metadata
-      const {
-        error
-      } = await signUp(email, password, {
-        full_name: name,
-        username: email.split("@")[0] // Default username from email
+      const { error } = await signUp(email, password, {
+        full_name: name || email.split("@")[0],
+        username: email.split("@")[0]
       });
+      
       if (error) {
+        let errorMessage = "Please check your information and try again.";
+        
+        // Provide more specific error messages based on error type
+        if (error.message?.includes("User already registered")) {
+          errorMessage = "An account with this email already exists. Please try logging in instead.";
+        } else if (error.message?.includes("Password should be at least")) {
+          errorMessage = "Password must be at least 8 characters long and contain a mix of letters and numbers.";
+        } else if (error.message?.includes("Invalid email")) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.message?.includes("Signup is disabled")) {
+          errorMessage = "Account registration is currently disabled. Please contact support.";
+        } else if (error.message?.includes("Email rate limit exceeded")) {
+          errorMessage = "Too many signup attempts. Please wait a few minutes before trying again.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast({
           title: "Signup failed",
-          description: error.message || "Please check your information and try again.",
+          description: errorMessage,
           variant: "destructive"
         });
       }
     } catch (error: any) {
       toast({
         title: "Signup failed",
-        description: error.message || "An unexpected error occurred.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -91,8 +137,22 @@ export default function Signup() {
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <label htmlFor="name" className="text-sm font-medium">
+                Name (optional)
+              </label>
+              <Input 
+                id="name" 
+                type="text" 
+                value={name} 
+                onChange={e => setName(e.target.value)} 
+                disabled={isSubmitting}
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                Email *
               </label>
               <Input 
                 id="email" 
@@ -100,13 +160,14 @@ export default function Signup() {
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 
-                disabled={isSubmitting} 
+                disabled={isSubmitting}
+                placeholder="Enter your email address"
               />
             </div>
             
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
-                Password
+                Password *
               </label>
               <div className="relative">
                 <Input 
@@ -115,7 +176,8 @@ export default function Signup() {
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
                   required 
-                  disabled={isSubmitting} 
+                  disabled={isSubmitting}
+                  placeholder="Create a password"
                 />
                 <button 
                   type="button" 
@@ -126,14 +188,14 @@ export default function Signup() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Password must be at least 8 characters long
+              <p className="text-xs text-muted-foreground">
+                Must be at least 8 characters long
               </p>
             </div>
             
             <div className="space-y-2">
               <label htmlFor="confirm-password" className="text-sm font-medium">
-                Confirm Password
+                Confirm Password *
               </label>
               <div className="relative">
                 <Input 
@@ -142,7 +204,8 @@ export default function Signup() {
                   value={confirmPassword} 
                   onChange={e => setConfirmPassword(e.target.value)} 
                   required 
-                  disabled={isSubmitting} 
+                  disabled={isSubmitting}
+                  placeholder="Confirm your password"
                 />
                 <button 
                   type="button" 

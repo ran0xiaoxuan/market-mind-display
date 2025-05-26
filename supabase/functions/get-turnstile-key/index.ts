@@ -7,16 +7,26 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('Turnstile key request received:', req.method);
+  
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Fetching TURNSTILE_SITE_KEY from environment...');
     const siteKey = Deno.env.get('TURNSTILE_SITE_KEY');
     
+    console.log('Site key found:', siteKey ? 'Yes' : 'No');
+    
     if (!siteKey) {
+      console.error('TURNSTILE_SITE_KEY environment variable not set');
       return new Response(
-        JSON.stringify({ error: 'Site key not configured' }),
+        JSON.stringify({ 
+          error: 'Site key not configured',
+          message: 'TURNSTILE_SITE_KEY environment variable is missing'
+        }),
         { 
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -24,6 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log('Returning site key successfully');
     return new Response(
       JSON.stringify({ siteKey }),
       {
@@ -32,9 +43,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error('Error getting Turnstile site key:', error);
+    console.error('Unexpected error in get-turnstile-key:', error);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
-      JSON.stringify({ error: 'Failed to get site key' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        message: 'Failed to retrieve site key'
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -43,4 +59,5 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
+console.log('Starting get-turnstile-key function...');
 serve(handler);

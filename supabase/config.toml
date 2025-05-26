@@ -10,5 +10,8 @@ verify_jwt = false
 [functions.get-taapi-key]
 verify_jwt = true
 
+[functions.get-turnstile-key]
+verify_jwt = false
+
 [functions.openai-chat]
 verify_jwt = false

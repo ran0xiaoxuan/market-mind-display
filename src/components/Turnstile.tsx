@@ -52,7 +52,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         console.error('Failed to get Turnstile site key:', error);
         // Use a test site key for development - don't show error immediately
         console.log('Falling back to test site key for development');
-        setSiteKey('1x00000000000000000000AA');
+        setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
         setShowFallbackMessage(true);
       } finally {
         setIsLoadingKey(false);

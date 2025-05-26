@@ -25,7 +25,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [isLoaded, setIsLoaded] = useState(false);
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const [isLoadingKey, setIsLoadingKey] = useState(true);
-  const [isRendering, setIsRendering] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     // Get the site key from Supabase edge function
@@ -50,7 +50,8 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       } catch (error) {
         console.error('Failed to get Turnstile site key:', error);
         // Use a test site key for development
-        setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
+        setSiteKey('1x00000000000000000000AA');
+        setHasError(true);
       } finally {
         setIsLoadingKey(false);
       }
@@ -60,12 +61,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   }, []);
 
   useEffect(() => {
-    if (!siteKey || isLoadingKey || isRendering || !ref.current) return;
+    if (!siteKey || isLoadingKey || widgetId || hasError || !ref.current) return;
 
     const loadTurnstile = () => {
       if (window.turnstile && ref.current && !widgetId) {
         console.log('Rendering Turnstile widget with site key:', siteKey);
-        setIsRendering(true);
         
         try {
           // Clear any existing content first
@@ -75,10 +75,12 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
             sitekey: siteKey,
             callback: (token: string) => {
               console.log('Turnstile verified successfully');
+              setIsLoaded(true);
               onVerify(token);
             },
             'error-callback': () => {
               console.error('Turnstile verification failed');
+              setHasError(true);
               if (onError) onError();
             },
             'expired-callback': () => {
@@ -90,13 +92,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
           });
           
           setWidgetId(id);
-          setIsLoaded(true);
           console.log('Turnstile widget rendered successfully with ID:', id);
         } catch (error) {
           console.error('Error rendering Turnstile widget:', error);
+          setHasError(true);
           if (onError) onError();
-        } finally {
-          setIsRendering(false);
         }
       }
     };
@@ -111,7 +111,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       script.onload = loadTurnstile;
       script.onerror = () => {
         console.error('Failed to load Turnstile script');
-        setIsRendering(false);
+        setHasError(true);
         if (onError) onError();
       };
       document.head.appendChild(script);
@@ -124,22 +124,9 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         }
       };
     }
+  }, [siteKey, isLoadingKey, widgetId, hasError, onVerify, onError, onExpire]);
 
-    return () => {
-      if (widgetId && window.turnstile) {
-        try {
-          console.log('Cleaning up Turnstile widget:', widgetId);
-          window.turnstile.remove(widgetId);
-          setWidgetId(null);
-          setIsLoaded(false);
-        } catch (e) {
-          console.warn('Failed to remove Turnstile widget:', e);
-        }
-      }
-    };
-  }, [siteKey, isLoadingKey, onVerify, onError, onExpire, widgetId, isRendering]);
-
-  // Cleanup on unmount
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
       if (widgetId && window.turnstile) {
@@ -153,6 +140,15 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     };
   }, [widgetId]);
 
+  const handleRetry = () => {
+    setHasError(false);
+    setWidgetId(null);
+    setIsLoaded(false);
+    if (ref.current) {
+      ref.current.innerHTML = '';
+    }
+  };
+
   if (isLoadingKey) {
     return (
       <div className={className}>
@@ -163,11 +159,17 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     );
   }
 
-  if (!siteKey) {
+  if (!siteKey || hasError) {
     return (
       <div className={className}>
-        <div className="h-16 bg-red-100 rounded flex items-center justify-center">
-          <span className="text-sm text-red-600">Security check unavailable</span>
+        <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
+          <span className="text-sm text-red-600">Security check failed</span>
+          <button 
+            onClick={handleRetry}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );
@@ -176,7 +178,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   return (
     <div className={className}>
       <div ref={ref} />
-      {!isLoaded && !isRendering && (
+      {!isLoaded && !hasError && (
         <div className="h-16 bg-gray-100 rounded animate-pulse flex items-center justify-center">
           <span className="text-sm text-gray-500">Loading captcha...</span>
         </div>

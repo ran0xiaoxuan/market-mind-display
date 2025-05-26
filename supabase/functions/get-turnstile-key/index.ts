@@ -47,15 +47,20 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Environment check:');
     console.log('- SUPABASE_URL exists:', !!supabaseUrl);
+    console.log('- SUPABASE_URL value:', supabaseUrl);
     console.log('- TURNSTILE_SITE_KEY exists:', !!siteKey);
-    console.log('- Current environment:', supabaseUrl ? 'Production' : 'Local');
+    console.log('- TURNSTILE_SITE_KEY length:', siteKey?.length || 0);
     
     if (!siteKey) {
       console.error('TURNSTILE_SITE_KEY environment variable not set');
       return new Response(
         JSON.stringify({ 
           error: 'Site key not configured',
-          message: 'TURNSTILE_SITE_KEY environment variable is missing'
+          message: 'TURNSTILE_SITE_KEY environment variable is missing',
+          debug: {
+            hasSupabaseUrl: !!supabaseUrl,
+            environment: supabaseUrl ? 'production' : 'local'
+          }
         }),
         { 
           status: 500,
@@ -65,15 +70,25 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Site key found, returning successfully');
-    console.log('Site key length:', siteKey.length);
     
     const response = {
       siteKey,
       environment: supabaseUrl ? 'production' : 'local',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      debug: {
+        functionWorking: true,
+        requestMethod: req.method,
+        hasEnvironmentVars: {
+          supabaseUrl: !!supabaseUrl,
+          siteKey: !!siteKey
+        }
+      }
     };
     
-    console.log('Returning response:', response);
+    console.log('Returning response:', {
+      ...response,
+      siteKey: `${siteKey.substring(0, 10)}...`
+    });
     
     return new Response(
       JSON.stringify(response),
@@ -95,7 +110,11 @@ const handler = async (req: Request): Promise<Response> => {
         error: 'Internal server error',
         message: 'Failed to retrieve site key',
         details: error?.message || 'Unknown error',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        debug: {
+          errorType: typeof error,
+          errorName: error?.name || 'Unknown'
+        }
       }),
       {
         status: 500,
@@ -108,5 +127,8 @@ const handler = async (req: Request): Promise<Response> => {
 console.log('=== Starting get-turnstile-key function ===');
 console.log('Deno version:', Deno.version.deno);
 console.log('Function deployment timestamp:', new Date().toISOString());
+console.log('Environment variables available:');
+console.log('- SUPABASE_URL:', !!Deno.env.get('SUPABASE_URL'));
+console.log('- TURNSTILE_SITE_KEY:', !!Deno.env.get('TURNSTILE_SITE_KEY'));
 
 serve(handler);

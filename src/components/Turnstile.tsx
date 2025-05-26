@@ -26,7 +26,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const [isLoadingKey, setIsLoadingKey] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [networkError, setNetworkError] = useState(false);
 
   useEffect(() => {
     // Get the site key from Supabase edge function
@@ -34,12 +34,19 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       try {
         console.log('Fetching Turnstile site key...');
         
-        const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
+        // Set a timeout for the request
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 10000);
+        });
+        
+        const requestPromise = supabase.functions.invoke('get-turnstile-key', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
         });
+        
+        const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
         
         if (error) {
           console.error('Error fetching Turnstile site key:', error);
@@ -50,17 +57,17 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         
         if (data?.siteKey) {
           setSiteKey(data.siteKey);
-          setErrorMessage('');
+          setNetworkError(false);
           console.log('Turnstile site key loaded successfully');
         } else {
           throw new Error('No site key in response');
         }
       } catch (error: any) {
         console.error('Failed to get Turnstile site key:', error);
-        setErrorMessage(`Network error: ${error.message}`);
+        setNetworkError(true);
         
         // Use a test site key as fallback
-        console.log('Using test site key as fallback');
+        console.log('Using test site key due to network issue');
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
       } finally {
         setIsLoadingKey(false);
@@ -157,7 +164,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     setIsLoaded(false);
     setIsLoadingKey(true);
     setSiteKey(null);
-    setErrorMessage('');
+    setNetworkError(false);
     if (ref.current) {
       ref.current.innerHTML = '';
     }
@@ -166,20 +173,27 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     const getSiteKey = async () => {
       try {
         console.log('Retrying Turnstile site key fetch...');
-        const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
+        
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 10000);
+        });
+        
+        const requestPromise = supabase.functions.invoke('get-turnstile-key', {
           method: 'POST',
         });
+        
+        const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
         
         if (error) throw new Error(`Edge function error: ${error.message}`);
         if (data?.siteKey) {
           setSiteKey(data.siteKey);
-          setErrorMessage('');
+          setNetworkError(false);
         } else {
           throw new Error('No site key in response');
         }
       } catch (error: any) {
         console.error('Retry failed:', error);
-        setErrorMessage(`Retry failed: ${error.message}`);
+        setNetworkError(true);
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
       } finally {
         setIsLoadingKey(false);
@@ -204,9 +218,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       <div className={className}>
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
           <span className="text-sm text-red-600">Security check unavailable</span>
-          {errorMessage && (
-            <span className="text-xs text-red-500 text-center px-2">{errorMessage}</span>
-          )}
+          <span className="text-xs text-red-500 text-center px-2">Unable to connect to verification service</span>
           <button 
             onClick={handleRetry}
             className="text-xs text-blue-600 hover:underline"
@@ -234,13 +246,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     );
   }
 
-  const isUsingTestKey = siteKey === '0x4AAAAAABeotV9KL7X5-YJB';
-
   return (
     <div className={className}>
-      {isUsingTestKey && errorMessage && (
-        <div className="mb-2 text-xs text-amber-600 text-center">
-          Using test verification (network issue detected)
+      {networkError && (
+        <div className="mb-2 text-xs text-amber-600 text-center bg-amber-50 p-2 rounded">
+          ⚠️ Using fallback verification due to network issue
         </div>
       )}
       <div ref={ref} />

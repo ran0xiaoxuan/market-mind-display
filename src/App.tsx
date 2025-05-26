@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Routes,
@@ -11,6 +10,7 @@ import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import Confirm from "./pages/auth/Confirm";
 import Dashboard from "./pages/Dashboard";
 import Strategies from "./pages/Strategies";
 import AIStrategy from "./pages/AIStrategy";
@@ -43,6 +43,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/confirm" element={<Confirm />} />
         
         {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>

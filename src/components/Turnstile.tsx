@@ -26,6 +26,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const [isLoadingKey, setIsLoadingKey] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [showFallbackMessage, setShowFallbackMessage] = useState(false);
 
   useEffect(() => {
     // Get the site key from Supabase edge function
@@ -49,9 +50,10 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         }
       } catch (error) {
         console.error('Failed to get Turnstile site key:', error);
-        // Use a test site key for development
-        setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
-        setHasError(true);
+        // Use a test site key for development - don't show error immediately
+        console.log('Falling back to test site key for development');
+        setSiteKey('1x00000000000000000000AA');
+        setShowFallbackMessage(true);
       } finally {
         setIsLoadingKey(false);
       }
@@ -61,7 +63,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   }, []);
 
   useEffect(() => {
-    if (!siteKey || isLoadingKey || widgetId || hasError || !ref.current) return;
+    if (!siteKey || isLoadingKey || widgetId || !ref.current) return;
 
     const loadTurnstile = () => {
       if (window.turnstile && ref.current && !widgetId) {
@@ -76,6 +78,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
             callback: (token: string) => {
               console.log('Turnstile verified successfully');
               setIsLoaded(true);
+              setHasError(false);
               onVerify(token);
             },
             'error-callback': () => {
@@ -124,7 +127,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         }
       };
     }
-  }, [siteKey, isLoadingKey, widgetId, hasError, onVerify, onError, onExpire]);
+  }, [siteKey, isLoadingKey, widgetId, onVerify, onError, onExpire]);
 
   // Cleanup on unmount only
   useEffect(() => {
@@ -159,7 +162,23 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     );
   }
 
-  if (!siteKey || hasError) {
+  if (!siteKey) {
+    return (
+      <div className={className}>
+        <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
+          <span className="text-sm text-red-600">Security check unavailable</span>
+          <button 
+            onClick={handleRetry}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
     return (
       <div className={className}>
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
@@ -177,6 +196,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
 
   return (
     <div className={className}>
+      {showFallbackMessage && (
+        <div className="mb-2 text-xs text-amber-600 text-center">
+          Using test verification (development mode)
+        </div>
+      )}
       <div ref={ref} />
       {!isLoaded && !hasError && (
         <div className="h-16 bg-gray-100 rounded animate-pulse flex items-center justify-center">

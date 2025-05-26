@@ -26,34 +26,42 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const [isLoadingKey, setIsLoadingKey] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [showFallbackMessage, setShowFallbackMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     // Get the site key from Supabase edge function
     const getSiteKey = async () => {
       try {
         console.log('Fetching Turnstile site key...');
-        const { data, error } = await supabase.functions.invoke('get-turnstile-key');
+        
+        const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         
         if (error) {
           console.error('Error fetching Turnstile site key:', error);
-          throw error;
+          throw new Error(`Edge function error: ${error.message}`);
         }
         
         console.log('Turnstile response:', data);
         
         if (data?.siteKey) {
           setSiteKey(data.siteKey);
+          setErrorMessage('');
           console.log('Turnstile site key loaded successfully');
         } else {
           throw new Error('No site key in response');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to get Turnstile site key:', error);
-        // Use a test site key for development - don't show error immediately
-        console.log('Falling back to test site key for development');
+        setErrorMessage(`Network error: ${error.message}`);
+        
+        // Use a test site key as fallback
+        console.log('Using test site key as fallback');
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
-        setShowFallbackMessage(true);
       } finally {
         setIsLoadingKey(false);
       }
@@ -147,9 +155,38 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     setHasError(false);
     setWidgetId(null);
     setIsLoaded(false);
+    setIsLoadingKey(true);
+    setSiteKey(null);
+    setErrorMessage('');
     if (ref.current) {
       ref.current.innerHTML = '';
     }
+    
+    // Retry fetching the site key
+    const getSiteKey = async () => {
+      try {
+        console.log('Retrying Turnstile site key fetch...');
+        const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
+          method: 'POST',
+        });
+        
+        if (error) throw new Error(`Edge function error: ${error.message}`);
+        if (data?.siteKey) {
+          setSiteKey(data.siteKey);
+          setErrorMessage('');
+        } else {
+          throw new Error('No site key in response');
+        }
+      } catch (error: any) {
+        console.error('Retry failed:', error);
+        setErrorMessage(`Retry failed: ${error.message}`);
+        setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
+      } finally {
+        setIsLoadingKey(false);
+      }
+    };
+    
+    getSiteKey();
   };
 
   if (isLoadingKey) {
@@ -167,6 +204,9 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       <div className={className}>
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
           <span className="text-sm text-red-600">Security check unavailable</span>
+          {errorMessage && (
+            <span className="text-xs text-red-500 text-center px-2">{errorMessage}</span>
+          )}
           <button 
             onClick={handleRetry}
             className="text-xs text-blue-600 hover:underline"
@@ -194,17 +234,19 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     );
   }
 
+  const isUsingTestKey = siteKey === '0x4AAAAAABeotV9KL7X5-YJB';
+
   return (
     <div className={className}>
-      {showFallbackMessage && (
+      {isUsingTestKey && errorMessage && (
         <div className="mb-2 text-xs text-amber-600 text-center">
-          Using test verification (development mode)
+          Using test verification (network issue detected)
         </div>
       )}
       <div ref={ref} />
       {!isLoaded && !hasError && (
         <div className="h-16 bg-gray-100 rounded animate-pulse flex items-center justify-center">
-          <span className="text-sm text-gray-500">Loading captcha...</span>
+          <span className="text-sm text-gray-500">Loading verification...</span>
         </div>
       )}
     </div>

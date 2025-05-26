@@ -8,17 +8,19 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('Turnstile key request received:', req.method, req.url);
+  console.log('=== Turnstile Key Function Started ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('Environment:', Deno.env.get('SUPABASE_URL') ? 'Production' : 'Local');
   
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight');
+    console.log('Handling CORS preflight request');
     return new Response(null, { 
       status: 200,
       headers: corsHeaders 
     });
   }
 
-  // Only allow POST requests
   if (req.method !== 'POST') {
     console.log('Method not allowed:', req.method);
     return new Response(
@@ -35,9 +37,9 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log('Processing POST request for Turnstile site key...');
-    console.log('Environment check - TURNSTILE_SITE_KEY exists:', !!Deno.env.get('TURNSTILE_SITE_KEY'));
     
     const siteKey = Deno.env.get('TURNSTILE_SITE_KEY');
+    console.log('TURNSTILE_SITE_KEY exists:', !!siteKey);
     
     if (!siteKey) {
       console.error('TURNSTILE_SITE_KEY environment variable not set');
@@ -57,14 +59,17 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Returning site key successfully');
     
     return new Response(
-      JSON.stringify({ siteKey }),
+      JSON.stringify({ 
+        siteKey,
+        environment: Deno.env.get('SUPABASE_URL') ? 'production' : 'local'
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders }
       }
     );
   } catch (error: any) {
-    console.error('Unexpected error in get-turnstile-key:', error);
+    console.error('=== ERROR in get-turnstile-key ===');
     console.error('Error type:', typeof error);
     console.error('Error message:', error?.message);
     console.error('Error stack:', error?.stack);
@@ -83,5 +88,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-console.log('Starting get-turnstile-key function...');
+console.log('=== Starting get-turnstile-key function ===');
+console.log('Environment variables check:');
+console.log('- SUPABASE_URL:', !!Deno.env.get('SUPABASE_URL'));
+console.log('- TURNSTILE_SITE_KEY:', !!Deno.env.get('TURNSTILE_SITE_KEY'));
+
 serve(handler);

@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,42 +31,42 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     // Get the site key from Supabase edge function
     const getSiteKey = async () => {
       try {
-        console.log('Fetching Turnstile site key...');
+        console.log('Fetching Turnstile site key from edge function...');
+        console.log('Supabase URL:', supabase.supabaseUrl);
         
-        // Set a timeout for the request
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Request timeout')), 10000);
-        });
-        
-        const requestPromise = supabase.functions.invoke('get-turnstile-key', {
-          method: 'POST',
+        const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
+          body: JSON.stringify({}),
           headers: {
             'Content-Type': 'application/json',
           },
         });
         
-        const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
+        console.log('Edge function response:', { data, error });
         
         if (error) {
-          console.error('Error fetching Turnstile site key:', error);
+          console.error('Error from edge function:', error);
           throw new Error(`Edge function error: ${error.message}`);
         }
         
-        console.log('Turnstile response:', data);
-        
         if (data?.siteKey) {
+          console.log('Site key received successfully');
           setSiteKey(data.siteKey);
           setNetworkError(false);
-          console.log('Turnstile site key loaded successfully');
         } else {
+          console.error('No site key in response:', data);
           throw new Error('No site key in response');
         }
       } catch (error: any) {
         console.error('Failed to get Turnstile site key:', error);
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
         setNetworkError(true);
         
         // Use a test site key as fallback
-        console.log('Using test site key due to network issue');
+        console.log('Using test site key due to error');
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
       } finally {
         setIsLoadingKey(false);
@@ -174,15 +173,12 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       try {
         console.log('Retrying Turnstile site key fetch...');
         
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Request timeout')), 10000);
+        const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
+          body: JSON.stringify({}),
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
-        
-        const requestPromise = supabase.functions.invoke('get-turnstile-key', {
-          method: 'POST',
-        });
-        
-        const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
         
         if (error) throw new Error(`Edge function error: ${error.message}`);
         if (data?.siteKey) {

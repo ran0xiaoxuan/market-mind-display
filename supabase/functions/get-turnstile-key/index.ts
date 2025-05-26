@@ -3,15 +3,14 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-my-custom-header',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 const handler = async (req: Request): Promise<Response> => {
   console.log('=== Turnstile Key Function Started ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -22,13 +21,13 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
+  // Allow both GET and POST requests for better compatibility
+  if (req.method !== 'POST' && req.method !== 'GET') {
     console.log('Method not allowed:', req.method);
     return new Response(
       JSON.stringify({ 
         error: 'Method not allowed',
-        message: 'Only POST requests are supported',
+        message: 'Only GET and POST requests are supported',
         method: req.method
       }),
       { 
@@ -39,28 +38,21 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Processing POST request for Turnstile site key...');
+    console.log('Processing request for Turnstile site key...');
     
-    // Check environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const siteKey = Deno.env.get('TURNSTILE_SITE_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     
     console.log('Environment check:');
     console.log('- SUPABASE_URL exists:', !!supabaseUrl);
-    console.log('- SUPABASE_URL value:', supabaseUrl);
     console.log('- TURNSTILE_SITE_KEY exists:', !!siteKey);
-    console.log('- TURNSTILE_SITE_KEY length:', siteKey?.length || 0);
     
     if (!siteKey) {
       console.error('TURNSTILE_SITE_KEY environment variable not set');
       return new Response(
         JSON.stringify({ 
           error: 'Site key not configured',
-          message: 'TURNSTILE_SITE_KEY environment variable is missing',
-          debug: {
-            hasSupabaseUrl: !!supabaseUrl,
-            environment: supabaseUrl ? 'production' : 'local'
-          }
+          message: 'TURNSTILE_SITE_KEY environment variable is missing'
         }),
         { 
           status: 500,
@@ -75,20 +67,10 @@ const handler = async (req: Request): Promise<Response> => {
       siteKey,
       environment: supabaseUrl ? 'production' : 'local',
       timestamp: new Date().toISOString(),
-      debug: {
-        functionWorking: true,
-        requestMethod: req.method,
-        hasEnvironmentVars: {
-          supabaseUrl: !!supabaseUrl,
-          siteKey: !!siteKey
-        }
-      }
+      success: true
     };
     
-    console.log('Returning response:', {
-      ...response,
-      siteKey: `${siteKey.substring(0, 10)}...`
-    });
+    console.log('Returning response with site key');
     
     return new Response(
       JSON.stringify(response),
@@ -100,8 +82,6 @@ const handler = async (req: Request): Promise<Response> => {
     
   } catch (error: any) {
     console.error('=== ERROR in get-turnstile-key ===');
-    console.error('Error type:', typeof error);
-    console.error('Error name:', error?.name);
     console.error('Error message:', error?.message);
     console.error('Error stack:', error?.stack);
     
@@ -110,11 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
         error: 'Internal server error',
         message: 'Failed to retrieve site key',
         details: error?.message || 'Unknown error',
-        timestamp: new Date().toISOString(),
-        debug: {
-          errorType: typeof error,
-          errorName: error?.name || 'Unknown'
-        }
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
@@ -125,10 +101,4 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 console.log('=== Starting get-turnstile-key function ===');
-console.log('Deno version:', Deno.version.deno);
-console.log('Function deployment timestamp:', new Date().toISOString());
-console.log('Environment variables available:');
-console.log('- SUPABASE_URL:', !!Deno.env.get('SUPABASE_URL'));
-console.log('- TURNSTILE_SITE_KEY:', !!Deno.env.get('TURNSTILE_SITE_KEY'));
-
 serve(handler);

@@ -1,5 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TurnstileProps {
   onVerify: (token: string) => void;
@@ -23,24 +24,34 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [widgetId, setWidgetId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [siteKey, setSiteKey] = useState<string | null>(null);
+  const [isLoadingKey, setIsLoadingKey] = useState(true);
 
   useEffect(() => {
-    // Get the site key from Supabase
+    // Get the site key from Supabase edge function
     const getSiteKey = async () => {
       try {
-        const { data } = await fetch('https://lqfhhqhswdqpsliskxrr.supabase.co/functions/v1/get-turnstile-key', {
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxZmhocWhzd2RxcHNsaXNreHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5NDc1MzUsImV4cCI6MjA1OTUyMzUzNX0.hkJqAnCC0HNAl9wDtlhPLTfzh1mGojpJYcuzo7BOzX0`
-          }
-        }).then(res => res.json());
+        console.log('Fetching Turnstile site key...');
+        const { data, error } = await supabase.functions.invoke('get-turnstile-key');
+        
+        if (error) {
+          console.error('Error fetching Turnstile site key:', error);
+          throw error;
+        }
+        
+        console.log('Turnstile response:', data);
         
         if (data?.siteKey) {
           setSiteKey(data.siteKey);
+          console.log('Turnstile site key loaded successfully');
+        } else {
+          throw new Error('No site key in response');
         }
       } catch (error) {
         console.error('Failed to get Turnstile site key:', error);
-        // Fallback to a placeholder - you'll need to replace this with your actual site key
+        // Use a test site key for development
         setSiteKey('1x00000000000000000000AA');
+      } finally {
+        setIsLoadingKey(false);
       }
     };
 
@@ -48,20 +59,27 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   }, []);
 
   useEffect(() => {
-    if (!siteKey) return;
+    if (!siteKey || isLoadingKey) return;
 
     const loadTurnstile = () => {
       if (window.turnstile && ref.current) {
-        const id = window.turnstile.render(ref.current, {
-          sitekey: siteKey,
-          callback: onVerify,
-          'error-callback': onError,
-          'expired-callback': onExpire,
-          theme: 'light',
-          size: 'normal',
-        });
-        setWidgetId(id);
-        setIsLoaded(true);
+        console.log('Rendering Turnstile widget with site key:', siteKey);
+        try {
+          const id = window.turnstile.render(ref.current, {
+            sitekey: siteKey,
+            callback: onVerify,
+            'error-callback': onError,
+            'expired-callback': onExpire,
+            theme: 'light',
+            size: 'normal',
+          });
+          setWidgetId(id);
+          setIsLoaded(true);
+          console.log('Turnstile widget rendered successfully');
+        } catch (error) {
+          console.error('Error rendering Turnstile widget:', error);
+          if (onError) onError();
+        }
       }
     };
 
@@ -73,6 +91,10 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       script.async = true;
       script.defer = true;
       script.onload = loadTurnstile;
+      script.onerror = () => {
+        console.error('Failed to load Turnstile script');
+        if (onError) onError();
+      };
       document.head.appendChild(script);
 
       return () => {
@@ -93,13 +115,23 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         }
       }
     };
-  }, [siteKey, onVerify, onError, onExpire]);
+  }, [siteKey, isLoadingKey, onVerify, onError, onExpire]);
 
-  if (!siteKey) {
+  if (isLoadingKey) {
     return (
       <div className={className}>
         <div className="h-16 bg-gray-100 rounded animate-pulse flex items-center justify-center">
           <span className="text-sm text-gray-500">Loading security check...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!siteKey) {
+    return (
+      <div className={className}>
+        <div className="h-16 bg-red-100 rounded flex items-center justify-center">
+          <span className="text-sm text-red-600">Security check unavailable</span>
         </div>
       </div>
     );

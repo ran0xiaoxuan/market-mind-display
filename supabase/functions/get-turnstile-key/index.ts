@@ -11,8 +11,9 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('=== Turnstile Key Function Started ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
-  console.log('Environment:', Deno.env.get('SUPABASE_URL') ? 'Production' : 'Local');
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
     return new Response(null, { 
@@ -21,12 +22,14 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
+  // Only allow POST requests
   if (req.method !== 'POST') {
     console.log('Method not allowed:', req.method);
     return new Response(
       JSON.stringify({ 
         error: 'Method not allowed',
-        message: 'Only POST requests are supported'
+        message: 'Only POST requests are supported',
+        method: req.method
       }),
       { 
         status: 405,
@@ -38,8 +41,14 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log('Processing POST request for Turnstile site key...');
     
+    // Check environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const siteKey = Deno.env.get('TURNSTILE_SITE_KEY');
-    console.log('TURNSTILE_SITE_KEY exists:', !!siteKey);
+    
+    console.log('Environment check:');
+    console.log('- SUPABASE_URL exists:', !!supabaseUrl);
+    console.log('- TURNSTILE_SITE_KEY exists:', !!siteKey);
+    console.log('- Current environment:', supabaseUrl ? 'Production' : 'Local');
     
     if (!siteKey) {
       console.error('TURNSTILE_SITE_KEY environment variable not set');
@@ -55,22 +64,29 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('Site key found, length:', siteKey.length);
-    console.log('Returning site key successfully');
+    console.log('Site key found, returning successfully');
+    console.log('Site key length:', siteKey.length);
+    
+    const response = {
+      siteKey,
+      environment: supabaseUrl ? 'production' : 'local',
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('Returning response:', response);
     
     return new Response(
-      JSON.stringify({ 
-        siteKey,
-        environment: Deno.env.get('SUPABASE_URL') ? 'production' : 'local'
-      }),
+      JSON.stringify(response),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders }
       }
     );
+    
   } catch (error: any) {
     console.error('=== ERROR in get-turnstile-key ===');
     console.error('Error type:', typeof error);
+    console.error('Error name:', error?.name);
     console.error('Error message:', error?.message);
     console.error('Error stack:', error?.stack);
     
@@ -78,7 +94,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         error: 'Internal server error',
         message: 'Failed to retrieve site key',
-        details: error?.message || 'Unknown error'
+        details: error?.message || 'Unknown error',
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
@@ -89,8 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 console.log('=== Starting get-turnstile-key function ===');
-console.log('Environment variables check:');
-console.log('- SUPABASE_URL:', !!Deno.env.get('SUPABASE_URL'));
-console.log('- TURNSTILE_SITE_KEY:', !!Deno.env.get('TURNSTILE_SITE_KEY'));
+console.log('Deno version:', Deno.version.deno);
+console.log('Function deployment timestamp:', new Date().toISOString());
 
 serve(handler);

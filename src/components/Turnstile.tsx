@@ -27,12 +27,12 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [isLoadingKey, setIsLoadingKey] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [networkError, setNetworkError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    // Get the site key from Supabase edge function
     const getSiteKey = async () => {
       try {
-        console.log('Fetching Turnstile site key from edge function...');
+        console.log(`Attempt ${retryCount + 1}: Fetching Turnstile site key from edge function...`);
         console.log('Supabase URL: https://lqfhhqhswdqpsliskxrr.supabase.co');
         console.log('Edge function URL: https://lqfhhqhswdqpsliskxrr.supabase.co/functions/v1/get-turnstile-key');
         
@@ -60,6 +60,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
           console.log('Site key received successfully');
           setSiteKey(data.siteKey);
           setNetworkError(false);
+          setRetryCount(0);
         } else {
           console.error('No site key in response:', data);
           throw new Error('No site key in response');
@@ -71,10 +72,17 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
           message: error.message,
           stack: error.stack
         });
-        setNetworkError(true);
         
-        // Use a test site key as fallback
-        console.log('Using test site key due to error');
+        // Only retry up to 2 times, then use fallback
+        if (retryCount < 2) {
+          console.log(`Retrying in 2 seconds... (attempt ${retryCount + 1}/2)`);
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => getSiteKey(), 2000);
+          return;
+        }
+        
+        setNetworkError(true);
+        console.log('Max retries reached, using test site key');
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
       } finally {
         setIsLoadingKey(false);
@@ -172,6 +180,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     setIsLoadingKey(true);
     setSiteKey(null);
     setNetworkError(false);
+    setRetryCount(0);
     if (ref.current) {
       ref.current.innerHTML = '';
     }
@@ -179,7 +188,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     // Retry fetching the site key
     const getSiteKey = async () => {
       try {
-        console.log('Retrying Turnstile site key fetch...');
+        console.log('Manual retry: Fetching Turnstile site key...');
         
         const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
           body: JSON.stringify({}),
@@ -196,7 +205,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
           throw new Error('No site key in response');
         }
       } catch (error: any) {
-        console.error('Retry failed:', error);
+        console.error('Manual retry failed:', error);
         setNetworkError(true);
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
       } finally {

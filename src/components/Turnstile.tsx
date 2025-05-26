@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,7 +33,8 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     const getSiteKey = async () => {
       try {
         console.log('Fetching Turnstile site key from edge function...');
-        console.log('Supabase URL:', supabase.supabaseUrl);
+        console.log('Supabase URL: https://lqfhhqhswdqpsliskxrr.supabase.co');
+        console.log('Edge function URL: https://lqfhhqhswdqpsliskxrr.supabase.co/functions/v1/get-turnstile-key');
         
         const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
           body: JSON.stringify({}),
@@ -45,6 +47,12 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         
         if (error) {
           console.error('Error from edge function:', error);
+          console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            context: error.context
+          });
           throw new Error(`Edge function error: ${error.message}`);
         }
         

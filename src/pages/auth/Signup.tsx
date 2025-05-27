@@ -145,15 +145,15 @@ export default function Signup() {
       } = await signInWithGoogle();
       if (error) {
         toast({
-          title: "Google Sign-In failed",
-          description: "There was an issue signing in with Google. Please try again.",
+          title: "Google Log in failed",
+          description: "There was an issue logging in with Google. Please try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
       toast({
-        title: "Google Sign-In failed",
-        description: "An unexpected error occurred with Google Sign-In.",
+        title: "Google Log in failed",
+        description: "An unexpected error occurred with Google Log in.",
         variant: "destructive"
       });
     } finally {
@@ -260,7 +260,7 @@ export default function Signup() {
               <div className="text-center text-sm">
                 Already have an account?{" "}
                 <Link to="/login" className="text-primary hover:underline">
-                  Sign in
+                  Log in
                 </Link>
               </div>
             </form>

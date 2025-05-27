@@ -58,7 +58,7 @@ export default function Login() {
         if (error.message?.includes("Invalid login credentials")) {
           errorMessage = "The email or password you entered is incorrect. Please try again.";
         } else if (error.message?.includes("Email not confirmed")) {
-          errorMessage = "Please check your email and click the confirmation link before signing in.";
+          errorMessage = "Please check your email and click the confirmation link before logging in.";
           setShowResendConfirmation(true);
         } else if (error.message?.includes("Too many requests")) {
           errorMessage = "Too many login attempts. Please wait a few minutes before trying again.";
@@ -93,15 +93,15 @@ export default function Login() {
       } = await signInWithGoogle();
       if (error) {
         toast({
-          title: "Google Sign-In failed",
-          description: "There was an issue signing in with Google. Please try again.",
+          title: "Google Log in failed",
+          description: "There was an issue logging in with Google. Please try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
       toast({
-        title: "Google Sign-In failed",
-        description: "An unexpected error occurred with Google Sign-In.",
+        title: "Google Log in failed",
+        description: "An unexpected error occurred with Google Log in.",
         variant: "destructive"
       });
     } finally {
@@ -218,8 +218,8 @@ export default function Login() {
               <Button type="submit" className="w-full" disabled={isSubmitting || !turnstileToken}>
                 {isSubmitting ? <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </> : "Sign in"}
+                    Logging in...
+                  </> : "Log in"}
               </Button>
 
               {showResendConfirmation && <div className="text-center">

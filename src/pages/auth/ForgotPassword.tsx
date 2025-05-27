@@ -8,6 +8,7 @@ import { Turnstile } from "@/components/Turnstile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -159,7 +160,7 @@ export default function ForgotPassword() {
               <div className="text-center text-sm">
                 Remember your password?{" "}
                 <Link to="/login" className="text-primary hover:underline">
-                  Sign in
+                  Log in
                 </Link>
               </div>
             </form>}

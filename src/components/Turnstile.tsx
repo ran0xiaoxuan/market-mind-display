@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,13 +27,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [isLoadingKey, setIsLoadingKey] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [networkError, setNetworkError] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('Initializing...');
 
   useEffect(() => {
     const getSiteKey = async () => {
       try {
         console.log('Fetching Turnstile site key from edge function...');
-        setDebugInfo('Connecting to edge function...');
         
         const startTime = Date.now();
         
@@ -95,7 +94,6 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
           console.log('Site key received successfully');
           setSiteKey(data.siteKey);
           setNetworkError(false);
-          setDebugInfo(`Success: Site key loaded from ${data.environment || 'unknown'} environment`);
         } else {
           console.error('No site key in response:', data);
           throw new Error('No site key in response');
@@ -104,12 +102,10 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       } catch (error: any) {
         console.error('Failed to get Turnstile site key:', error);
         setNetworkError(true);
-        setDebugInfo(`Connection failed: ${error.message}`);
         
         // Use test site key as fallback
         console.log('Using test site key as fallback');
         setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
-        setDebugInfo(`Fallback: Using test key due to network error`);
       } finally {
         setIsLoadingKey(false);
       }
@@ -206,7 +202,6 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     setIsLoadingKey(true);
     setSiteKey(null);
     setNetworkError(false);
-    setDebugInfo('Retrying connection...');
     if (ref.current) {
       ref.current.innerHTML = '';
     }
@@ -220,9 +215,6 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       <div className={className}>
         <div className="h-16 bg-gray-100 rounded animate-pulse flex items-center justify-center">
           <span className="text-sm text-gray-500">Loading security check...</span>
-        </div>
-        <div className="mt-1 text-xs text-blue-400 text-center">
-          Debug: {debugInfo}
         </div>
       </div>
     );
@@ -241,9 +233,6 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
             Reload page
           </button>
         </div>
-        <div className="mt-1 text-xs text-red-400 text-center">
-          Debug: {debugInfo}
-        </div>
       </div>
     );
   }
@@ -260,9 +249,6 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
             Reload page
           </button>
         </div>
-        <div className="mt-1 text-xs text-amber-400 text-center">
-          Debug: {debugInfo}
-        </div>
       </div>
     );
   }
@@ -275,14 +261,6 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         </div>
       )}
       <div ref={ref} />
-      {!isLoaded && !hasError && (
-        <div className="h-16 bg-gray-100 rounded animate-pulse flex items-center justify-center">
-          <span className="text-sm text-gray-500">Loading verification...</span>
-        </div>
-      )}
-      <div className="mt-1 text-xs text-green-400 text-center">
-        Debug: {debugInfo}
-      </div>
     </div>
   );
 }

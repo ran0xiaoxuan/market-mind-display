@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -185,10 +186,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      // Get the current hostname to determine the correct redirect URL
+      const currentHostname = window.location.hostname;
+      let redirectTo = `${window.location.origin}/dashboard`;
+      
+      // Handle different domain scenarios
+      if (currentHostname.includes('lovable.app')) {
+        // For Lovable preview domains, use the current origin
+        redirectTo = `${window.location.origin}/dashboard`;
+      } else if (currentHostname.includes('lovableproject.com')) {
+        // For lovableproject.com domains, redirect back to the main domain
+        redirectTo = `https://${currentHostname.replace('lovableproject.com', 'lovable.app')}/dashboard`;
+      } else if (currentHostname === 'localhost') {
+        // For local development
+        redirectTo = `${window.location.origin}/dashboard`;
+      }
+      
+      console.log('Google OAuth redirect URL:', redirectTo);
+      
       const result = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
       

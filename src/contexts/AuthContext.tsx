@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,12 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       
       if (event === 'SIGNED_IN') {
-        // Don't show toast or navigate immediately for OAuth flows
+        // Check if this is a Google OAuth signin
         if (currentSession?.user?.app_metadata?.provider === 'google') {
           console.log('Google OAuth signin detected, redirecting to dashboard');
-          // Use setTimeout to ensure state is properly updated before navigation
+          // Always redirect to dashboard for Google OAuth, regardless of current page
           setTimeout(() => {
-            if (mounted && location.pathname === '/login') {
+            if (mounted) {
               navigate('/dashboard');
               toast({
                 title: "Signed in successfully",

@@ -163,9 +163,7 @@ export default function Login() {
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
           <h1 className="text-xl font-semibold">Log in</h1>
-          <p className="text-sm text-muted-foreground">
-            Sign in to your account to continue
-          </p>
+          
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">

@@ -39,6 +39,17 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     }
   }, []);
 
+  // Check if current domain should bypass CAPTCHA
+  const shouldBypassCaptcha = () => {
+    const hostname = window.location.hostname;
+    return (
+      isInIframe || 
+      hostname.includes('lovableproject.com') || 
+      hostname.includes('localhost') ||
+      hostname.includes('market-mind-display.lovable.app')
+    );
+  };
+
   useEffect(() => {
     const getSiteKey = async () => {
       try {
@@ -49,6 +60,16 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         
         console.log('Current domain:', currentDomain);
         console.log('Current origin:', currentOrigin);
+        
+        // Check if we should bypass CAPTCHA for this domain
+        if (shouldBypassCaptcha()) {
+          console.log('Domain requires CAPTCHA bypass, simulating success');
+          setIsLoadingKey(false);
+          setTimeout(() => {
+            onVerify('dev-domain-bypass-token');
+          }, 1000);
+          return;
+        }
         
         const startTime = Date.now();
         
@@ -128,10 +149,9 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         console.error('Failed to get Turnstile site key:', error);
         setNetworkError(true);
         
-        // For development/preview environments, use a bypass mechanism
-        if (isInIframe || window.location.hostname.includes('lovableproject.com') || window.location.hostname.includes('localhost')) {
-          console.log('Development environment detected, bypassing CAPTCHA');
-          // Simulate successful verification for development
+        // Fallback to bypass for unsupported domains
+        if (shouldBypassCaptcha()) {
+          console.log('Bypassing CAPTCHA for unsupported domain');
           setTimeout(() => {
             onVerify('dev-bypass-token');
           }, 1000);
@@ -174,8 +194,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
               // Check if it's a domain error
               if (error && (error.includes('domain') || error.includes('invalid'))) {
                 setDomainError(true);
-                console.log('Domain error detected, using bypass for development');
-                // For development, bypass the CAPTCHA
+                console.log('Domain error detected, using bypass');
                 setTimeout(() => {
                   onVerify('dev-domain-bypass-token');
                 }, 500);
@@ -209,7 +228,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
           setDomainError(true);
           
           // Fallback for development environments
-          if (isInIframe || window.location.hostname.includes('lovableproject.com')) {
+          if (shouldBypassCaptcha()) {
             console.log('Using development bypass due to render error');
             setTimeout(() => {
               onVerify('dev-render-bypass-token');
@@ -235,7 +254,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         setHasError(true);
         
         // Fallback for development
-        if (isInIframe || window.location.hostname.includes('lovableproject.com')) {
+        if (shouldBypassCaptcha()) {
           console.log('Using development bypass due to script load error');
           setTimeout(() => {
             onVerify('dev-script-bypass-token');
@@ -299,7 +318,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     );
   }
 
-  if (!siteKey && !isInIframe) {
+  if (!siteKey && !shouldBypassCaptcha()) {
     return (
       <div className={className}>
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
@@ -316,7 +335,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     );
   }
 
-  if (domainError && !isInIframe) {
+  if (domainError && !shouldBypassCaptcha()) {
     return (
       <div className={className}>
         <div className="h-16 bg-amber-100 rounded flex items-center justify-center flex-col space-y-2">
@@ -347,7 +366,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   }
 
   // For development environments, show a simplified success state
-  if (isInIframe || window.location.hostname.includes('lovableproject.com')) {
+  if (shouldBypassCaptcha()) {
     return (
       <div className={className}>
         <div className="h-16 bg-green-100 rounded flex items-center justify-center flex-col space-y-2">

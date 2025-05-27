@@ -5,12 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-my-custom-header',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true',
 };
 
 const handler = async (req: Request): Promise<Response> => {
   console.log('=== Turnstile Key Function Started ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -40,6 +42,20 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log('Processing request for Turnstile site key...');
     
+    // Parse request body if it exists
+    let requestData = {};
+    if (req.method === 'POST') {
+      try {
+        const body = await req.text();
+        if (body) {
+          requestData = JSON.parse(body);
+          console.log('Request data:', requestData);
+        }
+      } catch (e) {
+        console.log('Could not parse request body, using defaults');
+      }
+    }
+    
     const siteKey = Deno.env.get('TURNSTILE_SITE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     
@@ -67,10 +83,13 @@ const handler = async (req: Request): Promise<Response> => {
       siteKey,
       environment: supabaseUrl ? 'production' : 'local',
       timestamp: new Date().toISOString(),
-      success: true
+      success: true,
+      // Include iframe information in response
+      isIframe: requestData.isIframe || false,
+      origin: requestData.origin || 'unknown'
     };
     
-    console.log('Returning response with site key');
+    console.log('Returning response with site key for origin:', requestData.origin);
     
     return new Response(
       JSON.stringify(response),

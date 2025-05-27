@@ -27,6 +27,17 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
   const [isLoadingKey, setIsLoadingKey] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [networkError, setNetworkError] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
+
+  // Check if we're in an iframe
+  useEffect(() => {
+    try {
+      setIsInIframe(window.self !== window.top);
+    } catch (e) {
+      // If we can't access window.top due to cross-origin, we're definitely in an iframe
+      setIsInIframe(true);
+    }
+  }, []);
 
   useEffect(() => {
     const getSiteKey = async () => {
@@ -41,7 +52,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         try {
           // First try with supabase.functions.invoke
           const response = await supabase.functions.invoke('get-turnstile-key', {
-            body: JSON.stringify({ timestamp: Date.now() }),
+            body: JSON.stringify({ 
+              timestamp: Date.now(),
+              isIframe: isInIframe,
+              origin: window.location.origin 
+            }),
             headers: {
               'Content-Type': 'application/json',
             },
@@ -65,7 +80,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxZmhocWhzd2RxcHNsaXNreHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5NDc1MzUsImV4cCI6MjA1OTUyMzUzNX0.hkJqAnCC0HNAl9wDtlhPLTfzh1mGojpJYcuzo7BOzX0`,
                 },
-                body: JSON.stringify({ timestamp: Date.now() }),
+                body: JSON.stringify({ 
+                  timestamp: Date.now(),
+                  isIframe: isInIframe,
+                  origin: window.location.origin 
+                }),
               }
             );
             
@@ -112,7 +131,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     };
 
     getSiteKey();
-  }, []);
+  }, [isInIframe]);
 
   useEffect(() => {
     if (!siteKey || isLoadingKey || widgetId || !ref.current) return;
@@ -120,12 +139,13 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     const loadTurnstile = () => {
       if (window.turnstile && ref.current && !widgetId) {
         console.log('Rendering Turnstile widget with site key:', siteKey);
+        console.log('Is in iframe:', isInIframe);
         
         try {
           // Clear any existing content first
           ref.current.innerHTML = '';
           
-          const id = window.turnstile.render(ref.current, {
+          const renderOptions = {
             sitekey: siteKey,
             callback: (token: string) => {
               console.log('Turnstile verified successfully');
@@ -144,7 +164,17 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
             },
             theme: 'light',
             size: 'normal',
-          });
+          };
+
+          // Add iframe-specific options if needed
+          if (isInIframe) {
+            console.log('Adding iframe-specific configuration');
+            // Some additional configuration for iframe compatibility
+            renderOptions['retry'] = 'auto';
+            renderOptions['retry-interval'] = 8000;
+          }
+          
+          const id = window.turnstile.render(ref.current, renderOptions);
           
           setWidgetId(id);
           console.log('Turnstile widget rendered successfully with ID:', id);
@@ -169,6 +199,10 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         setHasError(true);
         if (onError) onError();
       };
+      
+      // Add crossorigin attribute for iframe compatibility
+      script.crossOrigin = 'anonymous';
+      
       document.head.appendChild(script);
 
       return () => {
@@ -179,7 +213,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         }
       };
     }
-  }, [siteKey, isLoadingKey, widgetId, onVerify, onError, onExpire]);
+  }, [siteKey, isLoadingKey, widgetId, onVerify, onError, onExpire, isInIframe]);
 
   // Cleanup on unmount only
   useEffect(() => {
@@ -226,6 +260,9 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
           <span className="text-sm text-red-600">Security check unavailable</span>
           <span className="text-xs text-red-500 text-center px-2">Unable to connect to verification service</span>
+          {isInIframe && (
+            <span className="text-xs text-amber-600 text-center px-2">Preview mode detected</span>
+          )}
           <button 
             onClick={handleRetry}
             className="text-xs text-blue-600 hover:underline"
@@ -242,6 +279,9 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       <div className={className}>
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
           <span className="text-sm text-red-600">Security check failed</span>
+          {isInIframe && (
+            <span className="text-xs text-amber-600 text-center px-2">Iframe restrictions may apply</span>
+          )}
           <button 
             onClick={handleRetry}
             className="text-xs text-blue-600 hover:underline"
@@ -258,6 +298,11 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       {networkError && (
         <div className="mb-2 text-xs text-amber-600 text-center bg-amber-50 p-2 rounded">
           ⚠️ Using fallback verification due to network issue
+        </div>
+      )}
+      {isInIframe && (
+        <div className="mb-2 text-xs text-blue-600 text-center bg-blue-50 p-2 rounded">
+          ℹ️ Running in preview mode
         </div>
       )}
       <div ref={ref} />

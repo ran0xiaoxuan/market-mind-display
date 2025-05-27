@@ -1,8 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
@@ -40,29 +39,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    let mounted = true;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('Auth state change:', event, currentSession?.user?.email);
+      
+      if (!mounted) return;
+
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
       
       if (event === 'SIGNED_IN') {
-        setTimeout(() => {
-          toast({
-            title: "Signed in successfully",
-            description: "Welcome back!"
-          });
-          navigate('/');
-        }, 0);
+        // Don't show toast or navigate immediately for OAuth flows
+        if (currentSession?.user?.app_metadata?.provider === 'google') {
+          console.log('Google OAuth signin detected, redirecting to dashboard');
+          // Use setTimeout to ensure state is properly updated before navigation
+          setTimeout(() => {
+            if (mounted && location.pathname === '/login') {
+              navigate('/dashboard');
+              toast({
+                title: "Signed in successfully",
+                description: "Welcome back!"
+              });
+            }
+          }, 100);
+        } else {
+          // Regular email/password login
+          setTimeout(() => {
+            if (mounted) {
+              toast({
+                title: "Signed in successfully",
+                description: "Welcome back!"
+              });
+              navigate('/dashboard');
+            }
+          }, 0);
+        }
       }
       
       if (event === 'SIGNED_OUT') {
         setTimeout(() => {
-          toast({
-            title: "Signed out",
-            description: "You have been signed out successfully."
-          });
+          if (mounted) {
+            toast({
+              title: "Signed out",
+              description: "You have been signed out successfully."
+            });
+          }
         }, 0);
       }
 
@@ -71,16 +97,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
+      if (mounted) {
+        console.log('Initial session check:', currentSession?.user?.email);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        setIsLoading(false);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const getErrorMessage = (error: any): string => {
     if (!error?.message) return "An unexpected error occurred. Please try again.";
@@ -157,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/dashboard`,
         }
       });
       

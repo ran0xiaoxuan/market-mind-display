@@ -20,7 +20,7 @@ export default function Login() {
   const {
     signIn,
     signInWithGoogle,
-    user,
+    session,
     resendConfirmation,
     verifyTurnstile
   } = useAuth();
@@ -110,13 +110,13 @@ export default function Login() {
           variant: "destructive"
         });
       }
+      // Don't set isGoogleLoading to false here - let the auth state change handle the redirect
     } catch (error) {
       toast({
         title: "Google Log in failed",
         description: "An unexpected error occurred with Google Log in.",
         variant: "destructive"
       });
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -176,7 +176,8 @@ export default function Login() {
     setTurnstileToken(null);
   };
 
-  if (user) {
+  // Only redirect if we have a session, not just a user
+  if (session) {
     return <Navigate to="/dashboard" replace />;
   }
 

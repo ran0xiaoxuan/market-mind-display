@@ -91,7 +91,7 @@ export default function Signup() {
       if (!isValidCaptcha) {
         setNotification({
           type: 'error',
-          message: 'Security verification failed. Please try again.'
+          message: 'The email has been signed up already.'
         });
         setTurnstileToken(null);
         return;

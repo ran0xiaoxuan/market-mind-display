@@ -39,69 +39,49 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
     setIsDeleting(true);
     
     try {
-      // Delete user data from our tables first
-      if (user) {
-        console.log('Starting account deletion for user:', user.id);
-        
-        // Delete strategies and related data
-        const { error: strategiesError } = await supabase
-          .from('strategies')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (strategiesError) {
-          console.error('Error deleting strategies:', strategiesError);
-        }
-
-        // Delete backtests
-        const { error: backtestsError } = await supabase
-          .from('backtests')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (backtestsError) {
-          console.error('Error deleting backtests:', backtestsError);
-        }
-
-        // Delete strategy applications
-        const { error: applicationsError } = await supabase
-          .from('strategy_applications')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (applicationsError) {
-          console.error('Error deleting strategy applications:', applicationsError);
-        }
-
-        // Delete profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('Error deleting profile:', profileError);
-        }
-
-        console.log('User data deleted successfully');
+      console.log('Starting account deletion for user:', user?.id);
+      
+      // Get the current session to send the JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session found');
       }
 
+      // Call the Edge Function to delete the user account
+      const { data, error } = await supabase.functions.invoke('delete-user-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error calling delete-user-account function:', error);
+        throw error;
+      }
+
+      console.log('Account deletion response:', data);
+
       toast({
-        title: "Account data deleted",
-        description: "Your account data has been permanently deleted. You will now be signed out."
+        title: "Account deleted successfully",
+        description: "Your account and all data have been permanently deleted."
       });
 
       // Close the dialog first
       onOpenChange(false);
       
-      // Sign out the user
+      // Clear the confirmation text
+      setConfirmationText("");
+      
+      // The user will be automatically signed out since their account no longer exists
+      // But let's also explicitly sign out to clear local state
       await signOut();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting account:', error);
       toast({
         title: "Delete failed",
-        description: "An unexpected error occurred. Please try again or contact support.",
+        description: error.message || "An unexpected error occurred. Please try again or contact support.",
         variant: "destructive"
       });
     } finally {
@@ -117,7 +97,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
           <AlertDialogDescription className="space-y-3">
             <p>
               This action cannot be undone. This will permanently delete your account
-              data from our servers, including:
+              and all your data from our servers, including:
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>All your trading strategies</li>
@@ -126,7 +106,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
               <li>Account settings</li>
             </ul>
             <p className="text-sm text-muted-foreground">
-              Note: You will be signed out after deletion.
+              Note: You will be automatically signed out after deletion.
             </p>
             <div className="pt-2">
               <Label htmlFor="confirmation">

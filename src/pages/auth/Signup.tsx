@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Turnstile } from "@/components/Turnstile";
 import { useAuth } from "@/contexts/AuthContext";
-
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -18,15 +17,16 @@ export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [notification, setNotification] = useState<{type: 'error' | 'success', message: string} | null>(null);
-  
+  const [notification, setNotification] = useState<{
+    type: 'error' | 'success';
+    message: string;
+  } | null>(null);
   const {
     signUp,
     signInWithGoogle,
     user,
     verifyTurnstile
   } = useAuth();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -80,10 +80,8 @@ export default function Signup() {
       });
       return;
     }
-    
     setIsSubmitting(true);
     setNotification(null);
-    
     try {
       // Verify turnstile token
       const isValidCaptcha = await verifyTurnstile(turnstileToken);
@@ -95,52 +93,31 @@ export default function Signup() {
         setTurnstileToken(null);
         return;
       }
-      
-      const { error } = await signUp(email, password, {
+      const {
+        error
+      } = await signUp(email, password, {
         full_name: name || email.split("@")[0],
         username: email.split("@")[0]
       });
-      
       if (error) {
-        console.log('Signup error:', error);
-        
-        // Check for duplicate email error specifically
-        if (error.message?.includes("User already registered") || 
-            error.message?.includes("already registered") ||
-            error.message?.includes("already exists") ||
-            error.message?.includes("duplicate")) {
-          setNotification({
-            type: 'error',
-            message: 'The email has been signed up already.'
-          });
+        let errorMessage = "Please check your information and try again.";
+        if (error.message?.includes("User already registered")) {
+          errorMessage = "The email has been signed up already.";
         } else if (error.message?.includes("Password should be at least")) {
-          setNotification({
-            type: 'error',
-            message: 'Password must be at least 8 characters long and contain a mix of letters and numbers.'
-          });
+          errorMessage = "Password must be at least 8 characters long and contain a mix of letters and numbers.";
         } else if (error.message?.includes("Invalid email")) {
-          setNotification({
-            type: 'error',
-            message: 'Please enter a valid email address.'
-          });
+          errorMessage = "Please enter a valid email address.";
         } else if (error.message?.includes("Signup is disabled")) {
-          setNotification({
-            type: 'error',
-            message: 'Account registration is currently disabled. Please contact support.'
-          });
+          errorMessage = "Account registration is currently disabled. Please contact support.";
         } else if (error.message?.includes("Email rate limit exceeded")) {
-          setNotification({
-            type: 'error',
-            message: 'Too many signup attempts. Please wait a few minutes before trying again.'
-          });
-        } else {
-          // For any other error, default to the duplicate email message
-          // This covers cases where the error message format might be different
-          setNotification({
-            type: 'error',
-            message: 'The email has been signed up already.'
-          });
+          errorMessage = "Too many signup attempts. Please wait a few minutes before trying again.";
+        } else if (error.message) {
+          errorMessage = error.message;
         }
+        setNotification({
+          type: 'error',
+          message: errorMessage
+        });
       } else {
         setNotification({
           type: 'success',
@@ -148,22 +125,21 @@ export default function Signup() {
         });
       }
     } catch (error: any) {
-      console.error('Signup exception:', error);
       setNotification({
         type: 'error',
-        message: 'The email has been signed up already.'
+        message: 'An unexpected error occurred. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setNotification(null);
-    
     try {
-      const { error } = await signInWithGoogle();
+      const {
+        error
+      } = await signInWithGoogle();
       if (error) {
         setNotification({
           type: 'error',
@@ -179,11 +155,9 @@ export default function Signup() {
       setIsGoogleLoading(false);
     }
   };
-
   const handleTurnstileVerify = (token: string) => {
     setTurnstileToken(token);
   };
-
   const handleTurnstileError = () => {
     setTurnstileToken(null);
     setNotification({
@@ -191,37 +165,23 @@ export default function Signup() {
       message: 'The email has been signed up already.'
     });
   };
-
   const handleTurnstileExpire = () => {
     setTurnstileToken(null);
   };
-
   if (user) {
     return <Navigate to="/" replace />;
   }
-
-  return (
-    <AuthLayout>
+  return <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
           <h1 className="text-xl font-semibold">Create an account</h1>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
-            {notification && (
-              <div className={`flex items-center p-3 rounded-md text-sm ${
-                notification.type === 'error' 
-                  ? 'bg-red-50 text-red-800 border border-red-200' 
-                  : 'bg-green-50 text-green-800 border border-green-200'
-              }`}>
-                {notification.type === 'error' ? (
-                  <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                )}
+            {notification && <div className={`flex items-center p-3 rounded-md text-sm ${notification.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-green-50 text-green-800 border border-green-200'}`}>
+                {notification.type === 'error' ? <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" /> : <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />}
                 {notification.message}
-              </div>
-            )}
+              </div>}
             
             <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isSubmitting}>
               {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -264,7 +224,7 @@ export default function Signup() {
                   Password *
                 </label>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required disabled={isSubmitting} placeholder="Create a password" />
+                  
                   <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)} disabled={isSubmitting}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -305,6 +265,5 @@ export default function Signup() {
           </div>
         </CardContent>
       </Card>
-    </AuthLayout>
-  );
+    </AuthLayout>;
 }

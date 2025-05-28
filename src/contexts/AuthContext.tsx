@@ -54,32 +54,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       
       if (event === 'SIGNED_IN') {        
-        if (currentSession?.user?.app_metadata?.provider === 'google') {
-          console.log('Google OAuth signin detected, redirecting to dashboard');
-          // Use setTimeout to ensure state is properly updated before navigation
-          setTimeout(() => {
-            if (mounted) {
-              // Always navigate to dashboard after Google OAuth
-              navigate('/dashboard');
-              toast({
-                title: "Logged in successfully",
-                description: "Welcome back!"
-              });
-            }
-          }, 100);
-        } else {
-          // Regular email/password login - always redirect to dashboard
-          console.log('Email/password login successful, redirecting to dashboard');
-          setTimeout(() => {
-            if (mounted) {
-              navigate('/dashboard');
-              toast({
-                title: "Logged in successfully",
-                description: "Welcome back!"
-              });
-            }
-          }, 0);
-        }
+        // For both Google OAuth and email/password login, redirect to dashboard
+        console.log('User signed in, redirecting to dashboard');
+        setTimeout(() => {
+          if (mounted) {
+            navigate('/dashboard', { replace: true });
+            toast({
+              title: "Logged in successfully",
+              description: "Welcome back!"
+            });
+          }
+        }, 100);
       }
       
       if (event === 'SIGNED_OUT') {
@@ -105,6 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
+        
+        // If user is already logged in and on login page, redirect to dashboard
+        if (currentSession && location.pathname === '/login') {
+          navigate('/dashboard', { replace: true });
+        }
       }
     });
 
@@ -186,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      // Always use the current origin for the redirect URL
+      // Use the current origin with /dashboard as the redirect URL
       const redirectTo = `${window.location.origin}/dashboard`;
       
       console.log('Google OAuth redirect URL:', redirectTo);

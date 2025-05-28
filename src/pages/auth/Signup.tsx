@@ -9,7 +9,6 @@ import { Turnstile } from "@/components/Turnstile";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Signup() {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -97,7 +96,7 @@ export default function Signup() {
       }
       
       const { error } = await signUp(email, password, {
-        full_name: name || email.split("@")[0],
+        full_name: email.split("@")[0],
         username: email.split("@")[0]
       });
       
@@ -245,13 +244,6 @@ export default function Signup() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Name (optional)
-                </label>
-                <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} disabled={isSubmitting} placeholder="Enter your full name" />
-              </div>
-
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
                   Email *

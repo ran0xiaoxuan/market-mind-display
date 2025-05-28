@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
@@ -6,67 +7,66 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Turnstile } from "@/components/Turnstile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{type: 'error' | 'success', message: string} | null>(null);
+  
   const {
     resetPassword,
     user,
     verifyTurnstile
   } = useAuth();
-  const {
-    toast
-  } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please enter your email address'
       });
       return;
     }
     if (!email.includes("@") || !email.includes(".")) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please enter a valid email address'
       });
       return;
     }
     if (!turnstileToken) {
-      toast({
-        title: "Verification required",
-        description: "Please complete the security verification.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please complete the security verification.'
       });
       return;
     }
+    
     setIsSubmitting(true);
+    setNotification(null);
+    
     try {
       // Verify turnstile token
       const isValidCaptcha = await verifyTurnstile(turnstileToken);
       if (!isValidCaptcha) {
-        toast({
-          title: "Verification failed",
-          description: "Security verification failed. Please try again.",
-          variant: "destructive"
+        setNotification({
+          type: 'error',
+          message: 'Security verification failed. Please try again.'
         });
         setTurnstileToken(null);
         return;
       }
-      const {
-        error
-      } = await resetPassword(email);
+      
+      const { error } = await resetPassword(email);
+      
       if (error) {
         let errorMessage = "Failed to send reset link. Please try again.";
+        
         if (error.message?.includes("User not found")) {
           errorMessage = "No account found with this email address. Please check your email or sign up for a new account.";
         } else if (error.message?.includes("Email rate limit exceeded")) {
@@ -76,23 +76,22 @@ export default function ForgotPassword() {
         } else if (error.message) {
           errorMessage = error.message;
         }
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive"
+        
+        setNotification({
+          type: 'error',
+          message: errorMessage
         });
       } else {
         setSubmitted(true);
-        toast({
-          title: "Reset link sent",
-          description: "The reset link has been sent successfully."
+        setNotification({
+          type: 'success',
+          message: 'The reset link has been sent successfully.'
         });
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'An unexpected error occurred. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
@@ -105,10 +104,9 @@ export default function ForgotPassword() {
 
   const handleTurnstileError = () => {
     setTurnstileToken(null);
-    toast({
-      title: "Verification error",
-      description: "Security verification failed. Please try again.",
-      variant: "destructive"
+    setNotification({
+      type: 'error',
+      message: 'Security verification failed. Please try again.'
     });
   };
 
@@ -120,14 +118,22 @@ export default function ForgotPassword() {
     return <Navigate to="/" replace />;
   }
 
-  return <AuthLayout>
+  return (
+    <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
           <h1 className="text-xl font-semibold">Forgot password</h1>
-          
         </CardHeader>
         <CardContent className="pt-6">
-          {submitted ? <div className="text-center space-y-4">
+          {submitted ? (
+            <div className="text-center space-y-4">
+              {notification && notification.type === 'success' && (
+                <div className="flex items-center p-3 rounded-md text-sm bg-green-50 text-green-800 border border-green-200 mb-4">
+                  <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  {notification.message}
+                </div>
+              )}
+              
               <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -141,36 +147,58 @@ export default function ForgotPassword() {
                 If you don't see it, check your spam folder.
               </p>
               <Button variant="outline" onClick={() => {
-            setSubmitted(false);
-            setTurnstileToken(null);
-          }} className="mt-4">
+                setSubmitted(false);
+                setTurnstileToken(null);
+                setNotification(null);
+              }} className="mt-4">
                 Try again
               </Button>
-            </div> : <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isSubmitting} placeholder="Enter your email address" />
-              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {notification && (
+                <div className={`flex items-center p-3 rounded-md text-sm ${
+                  notification.type === 'error' 
+                    ? 'bg-red-50 text-red-800 border border-red-200' 
+                    : 'bg-green-50 text-green-800 border border-green-200'
+                }`}>
+                  {notification.type === 'error' ? (
+                    <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  )}
+                  {notification.message}
+                </div>
+              )}
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isSubmitting} placeholder="Enter your email address" />
+                </div>
 
-              <Turnstile onVerify={handleTurnstileVerify} onError={handleTurnstileError} onExpire={handleTurnstileExpire} className="flex justify-center" />
-              
-              <Button type="submit" className="w-full" disabled={isSubmitting || !turnstileToken}>
-                {isSubmitting ? <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </> : "Send reset link"}
-              </Button>
-              
-              <div className="text-center text-sm">
-                Remember your password?{" "}
-                <Link to="/login" className="text-primary hover:underline">
-                  Log in
-                </Link>
-              </div>
-            </form>}
+                <Turnstile onVerify={handleTurnstileVerify} onError={handleTurnstileError} onExpire={handleTurnstileExpire} className="flex justify-center" />
+                
+                <Button type="submit" className="w-full" disabled={isSubmitting || !turnstileToken}>
+                  {isSubmitting ? <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </> : "Send reset link"}
+                </Button>
+                
+                <div className="text-center text-sm">
+                  Remember your password?{" "}
+                  <Link to="/login" className="text-primary hover:underline">
+                    Log in
+                  </Link>
+                </div>
+              </form>
+            </div>
+          )}
         </CardContent>
       </Card>
-    </AuthLayout>;
+    </AuthLayout>
+  );
 }

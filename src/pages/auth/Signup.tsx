@@ -1,13 +1,14 @@
+
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Turnstile } from "@/components/Turnstile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -18,96 +19,92 @@ export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{type: 'error' | 'success', message: string} | null>(null);
+  
   const {
     signUp,
     signInWithGoogle,
     user,
     verifyTurnstile
   } = useAuth();
-  const {
-    toast
-  } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Client-side validation
     if (!email.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please enter your email address'
       });
       return;
     }
     if (!email.includes("@") || !email.includes(".")) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please enter a valid email address'
       });
       return;
     }
     if (!password) {
-      toast({
-        title: "Password required",
-        description: "Please enter a password",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please enter a password'
       });
       return;
     }
     if (password.length < 8) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 8 characters long",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Password must be at least 8 characters long'
       });
       return;
     }
     if (!confirmPassword) {
-      toast({
-        title: "Confirm password required",
-        description: "Please confirm your password",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please confirm your password'
       });
       return;
     }
     if (password !== confirmPassword) {
-      toast({
-        title: "Passwords do not match",
-        description: "Please ensure both passwords are identical",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please ensure both passwords are identical'
       });
       return;
     }
     if (!turnstileToken) {
-      toast({
-        title: "Verification required",
-        description: "Please complete the security verification.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please complete the security verification.'
       });
       return;
     }
+    
     setIsSubmitting(true);
+    setNotification(null);
+    
     try {
       // Verify turnstile token
       const isValidCaptcha = await verifyTurnstile(turnstileToken);
       if (!isValidCaptcha) {
-        toast({
-          title: "Verification failed",
-          description: "Security verification failed. Please try again.",
-          variant: "destructive"
+        setNotification({
+          type: 'error',
+          message: 'Security verification failed. Please try again.'
         });
         setTurnstileToken(null);
         return;
       }
-      const {
-        error
-      } = await signUp(email, password, {
+      
+      const { error } = await signUp(email, password, {
         full_name: name || email.split("@")[0],
         username: email.split("@")[0]
       });
+      
       if (error) {
         let errorMessage = "Please check your information and try again.";
+        
         if (error.message?.includes("User already registered")) {
           errorMessage = "The email has been signed up already.";
         } else if (error.message?.includes("Password should be at least")) {
@@ -121,70 +118,92 @@ export default function Signup() {
         } else if (error.message) {
           errorMessage = error.message;
         }
-        toast({
-          title: "Signup failed",
-          description: errorMessage,
-          variant: "destructive"
+        
+        setNotification({
+          type: 'error',
+          message: errorMessage
+        });
+      } else {
+        setNotification({
+          type: 'success',
+          message: 'Account created successfully! Please check your email to verify your account.'
         });
       }
     } catch (error: any) {
-      toast({
-        title: "Signup failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'An unexpected error occurred. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    setNotification(null);
+    
     try {
-      const {
-        error
-      } = await signInWithGoogle();
+      const { error } = await signInWithGoogle();
       if (error) {
-        toast({
-          title: "Google Log in failed",
-          description: "There was an issue logging in with Google. Please try again.",
-          variant: "destructive"
+        setNotification({
+          type: 'error',
+          message: 'There was an issue logging in with Google. Please try again.'
         });
       }
     } catch (error) {
-      toast({
-        title: "Google Log in failed",
-        description: "An unexpected error occurred with Google Log in.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'An unexpected error occurred with Google Log in.'
       });
     } finally {
       setIsGoogleLoading(false);
     }
   };
+
   const handleTurnstileVerify = (token: string) => {
     setTurnstileToken(token);
   };
+
   const handleTurnstileError = () => {
     setTurnstileToken(null);
-    toast({
-      title: "Verification error",
-      description: "Security verification failed. Please try again.",
-      variant: "destructive"
+    setNotification({
+      type: 'error',
+      message: 'Security verification failed. Please try again.'
     });
   };
+
   const handleTurnstileExpire = () => {
     setTurnstileToken(null);
   };
+
   if (user) {
     return <Navigate to="/" replace />;
   }
-  return <AuthLayout>
+
+  return (
+    <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
           <h1 className="text-xl font-semibold">Create an account</h1>
-          
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
+            {notification && (
+              <div className={`flex items-center p-3 rounded-md text-sm ${
+                notification.type === 'error' 
+                  ? 'bg-red-50 text-red-800 border border-red-200' 
+                  : 'bg-green-50 text-green-800 border border-green-200'
+              }`}>
+                {notification.type === 'error' ? (
+                  <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                )}
+                {notification.message}
+              </div>
+            )}
+            
             <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isSubmitting}>
               {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -267,5 +286,6 @@ export default function Signup() {
           </div>
         </CardContent>
       </Card>
-    </AuthLayout>;
+    </AuthLayout>
+  );
 }

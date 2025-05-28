@@ -1,13 +1,13 @@
+
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Turnstile } from "@/components/Turnstile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,6 +17,8 @@ export default function Login() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [notification, setNotification] = useState<{type: 'error' | 'success', message: string} | null>(null);
+  
   const {
     signIn,
     signInWithGoogle,
@@ -24,7 +26,6 @@ export default function Login() {
     resendConfirmation,
     verifyTurnstile
   } = useAuth();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,26 +34,25 @@ export default function Login() {
     const isDevelopment = window.location.hostname.includes('lovableproject.com');
     
     if (!isDevelopment && !turnstileToken) {
-      toast({
-        title: "Verification required",
-        description: "Please complete the security verification.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please complete the security verification.'
       });
       return;
     }
     
     setIsSubmitting(true);
     setShowResendConfirmation(false);
+    setNotification(null);
     
     try {
       // Skip Turnstile verification for development domains
       if (!isDevelopment) {
         const isValidCaptcha = await verifyTurnstile(turnstileToken!);
         if (!isValidCaptcha) {
-          toast({
-            title: "Verification failed",
-            description: "Security verification failed. Please try again.",
-            variant: "destructive"
+          setNotification({
+            type: 'error',
+            message: 'Security verification failed. Please try again.'
           });
           setTurnstileToken(null);
           return;
@@ -79,18 +79,16 @@ export default function Login() {
           errorMessage = error.message;
         }
         
-        toast({
-          title: "Login failed",
-          description: errorMessage,
-          variant: "destructive"
+        setNotification({
+          type: 'error',
+          message: errorMessage
         });
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      toast({
-        title: "Login failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'An unexpected error occurred. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
@@ -99,16 +97,17 @@ export default function Login() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    setNotification(null);
+    
     try {
       console.log('Initiating Google sign in...');
       const { error } = await signInWithGoogle();
       
       if (error) {
         console.error('Google sign in error:', error);
-        toast({
-          title: "Google Sign in failed",
-          description: "There was an issue signing in with Google. Please try again.",
-          variant: "destructive"
+        setNotification({
+          type: 'error',
+          message: 'There was an issue signing in with Google. Please try again.'
         });
         setIsGoogleLoading(false);
       }
@@ -116,10 +115,9 @@ export default function Login() {
       // Let the auth state change handle the redirect
     } catch (error) {
       console.error('Google sign in exception:', error);
-      toast({
-        title: "Google Sign in failed",
-        description: "An unexpected error occurred with Google sign in.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'An unexpected error occurred with Google sign in.'
       });
       setIsGoogleLoading(false);
     }
@@ -127,35 +125,31 @@ export default function Login() {
 
   const handleResendConfirmation = async () => {
     if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address first.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'Please enter your email address first.'
       });
       return;
     }
+    
     try {
-      const {
-        error
-      } = await resendConfirmation(email);
+      const { error } = await resendConfirmation(email);
       if (error) {
-        toast({
-          title: "Failed to resend",
-          description: "Could not resend confirmation email. Please try again.",
-          variant: "destructive"
+        setNotification({
+          type: 'error',
+          message: 'Could not resend confirmation email. Please try again.'
         });
       } else {
-        toast({
-          title: "Confirmation sent",
-          description: "We've sent a new confirmation email to your inbox."
+        setNotification({
+          type: 'success',
+          message: "We've sent a new confirmation email to your inbox."
         });
         setShowResendConfirmation(false);
       }
     } catch (error) {
-      toast({
-        title: "Failed to resend",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
+      setNotification({
+        type: 'error',
+        message: 'An unexpected error occurred. Please try again.'
       });
     }
   };
@@ -168,10 +162,9 @@ export default function Login() {
   const handleTurnstileError = () => {
     console.log('Turnstile error occurred');
     setTurnstileToken(null);
-    toast({
-      title: "Verification error",
-      description: "Security verification failed. Please try again.",
-      variant: "destructive"
+    setNotification({
+      type: 'error',
+      message: 'Security verification failed. Please try again.'
     });
   };
 
@@ -196,6 +189,21 @@ export default function Login() {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
+            {notification && (
+              <div className={`flex items-center p-3 rounded-md text-sm ${
+                notification.type === 'error' 
+                  ? 'bg-red-50 text-red-800 border border-red-200' 
+                  : 'bg-green-50 text-green-800 border border-green-200'
+              }`}>
+                {notification.type === 'error' ? (
+                  <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                )}
+                {notification.message}
+              </div>
+            )}
+            
             <Button 
               type="button" 
               variant="outline" 

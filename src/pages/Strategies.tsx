@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
@@ -7,11 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
+import { ArrowUp, ArrowDown } from "lucide-react";
+
+type SortOption = 'name' | 'created' | 'updated' | 'active_first';
+type SortDirection = 'asc' | 'desc';
+
 const Strategies = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<SortOption>("updated");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
@@ -28,13 +37,52 @@ const Strategies = () => {
     fetchStrategies();
   }, []);
 
-  // Filter strategies based on search term and status filter
-  const filteredStrategies = strategies.filter(strategy => {
-    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || statusFilter === "active" && strategy.isActive || statusFilter === "inactive" && !strategy.isActive;
-    return matchesSearch && matchesStatus;
-  });
-  return <div className="min-h-screen flex flex-col bg-background">
+  // Filter and sort strategies
+  const filteredAndSortedStrategies = strategies
+    .filter(strategy => {
+      const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || 
+        statusFilter === "active" && strategy.isActive || 
+        statusFilter === "inactive" && !strategy.isActive;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'created':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'updated':
+          comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
+          break;
+        case 'active_first':
+          if (a.isActive && !b.isActive) return -1;
+          if (!a.isActive && b.isActive) return 1;
+          // If both have same active status, sort by updated date
+          comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const getRankingNumber = (index: number) => {
+    return index + 1;
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -47,33 +95,101 @@ const Strategies = () => {
             </div>
           </div>
           
-          <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
-            <div className="w-full sm:w-2/3">
-              <Input placeholder="Search strategies..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
+          <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
+            <div className="w-full lg:w-2/5">
+              <Input 
+                placeholder="Search strategies..." 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+                className="w-full" 
+              />
             </div>
-            <div className="w-full sm:w-1/4 lg:w-1/5">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-3/5 lg:justify-end">
+              <div className="w-full sm:w-auto min-w-[140px]">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="w-full sm:w-auto min-w-[160px]">
+                <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="updated">Last Updated</SelectItem>
+                    <SelectItem value="created">Date Created</SelectItem>
+                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                    <SelectItem value="active_first">Active First</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleSortDirection}
+                className="w-full sm:w-auto"
+                title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}
+              >
+                {sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
 
-          {loading ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />)}
-            </div> : filteredStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {filteredStrategies.map(strategy => <StrategyCard key={strategy.id} name={strategy.name} description={strategy.description || "No description provided"} updatedAt={new Date(strategy.updatedAt || Date.now())} asset={strategy.targetAsset || "Unknown"} status={strategy.isActive ? "active" : "inactive"} id={strategy.id} />)}
-            </div> : <div className="text-center py-12">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />
+              ))}
+            </div>
+          ) : filteredAndSortedStrategies.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                <span>
+                  Showing {filteredAndSortedStrategies.length} strategies
+                  {statusFilter !== "all" && ` (${statusFilter})`}
+                </span>
+                <span>
+                  Ranked by {sortBy.replace('_', ' ')} ({sortDirection === 'asc' ? 'ascending' : 'descending'})
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {filteredAndSortedStrategies.map((strategy, index) => (
+                  <div key={strategy.id} className="relative">
+                    <div className="absolute -top-2 -left-2 z-10 bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">
+                      #{getRankingNumber(index)}
+                    </div>
+                    <StrategyCard
+                      name={strategy.name}
+                      description={strategy.description || "No description provided"}
+                      updatedAt={new Date(strategy.updatedAt || Date.now())}
+                      asset={strategy.targetAsset || "Unknown"}
+                      status={strategy.isActive ? "active" : "inactive"}
+                      id={strategy.id}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
               <p className="text-muted-foreground">No strategies found.</p>
-            </div>}
+            </div>
+          )}
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default Strategies;

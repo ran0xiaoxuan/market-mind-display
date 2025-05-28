@@ -5,12 +5,14 @@ import { Loader2, Search, RefreshCw } from "lucide-react";
 import { debounce } from "lodash";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { getFmpApiKey, searchStocks, validateFmpApiKey, Asset } from "@/services/assetApiService";
+
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
 }
+
 export const AssetTypeSelector = ({
   selectedAsset,
   onAssetSelect
@@ -24,6 +26,7 @@ export const AssetTypeSelector = ({
   const [isSearchError, setIsSearchError] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasShownConnectionToast, setHasShownConnectionToast] = useState(false);
 
   // Fetch and validate API key on component mount and retry if needed
   useEffect(() => {
@@ -47,24 +50,25 @@ export const AssetTypeSelector = ({
           console.log("API key validation failed");
           throw new Error("Market data API key validation failed");
         }
-        toast({
-          title: "Market Data Connected",
-          description: "Successfully connected to live market data.",
-          variant: "default"
-        });
+        
+        // Only show success toast once
+        if (!hasShownConnectionToast) {
+          toast.success("Market data connected successfully");
+          setHasShownConnectionToast(true);
+        }
       } catch (error) {
         console.error("Error in API key validation:", error);
-        toast({
-          title: "Market Data Connection Issue",
-          description: "Could not connect to market data service. Please try again.",
-          variant: "destructive"
-        });
+        // Only show error toast if we haven't shown a connection toast yet
+        if (!hasShownConnectionToast) {
+          toast.error("Could not connect to market data service");
+          setHasShownConnectionToast(true);
+        }
       } finally {
         setIsConnecting(false);
       }
     };
     fetchAndValidateApiKey();
-  }, [retryCount]);
+  }, [retryCount, hasShownConnectionToast]);
 
   // Set selected asset details when selectedAsset changes
   useEffect(() => {
@@ -108,13 +112,9 @@ export const AssetTypeSelector = ({
         const results = await searchStocks(query, key);
         setSearchResults(results);
 
-        // Show toast for no results
-        if (results.length === 0) {
-          toast({
-            title: "No Results Found",
-            description: `No stocks found matching "${query}"`,
-            variant: "default"
-          });
+        // Show toast for no results only if user has typed something significant
+        if (results.length === 0 && query.trim().length > 2) {
+          toast.info(`No stocks found matching "${query}"`);
         }
       } else {
         // Clear results when query is empty
@@ -123,12 +123,9 @@ export const AssetTypeSelector = ({
     } catch (error) {
       console.error(`Error searching stocks:`, error);
       setIsSearchError(true);
-      if (query.length > 0) {
-        toast({
-          title: "Search Failed",
-          description: "Could not fetch market data. Please try again.",
-          variant: "destructive"
-        });
+      // Only show search error toast for actual search queries
+      if (query.length > 2) {
+        toast.error("Search failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -158,12 +155,8 @@ export const AssetTypeSelector = ({
   // Retry connecting to the FMP API
   const handleRetryConnection = () => {
     setRetryCount(prev => prev + 1);
+    setHasShownConnectionToast(false); // Reset to allow new toast
     setIsConnecting(true);
-    toast({
-      title: "Reconnecting to Market Data",
-      description: "Attempting to connect to live market data...",
-      variant: "default"
-    });
   };
 
   // Select asset and close dialog
@@ -172,6 +165,7 @@ export const AssetTypeSelector = ({
     setSelectedAssetDetails(asset);
     setIsSearchOpen(false);
   };
+
   return <Card className="p-6 mb-10 border">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">Target Asset</h2>

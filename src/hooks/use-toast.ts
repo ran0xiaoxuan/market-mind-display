@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { ToastActionElement, ToastProps } from '@/components/ui/toast'
 
 const TOAST_LIMIT = 5
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 1000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -52,6 +52,22 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId)
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    })
+  }, TOAST_REMOVE_DELAY)
+
+  toastTimeouts.set(toastId, timeout)
+}
+
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case actionTypes.ADD_TOAST:
@@ -72,31 +88,23 @@ const reducer = (state: State, action: Action): State => {
       const { toastId } = action
 
       if (toastId) {
-        toastTimeouts.forEach((_, id) => {
-          if (id === toastId) {
-            toastTimeouts.delete(id)
-          }
+        addToRemoveQueue(toastId)
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id)
         })
-
-        return {
-          ...state,
-          toasts: state.toasts.map((t) =>
-            t.id === toastId
-              ? {
-                  ...t,
-                  open: false,
-                }
-              : t
-          ),
-        }
       }
 
       return {
         ...state,
-        toasts: state.toasts.map((t) => ({
-          ...t,
-          open: false,
-        })),
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t
+        ),
       }
     }
     case actionTypes.REMOVE_TOAST:
@@ -163,10 +171,10 @@ export function useToast() {
         },
       })
 
-      // Auto-dismiss after 5 seconds
+      // Auto-dismiss after 4 seconds
       setTimeout(() => {
         dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
-      }, 5000)
+      }, 4000)
 
       return {
         id,
@@ -194,10 +202,10 @@ export const toast = (props: Omit<ToasterToast, "id">) => {
     },
   })
   
-  // Auto-dismiss after 5 seconds
+  // Auto-dismiss after 4 seconds
   setTimeout(() => {
     dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
-  }, 5000)
+  }, 4000)
 
   return {
     id,

@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Routes,
@@ -5,7 +6,7 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
@@ -62,7 +63,7 @@ function App() {
         
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Toaster richColors />
+      <Toaster />
     </>
   );
 }

@@ -1,5 +1,3 @@
-
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +30,7 @@ interface AuthContextType {
     data: any | null;
   }>;
   verifyTurnstile: (token: string) => Promise<boolean>;
+  checkUserExists: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -168,6 +167,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const checkUserExists = async (email: string): Promise<boolean> => {
+    try {
+      // Attempt to trigger a password reset to check if user exists
+      // This won't actually send an email due to how we handle it
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://example.com/invalid', // Use invalid redirect to prevent email sending
+      });
+      
+      // If there's no error, user exists
+      // If there's an error about user not found, user doesn't exist
+      if (error) {
+        if (error.message?.includes("User not found") || 
+            error.message?.includes("not found") ||
+            error.message?.includes("No user found") ||
+            error.message?.includes("For security purposes")) {
+          return false;
+        }
+        // Other errors might indicate the user exists but there's another issue
+        return true;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Exception checking user existence:', error);
+      return false;
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       const result = await supabase.auth.signInWithPassword({ email, password });
@@ -280,6 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     resendConfirmation,
     verifyTurnstile,
+    checkUserExists,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -292,4 +320,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

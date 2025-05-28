@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
@@ -19,7 +18,8 @@ export default function ForgotPassword() {
   const {
     resetPassword,
     user,
-    verifyTurnstile
+    verifyTurnstile,
+    checkUserExists
   } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,38 +62,31 @@ export default function ForgotPassword() {
         return;
       }
       
+      // Check if user exists before attempting to send reset email
+      const userExists = await checkUserExists(email);
+      
+      if (!userExists) {
+        setNotification({
+          type: 'error',
+          message: 'No account found with this email address. Please check your email or sign up for a new account.'
+        });
+        return;
+      }
+      
       const { error } = await resetPassword(email);
       
       if (error) {
         console.log('Reset password error:', error);
         
-        let errorMessage = "Failed to send reset link. Please try again.";
-        
-        // Check for user not found error specifically
-        if (error.message?.includes("User not found") || 
-            error.message?.includes("not found") ||
-            error.message?.includes("No user found") ||
-            error.message?.includes("Invalid email")) {
-          setNotification({
-            type: 'error',
-            message: 'No account found with this email address. Please check your email or sign up for a new account.'
-          });
-        } else if (error.message?.includes("Email rate limit exceeded")) {
+        if (error.message?.includes("Email rate limit exceeded")) {
           setNotification({
             type: 'error',
             message: 'Too many reset requests. Please wait a few minutes before trying again.'
           });
-        } else if (error.message?.includes("For security purposes")) {
-          // Supabase sometimes returns this for non-existent users
-          setNotification({
-            type: 'error',
-            message: 'No account found with this email address. Please check your email or sign up for a new account.'
-          });
         } else {
-          // For other errors, show the specific message or a generic one
           setNotification({
             type: 'error',
-            message: error.message || errorMessage
+            message: error.message || "Failed to send reset link. Please try again."
           });
         }
       } else {

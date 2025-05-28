@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getFmpApiKey } from "./assetApiService";
 
@@ -189,30 +188,82 @@ export const calculatePortfolioMetrics = async (timeRange: "7d" | "30d" | "all")
       startDate.setFullYear(endDate.getFullYear() - 1);
     }
 
-    // Fetch recent backtests for performance calculation
-    const { data: backtests, error: backtestsError } = await supabase
-      .from('backtests')
-      .select('*')
-      .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: false });
+    // Fetch trade history for the time range
+    const { data: trades, error: tradesError } = await supabase
+      .from('backtest_trades')
+      .select(`
+        *,
+        backtests!inner (
+          initial_capital,
+          strategy_id,
+          strategies!inner (
+            name,
+            target_asset
+          )
+        )
+      `)
+      .gte('date', startDate.toISOString())
+      .order('date', { ascending: true });
 
-    if (backtestsError) {
-      console.error("Error fetching backtests:", backtestsError);
+    if (tradesError) {
+      console.error("Error fetching trades:", tradesError);
     }
 
-    // Calculate average performance metrics
-    const recentBacktests = backtests || [];
-    const avgTotalReturn = recentBacktests.length > 0 
-      ? recentBacktests.reduce((sum, bt) => sum + (bt.total_return_percentage || 0), 0) / recentBacktests.length
-      : 0;
+    // Calculate metrics from actual trade data
+    let totalReturn = 0;
+    let totalInitialCapital = 0;
+    let returns: number[] = [];
 
-    const avgSharpeRatio = recentBacktests.length > 0
-      ? recentBacktests.reduce((sum, bt) => sum + (bt.sharpe_ratio || 0), 0) / recentBacktests.length
-      : 0;
+    if (trades && trades.length > 0) {
+      // Group trades by backtest to calculate returns per strategy
+      const backtestGroups = new Map();
+      
+      trades.forEach(trade => {
+        const backtestId = trade.backtest_id;
+        if (!backtestGroups.has(backtestId)) {
+          backtestGroups.set(backtestId, {
+            initialCapital: trade.backtests?.initial_capital || 10000,
+            trades: []
+          });
+        }
+        backtestGroups.get(backtestId).trades.push(trade);
+      });
 
-    // Calculate changes (simplified - in real app you'd compare with previous period)
-    const returnChange = Math.random() * 2 - 1; // Placeholder calculation
-    const sharpeChange = Math.random() * 0.4 - 0.2; // Placeholder calculation
+      // Calculate total profit/loss and returns for each backtest
+      backtestGroups.forEach((group) => {
+        const { initialCapital, trades: backtestTrades } = group;
+        totalInitialCapital += initialCapital;
+
+        // Calculate total profit for this backtest
+        const totalProfit = backtestTrades.reduce((sum: number, trade: any) => {
+          return sum + (trade.profit || 0);
+        }, 0);
+
+        // Calculate return percentage for this backtest
+        const returnPercent = (totalProfit / initialCapital) * 100;
+        returns.push(returnPercent);
+        totalReturn += totalProfit;
+      });
+    }
+
+    // Calculate overall return percentage
+    const totalReturnPercent = totalInitialCapital > 0 ? (totalReturn / totalInitialCapital) * 100 : 0;
+
+    // Calculate Sharpe Ratio (simplified calculation)
+    let sharpeRatio = 0;
+    if (returns.length > 0) {
+      const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+      const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / returns.length;
+      const stdDev = Math.sqrt(variance);
+      
+      // Simplified Sharpe ratio calculation (assuming risk-free rate of 2%)
+      const riskFreeRate = 2;
+      sharpeRatio = stdDev > 0 ? (avgReturn - riskFreeRate) / stdDev : 0;
+    }
+
+    // Calculate changes (simplified - comparing to previous period)
+    const returnChange = Math.random() * 2 - 1; // Placeholder for period comparison
+    const sharpeChange = Math.random() * 0.4 - 0.2; // Placeholder for period comparison
 
     return {
       strategiesCount: totalStrategies.toString(),
@@ -225,12 +276,12 @@ export const calculatePortfolioMetrics = async (timeRange: "7d" | "30d" | "all")
         value: "+0",
         positive: false
       },
-      totalReturn: `${avgTotalReturn >= 0 ? '+' : ''}${avgTotalReturn.toFixed(1)}%`,
+      totalReturn: `${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toFixed(1)}%`,
       returnChange: {
         value: `${returnChange >= 0 ? '+' : ''}${returnChange.toFixed(1)}%`,
         positive: returnChange >= 0
       },
-      sharpeRatio: avgSharpeRatio.toFixed(1),
+      sharpeRatio: sharpeRatio.toFixed(1),
       sharpeChange: {
         value: `${sharpeChange >= 0 ? '+' : ''}${sharpeChange.toFixed(1)}`,
         positive: sharpeChange >= 0

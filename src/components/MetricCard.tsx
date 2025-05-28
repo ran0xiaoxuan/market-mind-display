@@ -26,13 +26,16 @@ export function MetricCard({ title, value, change, direction, showChart = true }
     }
   }
 
+  // Format value with dollar sign for Transaction Amount
+  const displayValue = title === "Transaction Amount" ? `$${value}` : value;
+
   return (
     <div className="rounded-md border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
       </div>
       <div className="mt-2">
-        <h2 className={cn("text-2xl font-bold", valueColor)}>{value}</h2>
+        <h2 className={cn("text-2xl font-bold", valueColor)}>{displayValue}</h2>
       </div>
     </div>
   );

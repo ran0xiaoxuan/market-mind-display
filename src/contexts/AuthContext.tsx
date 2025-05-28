@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,18 +54,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
       
-      if (event === 'SIGNED_IN') {        
-        // For both Google OAuth and email/password login, redirect to dashboard
-        console.log('User signed in, redirecting to dashboard');
-        setTimeout(() => {
-          if (mounted) {
-            navigate('/dashboard', { replace: true });
-            toast({
-              title: "Logged in successfully",
-              description: "Welcome back!"
-            });
-          }
-        }, 100);
+      if (event === 'SIGNED_IN' && currentSession) {        
+        // Only redirect if we're on auth-related pages
+        const authPages = ['/login', '/signup', '/forgot-password', '/auth/confirm'];
+        if (authPages.includes(location.pathname)) {
+          console.log('User signed in, redirecting to dashboard from:', location.pathname);
+          setTimeout(() => {
+            if (mounted) {
+              navigate('/dashboard', { replace: true });
+              toast({
+                title: "Logged in successfully",
+                description: "Welcome back!"
+              });
+            }
+          }, 100);
+        }
       }
       
       if (event === 'SIGNED_OUT') {
@@ -91,8 +95,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
         
-        // If user is already logged in and on login page, redirect to dashboard
-        if (currentSession && location.pathname === '/login') {
+        // If user is already logged in and on auth pages, redirect to dashboard
+        const authPages = ['/login', '/signup', '/forgot-password'];
+        if (currentSession && authPages.includes(location.pathname)) {
           navigate('/dashboard', { replace: true });
         }
       }

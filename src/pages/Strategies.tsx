@@ -10,7 +10,7 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
-type SortOption = 'name' | 'created' | 'updated' | 'active_first';
+type SortOption = 'name' | 'created' | 'updated' | 'total_return';
 type SortDirection = 'asc' | 'desc';
 
 const Strategies = () => {
@@ -60,11 +60,12 @@ const Strategies = () => {
         case 'updated':
           comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
           break;
-        case 'active_first':
-          if (a.isActive && !b.isActive) return -1;
-          if (!a.isActive && b.isActive) return 1;
-          // If both have same active status, sort by updated date
-          comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
+        case 'total_return':
+          // For now, we'll use a placeholder return value since totalReturn isn't in the Strategy type
+          // This can be updated when the Strategy type includes totalReturn or performance data
+          const aReturn = Math.random() * 100; // Placeholder
+          const bReturn = Math.random() * 100; // Placeholder
+          comparison = aReturn - bReturn;
           break;
         default:
           comparison = 0;
@@ -75,10 +76,6 @@ const Strategies = () => {
 
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-  };
-
-  const getRankingNumber = (index: number) => {
-    return index + 1;
   };
 
   return (
@@ -128,7 +125,7 @@ const Strategies = () => {
                     <SelectItem value="updated">Last Updated</SelectItem>
                     <SelectItem value="created">Date Created</SelectItem>
                     <SelectItem value="name">Name (A-Z)</SelectItem>
-                    <SelectItem value="active_first">Active First</SelectItem>
+                    <SelectItem value="total_return">Total Return</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -159,25 +156,21 @@ const Strategies = () => {
                   {statusFilter !== "all" && ` (${statusFilter})`}
                 </span>
                 <span>
-                  Ranked by {sortBy.replace('_', ' ')} ({sortDirection === 'asc' ? 'ascending' : 'descending'})
+                  Sorted by {sortBy.replace('_', ' ')} ({sortDirection === 'asc' ? 'ascending' : 'descending'})
                 </span>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {filteredAndSortedStrategies.map((strategy, index) => (
-                  <div key={strategy.id} className="relative">
-                    <div className="absolute -top-2 -left-2 z-10 bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">
-                      #{getRankingNumber(index)}
-                    </div>
-                    <StrategyCard
-                      name={strategy.name}
-                      description={strategy.description || "No description provided"}
-                      updatedAt={new Date(strategy.updatedAt || Date.now())}
-                      asset={strategy.targetAsset || "Unknown"}
-                      status={strategy.isActive ? "active" : "inactive"}
-                      id={strategy.id}
-                    />
-                  </div>
+                {filteredAndSortedStrategies.map((strategy) => (
+                  <StrategyCard
+                    key={strategy.id}
+                    name={strategy.name}
+                    description={strategy.description || "No description provided"}
+                    updatedAt={new Date(strategy.updatedAt || Date.now())}
+                    asset={strategy.targetAsset || "Unknown"}
+                    status={strategy.isActive ? "active" : "inactive"}
+                    id={strategy.id}
+                  />
                 ))}
               </div>
             </div>

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MetricCard } from "@/components/MetricCard";
@@ -43,7 +42,22 @@ const Dashboard = () => {
         getRealTradeHistory(timeRange)
       ]);
 
-      setMetrics(portfolioMetrics);
+      // Calculate signal and transaction amounts from trade history
+      const signalAmount = realTradeHistory.length;
+      const transactionAmount = realTradeHistory.reduce((total, trade) => {
+        return total + (trade.contracts || 0);
+      }, 0);
+
+      // Update metrics to include signal and transaction amounts
+      const updatedMetrics = {
+        ...portfolioMetrics,
+        signalAmount: signalAmount.toString(),
+        signalChange: { value: "+0", positive: false },
+        transactionAmount: transactionAmount.toString(),
+        transactionChange: { value: "+0", positive: false }
+      };
+
+      setMetrics(updatedMetrics);
       setTradeHistory(realTradeHistory);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -57,10 +71,10 @@ const Dashboard = () => {
         strategiesChange: { value: "+0", positive: false },
         activeStrategies: "0",
         activeChange: { value: "+0", positive: false },
-        totalReturn: "+0.0%",
-        returnChange: { value: "+0.0%", positive: false },
-        sharpeRatio: "0.0",
-        sharpeChange: { value: "+0.0", positive: false }
+        signalAmount: "0",
+        signalChange: { value: "+0", positive: false },
+        transactionAmount: "0",
+        transactionChange: { value: "+0", positive: false }
       });
       setTradeHistory([]);
     } finally {
@@ -157,8 +171,8 @@ const Dashboard = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard title="Total Strategies" value={metrics.strategiesCount} change={metrics.strategiesChange} />
             <MetricCard title="Active Strategies" value={metrics.activeStrategies} change={metrics.activeChange} />
-            <MetricCard title="Total Return" value={metrics.totalReturn} change={metrics.returnChange} direction="up" />
-            <MetricCard title="Sharpe Ratio" value={metrics.sharpeRatio} change={metrics.sharpeChange} direction="up" />
+            <MetricCard title="Signal Amount" value={metrics.signalAmount} change={metrics.signalChange} />
+            <MetricCard title="Transaction Amount" value={metrics.transactionAmount} change={metrics.transactionChange} />
           </div>
         )}
 

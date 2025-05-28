@@ -69,10 +69,8 @@ interface RecommendedStrategyRecord {
     max_buy_volume: string | null;
   };
 }
-
 type SortOption = 'name' | 'created' | 'updated' | 'apply_count';
 type SortDirection = 'asc' | 'desc';
-
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,16 +197,17 @@ const Recommendations = () => {
         single_buy_volume: strategy.single_buy_volume,
         max_buy_volume: strategy.max_buy_volume
       };
-      
-      const { data, error } = await supabase.from('strategies').insert(newUserStrategy).select();
+      const {
+        data,
+        error
+      } = await supabase.from('strategies').insert(newUserStrategy).select();
       if (error) throw error;
 
       // Track the strategy application
       await trackStrategyApplication(strategy.id, session.user.id);
-      
+
       // Refresh apply counts to show updated data
       await fetchApplyCounts();
-      
       toast.success("Strategy added to your collection");
     } catch (error) {
       console.error("Error applying strategy:", error);
@@ -305,36 +304,28 @@ const Recommendations = () => {
   };
 
   // Filter strategies based on search term only (removed asset filter)
-  const filteredAndSortedStrategies = strategies
-    .filter(strategy => 
-      strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'name':
-          comparison = (a.name || '').localeCompare(b.name || '');
-          break;
-        case 'created':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        case 'updated':
-          comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
-          break;
-        case 'apply_count':
-          const aCount = applyCounts.get(a.id) || 0;
-          const bCount = applyCounts.get(b.id) || 0;
-          comparison = aCount - bCount;
-          break;
-        default:
-          comparison = 0;
-      }
-      
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
+  const filteredAndSortedStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case 'name':
+        comparison = (a.name || '').localeCompare(b.name || '');
+        break;
+      case 'created':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+      case 'updated':
+        comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
+        break;
+      case 'apply_count':
+        const aCount = applyCounts.get(a.id) || 0;
+        const bCount = applyCounts.get(b.id) || 0;
+        comparison = aCount - bCount;
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
@@ -402,17 +393,14 @@ const Recommendations = () => {
                     <div className="h-12 bg-muted rounded-b-lg"></div>
                   </div>
                 </Card>)}
-            </div> : (
-              <>
+            </div> : <>
                 {/* Results count and current sort display */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                   <span>
                     Showing {filteredAndSortedStrategies.length} strategies
                     {searchTerm && ` matching "${searchTerm}"`}
                   </span>
-                  <span>
-                    Sorted by {sortBy === 'apply_count' ? 'popularity' : sortBy === 'name' ? 'name' : sortBy === 'created' ? 'date created' : 'last updated'} ({sortDirection === 'asc' ? 'ascending' : 'descending'})
-                  </span>
+                  
                 </div>
 
                 {filteredAndSortedStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -441,9 +429,9 @@ const Recommendations = () => {
                         <div>
                           {/* Only admin can delete strategies */}
                           {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
-                      e.stopPropagation();
-                      deleteStrategy(strategy.id);
-                    }}>
+                    e.stopPropagation();
+                    deleteStrategy(strategy.id);
+                  }}>
                               <Trash className="h-4 w-4" />
                             </Button>}
                         </div>
@@ -457,8 +445,7 @@ const Recommendations = () => {
                 </div> : <div className="text-center py-12">
                   <p className="text-muted-foreground">No recommendations match your criteria</p>
                 </div>}
-              </>
-            )}
+              </>}
         </div>
       </main>
       

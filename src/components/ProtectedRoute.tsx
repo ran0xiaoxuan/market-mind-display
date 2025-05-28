@@ -9,14 +9,15 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, session } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/auth/login");
+    if (!isLoading && !session) {
+      console.log('No session found, redirecting to login');
+      navigate("/login");
     }
-  }, [user, isLoading, navigate]);
+  }, [session, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -26,7 +27,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  return user ? <>{children}</> : null;
+  return session ? <>{children}</> : null;
 };
 
 export default ProtectedRoute;

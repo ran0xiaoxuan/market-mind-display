@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,10 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('Google OAuth signin detected, redirecting to dashboard');
           // Use setTimeout to ensure state is properly updated before navigation
           setTimeout(() => {
-            if (mounted && location.pathname === '/login') {
+            if (mounted && (location.pathname === '/login' || location.pathname === '/signup')) {
               navigate('/dashboard');
               toast({
-                title: "Signed in successfully",
+                title: "Logged in successfully",
                 description: "Welcome back!"
               });
             }
@@ -71,9 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Regular email/password login
           setTimeout(() => {
-            if (mounted) {
+            if (mounted && (location.pathname === '/login' || location.pathname === '/signup')) {
               toast({
-                title: "Signed in successfully",
+                title: "Logged in successfully",
                 description: "Welcome back!"
               });
               navigate('/dashboard');
@@ -186,21 +185,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      // Get the current hostname to determine the correct redirect URL
-      const currentHostname = window.location.hostname;
-      let redirectTo = `${window.location.origin}/dashboard`;
-      
-      // Handle different domain scenarios
-      if (currentHostname.includes('lovable.app')) {
-        // For Lovable preview domains, use the current origin
-        redirectTo = `${window.location.origin}/dashboard`;
-      } else if (currentHostname.includes('lovableproject.com')) {
-        // For lovableproject.com domains, redirect back to the main domain
-        redirectTo = `https://${currentHostname.replace('lovableproject.com', 'lovable.app')}/dashboard`;
-      } else if (currentHostname === 'localhost') {
-        // For local development
-        redirectTo = `${window.location.origin}/dashboard`;
-      }
+      // Always use the current origin for the redirect URL
+      const redirectTo = `${window.location.origin}/dashboard`;
       
       console.log('Google OAuth redirect URL:', redirectTo);
       

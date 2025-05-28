@@ -41,6 +41,8 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
     try {
       // Delete user data from our tables first
       if (user) {
+        console.log('Starting account deletion for user:', user.id);
+        
         // Delete strategies and related data
         const { error: strategiesError } = await supabase
           .from('strategies')
@@ -80,27 +82,19 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
         if (profileError) {
           console.error('Error deleting profile:', profileError);
         }
-      }
 
-      // Delete the auth user (this will cascade to related auth data)
-      const { error: authError } = await supabase.auth.admin.deleteUser(user?.id || '');
-      
-      if (authError) {
-        console.error('Error deleting auth user:', authError);
-        toast({
-          title: "Delete failed",
-          description: "Failed to delete your account. Please try again or contact support.",
-          variant: "destructive"
-        });
-        return;
+        console.log('User data deleted successfully');
       }
 
       toast({
-        title: "Account deleted",
-        description: "Your account has been permanently deleted."
+        title: "Account data deleted",
+        description: "Your account data has been permanently deleted. You will now be signed out."
       });
 
-      // Sign out and redirect
+      // Close the dialog first
+      onOpenChange(false);
+      
+      // Sign out the user
       await signOut();
       
     } catch (error) {
@@ -112,7 +106,6 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       });
     } finally {
       setIsDeleting(false);
-      onOpenChange(false);
     }
   };
 
@@ -124,7 +117,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
           <AlertDialogDescription className="space-y-3">
             <p>
               This action cannot be undone. This will permanently delete your account
-              and remove all your data from our servers, including:
+              data from our servers, including:
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>All your trading strategies</li>
@@ -132,6 +125,9 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
               <li>Profile information</li>
               <li>Account settings</li>
             </ul>
+            <p className="text-sm text-muted-foreground">
+              Note: You will be signed out after deletion.
+            </p>
             <div className="pt-2">
               <Label htmlFor="confirmation">
                 Type <strong>DELETE</strong> to confirm:

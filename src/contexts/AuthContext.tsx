@@ -1,4 +1,5 @@
 
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,21 +55,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
       
+      // Handle successful sign in - both email/password and OAuth
       if (event === 'SIGNED_IN' && currentSession) {        
-        // Only redirect if we're on auth-related pages
-        const authPages = ['/login', '/signup', '/forgot-password', '/auth/confirm'];
-        if (authPages.includes(location.pathname)) {
-          console.log('User signed in, redirecting to dashboard from:', location.pathname);
-          setTimeout(() => {
-            if (mounted) {
-              navigate('/dashboard', { replace: true });
-              toast({
-                title: "Logged in successfully",
-                description: "Welcome back!"
-              });
-            }
-          }, 100);
-        }
+        console.log('User signed in successfully, current path:', location.pathname);
+        
+        // Always redirect to dashboard on successful sign in, but with a slight delay for OAuth
+        const redirectDelay = event === 'SIGNED_IN' ? 500 : 100;
+        
+        setTimeout(() => {
+          if (mounted) {
+            console.log('Redirecting to dashboard after successful sign in');
+            navigate('/dashboard', { replace: true });
+            toast({
+              title: "Logged in successfully",
+              description: "Welcome back!"
+            });
+          }
+        }, redirectDelay);
       }
       
       if (event === 'SIGNED_OUT') {
@@ -98,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If user is already logged in and on auth pages, redirect to dashboard
         const authPages = ['/login', '/signup', '/forgot-password'];
         if (currentSession && authPages.includes(location.pathname)) {
+          console.log('User already logged in, redirecting from auth page to dashboard');
           navigate('/dashboard', { replace: true });
         }
       }
@@ -181,15 +185,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      // Use the current origin with /dashboard as the redirect URL
-      const redirectTo = `${window.location.origin}/dashboard`;
-      
-      console.log('Google OAuth redirect URL:', redirectTo);
+      console.log('Starting Google OAuth flow...');
       
       const result = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
+          redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -197,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
       
+      console.log('Google OAuth result:', result);
       return result;
     } catch (error) {
       console.error("Error signing in with Google:", error);
@@ -290,3 +292,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

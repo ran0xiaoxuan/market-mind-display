@@ -100,21 +100,25 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const {
-        error
-      } = await signInWithGoogle();
+      console.log('Initiating Google sign in...');
+      const { error } = await signInWithGoogle();
+      
       if (error) {
+        console.error('Google sign in error:', error);
         toast({
-          title: "Google Log in failed",
-          description: "There was an issue logging in with Google. Please try again.",
+          title: "Google Sign in failed",
+          description: "There was an issue signing in with Google. Please try again.",
           variant: "destructive"
         });
+        setIsGoogleLoading(false);
       }
-      // Don't set isGoogleLoading to false here - let the auth state change handle the redirect
+      // Don't set isGoogleLoading to false here for successful attempts
+      // Let the auth state change handle the redirect
     } catch (error) {
+      console.error('Google sign in exception:', error);
       toast({
-        title: "Google Log in failed",
-        description: "An unexpected error occurred with Google Log in.",
+        title: "Google Sign in failed",
+        description: "An unexpected error occurred with Google sign in.",
         variant: "destructive"
       });
       setIsGoogleLoading(false);
@@ -176,8 +180,9 @@ export default function Login() {
     setTurnstileToken(null);
   };
 
-  // Only redirect if we have a session, not just a user
+  // Redirect if user has a valid session
   if (session) {
+    console.log('User has session, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 

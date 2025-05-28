@@ -54,12 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       
       if (event === 'SIGNED_IN') {
-        // Don't show toast or navigate immediately for OAuth flows
+        // Check if user is on auth pages and redirect accordingly
+        const isOnAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password';
+        
         if (currentSession?.user?.app_metadata?.provider === 'google') {
           console.log('Google OAuth signin detected, redirecting to dashboard');
           // Use setTimeout to ensure state is properly updated before navigation
           setTimeout(() => {
-            if (mounted && (location.pathname === '/login' || location.pathname === '/signup')) {
+            if (mounted) {
+              // Always navigate to dashboard after Google OAuth
               navigate('/dashboard');
               toast({
                 title: "Logged in successfully",
@@ -70,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Regular email/password login
           setTimeout(() => {
-            if (mounted && (location.pathname === '/login' || location.pathname === '/signup')) {
+            if (mounted && isOnAuthPage) {
               toast({
                 title: "Logged in successfully",
                 description: "Welcome back!"

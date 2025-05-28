@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out successfully');
+        setIsSigningOut(false);
         setTimeout(() => {
           if (mounted) {
             toast({
@@ -107,9 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
         
-        // Only redirect if user is on auth pages and has a session
+        // Only redirect if user is on auth pages and has a session and not currently signing out
         const authPages = ['/login', '/signup', '/forgot-password'];
-        if (currentSession && authPages.includes(location.pathname)) {
+        if (currentSession && authPages.includes(location.pathname) && !isSigningOut) {
           console.log('User already logged in, redirecting from auth page to dashboard');
           navigate('/dashboard', { replace: true });
         }
@@ -120,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, isSigningOut]);
 
   const getErrorMessage = (error: any): string => {
     if (!error?.message) return "An unexpected error occurred. Please try again.";
@@ -271,29 +273,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('Starting sign out process...');
+      setIsSigningOut(true);
       
-      // Clear local state first
-      setSession(null);
-      setUser(null);
-      
-      // Then sign out from Supabase
+      // Sign out from Supabase first
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Sign out error:', error);
-        // Even if there's an error, we still want to navigate away
-        // as the local state has been cleared
       } else {
         console.log('Sign out successful');
       }
       
-      // Navigate to login page regardless of sign out result
+      // Clear local state after sign out
+      setSession(null);
+      setUser(null);
+      
+      // Navigate to login page
       navigate('/login');
     } catch (error) {
       console.error("Error signing out:", error);
       // Clear local state and navigate even if there's an exception
       setSession(null);
       setUser(null);
+      setIsSigningOut(false);
       navigate('/login');
       throw error;
     }

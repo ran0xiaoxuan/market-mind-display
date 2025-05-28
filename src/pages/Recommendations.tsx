@@ -396,10 +396,7 @@ const Recommendations = () => {
             </div> : <>
                 {/* Results count and current sort display */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <span>
-                    Showing {filteredAndSortedStrategies.length} strategies
-                    {searchTerm && ` matching "${searchTerm}"`}
-                  </span>
+                  
                   
                 </div>
 

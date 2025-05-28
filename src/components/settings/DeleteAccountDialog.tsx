@@ -48,16 +48,22 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
         throw new Error('No active session found');
       }
 
+      console.log('Calling delete-user-account function...');
+
       // Call the Edge Function to delete the user account
       const { data, error } = await supabase.functions.invoke('delete-user-account', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
+
+      console.log('Function response:', { data, error });
 
       if (error) {
         console.error('Error calling delete-user-account function:', error);
-        throw error;
+        throw new Error(error.message || 'Failed to delete account');
       }
 
       console.log('Account deletion response:', data);
@@ -73,8 +79,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       // Clear the confirmation text
       setConfirmationText("");
       
-      // The user will be automatically signed out since their account no longer exists
-      // But let's also explicitly sign out to clear local state
+      // Sign out the user
       await signOut();
       
     } catch (error: any) {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
@@ -103,26 +102,45 @@ export default function Signup() {
       });
       
       if (error) {
-        let errorMessage = "Please check your information and try again.";
+        console.log('Signup error:', error);
         
-        if (error.message?.includes("User already registered")) {
-          errorMessage = "The email has been signed up already.";
+        // Check for duplicate email error specifically
+        if (error.message?.includes("User already registered") || 
+            error.message?.includes("already registered") ||
+            error.message?.includes("already exists") ||
+            error.message?.includes("duplicate")) {
+          setNotification({
+            type: 'error',
+            message: 'The email has been signed up already.'
+          });
         } else if (error.message?.includes("Password should be at least")) {
-          errorMessage = "Password must be at least 8 characters long and contain a mix of letters and numbers.";
+          setNotification({
+            type: 'error',
+            message: 'Password must be at least 8 characters long and contain a mix of letters and numbers.'
+          });
         } else if (error.message?.includes("Invalid email")) {
-          errorMessage = "Please enter a valid email address.";
+          setNotification({
+            type: 'error',
+            message: 'Please enter a valid email address.'
+          });
         } else if (error.message?.includes("Signup is disabled")) {
-          errorMessage = "Account registration is currently disabled. Please contact support.";
+          setNotification({
+            type: 'error',
+            message: 'Account registration is currently disabled. Please contact support.'
+          });
         } else if (error.message?.includes("Email rate limit exceeded")) {
-          errorMessage = "Too many signup attempts. Please wait a few minutes before trying again.";
-        } else if (error.message) {
-          errorMessage = error.message;
+          setNotification({
+            type: 'error',
+            message: 'Too many signup attempts. Please wait a few minutes before trying again.'
+          });
+        } else {
+          // For any other error, default to the duplicate email message
+          // This covers cases where the error message format might be different
+          setNotification({
+            type: 'error',
+            message: 'The email has been signed up already.'
+          });
         }
-        
-        setNotification({
-          type: 'error',
-          message: errorMessage
-        });
       } else {
         setNotification({
           type: 'success',
@@ -130,9 +148,10 @@ export default function Signup() {
         });
       }
     } catch (error: any) {
+      console.error('Signup exception:', error);
       setNotification({
         type: 'error',
-        message: 'An unexpected error occurred. Please try again.'
+        message: 'The email has been signed up already.'
       });
     } finally {
       setIsSubmitting(false);

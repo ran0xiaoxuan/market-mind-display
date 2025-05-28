@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,13 +25,15 @@ interface TradeHistoryTableProps {
   maxRows?: number;
   onViewAllClick?: () => void;
   showViewAllButton?: boolean;
+  enableRowClick?: boolean;
 }
 
 export const TradeHistoryTable = ({
   trades = [],
   maxRows,
   onViewAllClick,
-  showViewAllButton = false
+  showViewAllButton = false,
+  enableRowClick = false
 }: TradeHistoryTableProps) => {
   const navigate = useNavigate();
   // Ensure we have valid trades array
@@ -39,10 +42,10 @@ export const TradeHistoryTable = ({
   const hasMoreTrades = maxRows && safeTrades.length > maxRows;
   
   const handleRowClick = useCallback((trade: Trade) => {
-    if (trade.strategyId) {
+    if (enableRowClick && trade.strategyId) {
       navigate(`/strategy/${trade.strategyId}`);
     }
-  }, [navigate]);
+  }, [navigate, enableRowClick]);
 
   return (
     <div className="overflow-x-auto">
@@ -67,7 +70,7 @@ export const TradeHistoryTable = ({
               return (
                 <TableRow 
                   key={index} 
-                  className="cursor-pointer hover:bg-muted/60"
+                  className={enableRowClick ? "cursor-pointer hover:bg-muted/60" : ""}
                   onClick={() => handleRowClick(trade)}
                 >
                   <TableCell>

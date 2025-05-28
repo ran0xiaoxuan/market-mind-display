@@ -189,6 +189,7 @@ const Dashboard = () => {
                   maxRows={MAX_VISIBLE_TRADES}
                   showViewAllButton={true}
                   onViewAllClick={openTradeHistoryModal}
+                  enableRowClick={true}
                 />
               </div>
             </Card>

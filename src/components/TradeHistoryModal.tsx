@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 
@@ -35,7 +34,7 @@ export const TradeHistoryModal = ({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <TradeHistoryTable trades={trades} />
+        <TradeHistoryTable trades={trades} enableRowClick={true} />
       </DialogContent>
     </Dialog>
   );

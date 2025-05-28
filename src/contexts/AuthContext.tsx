@@ -83,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (event === 'SIGNED_OUT') {
+        console.log('User signed out successfully');
         setTimeout(() => {
           if (mounted) {
             toast({
@@ -269,10 +270,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Starting sign out process...');
+      
+      // Clear local state first
+      setSession(null);
+      setUser(null);
+      
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+        // Even if there's an error, we still want to navigate away
+        // as the local state has been cleared
+      } else {
+        console.log('Sign out successful');
+      }
+      
+      // Navigate to login page regardless of sign out result
       navigate('/login');
     } catch (error) {
       console.error("Error signing out:", error);
+      // Clear local state and navigate even if there's an exception
+      setSession(null);
+      setUser(null);
+      navigate('/login');
       throw error;
     }
   };

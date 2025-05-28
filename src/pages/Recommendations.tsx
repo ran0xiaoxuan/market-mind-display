@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase, fetchPublicRecommendedStrategies } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2 } from "lucide-react";
+import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
@@ -68,10 +69,16 @@ interface RecommendedStrategyRecord {
     max_buy_volume: string | null;
   };
 }
+
+type SortOption = 'name' | 'created' | 'updated' | 'apply_count';
+type SortDirection = 'asc' | 'desc';
+
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("apply_count");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -298,7 +305,41 @@ const Recommendations = () => {
   };
 
   // Filter strategies based on search term only (removed asset filter)
-  const filteredStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredAndSortedStrategies = strategies
+    .filter(strategy => 
+      strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'created':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'updated':
+          comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
+          break;
+        case 'apply_count':
+          const aCount = applyCounts.get(a.id) || 0;
+          const bCount = applyCounts.get(b.id) || 0;
+          comparison = aCount - bCount;
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  // Fetch recommended strategies - UPDATED to use the new helper function
   useEffect(() => {
     fetchRecommendedStrategies();
     fetchApplyCounts(); // Fetch apply counts on component mount
@@ -320,9 +361,31 @@ const Recommendations = () => {
               </Button>}
           </div>
           
-          {/* Search input */}
-          <div className="mb-6">
-            <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
+          {/* Search and Sort Controls */}
+          <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
+            <div className="w-full lg:w-2/5">
+              <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-3/5 lg:justify-end">
+              <div className="w-full sm:w-auto min-w-[160px]">
+                <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="apply_count">Popularity</SelectItem>
+                    <SelectItem value="updated">Last Updated</SelectItem>
+                    <SelectItem value="created">Date Created</SelectItem>
+                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button variant="outline" size="icon" onClick={toggleSortDirection} className="w-full sm:w-auto" title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}>
+                {sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
           
           {/* Strategy cards */}
@@ -339,48 +402,63 @@ const Recommendations = () => {
                     <div className="h-12 bg-muted rounded-b-lg"></div>
                   </div>
                 </Card>)}
-            </div> : filteredStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredStrategies.map(strategy => <Card key={strategy.id} className="flex flex-col h-full hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" onClick={() => showStrategyDetails(strategy)}>
-                  <CardHeader className="pb-2 border-b">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl text-slate-800">{strategy.name}</CardTitle>
-                        <div className="flex items-center mt-1 space-x-2">
-                          {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                              {strategy.target_asset}
-                            </Badge>}
-                          {strategy.is_official}
+            </div> : (
+              <>
+                {/* Results count and current sort display */}
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                  <span>
+                    Showing {filteredAndSortedStrategies.length} strategies
+                    {searchTerm && ` matching "${searchTerm}"`}
+                  </span>
+                  <span>
+                    Sorted by {sortBy === 'apply_count' ? 'popularity' : sortBy === 'name' ? 'name' : sortBy === 'created' ? 'date created' : 'last updated'} ({sortDirection === 'asc' ? 'ascending' : 'descending'})
+                  </span>
+                </div>
+
+                {filteredAndSortedStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedStrategies.map(strategy => <Card key={strategy.id} className="flex flex-col h-full hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" onClick={() => showStrategyDetails(strategy)}>
+                      <CardHeader className="pb-2 border-b">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-xl text-slate-800">{strategy.name}</CardTitle>
+                            <div className="flex items-center mt-1 space-x-2">
+                              {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                  {strategy.target_asset}
+                                </Badge>}
+                              {strategy.is_official}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-1 pt-4">
-                    <div className="flex flex-col h-full">
-                      <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
-                        {strategy.description || "No description provided"}
-                      </p>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="pt-2 flex justify-between border-t">
-                    <div>
-                      {/* Only admin can delete strategies */}
-                      {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
-                  e.stopPropagation();
-                  deleteStrategy(strategy.id);
-                }}>
-                          <Trash className="h-4 w-4" />
-                        </Button>}
-                    </div>
-                    {/* Apply count display with star icon */}
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
-                      <span className="text-sm font-medium">{applyCounts.get(strategy.id) || 0}</span>
-                    </div>
-                  </CardFooter>
-                </Card>)}
-            </div> : <div className="text-center py-12">
-              <p className="text-muted-foreground">No recommendations match your criteria</p>
-            </div>}
+                      </CardHeader>
+                      <CardContent className="flex-1 pt-4">
+                        <div className="flex flex-col h-full">
+                          <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
+                            {strategy.description || "No description provided"}
+                          </p>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-2 flex justify-between border-t">
+                        <div>
+                          {/* Only admin can delete strategies */}
+                          {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
+                      e.stopPropagation();
+                      deleteStrategy(strategy.id);
+                    }}>
+                              <Trash className="h-4 w-4" />
+                            </Button>}
+                        </div>
+                        {/* Apply count display with star icon */}
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
+                          <span className="text-sm font-medium">{applyCounts.get(strategy.id) || 0}</span>
+                        </div>
+                      </CardFooter>
+                    </Card>)}
+                </div> : <div className="text-center py-12">
+                  <p className="text-muted-foreground">No recommendations match your criteria</p>
+                </div>}
+              </>
+            )}
         </div>
       </main>
       

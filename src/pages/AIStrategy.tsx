@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { useNavigate, useBeforeUnload } from "react-router-dom";
 import { generateStrategy, saveGeneratedStrategy, GeneratedStrategy } from "@/services/strategyService";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
@@ -73,17 +72,11 @@ const AIStrategy = () => {
   const handleGenerateStrategy = async () => {
     // Validation checks
     if (!selectedAsset) {
-      toast({
-        title: "Asset selection required",
-        description: "Please select an asset for your trading strategy"
-      });
+      toast.error("Please select an asset for your trading strategy");
       return;
     }
     if (!strategyDescription) {
-      toast({
-        title: "Strategy description required",
-        description: "Please provide a description of your trading strategy"
-      });
+      toast.error("Please provide a description of your trading strategy");
       return;
     }
 
@@ -105,10 +98,7 @@ const AIStrategy = () => {
       setGeneratedStrategy(strategy);
       setRetryCount(0); // Reset retry count on success
 
-      toast({
-        title: "Strategy generated",
-        description: "AI has successfully generated a trading strategy based on your description",
-      });
+      toast.success("AI has successfully generated a trading strategy based on your description");
     } catch (error: any) {
       console.error("Error generating strategy:", error);
       const errorMessage = error.message || "Unknown error";
@@ -119,29 +109,13 @@ const AIStrategy = () => {
 
       // Show appropriate error message and options based on error type
       if (errorType === "connection_error") {
-        toast({
-          title: "Connection Error",
-          description: "Unable to connect to AI service. Try the template strategy instead.",
-          variant: "destructive"
-        });
+        toast.error("Unable to connect to AI service. Try the template strategy instead.");
       } else if (errorType === "api_key_error") {
-        toast({
-          title: "Configuration Error",
-          description: "AI service configuration issue. Please try the template strategy.",
-          variant: "destructive"
-        });
+        toast.error("AI service configuration issue. Please try the template strategy.");
       } else if (errorType === "timeout_error") {
-        toast({
-          title: "Request Timeout",
-          description: "Request took too long. Try simplifying your description or use template.",
-          variant: "destructive"
-        });
+        toast.error("Request took too long. Try simplifying your description or use template.");
       } else {
-        toast({
-          title: "AI Service Error",
-          description: "Error generating strategy. Try simplifying your description or use template.",
-          variant: "destructive"
-        });
+        toast.error("Error generating strategy. Try simplifying your description or use template.");
       }
     } finally {
       setIsLoading(false);
@@ -151,10 +125,7 @@ const AIStrategy = () => {
   const handleRetryGeneration = () => {
     setRetryCount(prev => prev + 1);
     if (retryCount >= 2) {
-      toast({
-        title: "Consider simplifying your description",
-        description: "Try using fewer requirements or simpler language for better results"
-      });
+      toast.warning("Try using fewer requirements or simpler language for better results");
     }
     handleGenerateStrategy();
   };
@@ -167,10 +138,7 @@ const AIStrategy = () => {
       setGeneratedStrategy(fallbackStrategy);
       setError(null);
       setErrorType(null);
-      toast({
-        title: "Template strategy created",
-        description: "A template strategy has been created based on your asset selection",
-      });
+      toast.success("A template strategy has been created based on your asset selection");
     });
   };
 
@@ -178,10 +146,7 @@ const AIStrategy = () => {
     if (!generatedStrategy) return;
     
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to save your strategy"
-      });
+      toast.error("Please log in to save your strategy");
       navigate(`/auth/login`);
       return;
     }
@@ -194,34 +159,19 @@ const AIStrategy = () => {
       const strategyId = await saveGeneratedStrategy(generatedStrategy);
       console.log("Strategy saved with ID:", strategyId);
       
-      toast({
-        title: "Strategy saved",
-        description: "Your strategy has been saved successfully",
-      });
+      toast.success("Your strategy has been saved successfully");
 
       navigate(`/strategy/${strategyId}`);
     } catch (error: any) {
       console.error("Error saving strategy:", error);
       
       if (error.message?.includes("authentication") || error.code === 'PGRST301') {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to save your strategy",
-          variant: "destructive"
-        });
+        toast.error("Please log in to save your strategy");
         navigate(`/auth/login`);
       } else if (error.message?.includes("row-level security") || error.code === 'PGRST204') {
-        toast({
-          title: "Permission error",
-          description: "You don't have permission to save this strategy. Please log out and log back in.",
-          variant: "destructive"
-        });
+        toast.error("You don't have permission to save this strategy. Please log out and log back in.");
       } else {
-        toast({
-          title: "Failed to save strategy",
-          description: error.message || "Please try again later",
-          variant: "destructive"
-        });
+        toast.error(error.message || "Failed to save strategy. Please try again later");
       }
     } finally {
       setIsSaving(false);

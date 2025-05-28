@@ -1,5 +1,12 @@
 
-// Import directly from the source to avoid circular dependencies
-import { useToast, toast } from "@/hooks/use-toast";
+// This file is deprecated - use sonner toast instead
+// Import sonner directly: import { toast } from "sonner";
 
-export { useToast, toast };
+export const useToast = () => {
+  console.warn("useToast is deprecated, use sonner toast instead");
+  return { toast: () => {} };
+};
+
+export const toast = () => {
+  console.warn("Custom toast is deprecated, use sonner toast instead");
+};

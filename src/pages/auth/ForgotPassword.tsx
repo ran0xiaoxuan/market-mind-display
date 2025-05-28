@@ -22,6 +22,7 @@ export default function ForgotPassword() {
   const {
     toast
   } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
@@ -84,7 +85,7 @@ export default function ForgotPassword() {
         setSubmitted(true);
         toast({
           title: "Reset link sent",
-          description: "Check your email for a password reset link."
+          description: "The reset link has been sent successfully."
         });
       }
     } catch (error: any) {
@@ -97,9 +98,11 @@ export default function ForgotPassword() {
       setIsSubmitting(false);
     }
   };
+
   const handleTurnstileVerify = (token: string) => {
     setTurnstileToken(token);
   };
+
   const handleTurnstileError = () => {
     setTurnstileToken(null);
     toast({
@@ -108,12 +111,15 @@ export default function ForgotPassword() {
       variant: "destructive"
     });
   };
+
   const handleTurnstileExpire = () => {
     setTurnstileToken(null);
   };
+
   if (user) {
     return <Navigate to="/" replace />;
   }
+
   return <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">

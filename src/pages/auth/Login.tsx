@@ -65,7 +65,7 @@ export default function Login() {
         let errorMessage = "Please check your credentials and try again.";
         
         if (error.message?.includes("Invalid login credentials")) {
-          errorMessage = "The email or password you entered is incorrect. Please try again.";
+          errorMessage = "The log in information is incorrect, please try it again.";
         } else if (error.message?.includes("Email not confirmed")) {
           errorMessage = "Please check your email and click the confirmation link before logging in.";
           setShowResendConfirmation(true);

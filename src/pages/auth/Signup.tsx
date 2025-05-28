@@ -109,7 +109,7 @@ export default function Signup() {
       if (error) {
         let errorMessage = "Please check your information and try again.";
         if (error.message?.includes("User already registered")) {
-          errorMessage = "An account with this email already exists. Please try logging in instead.";
+          errorMessage = "The email has been signed up already.";
         } else if (error.message?.includes("Password should be at least")) {
           errorMessage = "Password must be at least 8 characters long and contain a mix of letters and numbers.";
         } else if (error.message?.includes("Invalid email")) {

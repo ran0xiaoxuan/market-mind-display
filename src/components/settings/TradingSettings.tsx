@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Bell, Mail, MessageSquare, Send, Lock, Check, LinkIcon, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+
 interface NotificationPreferences {
   email: boolean;
   discord: boolean;
@@ -130,7 +131,7 @@ export function TradingSettings() {
                 <div className="space-y-4 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                      <img src="/lovable-uploads/bd9113c5-0c5b-4033-b957-cb8ee9f027a0.png" alt="Discord Logo" className="h-5 w-5" />
                       <div>
                         <p className="font-medium">Discord Notifications</p>
                         <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
@@ -162,7 +163,7 @@ export function TradingSettings() {
                 <div className="space-y-4 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Send className="h-5 w-5 text-muted-foreground" />
+                      <img src="/lovable-uploads/5990fa67-2bb1-4831-936e-a14f75fcbc74.png" alt="Telegram Logo" className="h-5 w-5" />
                       <div>
                         <p className="font-medium">Telegram Notifications</p>
                         <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
@@ -239,7 +240,7 @@ export function TradingSettings() {
           <div className="space-y-4 border-t pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-indigo-500" />
+                <img src="/lovable-uploads/bd9113c5-0c5b-4033-b957-cb8ee9f027a0.png" alt="Discord Logo" className="h-5 w-5" />
                 <div>
                   <p className="font-medium">Discord Notifications</p>
                   <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
@@ -308,7 +309,7 @@ export function TradingSettings() {
           <div className="space-y-4 border-t pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Send className="h-5 w-5 text-sky-500" />
+                <img src="/lovable-uploads/5990fa67-2bb1-4831-936e-a14f75fcbc74.png" alt="Telegram Logo" className="h-5 w-5" />
                 <div>
                   <p className="font-medium">Telegram Notifications</p>
                   <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>

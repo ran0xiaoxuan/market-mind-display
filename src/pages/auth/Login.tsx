@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
@@ -46,9 +45,9 @@ export default function Login() {
     setNotification(null);
     
     try {
-      // Skip Turnstile verification for development domains
-      if (!isDevelopment) {
-        const isValidCaptcha = await verifyTurnstile(turnstileToken!);
+      // Skip Turnstile verification for development domains or if token is a bypass token
+      if (!isDevelopment && turnstileToken && !turnstileToken.startsWith('dev-')) {
+        const isValidCaptcha = await verifyTurnstile(turnstileToken);
         if (!isValidCaptcha) {
           setNotification({
             type: 'error',

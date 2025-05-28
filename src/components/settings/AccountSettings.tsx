@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { Switch } from "@/components/ui/switch";
+import { DeleteAccountDialog } from "./DeleteAccountDialog";
 
 // Max file size: 1MB
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
@@ -30,6 +31,7 @@ export function AccountSettings() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [isPro, setIsPro] = useState(user?.user_metadata?.is_pro === true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
@@ -245,6 +247,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+  
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -369,10 +372,20 @@ export function AccountSettings() {
                 <div className="font-medium">Delete Account</div>
                 <div className="text-sm text-muted-foreground">Permanently delete your account and all your data</div>
               </div>
-              <Button variant="destructive">Delete Account</Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                Delete Account
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      <DeleteAccountDialog 
+        open={showDeleteDialog} 
+        onOpenChange={setShowDeleteDialog} 
+      />
     </div>;
 }

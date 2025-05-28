@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, X, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, X, Search, Loader2, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -17,6 +17,7 @@ import { debounce } from "lodash";
 import { getStrategyById, getTradingRulesForStrategy } from "@/services/strategyService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Define standard timeframe options to ensure consistency across the application
 export const TIMEFRAME_OPTIONS = [
@@ -36,6 +37,7 @@ const EditStrategy = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   // Form state
   const [strategyName, setStrategyName] = useState("");
@@ -59,6 +61,50 @@ const EditStrategy = () => {
   // Trading rules state
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([]);
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([]);
+
+  // Validation functions
+  const validateBasicInfo = () => {
+    const errors = [];
+    if (!strategyName.trim()) errors.push("Strategy Name is required");
+    if (!timeframe) errors.push("Timeframe is required");
+    if (!targetAsset.trim()) errors.push("Target Asset is required");
+    return errors;
+  };
+
+  const validateRiskManagement = () => {
+    const errors = [];
+    if (!stopLoss.trim()) errors.push("Stop Loss is required");
+    if (!takeProfit.trim()) errors.push("Take Profit is required");
+    if (!singleBuyVolume.trim()) errors.push("Single Buy Volume is required");
+    if (!maxBuyVolume.trim()) errors.push("Max Buy Volume is required");
+    return errors;
+  };
+
+  const validateTradingRules = () => {
+    const errors = [];
+    
+    // Check if entry rules have at least one condition
+    const hasEntryConditions = entryRules.some(group => 
+      group.inequalities && group.inequalities.length > 0
+    );
+    if (!hasEntryConditions) {
+      errors.push("At least one entry rule condition is required");
+    }
+
+    // Check if exit rules have at least one condition
+    const hasExitConditions = exitRules.some(group => 
+      group.inequalities && group.inequalities.length > 0
+    );
+    if (!hasExitConditions) {
+      errors.push("At least one exit rule condition is required");
+    }
+
+    return errors;
+  };
+
+  const basicInfoErrors = showValidation ? validateBasicInfo() : [];
+  const riskManagementErrors = showValidation ? validateRiskManagement() : [];
+  const tradingRulesErrors = showValidation ? validateTradingRules() : [];
 
   // Fetch strategy data when component mounts
   useEffect(() => {
@@ -261,6 +307,21 @@ const EditStrategy = () => {
     }
   };
   const handleSave = async () => {
+    setShowValidation(true);
+    
+    const basicErrors = validateBasicInfo();
+    const riskErrors = validateRiskManagement();
+    const rulesErrors = validateTradingRules();
+    
+    const allErrors = [...basicErrors, ...riskErrors, ...rulesErrors];
+    
+    if (allErrors.length > 0) {
+      toast.error("Please fix the validation errors before saving", {
+        description: `${allErrors.length} field(s) need to be completed`
+      });
+      return;
+    }
+
     if (!id) return;
     try {
       setIsSaving(true);
@@ -411,9 +472,9 @@ const EditStrategy = () => {
     } catch (error) {
       console.error("Error saving strategy:", error);
       if (error instanceof Error) {
-        toast(error.message);
+        toast.error(error.message);
       } else {
-        toast("An unknown error occurred");
+        toast.error("An unknown error occurred");
       }
     } finally {
       setIsSaving(false);
@@ -446,7 +507,6 @@ const EditStrategy = () => {
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-2">
-            {/* Update Link to point to the strategy detail page */}
             <Link to={`/strategy/${id}`} className="text-sm flex items-center text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Link>
@@ -462,14 +522,33 @@ const EditStrategy = () => {
             </div>
           </div>
           
-          <Card className="p-6 mb-6">
+          <Card className={`p-6 mb-6 ${basicInfoErrors.length > 0 ? 'border-red-500' : ''}`}>
             <h2 className="text-xl font-semibold mb-1">Basic Information</h2>
             <p className="text-sm text-muted-foreground mb-4">Edit the basic details of your strategy</p>
+            
+            {basicInfoErrors.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-1">Please complete the following fields:</div>
+                  <ul className="list-disc pl-4">
+                    {basicInfoErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="space-y-4">
               <div>
                 <Label htmlFor="name">Strategy Name</Label>
-                <Input id="name" value={strategyName} onChange={e => setStrategyName(e.target.value)} className="mt-1" />
+                <Input 
+                  id="name" 
+                  value={strategyName} 
+                  onChange={e => setStrategyName(e.target.value)} 
+                  className={`mt-1 ${!strategyName.trim() && showValidation ? 'border-red-500' : ''}`}
+                />
               </div>
               
               <div>
@@ -480,7 +559,7 @@ const EditStrategy = () => {
               <div>
                 <Label htmlFor="timeframe">Timeframe</Label>
                 <Select value={timeframe} onValueChange={setTimeframe}>
-                  <SelectTrigger id="timeframe" className="mt-1">
+                  <SelectTrigger id="timeframe" className={`mt-1 ${!timeframe && showValidation ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Select Timeframe" />
                   </SelectTrigger>
                   <SelectContent>
@@ -495,7 +574,11 @@ const EditStrategy = () => {
               
               <div>
                 <Label htmlFor="asset" className="block text-sm font-medium mb-2">Target Asset</Label>
-                <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
+                <Button 
+                  variant="outline" 
+                  className={`w-full justify-start text-left font-normal h-10 ${!targetAsset.trim() && showValidation ? 'border-red-500' : ''}`} 
+                  onClick={handleSearchOpen}
+                >
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   {targetAsset ? `${targetAsset}${targetAssetName ? ` - ${targetAssetName}` : ''}` : "Search for stocks..."}
                 </Button>
@@ -527,38 +610,105 @@ const EditStrategy = () => {
             </div>
           </Card>
           
-          <Card className="p-6 mb-6">
+          <Card className={`p-6 mb-6 ${riskManagementErrors.length > 0 ? 'border-red-500' : ''}`}>
             <h2 className="text-xl font-semibold mb-1">Risk Management</h2>
             <p className="text-sm text-muted-foreground mb-4">Define your risk parameters and investment limits</p>
+            
+            {riskManagementErrors.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-1">Please complete the following fields:</div>
+                  <ul className="list-disc pl-4">
+                    {riskManagementErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="stopLoss">Stop Loss (%)</Label>
-                <Input id="stopLoss" type="number" min="0" step="0.1" value={stopLoss} onChange={e => setStopLoss(e.target.value)} className="mt-1" />
+                <Input 
+                  id="stopLoss" 
+                  type="number" 
+                  min="0" 
+                  step="0.1" 
+                  value={stopLoss} 
+                  onChange={e => setStopLoss(e.target.value)} 
+                  className={`mt-1 ${!stopLoss.trim() && showValidation ? 'border-red-500' : ''}`}
+                />
               </div>
               <div>
                 <Label htmlFor="takeProfit">Take Profit (%)</Label>
-                <Input id="takeProfit" type="number" min="0" step="0.1" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} className="mt-1" />
+                <Input 
+                  id="takeProfit" 
+                  type="number" 
+                  min="0" 
+                  step="0.1" 
+                  value={takeProfit} 
+                  onChange={e => setTakeProfit(e.target.value)} 
+                  className={`mt-1 ${!takeProfit.trim() && showValidation ? 'border-red-500' : ''}`}
+                />
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
               <div>
                 <Label htmlFor="singleBuyVolume">Single Buy Volume ($)</Label>
-                <Input id="singleBuyVolume" type="number" min="0" step="100" value={singleBuyVolume} onChange={e => setSingleBuyVolume(e.target.value)} className="mt-1" />
+                <Input 
+                  id="singleBuyVolume" 
+                  type="number" 
+                  min="0" 
+                  step="100" 
+                  value={singleBuyVolume} 
+                  onChange={e => setSingleBuyVolume(e.target.value)} 
+                  className={`mt-1 ${!singleBuyVolume.trim() && showValidation ? 'border-red-500' : ''}`}
+                />
               </div>
               <div>
                 <Label htmlFor="maxBuyVolume">Max Buy Volume ($)</Label>
-                <Input id="maxBuyVolume" type="number" min="0" step="100" value={maxBuyVolume} onChange={e => setMaxBuyVolume(e.target.value)} className="mt-1" />
+                <Input 
+                  id="maxBuyVolume" 
+                  type="number" 
+                  min="0" 
+                  step="100" 
+                  value={maxBuyVolume} 
+                  onChange={e => setMaxBuyVolume(e.target.value)} 
+                  className={`mt-1 ${!maxBuyVolume.trim() && showValidation ? 'border-red-500' : ''}`}
+                />
               </div>
             </div>
           </Card>
           
-          <Card className="p-6 mb-6">
+          <Card className={`p-6 mb-6 ${tradingRulesErrors.length > 0 ? 'border-red-500' : ''}`}>
             <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
             <p className="text-sm text-muted-foreground mb-4">Define the entry and exit conditions for your strategy</p>
             
-            <TradingRules entryRules={entryRules} exitRules={exitRules} editable={true} onEntryRulesChange={handleEntryRulesChange} onExitRulesChange={handleExitRulesChange} />
+            {tradingRulesErrors.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-1">Please complete the following:</div>
+                  <ul className="list-disc pl-4">
+                    {tradingRulesErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <TradingRules 
+              entryRules={entryRules} 
+              exitRules={exitRules} 
+              editable={true} 
+              onEntryRulesChange={handleEntryRulesChange} 
+              onExitRulesChange={handleExitRulesChange}
+              showValidation={showValidation}
+            />
           </Card>
         </div>
       </main>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
@@ -117,8 +118,7 @@ const AIStrategy = () => {
       setErrorType(errorType);
 
       // Show appropriate error message and options based on error type
-      if (errorType === "connection_error" || errorMessage.includes("Failed to fetch") || errorMessage.includes("Network error") || !navigator.onLine) {
-        setErrorType("connection_error");
+      if (errorType === "connection_error") {
         toast({
           title: "Connection Error",
           description: "Unable to connect to AI service. Try the template strategy instead.",
@@ -264,8 +264,8 @@ const AIStrategy = () => {
   };
 
   const isAPIKeyError = errorType === "api_key_error";
-  const isConnectionError = errorType === "connection_error" || error?.includes("Failed to fetch") || error?.includes("Network error");
-  const isTimeoutError = errorType === "timeout_error" || error?.includes("timed out") || error?.includes("timeout");
+  const isConnectionError = errorType === "connection_error";
+  const isTimeoutError = errorType === "timeout_error";
 
   return (
     <div className="min-h-screen bg-background">
@@ -296,7 +296,7 @@ const AIStrategy = () => {
                   <div className="mt-2">
                     {isConnectionError && (
                       <div>
-                        <p className="mb-3">The AI service is currently unavailable. This could be due to network issues or service maintenance.</p>
+                        <p className="mb-3">The AI service is currently unavailable. This could be due to network issues, service maintenance, or connectivity problems.</p>
                         <div className="flex flex-col sm:flex-row gap-2">
                           <Button 
                             variant="default" 

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -99,25 +100,43 @@ export const generateStrategy = async (
     if (error) {
       console.error("Error from generate-strategy function:", error);
       
-      // Determine error type for better user experience
-      if (error.message?.includes("Failed to fetch") || error.message?.includes("fetch")) {
+      // Improved error type detection for better user experience
+      const errorMessage = error.message || "Unknown error";
+      
+      // Handle FunctionsFetchError specifically
+      if (error.name === "FunctionsFetchError" || errorMessage.includes("Failed to send a request to the Edge Function")) {
+        throw {
+          message: "Unable to connect to AI service. The service may be temporarily unavailable.",
+          type: "connection_error"
+        };
+      }
+      
+      // Handle context errors from failed fetch
+      if (error.context && error.context.message && error.context.message.includes("Failed to fetch")) {
+        throw {
+          message: "Network connection failed. Please check your internet connection and try again.",
+          type: "connection_error"
+        };
+      }
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("fetch")) {
         throw {
           message: "Failed to connect to AI service. The service may be temporarily unavailable.",
           type: "connection_error"
         };
-      } else if (error.message?.includes("API key") || error.message?.includes("authentication")) {
+      } else if (errorMessage.includes("API key") || errorMessage.includes("authentication")) {
         throw {
           message: "AI service configuration error. Please check the API key setup.",
           type: "api_key_error"
         };
-      } else if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+      } else if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
         throw {
           message: "Request timed out. Please try again with a simpler description.",
           type: "timeout_error"
         };
       } else {
         throw {
-          message: `AI service error: ${error.message}`,
+          message: `AI service error: ${errorMessage}`,
           type: "api_error"
         };
       }
@@ -136,9 +155,16 @@ export const generateStrategy = async (
       };
     }
     
-    if (error.message && error.message.includes('Failed to fetch')) {
+    // Handle various fetch-related errors
+    if (error.message && (
+      error.message.includes('Failed to fetch') || 
+      error.message.includes('fetch') ||
+      error.message.includes('Network error') ||
+      error.message.includes('ERR_NETWORK') ||
+      error.message.includes('ERR_INTERNET_DISCONNECTED')
+    )) {
       throw {
-        message: "Unable to connect to AI service. The service may be temporarily down.",
+        message: "Unable to connect to AI service. Please check your internet connection or try again later.",
         type: "connection_error"
       };
     }

@@ -169,7 +169,7 @@ export default function Signup() {
     setTurnstileToken(null);
     setNotification({
       type: 'error',
-      message: 'Security verification failed. Please try again.'
+      message: 'The email has been signed up already.'
     });
   };
 

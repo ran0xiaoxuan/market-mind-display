@@ -54,23 +54,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
       
-      // Handle successful sign in - both email/password and OAuth
+      // Handle successful sign in - only redirect if user is on auth pages
       if (event === 'SIGNED_IN' && currentSession) {        
         console.log('User signed in successfully, current path:', location.pathname);
         
-        // Always redirect to dashboard on successful sign in, but with a slight delay for OAuth
-        const redirectDelay = event === 'SIGNED_IN' ? 500 : 100;
-        
-        setTimeout(() => {
-          if (mounted) {
-            console.log('Redirecting to dashboard after successful sign in');
-            navigate('/dashboard', { replace: true });
-            toast({
-              title: "Logged in successfully",
-              description: "Welcome back!"
-            });
-          }
-        }, redirectDelay);
+        // Only redirect to dashboard if user is on auth pages
+        const authPages = ['/login', '/signup', '/forgot-password', '/auth/confirm'];
+        if (authPages.includes(location.pathname)) {
+          const redirectDelay = 500;
+          
+          setTimeout(() => {
+            if (mounted) {
+              console.log('Redirecting to dashboard from auth page after successful sign in');
+              navigate('/dashboard', { replace: true });
+              toast({
+                title: "Logged in successfully",
+                description: "Welcome back!"
+              });
+            }
+          }, redirectDelay);
+        } else {
+          // User signed in but not on auth page, just show success message
+          toast({
+            title: "Logged in successfully",
+            description: "Welcome back!"
+          });
+        }
       }
       
       if (event === 'SIGNED_OUT') {
@@ -97,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
         
-        // If user is already logged in and on auth pages, redirect to dashboard
+        // Only redirect if user is on auth pages and has a session
         const authPages = ['/login', '/signup', '/forgot-password'];
         if (currentSession && authPages.includes(location.pathname)) {
           console.log('User already logged in, redirecting from auth page to dashboard');

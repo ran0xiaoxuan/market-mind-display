@@ -62,10 +62,11 @@ const EditStrategy = () => {
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([]);
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([]);
 
-  // Validation functions
+  // Enhanced validation functions
   const validateBasicInfo = () => {
     const errors = [];
     if (!strategyName.trim()) errors.push("Strategy Name is required");
+    if (!description.trim()) errors.push("Description is required");
     if (!timeframe) errors.push("Timeframe is required");
     if (!targetAsset.trim()) errors.push("Target Asset is required");
     return errors;
@@ -316,7 +317,7 @@ const EditStrategy = () => {
     const allErrors = [...basicErrors, ...riskErrors, ...rulesErrors];
     
     if (allErrors.length > 0) {
-      toast.error("Please fix the validation errors before saving", {
+      toast.error("Please complete all required fields before saving", {
         description: `${allErrors.length} field(s) need to be completed`
       });
       return;
@@ -553,7 +554,13 @@ const EditStrategy = () => {
               
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="mt-1 resize-none" rows={3} />
+                <Textarea 
+                  id="description" 
+                  value={description} 
+                  onChange={e => setDescription(e.target.value)} 
+                  className={`mt-1 resize-none ${!description.trim() && showValidation ? 'border-red-500' : ''}`} 
+                  rows={3} 
+                />
               </div>
               
               <div>

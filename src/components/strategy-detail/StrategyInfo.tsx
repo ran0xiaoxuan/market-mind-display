@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
@@ -169,7 +168,7 @@ export const StrategyInfo = ({
                 </div>
               </div>
             </div>
-          ) : showProRequired ? (
+          ) : showProRequired && !wasProUser ? (
             <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
                 <Crown className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />

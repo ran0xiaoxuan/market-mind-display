@@ -424,9 +424,7 @@ const Recommendations = () => {
                               {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
                                   {strategy.target_asset}
                                 </Badge>}
-                              {strategy.is_official && <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-xs">
-                                  Official
-                                </Badge>}
+                              {strategy.is_official}
                             </div>
                           </div>
                         </div>

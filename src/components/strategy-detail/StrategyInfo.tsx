@@ -26,7 +26,7 @@ export const StrategyInfo = ({
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const { user } = useAuth();
 
-  // Check user subscription status
+  // Check user subscription status from profiles table
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!user) {
@@ -36,24 +36,17 @@ export const StrategyInfo = ({
       }
 
       try {
-        const { data: subscriber, error } = await supabase
-          .from('subscribers')
-          .select('subscribed, subscription_end, subscription_tier')
-          .eq('user_id', user.id)
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
           .single();
 
         if (error) {
-          console.log("No subscription found for user:", error);
+          console.log("No profile found for user:", error);
           setIsProUser(false);
-        } else if (subscriber) {
-          // Check if user has an active subscription
-          const now = new Date();
-          const subscriptionEnd = subscriber.subscription_end ? new Date(subscriber.subscription_end) : null;
-          
-          const isSubscriptionActive = subscriber.subscribed && 
-            (!subscriptionEnd || subscriptionEnd > now);
-          
-          setIsProUser(isSubscriptionActive);
+        } else if (profile) {
+          setIsProUser(profile.subscription_tier === 'pro');
         } else {
           setIsProUser(false);
         }

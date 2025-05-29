@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +20,7 @@ import { DeleteAccountDialog } from "./DeleteAccountDialog";
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
 export function AccountSettings() {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL);
@@ -30,12 +29,59 @@ export function AccountSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [isPro, setIsPro] = useState(user?.user_metadata?.is_pro === true);
+  const [isPro, setIsPro] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const initialsForAvatar = username.charAt(0).toUpperCase();
+
+  // Load user profile and subscription status
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) {
+        setIsLoadingProfile(false);
+        return;
+      }
+
+      try {
+        // Check if profile exists, if not create one
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // Profile doesn't exist, create one
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              subscription_tier: 'free'
+            });
+
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          }
+          setIsPro(false);
+        } else if (error) {
+          console.error('Error fetching profile:', error);
+          setIsPro(false);
+        } else {
+          setIsPro(profile?.subscription_tier === 'pro');
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        setIsPro(false);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
   
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -61,6 +107,7 @@ export function AccountSettings() {
       await uploadAvatar(file);
     }
   };
+
   const uploadAvatar = async (file: File) => {
     setIsUpdating(true);
     try {
@@ -112,6 +159,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   const handleResetAvatar = async () => {
     setIsUpdating(true);
     try {
@@ -139,6 +187,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   const handleUpdateAvatar = async () => {
     // This function is now redundant as we upload automatically on selection
     // We'll keep it for backward compatibility
@@ -147,6 +196,7 @@ export function AccountSettings() {
       description: "Your avatar has been updated successfully."
     });
   };
+
   const handleSaveProfile = async () => {
     setIsUpdating(true);
     try {
@@ -182,6 +232,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   const handleUpdatePassword = async () => {
     if (newPassword !== confirmPassword) {
       toast({
@@ -219,22 +270,24 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   const toggleSubscriptionStatus = async () => {
     setIsUpdating(true);
     try {
-      const newStatus = !isPro;
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          is_pro: newStatus
-        }
-      });
+      const newTier = isPro ? 'free' : 'pro';
+      
+      // Update the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({ subscription_tier: newTier })
+        .eq('id', user?.id);
       
       if (error) throw error;
       
-      setIsPro(newStatus);
+      setIsPro(!isPro);
       toast({
         title: `Subscription status updated`,
-        description: `You are now on the ${newStatus ? 'Pro' : 'Free'} plan.`
+        description: `You are now on the ${newTier} plan.`
       });
     } catch (error) {
       console.error("Error updating subscription status:", error);
@@ -248,6 +301,18 @@ export function AccountSettings() {
     }
   };
   
+  if (isLoadingProfile) {
+    return (
+      <div className="space-y-12">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -328,10 +393,6 @@ export function AccountSettings() {
         </div>
       </div>
       
-      {/* Profile Picture */}
-      
-      
-      {/* Password */}
       <div>
         <h2 className="text-xl font-medium">Password</h2>
         <p className="text-sm text-muted-foreground mb-4">Change your password</p>
@@ -360,7 +421,6 @@ export function AccountSettings() {
         </div>
       </div>
       
-      {/* Danger Zone */}
       <div>
         <h2 className="text-xl font-medium text-destructive">Danger Zone</h2>
         <p className="text-sm text-muted-foreground mb-4">Irreversible account actions</p>

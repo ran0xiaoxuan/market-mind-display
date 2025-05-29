@@ -220,56 +220,9 @@ export function AccountSettings() {
     }
   };
   const toggleSubscriptionStatus = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to manage subscription status.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsUpdating(true);
     try {
       const newStatus = !isPro;
-      
-      if (newStatus) {
-        // User is becoming Pro - insert/update in subscribers table
-        const { error: insertError } = await supabase
-          .from('subscribers')
-          .upsert({
-            user_id: user.id,
-            email: user.email || '',
-            subscribed: true,
-            subscription_end: new Date('2025-12-31T23:59:59Z').toISOString(),
-            subscription_tier: 'pro',
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id'
-          });
-
-        if (insertError) {
-          console.error("Error updating subscribers table:", insertError);
-          throw insertError;
-        }
-      } else {
-        // User is becoming Free - update subscribers table
-        const { error: updateError } = await supabase
-          .from('subscribers')
-          .update({
-            subscribed: false,
-            subscription_tier: 'free',
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          console.error("Error updating subscribers table:", updateError);
-          throw updateError;
-        }
-      }
-
-      // Also update user metadata for backward compatibility
       const { error } = await supabase.auth.updateUser({
         data: {
           is_pro: newStatus

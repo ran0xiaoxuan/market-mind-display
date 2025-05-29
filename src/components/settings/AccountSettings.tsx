@@ -372,20 +372,23 @@ export function AccountSettings() {
               )}
             </div>
             
-            <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">
-              <div className="flex items-start gap-3">
-                <Bell className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-amber-800 text-sm font-medium mb-2">Pro Plan Feature:</p>
-                  <p className="text-amber-700 text-sm">Get real-time trading signals delivered directly to your preferred platforms.</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Email Notifications</Badge>
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Discord Alerts</Badge>
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Telegram Signals</Badge>
+            {/* Show Pro Plan Feature card only for Free users */}
+            {!isPro && (
+              <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <Bell className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-amber-800 text-sm font-medium mb-2">Pro Plan Feature:</p>
+                    <p className="text-amber-700 text-sm">Get real-time trading signals delivered directly to your preferred platforms.</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Email Notifications</Badge>
+                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Discord Alerts</Badge>
+                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Telegram Signals</Badge>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
             
             {/* Developer testing toggle - only visible in development */}
             {process.env.NODE_ENV === 'development' && (

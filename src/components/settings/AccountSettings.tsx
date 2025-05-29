@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,7 +69,13 @@ export function AccountSettings() {
           console.error('Error fetching profile:', error);
           setIsPro(false);
         } else {
-          setIsPro(profile?.subscription_tier === 'pro');
+          const isProUser = profile?.subscription_tier === 'pro';
+          setIsPro(isProUser);
+          
+          // If user is Pro, ensure the status is properly updated in the database
+          if (isProUser) {
+            await syncProStatusToDatabase();
+          }
         }
       } catch (error) {
         console.error('Error loading user profile:', error);
@@ -82,6 +87,29 @@ export function AccountSettings() {
 
     loadUserProfile();
   }, [user]);
+
+  // Sync Pro status to database when user is in Pro mode
+  const syncProStatusToDatabase = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          subscription_tier: 'pro',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error syncing Pro status to database:', error);
+      } else {
+        console.log('Pro status synced to database successfully');
+      }
+    } catch (error) {
+      console.error('Error syncing Pro status:', error);
+    }
+  };
   
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -279,12 +307,21 @@ export function AccountSettings() {
       // Update the profiles table
       const { error } = await supabase
         .from('profiles')
-        .update({ subscription_tier: newTier })
+        .update({ 
+          subscription_tier: newTier,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user?.id);
       
       if (error) throw error;
       
       setIsPro(!isPro);
+      
+      // If switching to Pro, sync the status to ensure it's properly recorded
+      if (newTier === 'pro') {
+        await syncProStatusToDatabase();
+      }
+      
       toast({
         title: `Subscription status updated`,
         description: `You are now on the ${newTier} plan.`

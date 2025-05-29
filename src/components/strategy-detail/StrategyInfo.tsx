@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
@@ -48,7 +49,7 @@ export const StrategyInfo = ({
 
   // Handle the status change and update it in the database
   const handleStatusChange = async (checked: boolean) => {
-    // For future Pro feature implementation
+    // Check current user tier (this will be replaced with actual user tier check)
     const isProUser = false; // This will be replaced with actual user tier check
     
     if (checked && !isProUser) {
@@ -96,7 +97,7 @@ export const StrategyInfo = ({
 
   // Check if user is currently Pro (this would be replaced with actual subscription check)
   const isProUser = false; // This will be replaced with actual user tier check
-  const showProRequired = !isProUser;
+  const isFreeUser = !isProUser;
   
   return <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
@@ -139,13 +140,12 @@ export const StrategyInfo = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <Crown className="h-4 w-4 text-yellow-500" />
-            {showProRequired && (
-              <Lock className="h-4 w-4 text-muted-foreground" />
-            )}
+            {isFreeUser && <Crown className="h-4 w-4 text-yellow-500" />}
+            {isFreeUser && <Lock className="h-4 w-4 text-muted-foreground" />}
           </div>
           
-          {showProRequired && wasProUser ? (
+          {/* Show upgrade banner only for Free users who were previously Pro */}
+          {isFreeUser && wasProUser && (
             <div className="border border-orange-200 bg-orange-50 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
                 <Lock className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
@@ -168,7 +168,10 @@ export const StrategyInfo = ({
                 </div>
               </div>
             </div>
-          ) : showProRequired && !wasProUser ? (
+          )}
+
+          {/* Show Pro feature banner only for Free users who were never Pro */}
+          {isFreeUser && !wasProUser && (
             <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
                 <Crown className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -191,21 +194,21 @@ export const StrategyInfo = ({
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
 
           <div className="flex items-center gap-3">
             <Switch 
               id="strategy-status" 
               checked={isActive} 
               onCheckedChange={handleStatusChange} 
-              disabled={isSaving || showProRequired} 
+              disabled={isSaving || isFreeUser} 
             />
             <div className="flex flex-col">
               <span className="text-sm font-medium">
                 {isSaving ? 'Updating...' : isActive ? 'Active - Notifications Enabled' : 'Inactive - App Only'}
               </span>
               <span className="text-xs text-muted-foreground">
-                {showProRequired 
+                {isFreeUser 
                   ? 'Pro subscription required for notifications'
                   : isActive 
                     ? 'Signals will be sent to your notification channels' 

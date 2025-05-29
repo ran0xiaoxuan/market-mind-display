@@ -1,14 +1,14 @@
 
-
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Info, Crown, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StrategyInfoProps {
   strategy: any;
@@ -22,6 +22,51 @@ export const StrategyInfo = ({
   onStatusChange
 }: StrategyInfoProps) => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isProUser, setIsProUser] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const { user } = useAuth();
+
+  // Check user subscription status
+  useEffect(() => {
+    const checkSubscriptionStatus = async () => {
+      if (!user) {
+        setIsProUser(false);
+        setIsLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const { data: subscriber, error } = await supabase
+          .from('subscribers')
+          .select('subscribed, subscription_end, subscription_tier')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.log("No subscription found for user:", error);
+          setIsProUser(false);
+        } else if (subscriber) {
+          // Check if user has an active subscription
+          const now = new Date();
+          const subscriptionEnd = subscriber.subscription_end ? new Date(subscriber.subscription_end) : null;
+          
+          const isSubscriptionActive = subscriber.subscribed && 
+            (!subscriptionEnd || subscriptionEnd > now);
+          
+          setIsProUser(isSubscriptionActive);
+        } else {
+          setIsProUser(false);
+        }
+      } catch (error) {
+        console.error("Error checking subscription status:", error);
+        setIsProUser(false);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+
+    checkSubscriptionStatus();
+  }, [user]);
 
   // Format the time distance with more precise units and capitalize first letter
   const formatTimeAgo = (dateString: string) => {
@@ -42,9 +87,7 @@ export const StrategyInfo = ({
 
   // Handle the status change and update it in the database
   const handleStatusChange = async (checked: boolean) => {
-    // Check current user tier (this will be replaced with actual user tier check)
-    const isProUser = false; // This will be replaced with actual user tier check
-    
+    // Only allow Pro users to activate strategies
     if (checked && !isProUser) {
       toast.error("Pro Feature Required", {
         description: "Signal notifications require a Pro subscription. Upgrade to activate strategies and receive real-time trading alerts.",
@@ -81,11 +124,23 @@ export const StrategyInfo = ({
     }
   };
 
-  // Check if user is currently Pro (this would be replaced with actual subscription check)
-  const isProUser = false; // This will be replaced with actual user tier check
+  // Show loading state while checking subscription
+  if (isLoadingSubscription) {
+    return (
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </Card>
+    );
+  }
+
   const isFreeUser = !isProUser;
   
-  return <Card className="p-6">
+  return (
+    <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Strategy Information</h2>
       
       <div className="mb-8">
@@ -178,6 +233,6 @@ export const StrategyInfo = ({
           </div>
         </div>
       </div>
-    </Card>;
+    </Card>
+  );
 };
-

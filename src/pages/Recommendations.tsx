@@ -20,6 +20,7 @@ import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { Strategy } from "@/services/strategyService";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getStrategyApplyCounts, trackStrategyApplication } from "@/services/recommendationService";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 // Define a recommended strategy type that matches Supabase's snake_case format
 interface RecommendedStrategy {
@@ -71,12 +72,15 @@ interface RecommendedStrategyRecord {
 }
 type SortOption = 'name' | 'created' | 'updated' | 'apply_count';
 type SortDirection = 'asc' | 'desc';
+type RankingMode = 'popular' | 'recent';
+
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("apply_count");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [rankingMode, setRankingMode] = useState<RankingMode>("popular");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -303,32 +307,49 @@ const Recommendations = () => {
     setActiveTab("overview");
   };
 
-  // Filter strategies based on search term only (removed asset filter)
-  const filteredAndSortedStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => {
+  // Filter strategies based on search term and apply ranking mode
+  const filteredAndSortedStrategies = strategies.filter(strategy => 
+    strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ).sort((a, b) => {
     let comparison = 0;
-    switch (sortBy) {
-      case 'name':
-        comparison = (a.name || '').localeCompare(b.name || '');
-        break;
-      case 'created':
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        break;
-      case 'updated':
-        comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
-        break;
-      case 'apply_count':
-        const aCount = applyCounts.get(a.id) || 0;
-        const bCount = applyCounts.get(b.id) || 0;
-        comparison = aCount - bCount;
-        break;
-      default:
-        comparison = 0;
+    
+    // Apply ranking mode logic
+    if (rankingMode === 'popular') {
+      // Sort by popularity (apply count)
+      const aCount = applyCounts.get(a.id) || 0;
+      const bCount = applyCounts.get(b.id) || 0;
+      comparison = bCount - aCount; // Descending order for popularity
+    } else if (rankingMode === 'recent') {
+      // Sort by recommendation timestamp (created_at)
+      comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Descending order for recent
     }
-    return sortDirection === 'asc' ? comparison : -comparison;
+    
+    // If comparison is 0 (tie) or no ranking mode matches, fall back to regular sorting
+    if (comparison === 0) {
+      switch (sortBy) {
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'created':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'updated':
+          comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
+          break;
+        case 'apply_count':
+          const aCount = applyCounts.get(a.id) || 0;
+          const bCount = applyCounts.get(b.id) || 0;
+          comparison = aCount - bCount;
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+    
+    return comparison;
   });
-  const toggleSortDirection = () => {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-  };
 
   // Fetch recommended strategies - UPDATED to use the new helper function
   useEffect(() => {
@@ -359,6 +380,19 @@ const Recommendations = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-3/5 lg:justify-end">
+              {/* Ranking Mode Toggle */}
+              <div className="w-full sm:w-auto min-w-[200px]">
+                <ToggleGroup type="single" value={rankingMode} onValueChange={(value: RankingMode) => value && setRankingMode(value)} className="w-full">
+                  <ToggleGroupItem value="popular" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    <Star className="h-4 w-4 mr-2" />
+                    Popular
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="recent" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Recent
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              
               <div className="w-full sm:w-auto min-w-[160px]">
                 <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
                   <SelectTrigger className="w-full">
@@ -394,10 +428,11 @@ const Recommendations = () => {
                   </div>
                 </Card>)}
             </div> : <>
-                {/* Results count and current sort display */}
+                {/* Results count and current ranking mode display */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  
-                  
+                  <span>
+                    {filteredAndSortedStrategies.length} strategies ranked by {rankingMode === 'popular' ? 'popularity' : 'recent recommendations'}
+                  </span>
                 </div>
 
                 {filteredAndSortedStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -410,7 +445,9 @@ const Recommendations = () => {
                               {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
                                   {strategy.target_asset}
                                 </Badge>}
-                              {strategy.is_official}
+                              {strategy.is_official && <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-xs">
+                                  Official
+                                </Badge>}
                             </div>
                           </div>
                         </div>

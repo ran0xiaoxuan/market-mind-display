@@ -5,6 +5,8 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Info, Crown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StrategyInfoProps {
   strategy: any;
@@ -38,10 +40,37 @@ export const StrategyInfo = ({
 
   // Handle the status change and update it in the database
   const handleStatusChange = async (checked: boolean) => {
+    // For future Pro feature implementation
+    const isProUser = true; // This will be replaced with actual user tier check
+    
+    if (checked && !isProUser) {
+      toast.error("Pro Feature Required", {
+        description: "Signal notifications are a Pro feature. Upgrade to receive real-time trading signals via email, Discord, or Telegram.",
+        action: {
+          label: "Upgrade to Pro",
+          onClick: () => {
+            // Navigate to pricing/upgrade page
+            console.log("Navigate to upgrade page");
+          }
+        }
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       // Call the parent component's handler to update the database and local state
       onStatusChange(checked);
+      
+      if (checked) {
+        toast.success("Strategy Activated", {
+          description: "You'll now receive trading signals via your configured notification channels."
+        });
+      } else {
+        toast.success("Strategy Deactivated", {
+          description: "Signals will be recorded in the app but no notifications will be sent."
+        });
+      }
     } catch (error) {
       console.error("Error in status change:", error);
     } finally {
@@ -74,13 +103,42 @@ export const StrategyInfo = ({
           <p className="text-sm text-muted-foreground">Target Asset</p>
           <p className="font-medium">{strategy.targetAsset || "Unknown"}</p>
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Status</p>
-          <div className="flex items-center gap-2">
-            <Switch id="strategy-status" checked={isActive} onCheckedChange={handleStatusChange} disabled={isSaving} />
-            <span className="text-sm">
-              {isSaving ? 'Saving...' : isActive ? 'Active' : 'Inactive'}
-            </span>
+        <div className="md:col-span-2">
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm text-muted-foreground">Signal Notifications</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-sm">
+                    When active, trading signals are sent to your configured notification channels (email, Discord, Telegram). 
+                    When inactive, signals are only recorded in the app.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Crown className="h-4 w-4 text-yellow-500" />
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch 
+              id="strategy-status" 
+              checked={isActive} 
+              onCheckedChange={handleStatusChange} 
+              disabled={isSaving} 
+            />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">
+                {isSaving ? 'Updating...' : isActive ? 'Active - Notifications Enabled' : 'Inactive - App Only'}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {isActive 
+                  ? 'Signals will be sent to your notification channels' 
+                  : 'Signals will only be recorded in the app'
+                }
+              </span>
+            </div>
           </div>
         </div>
       </div>

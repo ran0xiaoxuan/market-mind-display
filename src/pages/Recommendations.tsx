@@ -73,7 +73,6 @@ interface RecommendedStrategyRecord {
 type SortOption = 'name' | 'created' | 'updated' | 'apply_count';
 type SortDirection = 'asc' | 'desc';
 type RankingMode = 'popular' | 'recent';
-
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -313,12 +312,9 @@ const Recommendations = () => {
   };
 
   // Filter strategies based on search term and apply ranking mode
-  const filteredAndSortedStrategies = strategies.filter(strategy => 
-    strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a, b) => {
+  const filteredAndSortedStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => {
     let comparison = 0;
-    
+
     // Apply ranking mode logic
     if (rankingMode === 'popular') {
       // Sort by popularity (apply count)
@@ -329,7 +325,7 @@ const Recommendations = () => {
       // Sort by recommendation timestamp (created_at)
       comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Descending order for recent
     }
-    
+
     // If comparison is 0 (tie) or no ranking mode matches, fall back to regular sorting
     if (comparison === 0) {
       switch (sortBy) {
@@ -352,7 +348,6 @@ const Recommendations = () => {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     }
-    
     return comparison;
   });
 
@@ -435,9 +430,7 @@ const Recommendations = () => {
             </div> : <>
                 {/* Results count and current ranking mode display */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <span>
-                    {filteredAndSortedStrategies.length} strategies ranked by {rankingMode === 'popular' ? 'popularity' : 'recent recommendations'}
-                  </span>
+                  
                 </div>
 
                 {filteredAndSortedStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

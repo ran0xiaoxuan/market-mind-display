@@ -365,28 +365,49 @@ const Recommendations = () => {
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 className="text-3xl font-bold">Recommendations</h1>
-            {isAdmin && <Button className="mt-4 sm:mt-0" onClick={() => {
-            fetchUserStrategies(); // Refresh strategies list when opening dialog
-            setShowUploadDialog(true);
-          }}>
+            {isAdmin && (
+              <Button 
+                className="mt-4 sm:mt-0" 
+                onClick={() => {
+                  fetchUserStrategies(); // Refresh strategies list when opening dialog
+                  setShowUploadDialog(true);
+                }}
+              >
                 Add Official Strategy
-              </Button>}
+              </Button>
+            )}
           </div>
           
           {/* Search and Ranking Controls */}
           <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
             <div className="w-full lg:w-2/5">
-              <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
+              <Input 
+                placeholder="Search recommendations..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full" 
+              />
             </div>
             
             <div className="flex justify-end w-full lg:w-3/5">
               {/* Ranking Mode Toggle */}
               <div className="w-auto min-w-[120px]">
-                <ToggleGroup type="single" value={rankingMode} onValueChange={(value: RankingMode) => value && setRankingMode(value)} className="w-full">
-                  <ToggleGroupItem value="popular" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                <ToggleGroup 
+                  type="single" 
+                  value={rankingMode} 
+                  onValueChange={(value: RankingMode) => value && setRankingMode(value)} 
+                  className="w-full"
+                >
+                  <ToggleGroupItem 
+                    value="popular" 
+                    className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
                     <Star className="h-4 w-4" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="recent" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                  <ToggleGroupItem 
+                    value="recent" 
+                    className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
                     <Timer className="h-4 w-4" />
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -395,8 +416,10 @@ const Recommendations = () => {
           </div>
           
           {/* Strategy cards */}
-          {loading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <Card key={i} className="h-64 animate-pulse">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="h-64 animate-pulse">
                   <div className="h-full flex flex-col">
                     <div className="h-10 bg-muted rounded-t-lg"></div>
                     <div className="flex-1 p-6">
@@ -407,23 +430,34 @@ const Recommendations = () => {
                     </div>
                     <div className="h-12 bg-muted rounded-b-lg"></div>
                   </div>
-                </Card>)}
-            </div> : <>
-                {/* Results count and current ranking mode display */}
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  
-                </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Results count and current ranking mode display */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                
+              </div>
 
-                {filteredAndSortedStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedStrategies.map(strategy => <Card key={strategy.id} className="flex flex-col h-80 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" onClick={() => showStrategyDetails(strategy)}>
+              {filteredAndSortedStrategies.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedStrategies.map((strategy) => (
+                    <Card 
+                      key={strategy.id} 
+                      className="flex flex-col h-80 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" 
+                      onClick={() => showStrategyDetails(strategy)}
+                    >
                       <CardHeader className="pb-3 border-b flex-shrink-0">
                         <div className="flex justify-between items-start">
                           <div className="min-w-0 flex-1">
                             <CardTitle className="text-lg text-slate-800 truncate">{strategy.name}</CardTitle>
                             <div className="flex items-center mt-2 space-x-2">
-                              {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                              {strategy.target_asset && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
                                   {strategy.target_asset}
-                                </Badge>}
+                                </Badge>
+                              )}
                               {strategy.is_official}
                             </div>
                           </div>
@@ -441,12 +475,19 @@ const Recommendations = () => {
                       <CardFooter className="pt-2 flex justify-between border-t flex-shrink-0">
                         <div>
                           {/* Only admin can delete strategies */}
-                          {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
-                    e.stopPropagation();
-                    deleteStrategy(strategy.id);
-                  }}>
+                          {isAdmin && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="p-0 h-8 w-8 text-destructive" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteStrategy(strategy.id);
+                              }}
+                            >
                               <Trash className="h-4 w-4" />
-                            </Button>}
+                            </Button>
+                          )}
                         </div>
                         {/* Apply count display with star icon */}
                         <div className="flex items-center">
@@ -454,11 +495,16 @@ const Recommendations = () => {
                           <span className="text-sm font-medium">{applyCounts.get(strategy.id) || 0}</span>
                         </div>
                       </CardFooter>
-                    </Card>)}
-                </div> : <div className="text-center py-12">
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
                   <p className="text-muted-foreground">No recommendations match your criteria</p>
-                </div>}
-              </>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </main>
       
@@ -468,9 +514,11 @@ const Recommendations = () => {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{selectedStrategy?.name}</DialogTitle>
             <DialogDescription className="flex items-center space-x-2">
-              {selectedStrategy?.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              {selectedStrategy?.target_asset && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700">
                   {selectedStrategy.target_asset}
-                </Badge>}
+                </Badge>
+              )}
             </DialogDescription>
           </DialogHeader>
           

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { supabase, fetchPublicRecommendedStrategies } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2, ArrowUp, ArrowDown, Timer } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
@@ -373,43 +373,24 @@ const Recommendations = () => {
               </Button>}
           </div>
           
-          {/* Search and Sort Controls */}
+          {/* Search and Ranking Controls */}
           <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
             <div className="w-full lg:w-2/5">
               <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-3/5 lg:justify-end">
+            <div className="flex justify-end w-full lg:w-3/5">
               {/* Ranking Mode Toggle */}
-              <div className="w-full sm:w-auto min-w-[200px]">
+              <div className="w-auto min-w-[120px]">
                 <ToggleGroup type="single" value={rankingMode} onValueChange={(value: RankingMode) => value && setRankingMode(value)} className="w-full">
                   <ToggleGroupItem value="popular" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    <Star className="h-4 w-4 mr-2" />
-                    Popular
+                    <Star className="h-4 w-4" />
                   </ToggleGroupItem>
                   <ToggleGroupItem value="recent" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    Recent
+                    <Timer className="h-4 w-4" />
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
-              
-              <div className="w-full sm:w-auto min-w-[160px]">
-                <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="apply_count">Popularity</SelectItem>
-                    <SelectItem value="updated">Last Updated</SelectItem>
-                    <SelectItem value="created">Date Created</SelectItem>
-                    <SelectItem value="name">Name (A-Z)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button variant="outline" size="icon" onClick={toggleSortDirection} className="w-full sm:w-auto" title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}>
-                {sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-              </Button>
             </div>
           </div>
           

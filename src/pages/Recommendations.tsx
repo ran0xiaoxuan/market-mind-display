@@ -432,7 +432,7 @@ const Recommendations = () => {
                       <CardContent className="flex-1 pt-4 pb-2 min-h-0">
                         <div className="h-full flex flex-col">
                           <div className="flex-1 overflow-hidden">
-                            <p className="text-sm text-muted-foreground leading-relaxed">
+                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                               {strategy.description || "No description provided"}
                             </p>
                           </div>
@@ -458,7 +458,7 @@ const Recommendations = () => {
                 </div> : <div className="text-center py-12">
                   <p className="text-muted-foreground">No recommendations match your criteria</p>
                 </div>}
-              </>}
+              </>
         </div>
       </main>
       

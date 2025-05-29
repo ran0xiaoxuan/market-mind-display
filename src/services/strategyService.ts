@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -85,7 +86,7 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
 // Retry utility with exponential backoff
 const retryWithBackoff = async <T>(
   operation: () => Promise<T>,
-  maxRetries: number = 2,
+  maxRetries: number = 3,
   baseDelay: number = 1000,
   retryableErrors: string[] = ['connection_error', 'timeout_error', 'rate_limit_error']
 ): Promise<T> => {
@@ -183,7 +184,7 @@ export const generateStrategy = async (
     });
     
     const result = await retryWithBackoff(async () => {
-      // Call the Supabase Edge Function
+      // Call the Supabase Edge Function with improved error handling
       const { data, error } = await supabase.functions.invoke('generate-strategy', {
         body: {
           assetType,
@@ -200,32 +201,37 @@ export const generateStrategy = async (
         let errorType: ServiceError['type'] = "unknown_error";
         let retryable = false;
         
-        // Classify error types for better handling
+        // More specific error classification
         if (error.name === "FunctionsFetchError" || 
             errorMessage.includes("Failed to send a request") ||
             errorMessage.includes("Failed to fetch") ||
             errorMessage.includes("fetch") ||
             errorMessage.includes("Network error") ||
             errorMessage.includes("ERR_NETWORK") ||
-            errorMessage.includes("ERR_INTERNET_DISCONNECTED")) {
+            errorMessage.includes("ERR_INTERNET_DISCONNECTED") ||
+            errorMessage.includes("connection_error")) {
           errorType = "connection_error";
           retryable = true;
         } else if (errorMessage.includes("API key") || 
                    errorMessage.includes("authentication") ||
-                   errorMessage.includes("401")) {
+                   errorMessage.includes("401") ||
+                   errorMessage.includes("api_key_error")) {
           errorType = "api_key_error";
           retryable = false;
         } else if (errorMessage.includes("timeout") || 
                    errorMessage.includes("timed out") ||
-                   errorMessage.includes("408")) {
+                   errorMessage.includes("408") ||
+                   errorMessage.includes("timeout_error")) {
           errorType = "timeout_error";
           retryable = true;
         } else if (errorMessage.includes("rate limit") ||
-                   errorMessage.includes("429")) {
+                   errorMessage.includes("429") ||
+                   errorMessage.includes("rate_limit_error")) {
           errorType = "rate_limit_error";
           retryable = true;
         } else if (errorMessage.includes("parse") ||
-                   errorMessage.includes("JSON")) {
+                   errorMessage.includes("JSON") ||
+                   errorMessage.includes("parsing_error")) {
           errorType = "parsing_error";
           retryable = false;
         }
@@ -253,7 +259,7 @@ export const generateStrategy = async (
       });
 
       return data as GeneratedStrategy;
-    }, 2, 2000); // 2 retries with 2 second base delay
+    }, 3, 2000); // 3 retries with 2 second base delay
 
     return result;
   } catch (error: any) {

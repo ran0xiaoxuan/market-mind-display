@@ -445,14 +445,14 @@ const Recommendations = () => {
                   {filteredAndSortedStrategies.map((strategy) => (
                     <Card 
                       key={strategy.id} 
-                      className="flex flex-col h-80 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" 
+                      className="flex flex-col h-72 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" 
                       onClick={() => showStrategyDetails(strategy)}
                     >
-                      <CardHeader className="pb-3 border-b flex-shrink-0">
+                      <CardHeader className="pb-2 border-b flex-shrink-0">
                         <div className="flex justify-between items-start">
                           <div className="min-w-0 flex-1">
                             <CardTitle className="text-lg text-slate-800 truncate">{strategy.name}</CardTitle>
-                            <div className="flex items-center mt-2 space-x-2">
+                            <div className="flex items-center mt-1 space-x-2">
                               {strategy.target_asset && (
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
                                   {strategy.target_asset}
@@ -463,16 +463,16 @@ const Recommendations = () => {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex-1 pt-4 pb-2 min-h-0">
+                      <CardContent className="flex-1 py-3 px-4 min-h-0">
                         <div className="h-full flex flex-col">
                           <div className="flex-1 overflow-hidden">
-                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
                               {strategy.description || "No description provided"}
                             </p>
                           </div>
                         </div>
                       </CardContent>
-                      <CardFooter className="pt-2 flex justify-between border-t flex-shrink-0">
+                      <CardFooter className="pt-2 px-4 pb-3 flex justify-between border-t flex-shrink-0">
                         <div>
                           {/* Only admin can delete strategies */}
                           {isAdmin && (

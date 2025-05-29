@@ -10,61 +10,152 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
-// Standard timeframe formats to ensure consistency
-const STANDARD_TIMEFRAMES = {
-  "1m": "1 Minute",
-  "5m": "5 Minutes", 
-  "15m": "15 Minutes",
-  "30m": "30 Minutes",
-  "1h": "1 Hour",
-  "4h": "4 Hours",
-  "Daily": "Daily",
-  "Weekly": "Weekly",
-  "Monthly": "Monthly"
+// Enhanced logging utility
+const logWithTimestamp = (level: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${level}] ${message}`, data ? JSON.stringify(data, null, 2) : '');
 };
 
-serve(async (req) => {
-  console.log('Edge function called with method:', req.method);
+// Health check endpoint
+const handleHealthCheck = () => {
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    openai_key_configured: !!openaiApiKey,
+    environment: Deno.env.get('DENO_DEPLOYMENT_ID') ? 'production' : 'development'
+  };
   
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
-    return new Response(null, { headers: corsHeaders });
+  logWithTimestamp('INFO', 'Health check requested', health);
+  
+  return new Response(JSON.stringify(health), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+};
+
+// API key validation
+const validateOpenAIKey = async (): Promise<{ valid: boolean; error?: string }> => {
+  if (!openaiApiKey) {
+    return { valid: false, error: "OpenAI API key not configured" };
   }
 
   try {
-    console.log('Processing strategy generation request...');
+    const response = await fetch('https://api.openai.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      signal: AbortSignal.timeout(10000), // 10 second timeout for validation
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else {
+      const errorText = await response.text();
+      return { valid: false, error: `API key validation failed: ${response.status} - ${errorText}` };
+    }
+  } catch (error) {
+    return { valid: false, error: `API key validation error: ${error.message}` };
+  }
+};
+
+// Retry utility with exponential backoff
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      logWithTimestamp('WARN', `Attempt ${attempt} failed`, { error: error.message, attempt, maxRetries });
+      
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      logWithTimestamp('INFO', `Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError!;
+};
+
+serve(async (req) => {
+  const startTime = Date.now();
+  logWithTimestamp('INFO', 'Request received', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+  
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    logWithTimestamp('INFO', 'CORS preflight request handled');
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  // Health check endpoint
+  if (req.url.includes('/health')) {
+    return handleHealthCheck();
+  }
+
+  try {
+    // Validate OpenAI API key first
+    logWithTimestamp('INFO', 'Validating OpenAI API key...');
+    const keyValidation = await validateOpenAIKey();
     
-    // Check if API key exists
-    if (!openaiApiKey) {
-      console.error("Missing OpenAI API key in environment variables");
+    if (!keyValidation.valid) {
+      logWithTimestamp('ERROR', 'API key validation failed', keyValidation);
       return new Response(
         JSON.stringify({
-          error: "OpenAI API key is not configured",
+          error: keyValidation.error,
           type: "api_key_error",
+          timestamp: new Date().toISOString()
         }),
         {
-          status: 400,
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
 
-    // Parse request body with timeout
+    logWithTimestamp('INFO', 'API key validation successful');
+
+    // Parse request body with enhanced error handling
     let requestData;
     try {
       const body = await req.text();
-      console.log('Request body received, length:', body.length);
+      logWithTimestamp('INFO', 'Request body received', { bodyLength: body.length });
+      
+      if (!body.trim()) {
+        throw new Error('Empty request body');
+      }
+      
       requestData = JSON.parse(body);
-      console.log('Request data parsed:', requestData);
+      logWithTimestamp('INFO', 'Request data parsed successfully', {
+        hasAssetType: !!requestData.assetType,
+        hasSelectedAsset: !!requestData.selectedAsset,
+        hasStrategyDescription: !!requestData.strategyDescription,
+        descriptionLength: requestData.strategyDescription?.length || 0
+      });
     } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
+      logWithTimestamp('ERROR', 'Request parsing failed', { error: parseError.message });
       return new Response(
         JSON.stringify({
-          error: "Invalid request format",
+          error: "Invalid request format: " + parseError.message,
           type: "parameter_error",
+          timestamp: new Date().toISOString()
         }),
         {
           status: 400,
@@ -75,12 +166,26 @@ serve(async (req) => {
     
     const { assetType, selectedAsset, strategyDescription } = requestData;
     
-    if (!assetType || !selectedAsset || !strategyDescription) {
-      console.error('Missing required parameters:', { assetType, selectedAsset, strategyDescription });
+    // Enhanced parameter validation
+    const validationErrors = [];
+    if (!assetType) validationErrors.push('assetType is required');
+    if (!selectedAsset) validationErrors.push('selectedAsset is required');
+    if (!strategyDescription) validationErrors.push('strategyDescription is required');
+    if (strategyDescription && strategyDescription.length < 10) {
+      validationErrors.push('strategyDescription must be at least 10 characters');
+    }
+    if (strategyDescription && strategyDescription.length > 2000) {
+      validationErrors.push('strategyDescription must be less than 2000 characters');
+    }
+    
+    if (validationErrors.length > 0) {
+      logWithTimestamp('ERROR', 'Parameter validation failed', { validationErrors });
       return new Response(
         JSON.stringify({
-          error: "Missing required parameters: assetType, selectedAsset, or strategyDescription",
+          error: "Parameter validation failed: " + validationErrors.join(', '),
           type: "parameter_error",
+          details: validationErrors,
+          timestamp: new Date().toISOString()
         }),
         {
           status: 400,
@@ -89,234 +194,235 @@ serve(async (req) => {
       );
     }
     
-    console.log('Generating strategy for:', { assetType, selectedAsset, strategyDescription });
+    logWithTimestamp('INFO', 'Starting strategy generation', { assetType, selectedAsset, descriptionLength: strategyDescription.length });
     
-    // Build enhanced prompt for OpenAI
-    const systemPrompt = `You are a trading strategy assistant that helps create detailed trading strategies. 
-You will be given an asset type, an asset name, and a strategy description. 
-Generate a complete trading strategy with entry rules, exit rules, and risk management for stocks.
+    // Enhanced system prompt with better structure
+    const systemPrompt = `You are a professional trading strategy assistant. Generate a complete, practical trading strategy in valid JSON format.
 
-## IMPORTANT FORMATTING REQUIREMENTS:
-1. ALWAYS include the asset symbol (e.g., "AAPL", "MSFT") in the strategy name/title.
-2. Write a concise strategy description of 60-80 words that explains:
-   - The core principles behind the strategy
-   - Why this strategy is suitable for the specific asset
-   - The market conditions under which the strategy works best
-   - The expected timeframe for results
-   - The risk/reward profile of the strategy
+CRITICAL JSON STRUCTURE REQUIREMENTS:
+{
+  "name": "Strategy name including asset symbol",
+  "description": "60-80 word description",
+  "timeframe": "Daily|Weekly|Monthly|1h|4h|15m|30m|5m|1m",
+  "targetAsset": "Asset symbol",
+  "entryRules": [RuleGroup array],
+  "exitRules": [RuleGroup array],
+  "riskManagement": {
+    "stopLoss": "percentage%",
+    "takeProfit": "percentage%",
+    "singleBuyVolume": "$amount",
+    "maxBuyVolume": "$amount"
+  }
+}
 
-## TIMEFRAME FORMAT:
-- Always use "Daily" for daily timeframes, never use "1d"
-- Other valid timeframes: "Weekly", "Monthly", "1h", "4h", "15m", "30m", "5m", "1m"
-- Use these exact values: "1m", "5m", "15m", "30m", "1h", "4h", "Daily", "Weekly", "Monthly"
+RULE GROUP STRUCTURE:
+{
+  "id": number,
+  "logic": "AND"|"OR",
+  "requiredConditions": number,
+  "explanation": "description",
+  "inequalities": [Inequality array]
+}
 
-## RULE GROUPS EXPLANATION (VERY IMPORTANT):
-When creating trading rules, use BOTH the AND group and OR group effectively:
+INEQUALITY STRUCTURE:
+{
+  "id": number,
+  "left": {"type": "INDICATOR"|"VALUE", "indicator": "name", "parameters": {}, "value": "string", "valueType": "number"},
+  "condition": "GREATER_THAN"|"LESS_THAN"|"CROSSES_ABOVE"|"CROSSES_BELOW",
+  "right": {"type": "INDICATOR"|"VALUE", "indicator": "name", "parameters": {}, "value": "string", "valueType": "number"},
+  "explanation": "description"
+}
 
-1. AND Group:
-   - All conditions in this group MUST be met simultaneously
-   - Use for primary, essential conditions that must ALL be true
-   - Example: "Price is above 200 SMA" AND "RSI is above 50"
+IMPORTANT RULES:
+- ALWAYS include ${selectedAsset} in strategy name
+- Use BOTH AND and OR rule groups effectively
+- OR groups MUST have at least 2 conditions
+- Use exact timeframe values: "Daily", "Weekly", "Monthly", "1h", "4h", "15m", "30m", "5m", "1m"
+- Return ONLY valid JSON, no markdown formatting`;
 
-2. OR Group: 
-   - MUST CONTAIN AT LEAST 2 CONDITIONS
-   - At least N conditions from this group must be met (where N is the requiredConditions)
-   - Use for confirmatory signals where any subset can validate the trade
-   - Example: EITHER "Volume increases by 20%" OR "MACD crosses above signal line"
+    const userPrompt = `Asset: ${selectedAsset}
+Type: ${assetType}
+Strategy: ${strategyDescription}
 
-IMPORTANT: Don't put all conditions in just one group. Distribute them logically between AND and OR groups for a more sophisticated strategy. ALWAYS PUT AT LEAST 2 CONDITIONS IN THE OR GROUP.
+Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" in the name and create balanced entry/exit rules with proper risk management.`;
 
-Always return your response as a valid JSON object with these properties:
-- name: The strategy name (MUST include the asset symbol)
-- description: A concise explanation of what the strategy does (60-80 words)
-- timeframe: The trading timeframe - MUST be one of: "1m", "5m", "15m", "30m", "1h", "4h", "Daily", "Weekly", "Monthly"
-- targetAsset: The symbol of the asset to trade
-- entryRules: An array of rule groups for entry
-- exitRules: Same structure as entryRules but for exit conditions
-- riskManagement: {
-  stopLoss: percentage as string
-  takeProfit: percentage as string
-  singleBuyVolume: amount as string with $ prefix
-  maxBuyVolume: amount as string with $ prefix
-}`;
-
-    const userPrompt = `Asset Type: ${assetType}
-Asset Name: ${selectedAsset}
-Strategy Description: ${strategyDescription}
-
-Generate a detailed trading strategy as a JSON object. Remember to include "${selectedAsset}" in the strategy name and provide a concise description explaining why this strategy is suitable for ${selectedAsset}.
-
-IMPORTANT: Make effective use of BOTH the AND group and OR group in your trading rules. Put essential conditions in the AND group, and put AT LEAST 2 CONDITIONS in the OR group where only some need to be true.
-
-REMEMBER: Use "Daily" for daily timeframes, never use "1d". 
-Use ONLY these exact timeframe values: "1m", "5m", "15m", "30m", "1h", "4h", "Daily", "Weekly", "Monthly"`;
-
-    console.log("Sending request to OpenAI...");
-    
-    // Create AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-    
-    try {
-      // Create the request to OpenAI API
-      const response = await fetch(OPENAI_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt
-            },
-            {
-              role: "user",
-              content: userPrompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000,
-          stream: false
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API error:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        
-        if (response.status === 401) {
-          return new Response(
-            JSON.stringify({
-              error: "Invalid OpenAI API key",
-              type: "api_key_error",
-            }),
-            {
-              status: 401,
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
-            }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({
-            error: `OpenAI API error: ${response.status} ${response.statusText}`,
-            type: "api_error",
-            details: errorText
-          }),
-          {
-            status: 502,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          }
-        );
-      }
-
-      const openaiResponse = await response.json();
-      console.log("Received response from OpenAI");
-
-      // Extract strategy data from response
-      const aiResponseText = openaiResponse.choices[0]?.message?.content;
-      if (!aiResponseText) {
-        console.error("No content in OpenAI response");
-        return new Response(
-          JSON.stringify({
-            error: "Invalid response from OpenAI",
-            type: "parsing_error",
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          }
-        );
-      }
-
-      // Parse the JSON response from the AI
+    // Make OpenAI API call with retry logic
+    const openaiResponse = await retryWithBackoff(async () => {
+      logWithTimestamp('INFO', 'Making OpenAI API request', { model: 'gpt-4o-mini' });
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        logWithTimestamp('WARN', 'OpenAI request timeout, aborting...');
+        controller.abort();
+      }, 30000); // 30 second timeout
+      
       try {
-        // Find JSON in the response (in case AI wraps it in markdown)
-        let jsonMatch = aiResponseText.match(/```json\s*([\s\S]*?)\s*```/);
-        let strategyJSON;
-        
+        const response = await fetch(OPENAI_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 3000,
+            stream: false
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logWithTimestamp('ERROR', 'OpenAI API error', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
+          
+          if (response.status === 401) {
+            throw new Error('Invalid OpenAI API key');
+          } else if (response.status === 429) {
+            throw new Error('OpenAI API rate limit exceeded');
+          } else if (response.status >= 500) {
+            throw new Error('OpenAI API server error');
+          } else {
+            throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+          }
+        }
+
+        const data = await response.json();
+        logWithTimestamp('INFO', 'OpenAI response received', {
+          hasChoices: !!data.choices,
+          choicesLength: data.choices?.length || 0,
+          usage: data.usage
+        });
+
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    }, 2, 2000); // 2 retries with 2 second base delay
+
+    // Parse and validate OpenAI response
+    const aiResponseText = openaiResponse.choices[0]?.message?.content;
+    if (!aiResponseText) {
+      logWithTimestamp('ERROR', 'No content in OpenAI response', openaiResponse);
+      throw new Error('Empty response from OpenAI');
+    }
+
+    logWithTimestamp('INFO', 'Processing OpenAI response', { responseLength: aiResponseText.length });
+
+    // Enhanced JSON parsing with multiple fallback strategies
+    let strategyJSON;
+    try {
+      // Try direct JSON parsing first
+      strategyJSON = JSON.parse(aiResponseText);
+    } catch (directParseError) {
+      try {
+        // Try extracting JSON from markdown code blocks
+        const jsonMatch = aiResponseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         if (jsonMatch && jsonMatch[1]) {
           strategyJSON = JSON.parse(jsonMatch[1]);
         } else {
-          strategyJSON = JSON.parse(aiResponseText);
-        }
-
-        console.log("Successfully parsed strategy JSON");
-        
-        // Ensure timeframe is in the correct standardized format
-        if (strategyJSON.timeframe === "1d") {
-          strategyJSON.timeframe = "Daily";
-        }
-
-        return new Response(
-          JSON.stringify(strategyJSON),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          // Try finding JSON object pattern
+          const jsonObjectMatch = aiResponseText.match(/\{[\s\S]*\}/);
+          if (jsonObjectMatch) {
+            strategyJSON = JSON.parse(jsonObjectMatch[0]);
+          } else {
+            throw new Error('No valid JSON found in response');
           }
-        );
-      } catch (parseError) {
-        console.error("Error parsing OpenAI response:", parseError);
-        
-        return new Response(
-          JSON.stringify({
-            error: "Failed to parse strategy data from AI response",
-            type: "parsing_error",
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          }
-        );
+        }
+      } catch (fallbackParseError) {
+        logWithTimestamp('ERROR', 'JSON parsing failed completely', {
+          directError: directParseError.message,
+          fallbackError: fallbackParseError.message,
+          responsePreview: aiResponseText.substring(0, 200)
+        });
+        throw new Error('Failed to parse strategy data from AI response');
       }
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        console.error("Request timeout");
-        return new Response(
-          JSON.stringify({
-            error: "Request timed out. Please try again with a simpler description.",
-            type: "timeout_error",
-          }),
-          {
-            status: 408,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          }
-        );
-      }
-      
-      console.error("Network error calling OpenAI:", fetchError);
-      return new Response(
-        JSON.stringify({
-          error: "Network error connecting to OpenAI",
-          type: "connection_error",
-        }),
-        {
-          status: 503,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
     }
+
+    // Validate required fields
+    const requiredFields = ['name', 'description', 'timeframe', 'targetAsset', 'entryRules', 'exitRules', 'riskManagement'];
+    const missingFields = requiredFields.filter(field => !strategyJSON[field]);
+    
+    if (missingFields.length > 0) {
+      logWithTimestamp('ERROR', 'Strategy validation failed', { missingFields });
+      throw new Error(`Generated strategy missing required fields: ${missingFields.join(', ')}`);
+    }
+
+    // Normalize timeframe
+    if (strategyJSON.timeframe === "1d") {
+      strategyJSON.timeframe = "Daily";
+    }
+
+    const processingTime = Date.now() - startTime;
+    logWithTimestamp('INFO', 'Strategy generation completed successfully', {
+      processingTimeMs: processingTime,
+      strategyName: strategyJSON.name,
+      entryRulesCount: strategyJSON.entryRules?.length || 0,
+      exitRulesCount: strategyJSON.exitRules?.length || 0
+    });
+
+    return new Response(
+      JSON.stringify({
+        ...strategyJSON,
+        _metadata: {
+          processingTime: processingTime,
+          timestamp: new Date().toISOString()
+        }
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+
   } catch (error) {
-    console.error("Error in generate-strategy function:", error);
+    const processingTime = Date.now() - startTime;
+    logWithTimestamp('ERROR', 'Strategy generation failed', {
+      error: error.message,
+      stack: error.stack,
+      processingTimeMs: processingTime
+    });
+    
+    // Determine error type and appropriate status code
+    let status = 500;
+    let errorType = "unknown_error";
+    
+    if (error.message?.includes('timeout') || error.name === 'AbortError') {
+      status = 408;
+      errorType = "timeout_error";
+    } else if (error.message?.includes('API key')) {
+      status = 401;
+      errorType = "api_key_error";
+    } else if (error.message?.includes('rate limit')) {
+      status = 429;
+      errorType = "rate_limit_error";
+    } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      status = 503;
+      errorType = "connection_error";
+    } else if (error.message?.includes('parse') || error.message?.includes('JSON')) {
+      status = 500;
+      errorType = "parsing_error";
+    }
     
     return new Response(
       JSON.stringify({
         error: error.message || "Internal server error",
-        type: error.name || "unknown_error"
+        type: errorType,
+        timestamp: new Date().toISOString(),
+        processingTime: processingTime
       }),
       {
-        status: 500,
+        status: status,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );

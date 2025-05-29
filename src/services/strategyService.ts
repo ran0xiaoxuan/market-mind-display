@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -11,7 +10,7 @@ export interface Strategy {
   isActive: boolean;
   timeframe: string;
   targetAsset: string;
-  targetAssetName?: string; // Added targetAssetName property
+  targetAssetName?: string;
   userId: string;
   stopLoss: string;
   takeProfit: string;
@@ -24,7 +23,7 @@ export interface GeneratedStrategy {
   description: string;
   timeframe: string;
   targetAsset: string;
-  targetAssetName?: string; // Add targetAssetName field
+  targetAssetName?: string;
   entryRules: RuleGroupData[];
   exitRules: RuleGroupData[];
   riskManagement: {
@@ -42,6 +41,424 @@ export interface RiskManagementData {
   maxBuyVolume: string;
 }
 
+// Enhanced error types for better error handling
+export interface ServiceError {
+  message: string;
+  type: 'connection_error' | 'api_key_error' | 'timeout_error' | 'rate_limit_error' | 'parsing_error' | 'validation_error' | 'unknown_error';
+  details?: any;
+  timestamp?: string;
+  retryable?: boolean;
+}
+
+// Health check function for AI service
+export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
+  try {
+    console.log("Checking AI service health...");
+    
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: { health: true }
+    });
+
+    if (error) {
+      console.error("Health check failed:", error);
+      return { 
+        healthy: false, 
+        error: error.message,
+        details: error 
+      };
+    }
+
+    console.log("Health check successful:", data);
+    return { 
+      healthy: true, 
+      details: data 
+    };
+  } catch (error: any) {
+    console.error("Health check error:", error);
+    return { 
+      healthy: false, 
+      error: error.message || "Health check failed" 
+    };
+  }
+};
+
+// Retry utility with exponential backoff
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 2,
+  baseDelay: number = 1000,
+  retryableErrors: string[] = ['connection_error', 'timeout_error', 'rate_limit_error']
+): Promise<T> => {
+  let lastError: ServiceError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`Attempt ${attempt} failed:`, error);
+      
+      // Don't retry if error is not retryable
+      if (error.type && !retryableErrors.includes(error.type)) {
+        console.log("Error not retryable, throwing immediately");
+        throw lastError;
+      }
+      
+      if (attempt === maxRetries) {
+        console.log("Max retries reached, throwing error");
+        throw lastError;
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 500;
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError!;
+};
+
+// Enhanced input validation
+const validateGenerateStrategyInput = (
+  assetType: "stocks",
+  asset: string,
+  description: string
+): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!assetType || assetType !== "stocks") {
+    errors.push("Asset type must be 'stocks'");
+  }
+  
+  if (!asset || asset.trim().length === 0) {
+    errors.push("Asset symbol is required");
+  } else if (asset.length > 10) {
+    errors.push("Asset symbol must be 10 characters or less");
+  }
+  
+  if (!description || description.trim().length === 0) {
+    errors.push("Strategy description is required");
+  } else if (description.trim().length < 10) {
+    errors.push("Strategy description must be at least 10 characters");
+  } else if (description.length > 2000) {
+    errors.push("Strategy description must be less than 2000 characters");
+  }
+  
+  return { valid: errors.length === 0, errors };
+};
+
+// Generate strategy using AI with comprehensive error handling and retry logic
+export const generateStrategy = async (
+  assetType: "stocks",
+  asset: string,
+  description: string
+): Promise<GeneratedStrategy> => {
+  // Input validation
+  const validation = validateGenerateStrategyInput(assetType, asset, description);
+  if (!validation.valid) {
+    throw {
+      message: `Input validation failed: ${validation.errors.join(', ')}`,
+      type: "validation_error",
+      details: validation.errors,
+      retryable: false
+    } as ServiceError;
+  }
+
+  // Network connectivity check
+  if (!navigator.onLine) {
+    throw {
+      message: "No internet connection. Please check your network and try again.",
+      type: "connection_error",
+      retryable: true
+    } as ServiceError;
+  }
+
+  try {
+    console.log("Starting strategy generation with retry logic...", {
+      assetType,
+      asset,
+      descriptionLength: description.length,
+      timestamp: new Date().toISOString()
+    });
+    
+    const result = await retryWithBackoff(async () => {
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('generate-strategy', {
+        body: {
+          assetType,
+          selectedAsset: asset,
+          strategyDescription: description
+        }
+      });
+
+      if (error) {
+        console.error("Error from generate-strategy function:", error);
+        
+        // Enhanced error classification
+        const errorMessage = error.message || "Unknown error";
+        let errorType: ServiceError['type'] = "unknown_error";
+        let retryable = false;
+        
+        // Classify error types for better handling
+        if (error.name === "FunctionsFetchError" || 
+            errorMessage.includes("Failed to send a request") ||
+            errorMessage.includes("Failed to fetch") ||
+            errorMessage.includes("fetch") ||
+            errorMessage.includes("Network error") ||
+            errorMessage.includes("ERR_NETWORK") ||
+            errorMessage.includes("ERR_INTERNET_DISCONNECTED")) {
+          errorType = "connection_error";
+          retryable = true;
+        } else if (errorMessage.includes("API key") || 
+                   errorMessage.includes("authentication") ||
+                   errorMessage.includes("401")) {
+          errorType = "api_key_error";
+          retryable = false;
+        } else if (errorMessage.includes("timeout") || 
+                   errorMessage.includes("timed out") ||
+                   errorMessage.includes("408")) {
+          errorType = "timeout_error";
+          retryable = true;
+        } else if (errorMessage.includes("rate limit") ||
+                   errorMessage.includes("429")) {
+          errorType = "rate_limit_error";
+          retryable = true;
+        } else if (errorMessage.includes("parse") ||
+                   errorMessage.includes("JSON")) {
+          errorType = "parsing_error";
+          retryable = false;
+        }
+        
+        throw {
+          message: errorMessage,
+          type: errorType,
+          details: error,
+          retryable,
+          timestamp: new Date().toISOString()
+        } as ServiceError;
+      }
+
+      if (!data) {
+        throw {
+          message: "No data received from AI service",
+          type: "parsing_error",
+          retryable: false
+        } as ServiceError;
+      }
+
+      console.log("Strategy generation successful:", {
+        strategyName: data.name,
+        timestamp: new Date().toISOString()
+      });
+
+      return data as GeneratedStrategy;
+    }, 2, 2000); // 2 retries with 2 second base delay
+
+    return result;
+  } catch (error: any) {
+    console.error("Final error in generateStrategy:", error);
+    
+    // If it's already a ServiceError, pass it through
+    if (error.type) {
+      throw error;
+    }
+    
+    // Handle unexpected errors
+    let errorType: ServiceError['type'] = "unknown_error";
+    let retryable = false;
+    
+    if (error.message && (
+      error.message.includes('Failed to fetch') || 
+      error.message.includes('fetch') ||
+      error.message.includes('Network error') ||
+      error.message.includes('ERR_NETWORK') ||
+      error.message.includes('ERR_INTERNET_DISCONNECTED')
+    )) {
+      errorType = "connection_error";
+      retryable = true;
+    } else if (error.message && error.message.includes('timeout')) {
+      errorType = "timeout_error";
+      retryable = true;
+    }
+
+    throw {
+      message: error.message || "Unexpected error occurred",
+      type: errorType,
+      details: error,
+      retryable,
+      timestamp: new Date().toISOString()
+    } as ServiceError;
+  }
+};
+
+export const generateFallbackStrategy = (
+  assetType: "stocks",
+  asset: string,
+  description: string
+): GeneratedStrategy => {
+  console.log("Generating fallback template strategy for:", asset);
+  
+  const strategy: GeneratedStrategy = {
+    name: `${asset} Template Trading Strategy`,
+    description: `A template trading strategy for ${asset} based on proven technical indicators. This strategy combines moving averages for trend identification with RSI for momentum confirmation. Suitable for medium-term positions with balanced risk management. Template strategies provide a solid foundation that can be customized based on market conditions and personal preferences.`,
+    timeframe: 'Daily',
+    targetAsset: asset,
+    entryRules: [
+      {
+        id: 1,
+        logic: "AND",
+        requiredConditions: 2,
+        explanation: "Primary entry conditions - all must be met",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "20" },
+              valueType: "number"
+            },
+            condition: "CROSSES_ABOVE",
+            right: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "50" },
+              valueType: "number"
+            },
+            explanation: "Short-term moving average crosses above long-term moving average indicating upward trend"
+          },
+          {
+            id: 2,
+            left: {
+              type: "INDICATOR",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              valueType: "number"
+            },
+            condition: "GREATER_THAN",
+            right: {
+              type: "VALUE",
+              value: "50",
+              valueType: "number"
+            },
+            explanation: "RSI above 50 indicates bullish momentum"
+          }
+        ]
+      },
+      {
+        id: 2,
+        logic: "OR",
+        requiredConditions: 1,
+        explanation: "Additional confirmation signals - at least one should be met",
+        inequalities: [
+          {
+            id: 3,
+            left: {
+              type: "INDICATOR",
+              indicator: "Volume",
+              parameters: { period: "20" },
+              valueType: "number"
+            },
+            condition: "GREATER_THAN",
+            right: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "20", source: "volume" },
+              valueType: "number"
+            },
+            explanation: "Volume above average confirms strong market interest"
+          },
+          {
+            id: 4,
+            left: {
+              type: "INDICATOR",
+              indicator: "MACD",
+              parameters: { fast: "12", slow: "26", signal: "9" },
+              valueType: "number"
+            },
+            condition: "CROSSES_ABOVE",
+            right: {
+              type: "INDICATOR",
+              indicator: "MACD Signal",
+              parameters: { fast: "12", slow: "26", signal: "9" },
+              valueType: "number"
+            },
+            explanation: "MACD crossing above signal line provides trend confirmation"
+          }
+        ]
+      }
+    ],
+    exitRules: [
+      {
+        id: 1,
+        logic: "OR",
+        requiredConditions: 1,
+        explanation: "Exit when any condition is met",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "INDICATOR", 
+              indicator: "SMA",
+              parameters: { period: "20" },
+              valueType: "number"
+            },
+            condition: "CROSSES_BELOW",
+            right: {
+              type: "INDICATOR",
+              indicator: "SMA",
+              parameters: { period: "50" },
+              valueType: "number"
+            },
+            explanation: "Short-term moving average crosses below long-term moving average"
+          },
+          {
+            id: 2,
+            left: {
+              type: "INDICATOR",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              valueType: "number"
+            },
+            condition: "GREATER_THAN",
+            right: {
+              type: "VALUE",
+              value: "70",
+              valueType: "number"
+            },
+            explanation: "RSI above 70 indicates overbought conditions"
+          },
+          {
+            id: 3,
+            left: {
+              type: "INDICATOR",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              valueType: "number"
+            },
+            condition: "LESS_THAN",
+            right: {
+              type: "VALUE",
+              value: "30",
+              valueType: "number"
+            },
+            explanation: "RSI below 30 indicates oversold conditions (stop loss scenario)"
+          }
+        ]
+      }
+    ],
+    riskManagement: {
+      stopLoss: "5%",
+      takeProfit: "12%",
+      singleBuyVolume: "$1000",
+      maxBuyVolume: "$5000"
+    }
+  };
+
+  return strategy;
+};
+
 // Convert snake_case database fields to camelCase for our Strategy interface
 const mapDbStrategyToInterface = (dbStrategy: any): Strategy => {
   return {
@@ -53,7 +470,7 @@ const mapDbStrategyToInterface = (dbStrategy: any): Strategy => {
     isActive: dbStrategy.is_active,
     timeframe: dbStrategy.timeframe,
     targetAsset: dbStrategy.target_asset,
-    targetAssetName: dbStrategy.target_asset_name, // Add mapping for targetAssetName
+    targetAssetName: dbStrategy.target_asset_name,
     userId: dbStrategy.user_id,
     stopLoss: dbStrategy.stop_loss,
     takeProfit: dbStrategy.take_profit,
@@ -70,7 +487,7 @@ const mapInterfaceToDbStrategy = (strategy: Omit<Strategy, 'id' | 'createdAt' | 
     is_active: strategy.isActive,
     timeframe: strategy.timeframe,
     target_asset: strategy.targetAsset,
-    target_asset_name: strategy.targetAssetName, // Add mapping for target_asset_name
+    target_asset_name: strategy.targetAssetName,
     user_id: strategy.userId,
     stop_loss: strategy.stopLoss,
     take_profit: strategy.takeProfit,
@@ -431,7 +848,7 @@ export const updateStrategy = async (id: string, updates: Partial<Strategy>): Pr
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.timeframe !== undefined) dbUpdates.timeframe = updates.timeframe;
     if (updates.targetAsset !== undefined) dbUpdates.target_asset = updates.targetAsset;
-    if (updates.targetAssetName !== undefined) dbUpdates.target_asset_name = updates.targetAssetName; // Add target_asset_name mapping
+    if (updates.targetAssetName !== undefined) dbUpdates.target_asset_name = updates.targetAssetName;
     if (updates.userId !== undefined) dbUpdates.user_id = updates.userId;
     if (updates.stopLoss !== undefined) dbUpdates.stop_loss = updates.stopLoss;
     if (updates.takeProfit !== undefined) dbUpdates.take_profit = updates.takeProfit;
@@ -501,13 +918,13 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
         description: strategy.description,
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
-        target_asset_name: strategy.targetAssetName, // Add target_asset_name
+        target_asset_name: strategy.targetAssetName,
         stop_loss: strategy.riskManagement.stopLoss,
         take_profit: strategy.riskManagement.takeProfit,
         single_buy_volume: strategy.riskManagement.singleBuyVolume,
         max_buy_volume: strategy.riskManagement.maxBuyVolume,
         user_id: userId,
-        is_active: false // Set strategies to inactive by default
+        is_active: false
       })
       .select('*')
       .single();
@@ -520,7 +937,6 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
     const strategyId = strategyData.id;
     console.log("Strategy base data saved with ID:", strategyId);
 
-    // Process entry rules - ensure we have entry rules to save
     if (strategy.entryRules && strategy.entryRules.length > 0) {
       await saveRuleGroups(strategyId, strategy.entryRules, 'entry');
       console.log("Entry rules saved successfully");
@@ -528,7 +944,6 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy): Promis
       console.warn("No entry rules to save");
     }
     
-    // Process exit rules - ensure we have exit rules to save
     if (strategy.exitRules && strategy.exitRules.length > 0) {
       await saveRuleGroups(strategyId, strategy.exitRules, 'exit');
       console.log("Exit rules saved successfully");
@@ -564,7 +979,7 @@ const saveRuleGroups = async (
           group_order: i + 1,
           required_conditions: group.requiredConditions || null,
           rule_type: ruleType,
-          logic: group.logic || (i === 0 ? 'AND' : 'OR'), // Default logic based on index
+          logic: group.logic || (i === 0 ? 'AND' : 'OR'),
           explanation: group.explanation || null
         })
         .select('*')
@@ -578,7 +993,6 @@ const saveRuleGroups = async (
       const groupId = groupData.id;
       console.log(`Created rule group with ID ${groupId} for ${ruleType} rules`);
 
-      // Process inequalities for this group - but only if there are inequalities to process
       if (group.inequalities && group.inequalities.length > 0) {
         console.log(`Saving ${group.inequalities.length} inequalities for group ${groupId}`);
         
@@ -731,7 +1145,7 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
           
           return {
             id: group.id,
-            logic: group.logic || (entryRuleGroups.indexOf(group) === 0 ? 'AND' : 'OR'), // Default logic based on index
+            logic: group.logic || (entryRuleGroups.indexOf(group) === 0 ? 'AND' : 'OR'),
             requiredConditions: group.required_conditions || 1,
             explanation: group.explanation,
             inequalities: inequalities ? inequalities.map(formatInequality) : []
@@ -757,7 +1171,7 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
 
           return {
             id: group.id,
-            logic: group.logic || (exitRuleGroups.indexOf(group) === 0 ? 'AND' : 'OR'), // Default logic based on index
+            logic: group.logic || (exitRuleGroups.indexOf(group) === 0 ? 'AND' : 'OR'),
             requiredConditions: group.required_conditions || 1,
             explanation: group.explanation,
             inequalities: inequalities ? inequalities.map(formatInequality) : []

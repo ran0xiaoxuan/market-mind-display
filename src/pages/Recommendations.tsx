@@ -101,6 +101,11 @@ const Recommendations = () => {
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>("");
   const [filteredUserStrategies, setFilteredUserStrategies] = useState<Strategy[]>([]);
 
+  // Add the missing toggleSortDirection function
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
   // Fetch the admin's personal strategies for selection
   const fetchUserStrategies = async () => {
     if (!isAdmin || !session?.user?.id) return;
@@ -670,118 +675,6 @@ const Recommendations = () => {
             </CommandGroup>}
         </CommandList>
       </CommandDialog>
-
-      {/* Enhanced Strategy details dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">{selectedStrategy?.name}</DialogTitle>
-            <DialogDescription className="flex items-center space-x-2">
-              {selectedStrategy?.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                  {selectedStrategy.target_asset}
-                </Badge>}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-3 mb-4">
-              <TabsTrigger value="overview" className="flex items-center">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="risk" className="flex items-center">
-                Risk Management
-              </TabsTrigger>
-              <TabsTrigger value="rules" className="flex items-center">
-                Trading Rules
-              </TabsTrigger>
-            </TabsList>
-            
-            <ScrollArea className="h-[50vh] pr-4">
-              <TabsContent value="overview" className="mt-0">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Description</h3>
-                    <p className="text-sm mt-2">{selectedStrategy?.description || "No description provided."}</p>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold">Strategy Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <Card className="p-4">
-                        <h4 className="font-medium">Key Metrics</h4>
-                        <dl className="mt-2 space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Asset:</dt>
-                            <dd className="font-medium">{selectedStrategy?.target_asset || "N/A"}</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Timeframe:</dt>
-                            <dd className="font-medium">{selectedStrategy?.timeframe || "N/A"}</dd>
-                          </div>
-                        </dl>
-                      </Card>
-                      
-                      <Card className="p-4">
-                        <h4 className="font-medium">Risk Parameters</h4>
-                        <dl className="mt-2 space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Stop Loss:</dt>
-                            <dd className="font-medium text-red-500">{selectedStrategy?.stop_loss || "N/A"}</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Take Profit:</dt>
-                            <dd className="font-medium text-green-500">{selectedStrategy?.take_profit || "N/A"}</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Single Buy:</dt>
-                            <dd className="font-medium">{selectedStrategy?.single_buy_volume || "N/A"}</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Max Buy:</dt>
-                            <dd className="font-medium">{selectedStrategy?.max_buy_volume || "N/A"}</dd>
-                          </div>
-                        </dl>
-                      </Card>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="risk" className="mt-0">
-                {selectedStrategy && <RiskManagement riskManagement={{
-                stopLoss: selectedStrategy.stop_loss || "0%",
-                takeProfit: selectedStrategy.take_profit || "0%",
-                singleBuyVolume: selectedStrategy.single_buy_volume || "0",
-                maxBuyVolume: selectedStrategy.max_buy_volume || "0"
-              }} />}
-              </TabsContent>
-              
-              <TabsContent value="rules" className="mt-0">
-                {selectedStrategy && <TradingRules entryRules={[]} exitRules={[]} editable={false} />}
-                <div className="text-sm text-muted-foreground mt-4 p-4 bg-slate-50 rounded-md">
-                  <p>This is a simplified view of the trading rules. Apply this strategy to your collection to see and customize the complete rule set.</p>
-                </div>
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
-          
-          <DialogFooter className="mt-4 pt-2 border-t">
-            <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-              Close
-            </Button>
-            <Button onClick={() => {
-            if (selectedStrategy) {
-              applyStrategy(selectedStrategy);
-              setShowDetailsDialog(false);
-            }
-          }}>
-              Apply Strategy
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>;
 };
 export default Recommendations;

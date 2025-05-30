@@ -96,7 +96,19 @@ const StrategyDetail = () => {
             }
           }
 
-          // Format trade data for display with real profit calculations
+          // Helper function to parse percentage string to number
+          const parsePercentage = (percentageStr: string): number | null => {
+            if (!percentageStr) return null;
+            const cleaned = percentageStr.replace('%', '').trim();
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? null : parsed;
+          };
+
+          // Parse risk management settings
+          const stopLossPercent = parsePercentage(strategyData.stopLoss);
+          const takeProfitPercent = parsePercentage(strategyData.takeProfit);
+
+          // Format trade data for display with risk management constraints
           const formattedTrades = tradesData.map(trade => {
             const currentPrice = currentPrices.get(strategyData.targetAsset);
             let calculatedProfit = trade.profit;
@@ -104,10 +116,26 @@ const StrategyDetail = () => {
 
             // For open positions (buy trades without corresponding sells), calculate unrealized P&L
             if (trade.type === 'Buy' && currentPrice && !trade.profit) {
-              const unrealizedProfit = (currentPrice - trade.price) * trade.contracts;
-              const unrealizedProfitPercentage = ((currentPrice - trade.price) / trade.price) * 100;
-              calculatedProfit = unrealizedProfit;
-              calculatedProfitPercentage = unrealizedProfitPercentage;
+              const rawProfitPercentage = ((currentPrice - trade.price) / trade.price) * 100;
+              let constrainedProfitPercentage = rawProfitPercentage;
+
+              // Apply stop loss constraint (negative threshold)
+              if (stopLossPercent !== null && rawProfitPercentage <= -Math.abs(stopLossPercent)) {
+                constrainedProfitPercentage = -Math.abs(stopLossPercent);
+              }
+              
+              // Apply take profit constraint (positive threshold)
+              if (takeProfitPercent !== null && rawProfitPercentage >= takeProfitPercent) {
+                constrainedProfitPercentage = takeProfitPercent;
+              }
+
+              // Calculate profit based on constrained percentage
+              const constrainedProfit = (constrainedProfitPercentage / 100) * trade.price * trade.contracts;
+              
+              calculatedProfit = constrainedProfit;
+              calculatedProfitPercentage = constrainedProfitPercentage;
+
+              console.log(`Trade ${trade.id}: Raw P&L: ${rawProfitPercentage.toFixed(2)}%, Constrained P&L: ${constrainedProfitPercentage.toFixed(2)}%`);
             }
 
             return {

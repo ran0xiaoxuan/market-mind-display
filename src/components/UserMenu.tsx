@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
@@ -6,14 +7,87 @@ import { LogOut, Settings, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/Badge";
+import { supabase } from "@/integrations/supabase/client";
+
 export function UserMenu() {
   const [open, setOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const navigate = useNavigate();
-  const {
-    user,
-    signOut
-  } = useAuth();
+  const { user, signOut } = useAuth();
+
+  // Load and sync subscription status from database
+  useEffect(() => {
+    const loadSubscriptionStatus = async () => {
+      if (!user) {
+        setIsPro(false);
+        setIsLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // Profile doesn't exist, create one
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              subscription_tier: 'free'
+            });
+
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          }
+          setIsPro(false);
+        } else if (error) {
+          console.error('Error fetching profile:', error);
+          setIsPro(false);
+        } else {
+          setIsPro(profile?.subscription_tier === 'pro');
+        }
+      } catch (error) {
+        console.error('Error loading subscription status:', error);
+        setIsPro(false);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+
+    loadSubscriptionStatus();
+
+    // Set up real-time subscription to profile changes
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          if (payload.new && payload.new.subscription_tier) {
+            setIsPro(payload.new.subscription_tier === 'pro');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const handleClose = () => setOpen(false);
+  
   const handleLogout = async () => {
     try {
       await signOut();
@@ -24,13 +98,10 @@ export function UserMenu() {
   };
 
   // Extract display name from user metadata
-  // Always prioritize display_name from user metadata
-  const displayName = user?.user_metadata?.display_name;
-  // Only fall back to these if display name is not available
-  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const email = user?.email || "user@example.com";
-  const isPro = user?.user_metadata?.is_pro === true;
-  return <Popover open={open} onOpenChange={setOpen}>
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 ml-2 flex items-center justify-center">
           <UserRound size={18} className="text-primary" />
@@ -39,12 +110,15 @@ export function UserMenu() {
       
       <PopoverContent className="w-64 p-0" align="end">
         <div className="p-4 border-b">
-          
           <p className="text-sm text-slate-900">{email}</p>
           <div className="mt-2">
-            <Badge variant={isPro ? 'pro' : 'free'}>
-              {isPro ? 'Pro' : 'Free'}
-            </Badge>
+            {isLoadingSubscription ? (
+              <div className="h-5 w-12 bg-gray-200 rounded animate-pulse"></div>
+            ) : (
+              <Badge variant={isPro ? 'pro' : 'free'}>
+                {isPro ? 'Pro' : 'Free'}
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -62,5 +136,6 @@ export function UserMenu() {
           </Button>
         </div>
       </PopoverContent>
-    </Popover>;
+    </Popover>
+  );
 }

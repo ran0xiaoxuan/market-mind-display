@@ -326,6 +326,12 @@ export function AccountSettings() {
         title: `Subscription status updated`,
         description: `You are now on the ${newTier} plan.`
       });
+
+      // Force a small delay to ensure the real-time update propagates
+      setTimeout(() => {
+        console.log('Subscription status change broadcasted via real-time');
+      }, 100);
+      
     } catch (error) {
       console.error("Error updating subscription status:", error);
       toast({

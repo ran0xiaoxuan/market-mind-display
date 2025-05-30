@@ -56,12 +56,10 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
     console.log("Checking AI service health...");
     
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: {},
+      body: { health: true },
       headers: {
         'Content-Type': 'application/json',
       }
-    }, {
-      method: 'GET'
     });
 
     if (error) {

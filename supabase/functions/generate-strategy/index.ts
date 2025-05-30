@@ -6,22 +6,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// CORS headers
+// Enhanced CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-my-custom-header',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Max-Age': '86400',
 };
 
 // Enhanced logging utility
 const logWithTimestamp = (level: string, message: string, data?: any) => {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [${level}] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+  const logData = data ? JSON.stringify(data, null, 2) : '';
+  console.log(`[${timestamp}] [${level}] ${message}${logData ? '\n' + logData : ''}`);
 };
 
 // Health check endpoint
-const handleHealthCheck = () => {
+const handleHealthCheck = async () => {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -29,7 +30,27 @@ const handleHealthCheck = () => {
     environment: Deno.env.get('DENO_DEPLOYMENT_ID') ? 'production' : 'development'
   };
   
-  logWithTimestamp('INFO', 'Health check requested', health);
+  // Test OpenAI API connectivity if key is available
+  if (openaiApiKey) {
+    try {
+      const testResponse = await fetch('https://api.openai.com/v1/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      health.openai_api_accessible = testResponse.ok;
+      health.openai_status = testResponse.status;
+    } catch (error) {
+      health.openai_api_accessible = false;
+      health.openai_error = error.message;
+    }
+  }
+  
+  logWithTimestamp('INFO', 'Health check completed', health);
   
   return new Response(JSON.stringify(health), {
     headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -44,7 +65,8 @@ serve(async (req) => {
     method: req.method,
     url: req.url,
     pathname: url.pathname,
-    headers: Object.fromEntries(req.headers.entries())
+    origin: req.headers.get('origin'),
+    userAgent: req.headers.get('user-agent')
   });
   
   // Handle CORS preflight requests
@@ -80,7 +102,7 @@ serve(async (req) => {
       logWithTimestamp('ERROR', 'OpenAI API key not configured');
       return new Response(
         JSON.stringify({
-          error: "OpenAI API key not configured",
+          error: "OpenAI API key not configured. Please set OPENAI_API_KEY in Supabase secrets.",
           type: "api_key_error",
           timestamp: new Date().toISOString()
         }),
@@ -95,7 +117,10 @@ serve(async (req) => {
     let requestData;
     try {
       const body = await req.text();
-      logWithTimestamp('INFO', 'Request body received', { bodyLength: body.length });
+      logWithTimestamp('INFO', 'Request body received', { 
+        bodyLength: body.length,
+        bodyPreview: body.substring(0, 200)
+      });
       
       if (!body.trim()) {
         throw new Error('Empty request body');
@@ -153,9 +178,13 @@ serve(async (req) => {
       );
     }
     
-    logWithTimestamp('INFO', 'Starting strategy generation', { assetType, selectedAsset, descriptionLength: strategyDescription.length });
+    logWithTimestamp('INFO', 'Starting strategy generation', { 
+      assetType, 
+      selectedAsset, 
+      descriptionLength: strategyDescription.length 
+    });
     
-    // Enhanced system prompt with better structure
+    // Enhanced system prompt
     const systemPrompt = `You are a professional trading strategy assistant. Generate a complete, practical trading strategy in valid JSON format.
 
 CRITICAL JSON STRUCTURE REQUIREMENTS:
@@ -205,115 +234,90 @@ Strategy: ${strategyDescription}
 
 Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" in the name and create balanced entry/exit rules with proper risk management.`;
 
-    // Make OpenAI API call with improved timeout and retry logic
-    logWithTimestamp('INFO', 'Making OpenAI API request', { model: 'gpt-4o-mini' });
+    // Make OpenAI API call with enhanced error handling
+    logWithTimestamp('INFO', 'Making OpenAI API request', { 
+      model: 'gpt-4o-mini',
+      promptLength: userPrompt.length 
+    });
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      logWithTimestamp('WARN', 'OpenAI request timeout, aborting...');
-      controller.abort();
-    }, 35000); // Increased timeout to 35 seconds
-    
-    let openaiResponse;
-    try {
-      // Retry logic for OpenAI API call
-      let lastError;
-      const maxRetries = 3;
+    const openaiResponse = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2500,
+        stream: false
+      }),
+      signal: AbortSignal.timeout(30000) // 30 second timeout
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      logWithTimestamp('ERROR', 'OpenAI API error', {
+        status: openaiResponse.status,
+        statusText: openaiResponse.statusText,
+        error: errorText
+      });
       
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          logWithTimestamp('INFO', `OpenAI API attempt ${attempt}/${maxRetries}`);
-          
-          const response = await fetch(OPENAI_API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-              model: "gpt-4o-mini",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-              ],
-              temperature: 0.7,
-              max_tokens: 2500,
-              stream: false
-            }),
-            signal: controller.signal
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            logWithTimestamp('ERROR', `OpenAI API error on attempt ${attempt}`, {
-              status: response.status,
-              statusText: response.statusText,
-              error: errorText
-            });
-            
-            if (response.status === 401) {
-              throw new Error('Invalid OpenAI API key');
-            } else if (response.status === 429) {
-              if (attempt < maxRetries) {
-                // Wait before retry for rate limit
-                await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-                continue;
-              }
-              throw new Error('OpenAI API rate limit exceeded');
-            } else if (response.status >= 500) {
-              if (attempt < maxRetries) {
-                // Wait before retry for server errors
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-                continue;
-              }
-              throw new Error('OpenAI API server error');
-            } else {
-              throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-            }
-          }
-
-          openaiResponse = await response.json();
-          logWithTimestamp('INFO', 'OpenAI response received', {
-            hasChoices: !!openaiResponse.choices,
-            choicesLength: openaiResponse.choices?.length || 0,
-            usage: openaiResponse.usage,
-            attempt: attempt
-          });
-          
-          break; // Success, exit retry loop
-          
-        } catch (error) {
-          lastError = error;
-          if (attempt === maxRetries) {
-            throw lastError;
-          }
-          logWithTimestamp('WARN', `Attempt ${attempt} failed, retrying...`, { error: error.message });
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      let errorType = "unknown_error";
+      if (openaiResponse.status === 401) {
+        errorType = "api_key_error";
+      } else if (openaiResponse.status === 429) {
+        errorType = "rate_limit_error";
+      } else if (openaiResponse.status >= 500) {
+        errorType = "connection_error";
+      }
+      
+      return new Response(
+        JSON.stringify({
+          error: `OpenAI API error: ${openaiResponse.status} ${openaiResponse.statusText}`,
+          type: errorType,
+          details: errorText,
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
-      }
-
-      clearTimeout(timeoutId);
-
-    } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (error.name === 'AbortError') {
-        logWithTimestamp('ERROR', 'OpenAI request aborted due to timeout');
-        throw new Error('Request timeout - please try again');
-      }
-      
-      logWithTimestamp('ERROR', 'OpenAI request failed', { error: error.message });
-      throw error;
+      );
     }
+
+    const openaiData = await openaiResponse.json();
+    logWithTimestamp('INFO', 'OpenAI response received', {
+      hasChoices: !!openaiData.choices,
+      choicesLength: openaiData.choices?.length || 0,
+      usage: openaiData.usage
+    });
 
     // Parse and validate OpenAI response
-    const aiResponseText = openaiResponse.choices[0]?.message?.content;
+    const aiResponseText = openaiData.choices[0]?.message?.content;
     if (!aiResponseText) {
-      logWithTimestamp('ERROR', 'No content in OpenAI response', openaiResponse);
-      throw new Error('Empty response from OpenAI');
+      logWithTimestamp('ERROR', 'No content in OpenAI response', openaiData);
+      return new Response(
+        JSON.stringify({
+          error: 'Empty response from OpenAI',
+          type: "parsing_error",
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
     }
 
-    logWithTimestamp('INFO', 'Processing OpenAI response', { responseLength: aiResponseText.length });
+    logWithTimestamp('INFO', 'Processing OpenAI response', { 
+      responseLength: aiResponseText.length,
+      responsePreview: aiResponseText.substring(0, 200)
+    });
 
     // Enhanced JSON parsing with multiple fallback strategies
     let strategyJSON;
@@ -339,9 +343,19 @@ Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" i
         logWithTimestamp('ERROR', 'JSON parsing failed completely', {
           directError: directParseError.message,
           fallbackError: fallbackParseError.message,
-          responsePreview: aiResponseText.substring(0, 200)
+          responsePreview: aiResponseText.substring(0, 500)
         });
-        throw new Error('Failed to parse strategy data from AI response');
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to parse strategy data from AI response',
+            type: "parsing_error",
+            timestamp: new Date().toISOString()
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
       }
     }
 
@@ -351,7 +365,17 @@ Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" i
     
     if (missingFields.length > 0) {
       logWithTimestamp('ERROR', 'Strategy validation failed', { missingFields });
-      throw new Error(`Generated strategy missing required fields: ${missingFields.join(', ')}`);
+      return new Response(
+        JSON.stringify({
+          error: `Generated strategy missing required fields: ${missingFields.join(', ')}`,
+          type: "parsing_error",
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
     }
 
     // Normalize timeframe
@@ -392,7 +416,7 @@ Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" i
     let status = 500;
     let errorType = "unknown_error";
     
-    if (error.message?.includes('timeout') || error.name === 'AbortError') {
+    if (error.name === 'TimeoutError' || error.message?.includes('timeout')) {
       status = 408;
       errorType = "timeout_error";
     } else if (error.message?.includes('API key')) {

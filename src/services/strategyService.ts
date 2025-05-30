@@ -50,20 +50,19 @@ export interface ServiceError {
   retryable?: boolean;
 }
 
-// Health check function for AI service with improved error handling
+// Health check function for AI service
 export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
     console.log("Checking AI service health...");
     
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Health check timeout')), 10000);
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: {},
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }, {
+      method: 'GET'
     });
-    
-    const healthCheckPromise = supabase.functions.invoke('generate-strategy', {
-      body: { health: true }
-    });
-
-    const { data, error } = await Promise.race([healthCheckPromise, timeoutPromise]) as any;
 
     if (error) {
       console.error("Health check failed:", error);
@@ -76,7 +75,7 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
 
     console.log("Health check successful:", data);
     return { 
-      healthy: true, 
+      healthy: data?.status === 'healthy', 
       details: data 
     };
   } catch (error: any) {
@@ -86,44 +85,6 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
       error: error.message || "Health check failed" 
     };
   }
-};
-
-// Improved retry utility with exponential backoff and better error classification
-const retryWithBackoff = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000,
-  retryableErrors: string[] = ['connection_error', 'timeout_error', 'rate_limit_error']
-): Promise<T> => {
-  let lastError: ServiceError;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`Attempt ${attempt}/${maxRetries}`);
-      return await operation();
-    } catch (error: any) {
-      lastError = error;
-      console.warn(`Attempt ${attempt} failed:`, error);
-      
-      // Don't retry if error is not retryable
-      if (error.type && !retryableErrors.includes(error.type)) {
-        console.log("Error not retryable, throwing immediately");
-        throw lastError;
-      }
-      
-      if (attempt === maxRetries) {
-        console.log("Max retries reached, throwing error");
-        throw lastError;
-      }
-      
-      // Exponential backoff with jitter
-      const delay = Math.min(baseDelay * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
-      console.log(`Retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  throw lastError!;
 };
 
 // Enhanced input validation
@@ -155,7 +116,7 @@ const validateGenerateStrategyInput = (
   return { valid: errors.length === 0, errors };
 };
 
-// Generate strategy with enhanced connection handling and retry logic
+// Generate strategy with enhanced error handling
 export const generateStrategy = async (
   assetType: "stocks",
   asset: string,
@@ -182,120 +143,89 @@ export const generateStrategy = async (
   }
 
   try {
-    console.log("Starting strategy generation with enhanced retry logic...", {
+    console.log("Starting strategy generation...", {
       assetType,
       asset,
       descriptionLength: description.length,
       timestamp: new Date().toISOString()
     });
     
-    const result = await retryWithBackoff(async () => {
-      // Call the Supabase Edge Function with improved error handling and timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          console.log("Request timeout, aborting...");
-          reject(new Error('Request timeout'));
-        }, 40000); // 40 second timeout
-      });
-
-      const invokePromise = supabase.functions.invoke('generate-strategy', {
-        body: {
-          assetType,
-          selectedAsset: asset,
-          strategyDescription: description
-        },
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      try {
-        const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
-
-        if (error) {
-          console.error("Error from generate-strategy function:", error);
-          
-          // Enhanced error classification with better network error detection
-          const errorMessage = error.message || "Unknown error";
-          let errorType: ServiceError['type'] = "unknown_error";
-          let retryable = false;
-          
-          // More comprehensive error classification
-          if (error.name === "FunctionsFetchError" || 
-              errorMessage.includes("Failed to send a request") ||
-              errorMessage.includes("Failed to fetch") ||
-              errorMessage.includes("fetch") ||
-              errorMessage.includes("Network error") ||
-              errorMessage.includes("ERR_NETWORK") ||
-              errorMessage.includes("ERR_INTERNET_DISCONNECTED") ||
-              errorMessage.includes("connection_error") ||
-              errorMessage.includes("ECONNREFUSED") ||
-              errorMessage.includes("ENOTFOUND") ||
-              errorMessage.includes("ETIMEDOUT")) {
-            errorType = "connection_error";
-            retryable = true;
-          } else if (errorMessage.includes("API key") || 
-                     errorMessage.includes("authentication") ||
-                     errorMessage.includes("401") ||
-                     errorMessage.includes("api_key_error")) {
-            errorType = "api_key_error";
-            retryable = false;
-          } else if (errorMessage.includes("timeout") || 
-                     errorMessage.includes("timed out") ||
-                     errorMessage.includes("408") ||
-                     errorMessage.includes("timeout_error")) {
-            errorType = "timeout_error";
-            retryable = true;
-          } else if (errorMessage.includes("rate limit") ||
-                     errorMessage.includes("429") ||
-                     errorMessage.includes("rate_limit_error")) {
-            errorType = "rate_limit_error";
-            retryable = true;
-          } else if (errorMessage.includes("parse") ||
-                     errorMessage.includes("JSON") ||
-                     errorMessage.includes("parsing_error")) {
-            errorType = "parsing_error";
-            retryable = false;
-          }
-          
-          throw {
-            message: errorMessage,
-            type: errorType,
-            details: error,
-            retryable,
-            timestamp: new Date().toISOString()
-          } as ServiceError;
-        }
-
-        if (!data) {
-          throw {
-            message: "No data received from AI service",
-            type: "parsing_error",
-            retryable: false
-          } as ServiceError;
-        }
-
-        console.log("Strategy generation successful:", {
-          strategyName: data.name,
-          timestamp: new Date().toISOString()
-        });
-
-        return data as GeneratedStrategy;
-      } catch (fetchError: any) {
-        if (fetchError.message === 'Request timeout') {
-          throw {
-            message: "Request timeout - please try again",
-            type: "timeout_error",
-            retryable: true,
-            timestamp: new Date().toISOString()
-          } as ServiceError;
-        }
-        
-        throw fetchError;
+    // Call the Supabase Edge Function with improved error handling
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: {
+        assetType,
+        selectedAsset: asset,
+        strategyDescription: description
+      },
+      headers: {
+        'Content-Type': 'application/json',
       }
-    }, 3, 2000); // 3 retries with 2 second base delay
+    });
 
-    return result;
+    if (error) {
+      console.error("Error from generate-strategy function:", error);
+      
+      // Enhanced error classification
+      const errorMessage = error.message || "Unknown error";
+      let errorType: ServiceError['type'] = "unknown_error";
+      let retryable = false;
+      
+      // More comprehensive error classification
+      if (error.name === "FunctionsFetchError" || 
+          errorMessage.includes("Failed to send a request") ||
+          errorMessage.includes("Failed to fetch") ||
+          errorMessage.includes("fetch") ||
+          errorMessage.includes("Network error") ||
+          errorMessage.includes("connection_error")) {
+        errorType = "connection_error";
+        retryable = true;
+      } else if (errorMessage.includes("API key") || 
+                 errorMessage.includes("authentication") ||
+                 errorMessage.includes("401") ||
+                 errorMessage.includes("api_key_error")) {
+        errorType = "api_key_error";
+        retryable = false;
+      } else if (errorMessage.includes("timeout") || 
+                 errorMessage.includes("timed out") ||
+                 errorMessage.includes("408") ||
+                 errorMessage.includes("timeout_error")) {
+        errorType = "timeout_error";
+        retryable = true;
+      } else if (errorMessage.includes("rate limit") ||
+                 errorMessage.includes("429") ||
+                 errorMessage.includes("rate_limit_error")) {
+        errorType = "rate_limit_error";
+        retryable = true;
+      } else if (errorMessage.includes("parse") ||
+                 errorMessage.includes("JSON") ||
+                 errorMessage.includes("parsing_error")) {
+        errorType = "parsing_error";
+        retryable = false;
+      }
+      
+      throw {
+        message: errorMessage,
+        type: errorType,
+        details: error,
+        retryable,
+        timestamp: new Date().toISOString()
+      } as ServiceError;
+    }
+
+    if (!data) {
+      throw {
+        message: "No data received from AI service",
+        type: "parsing_error",
+        retryable: false
+      } as ServiceError;
+    }
+
+    console.log("Strategy generation successful:", {
+      strategyName: data.name,
+      timestamp: new Date().toISOString()
+    });
+
+    return data as GeneratedStrategy;
   } catch (error: any) {
     console.error("Final error in generateStrategy:", error);
     
@@ -304,22 +234,18 @@ export const generateStrategy = async (
       throw error;
     }
     
-    // Handle unexpected errors with better classification
+    // Handle unexpected errors
     let errorType: ServiceError['type'] = "unknown_error";
     let retryable = false;
     
     if (error.message && (
       error.message.includes('Failed to fetch') || 
       error.message.includes('fetch') ||
-      error.message.includes('Network error') ||
-      error.message.includes('ERR_NETWORK') ||
-      error.message.includes('ERR_INTERNET_DISCONNECTED') ||
-      error.message.includes('ECONNREFUSED') ||
-      error.message.includes('ENOTFOUND')
+      error.message.includes('Network error')
     )) {
       errorType = "connection_error";
       retryable = true;
-    } else if (error.message && (error.message.includes('timeout') || error.name === 'AbortError')) {
+    } else if (error.message && error.message.includes('timeout')) {
       errorType = "timeout_error";
       retryable = true;
     }

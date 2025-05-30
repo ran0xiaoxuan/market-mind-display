@@ -2,7 +2,7 @@
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
-import { Trash2, Equal, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Trash2, Equal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface CompactInequalityDisplayProps {
@@ -145,12 +145,12 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
       case 'CROSSES_ABOVE':
         return {
           text: 'crosses above',
-          icon: <ArrowUpRight className="h-4 w-4 text-green-600" />
+          icon: null
         };
       case 'CROSSES_BELOW':
         return {
           text: 'crosses below',
-          icon: <ArrowDownRight className="h-4 w-4 text-red-600" />
+          icon: null
         };
       case 'GREATER_THAN':
         return {

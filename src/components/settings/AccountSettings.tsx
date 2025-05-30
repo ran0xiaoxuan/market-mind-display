@@ -110,7 +110,7 @@ export function AccountSettings() {
       console.error('Error syncing Pro status:', error);
     }
   };
-  
+
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(""); // Clear any previous errors
@@ -330,7 +330,9 @@ export function AccountSettings() {
       // Force a small delay to ensure the real-time update propagates
       setTimeout(() => {
         console.log('Subscription status change broadcasted via real-time');
-      }, 100);
+        // Refresh the page after the status change
+        window.location.reload();
+      }, 500);
       
     } catch (error) {
       console.error("Error updating subscription status:", error);
@@ -343,7 +345,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-  
+
   if (isLoadingProfile) {
     return (
       <div className="space-y-12">

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
@@ -292,16 +293,6 @@ const AIStrategy = () => {
           <div className="flex items-center">
             <WifiOff className="h-4 w-4 mr-2" />
             <span>No internet connection. Please check your network.</span>
-          </div>
-        </div>
-      )}
-
-      {/* Service Health Status */}
-      {serviceHealth && !serviceHealth.healthy && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-          <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <span>AI service may be experiencing issues. Template strategies are available as backup.</span>
           </div>
         </div>
       )}

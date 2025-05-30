@@ -83,18 +83,12 @@ const AIStrategyV2 = () => {
       console.log("Sending request:", requestBody);
 
       // Call the edge function with timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout - please try again')), 45000);
-      });
-
-      const requestPromise = supabase.functions.invoke('generate-strategy', {
+      const { data, error } = await supabase.functions.invoke('generate-strategy', {
         body: requestBody,
         headers: {
           'Content-Type': 'application/json',
         }
       });
-
-      const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error("Edge function error:", error);

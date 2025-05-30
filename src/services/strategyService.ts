@@ -55,15 +55,15 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
   try {
     console.log("Checking AI service health...");
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Health check timeout')), 10000);
+    });
     
-    const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: { health: true },
-      signal: controller.signal
+    const healthCheckPromise = supabase.functions.invoke('generate-strategy', {
+      body: { health: true }
     });
 
-    clearTimeout(timeoutId);
+    const { data, error } = await Promise.race([healthCheckPromise, timeoutPromise]) as any;
 
     if (error) {
       console.error("Health check failed:", error);
@@ -191,26 +191,26 @@ export const generateStrategy = async (
     
     const result = await retryWithBackoff(async () => {
       // Call the Supabase Edge Function with improved error handling and timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log("Request timeout, aborting...");
-        controller.abort();
-      }, 40000); // 40 second timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          console.log("Request timeout, aborting...");
+          reject(new Error('Request timeout'));
+        }, 40000); // 40 second timeout
+      });
+
+      const invokePromise = supabase.functions.invoke('generate-strategy', {
+        body: {
+          assetType,
+          selectedAsset: asset,
+          strategyDescription: description
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
 
       try {
-        const { data, error } = await supabase.functions.invoke('generate-strategy', {
-          body: {
-            assetType,
-            selectedAsset: asset,
-            strategyDescription: description
-          },
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
+        const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
 
         if (error) {
           console.error("Error from generate-strategy function:", error);
@@ -243,8 +243,7 @@ export const generateStrategy = async (
           } else if (errorMessage.includes("timeout") || 
                      errorMessage.includes("timed out") ||
                      errorMessage.includes("408") ||
-                     errorMessage.includes("timeout_error") ||
-                     error.name === "AbortError") {
+                     errorMessage.includes("timeout_error")) {
             errorType = "timeout_error";
             retryable = true;
           } else if (errorMessage.includes("rate limit") ||
@@ -283,9 +282,7 @@ export const generateStrategy = async (
 
         return data as GeneratedStrategy;
       } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        if (fetchError.name === 'AbortError') {
+        if (fetchError.message === 'Request timeout') {
           throw {
             message: "Request timeout - please try again",
             type: "timeout_error",

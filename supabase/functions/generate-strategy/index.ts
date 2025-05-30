@@ -205,63 +205,94 @@ Strategy: ${strategyDescription}
 
 Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" in the name and create balanced entry/exit rules with proper risk management.`;
 
-    // Make OpenAI API call with proper timeout and error handling
+    // Make OpenAI API call with improved timeout and retry logic
     logWithTimestamp('INFO', 'Making OpenAI API request', { model: 'gpt-4o-mini' });
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       logWithTimestamp('WARN', 'OpenAI request timeout, aborting...');
       controller.abort();
-    }, 25000); // 25 second timeout
+    }, 35000); // Increased timeout to 35 seconds
     
     let openaiResponse;
     try {
-      const response = await fetch(OPENAI_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 2500,
-          stream: false
-        }),
-        signal: controller.signal
-      });
+      // Retry logic for OpenAI API call
+      let lastError;
+      const maxRetries = 3;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          logWithTimestamp('INFO', `OpenAI API attempt ${attempt}/${maxRetries}`);
+          
+          const response = await fetch(OPENAI_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 2500,
+              stream: false
+            }),
+            signal: controller.signal
+          });
 
-      clearTimeout(timeoutId);
+          if (!response.ok) {
+            const errorText = await response.text();
+            logWithTimestamp('ERROR', `OpenAI API error on attempt ${attempt}`, {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorText
+            });
+            
+            if (response.status === 401) {
+              throw new Error('Invalid OpenAI API key');
+            } else if (response.status === 429) {
+              if (attempt < maxRetries) {
+                // Wait before retry for rate limit
+                await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+                continue;
+              }
+              throw new Error('OpenAI API rate limit exceeded');
+            } else if (response.status >= 500) {
+              if (attempt < maxRetries) {
+                // Wait before retry for server errors
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                continue;
+              }
+              throw new Error('OpenAI API server error');
+            } else {
+              throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+            }
+          }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        logWithTimestamp('ERROR', 'OpenAI API error', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        
-        if (response.status === 401) {
-          throw new Error('Invalid OpenAI API key');
-        } else if (response.status === 429) {
-          throw new Error('OpenAI API rate limit exceeded');
-        } else if (response.status >= 500) {
-          throw new Error('OpenAI API server error');
-        } else {
-          throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+          openaiResponse = await response.json();
+          logWithTimestamp('INFO', 'OpenAI response received', {
+            hasChoices: !!openaiResponse.choices,
+            choicesLength: openaiResponse.choices?.length || 0,
+            usage: openaiResponse.usage,
+            attempt: attempt
+          });
+          
+          break; // Success, exit retry loop
+          
+        } catch (error) {
+          lastError = error;
+          if (attempt === maxRetries) {
+            throw lastError;
+          }
+          logWithTimestamp('WARN', `Attempt ${attempt} failed, retrying...`, { error: error.message });
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
       }
 
-      openaiResponse = await response.json();
-      logWithTimestamp('INFO', 'OpenAI response received', {
-        hasChoices: !!openaiResponse.choices,
-        choicesLength: openaiResponse.choices?.length || 0,
-        usage: openaiResponse.usage
-      });
+      clearTimeout(timeoutId);
 
     } catch (error) {
       clearTimeout(timeoutId);

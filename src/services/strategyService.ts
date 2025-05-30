@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -151,15 +150,12 @@ export const generateStrategy = async (
       timestamp: new Date().toISOString()
     });
     
-    // Call the Supabase Edge Function with improved error handling
+    // Call the Supabase Edge Function with proper request body
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: {
-        assetType,
+        assetType: assetType,
         selectedAsset: asset,
         strategyDescription: description
-      },
-      headers: {
-        'Content-Type': 'application/json',
       }
     });
 

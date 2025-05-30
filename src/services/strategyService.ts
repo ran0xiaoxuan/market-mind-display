@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -55,22 +56,24 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
   try {
     console.log("Checking AI service health...");
     
-    const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: { health: true },
+    // Use a GET request for health check instead of POST
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-strategy?health=true`, {
+      method: 'GET',
       headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       }
     });
 
-    if (error) {
-      console.error("Health check failed:", error);
+    if (!response.ok) {
+      console.error("Health check failed with status:", response.status);
       return { 
         healthy: false, 
-        error: error.message,
-        details: error 
+        error: `Health check failed with status ${response.status}` 
       };
     }
 
+    const data = await response.json();
     console.log("Health check successful:", data);
     return { 
       healthy: data?.status === 'healthy', 

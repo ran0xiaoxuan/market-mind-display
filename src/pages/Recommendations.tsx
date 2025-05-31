@@ -192,7 +192,7 @@ const Recommendations = () => {
       console.log("Strategy successfully copied:", copiedStrategy);
     } catch (error) {
       console.error("Error applying strategy:", error);
-      
+
       // Show error notification with more details
       toast.error("Failed to apply strategy", {
         description: error instanceof Error ? error.message : "An unexpected error occurred while copying the strategy. Please try again.",
@@ -410,9 +410,7 @@ const Recommendations = () => {
               {selectedStrategy?.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
                   {selectedStrategy.target_asset}
                 </Badge>}
-              {selectedStrategy?.is_official && <Badge variant="default" className="bg-green-100 text-green-800">
-                  Official
-                </Badge>}
+              {selectedStrategy?.is_official}
             </DialogDescription>
           </DialogHeader>
           

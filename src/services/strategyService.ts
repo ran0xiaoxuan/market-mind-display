@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -161,7 +160,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
         left: {
           type: rule.left_type,
           indicator: rule.left_indicator,
-          parameters: rule.left_parameters,
+          parameters: (rule.left_parameters as any) || {},
           value: rule.left_value,
           valueType: rule.left_value_type
         },
@@ -169,7 +168,7 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ 
         right: {
           type: rule.right_type,
           indicator: rule.right_indicator,
-          parameters: rule.right_parameters,
+          parameters: (rule.right_parameters as any) || {},
           value: rule.right_value,
           valueType: rule.right_value_type
         },

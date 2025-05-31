@@ -24,7 +24,7 @@ export const trackStrategyApplication = async (strategyId: string, userId: strin
     const { data: copiedStrategy, error: copyError } = await supabase
       .from('strategies')
       .insert({
-        name: `${originalStrategy.name} (from recommendations)`,
+        name: originalStrategy.name,
         description: originalStrategy.description,
         target_asset: originalStrategy.target_asset,
         target_asset_name: originalStrategy.target_asset_name,

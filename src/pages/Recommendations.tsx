@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,11 +44,9 @@ interface RecommendedStrategy {
   is_official?: boolean;
   original_strategy_id?: string;
 }
-
 type SortOption = 'name' | 'created' | 'updated' | 'apply_count';
 type SortDirection = 'asc' | 'desc';
 type RankingMode = 'popular' | 'recent';
-
 const Recommendations = () => {
   const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +59,9 @@ const Recommendations = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [applyCounts, setApplyCounts] = useState<Map<string, number>>(new Map());
-  const { session } = useAuth();
+  const {
+    session
+  } = useAuth();
 
   // Admin check - only this specific email can add/delete official recommendations
   const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
@@ -86,11 +85,10 @@ const Recommendations = () => {
     try {
       setLoadingUserStrategies(true);
       console.log("Fetching strategies for admin user:", session.user.id);
-      const { data, error } = await supabase
-        .from('strategies')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('is_recommended_copy', false); // Only show original strategies, not copies
+      const {
+        data,
+        error
+      } = await supabase.from('strategies').select('*').eq('user_id', session.user.id).eq('is_recommended_copy', false); // Only show original strategies, not copies
 
       if (error) {
         console.error("Error fetching user strategies:", error);
@@ -126,10 +124,7 @@ const Recommendations = () => {
   // Filter user strategies based on search query
   useEffect(() => {
     if (isSearchOpen && searchQuery && userStrategies.length > 0) {
-      const filtered = userStrategies.filter(strategy => 
-        strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      const filtered = userStrategies.filter(strategy => strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()));
       setFilteredUserStrategies(filtered);
     } else {
       setFilteredUserStrategies(userStrategies);
@@ -141,7 +136,6 @@ const Recommendations = () => {
     try {
       setLoading(true);
       console.log("Starting to fetch recommended strategies...");
-
       const collectedStrategies = await getRecommendedStrategies();
       console.log("Collected strategies using new service:", collectedStrategies);
       setStrategies(collectedStrategies);
@@ -170,15 +164,13 @@ const Recommendations = () => {
         toast.error("You must be logged in to apply a strategy");
         return;
       }
-
       console.log("Applying strategy:", strategy.id);
-      
+
       // Use new service function that creates a copy and tracks the application
       const copiedStrategy = await trackStrategyApplication(strategy.id, session.user.id);
-      
+
       // Refresh apply counts to show updated data
       await fetchApplyCounts();
-      
       toast.success("Strategy copied to your collection");
       console.log("Strategy successfully copied:", copiedStrategy);
     } catch (error) {
@@ -210,10 +202,8 @@ const Recommendations = () => {
         toast.error("Please select a strategy");
         return;
       }
-
       const recommendedStrategy = await createRecommendedStrategy(selectedStrategyId, session.user.id);
       console.log("Successfully created recommended strategy:", recommendedStrategy);
-      
       toast.success("Official strategy added to recommendations");
       setShowUploadDialog(false);
       setSelectedStrategyId("");
@@ -239,49 +229,44 @@ const Recommendations = () => {
   };
 
   // Filter strategies based on search term and apply ranking mode
-  const filteredAndSortedStrategies = strategies
-    .filter(strategy =>
-      strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      let comparison = 0;
+  const filteredAndSortedStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => {
+    let comparison = 0;
 
-      // Apply ranking mode logic
-      if (rankingMode === 'popular') {
-        // Sort by popularity (apply count)
-        const aCount = applyCounts.get(a.id) || 0;
-        const bCount = applyCounts.get(b.id) || 0;
-        comparison = bCount - aCount; // Descending order for popularity
-      } else if (rankingMode === 'recent') {
-        // Sort by recommendation timestamp (created_at)
-        comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Descending order for recent
-      }
+    // Apply ranking mode logic
+    if (rankingMode === 'popular') {
+      // Sort by popularity (apply count)
+      const aCount = applyCounts.get(a.id) || 0;
+      const bCount = applyCounts.get(b.id) || 0;
+      comparison = bCount - aCount; // Descending order for popularity
+    } else if (rankingMode === 'recent') {
+      // Sort by recommendation timestamp (created_at)
+      comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Descending order for recent
+    }
 
-      // If comparison is 0 (tie) or no ranking mode matches, fall back to regular sorting
-      if (comparison === 0) {
-        switch (sortBy) {
-          case 'name':
-            comparison = (a.name || '').localeCompare(b.name || '');
-            break;
-          case 'created':
-            comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-            break;
-          case 'updated':
-            comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
-            break;
-          case 'apply_count':
-            const aCount = applyCounts.get(a.id) || 0;
-            const bCount = applyCounts.get(b.id) || 0;
-            comparison = aCount - bCount;
-            break;
-          default:
-            comparison = 0;
-        }
-        return sortDirection === 'asc' ? comparison : -comparison;
+    // If comparison is 0 (tie) or no ranking mode matches, fall back to regular sorting
+    if (comparison === 0) {
+      switch (sortBy) {
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'created':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'updated':
+          comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
+          break;
+        case 'apply_count':
+          const aCount = applyCounts.get(a.id) || 0;
+          const bCount = applyCounts.get(b.id) || 0;
+          comparison = aCount - bCount;
+          break;
+        default:
+          comparison = 0;
       }
-      return comparison;
-    });
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+    return comparison;
+  });
 
   // Fetch recommended strategies and apply counts on component mount
   useEffect(() => {
@@ -291,57 +276,34 @@ const Recommendations = () => {
       fetchUserStrategies();
     }
   }, [isAdmin, session?.user?.id]);
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 className="text-3xl font-bold">Recommendations</h1>
-            {isAdmin && (
-              <Button
-                className="mt-4 sm:mt-0"
-                onClick={() => {
-                  fetchUserStrategies(); // Refresh strategies list when opening dialog
-                  setShowUploadDialog(true);
-                }}
-              >
+            {isAdmin && <Button className="mt-4 sm:mt-0" onClick={() => {
+            fetchUserStrategies(); // Refresh strategies list when opening dialog
+            setShowUploadDialog(true);
+          }}>
                 Add Official Strategy
-              </Button>
-            )}
+              </Button>}
           </div>
           
           {/* Search and Ranking Controls */}
           <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
             <div className="w-full lg:w-2/5">
-              <Input
-                placeholder="Search recommendations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
+              <Input placeholder="Search recommendations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
             </div>
             
             <div className="flex justify-end w-full lg:w-3/5">
               {/* Ranking Mode Toggle */}
               <div className="w-auto min-w-[120px]">
-                <ToggleGroup
-                  type="single"
-                  value={rankingMode}
-                  onValueChange={(value: RankingMode) => value && setRankingMode(value)}
-                  className="w-full"
-                >
-                  <ToggleGroupItem
-                    value="popular"
-                    className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  >
+                <ToggleGroup type="single" value={rankingMode} onValueChange={(value: RankingMode) => value && setRankingMode(value)} className="w-full">
+                  <ToggleGroupItem value="popular" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                     <Star className="h-4 w-4" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="recent"
-                    className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  >
+                  <ToggleGroupItem value="recent" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                     <Timer className="h-4 w-4" />
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -350,10 +312,8 @@ const Recommendations = () => {
           </div>
           
           {/* Strategy cards */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="h-64 animate-pulse">
+          {loading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <Card key={i} className="h-64 animate-pulse">
                   <div className="h-full flex flex-col">
                     <div className="h-10 bg-muted rounded-t-lg"></div>
                     <div className="flex-1 p-6">
@@ -364,39 +324,24 @@ const Recommendations = () => {
                     </div>
                     <div className="h-12 bg-muted rounded-b-lg"></div>
                   </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <>
+                </Card>)}
+            </div> : <>
               {/* Results count and current ranking mode display */}
               <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                 
               </div>
 
-              {filteredAndSortedStrategies.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedStrategies.map((strategy) => (
-                    <Card
-                      key={strategy.id}
-                      className="flex flex-col h-72 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50"
-                      onClick={() => showStrategyDetails(strategy)}
-                    >
+              {filteredAndSortedStrategies.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedStrategies.map(strategy => <Card key={strategy.id} className="flex flex-col h-72 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" onClick={() => showStrategyDetails(strategy)}>
                       <CardHeader className="pb-2 border-b flex-shrink-0">
                         <div className="flex justify-between items-start">
                           <div className="min-w-0 flex-1">
                             <CardTitle className="text-lg text-slate-800 truncate">{strategy.name}</CardTitle>
                             <div className="flex items-center mt-1 space-x-2">
-                              {strategy.target_asset && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                              {strategy.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
                                   {strategy.target_asset}
-                                </Badge>
-                              )}
-                              {strategy.is_official && (
-                                <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
-                                  Official
-                                </Badge>
-                              )}
+                                </Badge>}
+                              {strategy.is_official}
                             </div>
                           </div>
                         </div>
@@ -413,19 +358,12 @@ const Recommendations = () => {
                       <CardFooter className="pt-2 px-4 pb-3 flex justify-between border-t flex-shrink-0">
                         <div>
                           {/* Only admin can delete strategies */}
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="p-0 h-8 w-8 text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteStrategy(strategy.id);
-                              }}
-                            >
+                          {isAdmin && <Button variant="ghost" size="sm" className="p-0 h-8 w-8 text-destructive" onClick={e => {
+                    e.stopPropagation();
+                    deleteStrategy(strategy.id);
+                  }}>
                               <Trash className="h-4 w-4" />
-                            </Button>
-                          )}
+                            </Button>}
                         </div>
                         {/* Apply count display with star icon */}
                         <div className="flex items-center">
@@ -433,16 +371,11 @@ const Recommendations = () => {
                           <span className="text-sm font-medium">{applyCounts.get(strategy.id) || 0}</span>
                         </div>
                       </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
+                    </Card>)}
+                </div> : <div className="text-center py-12">
                   <p className="text-muted-foreground">No recommendations match your criteria</p>
-                </div>
-              )}
-            </>
-          )}
+                </div>}
+            </>}
         </div>
       </main>
       
@@ -452,16 +385,12 @@ const Recommendations = () => {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{selectedStrategy?.name}</DialogTitle>
             <DialogDescription className="flex items-center space-x-2">
-              {selectedStrategy?.target_asset && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              {selectedStrategy?.target_asset && <Badge variant="outline" className="bg-blue-50 text-blue-700">
                   {selectedStrategy.target_asset}
-                </Badge>
-              )}
-              {selectedStrategy?.is_official && (
-                <Badge variant="default" className="bg-green-100 text-green-800">
+                </Badge>}
+              {selectedStrategy?.is_official && <Badge variant="default" className="bg-green-100 text-green-800">
                   Official
-                </Badge>
-              )}
+                </Badge>}
             </DialogDescription>
           </DialogHeader>
           
@@ -536,26 +465,16 @@ const Recommendations = () => {
               </TabsContent>
               
               <TabsContent value="risk" className="mt-0">
-                {selectedStrategy && (
-                  <RiskManagement
-                    riskManagement={{
-                      stopLoss: selectedStrategy.stop_loss || "0%",
-                      takeProfit: selectedStrategy.take_profit || "0%",
-                      singleBuyVolume: selectedStrategy.single_buy_volume || "0",
-                      maxBuyVolume: selectedStrategy.max_buy_volume || "0"
-                    }}
-                  />
-                )}
+                {selectedStrategy && <RiskManagement riskManagement={{
+                stopLoss: selectedStrategy.stop_loss || "0%",
+                takeProfit: selectedStrategy.take_profit || "0%",
+                singleBuyVolume: selectedStrategy.single_buy_volume || "0",
+                maxBuyVolume: selectedStrategy.max_buy_volume || "0"
+              }} />}
               </TabsContent>
               
               <TabsContent value="rules" className="mt-0">
-                {selectedStrategy && (
-                  <TradingRules
-                    entryRules={[]}
-                    exitRules={[]}
-                    editable={false}
-                  />
-                )}
+                {selectedStrategy && <TradingRules entryRules={[]} exitRules={[]} editable={false} />}
                 <div className="text-sm text-muted-foreground mt-4 p-4 bg-slate-50 rounded-md">
                   <p>This is a simplified view of the trading rules. Apply this strategy to your collection to see and customize the complete rule set.</p>
                 </div>
@@ -567,14 +486,12 @@ const Recommendations = () => {
             <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
               Close
             </Button>
-            <Button
-              onClick={() => {
-                if (selectedStrategy) {
-                  applyStrategy(selectedStrategy);
-                  setShowDetailsDialog(false);
-                }
-              }}
-            >
+            <Button onClick={() => {
+            if (selectedStrategy) {
+              applyStrategy(selectedStrategy);
+              setShowDetailsDialog(false);
+            }
+          }}>
               Apply Strategy
             </Button>
           </DialogFooter>
@@ -582,8 +499,7 @@ const Recommendations = () => {
       </Dialog>
       
       {/* Admin dialog to select an existing strategy */}
-      {isAdmin && (
-        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+      {isAdmin && <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Official Strategy</DialogTitle>
@@ -595,103 +511,65 @@ const Recommendations = () => {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Strategy</label>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal h-10 bg-background"
-                  onClick={() => setIsSearchOpen(true)}
-                >
+                <Button variant="outline" className="w-full justify-start text-left font-normal h-10 bg-background" onClick={() => setIsSearchOpen(true)}>
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   {userStrategies.find(s => s.id === selectedStrategyId)?.name || "Select a strategy"}
                 </Button>
               </div>
 
-              {selectedStrategyId && (
-                <div className="bg-muted/50 p-3 rounded-md">
+              {selectedStrategyId && <div className="bg-muted/50 p-3 rounded-md">
                   <h4 className="font-medium text-sm">Selected Strategy</h4>
                   <p className="text-sm mt-1">{userStrategies.find(s => s.id === selectedStrategyId)?.name}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {userStrategies.find(s => s.id === selectedStrategyId)?.description || "No description"}
                   </p>
-                </div>
-              )}
+                </div>}
             </div>
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={addOfficialStrategy}
-                disabled={!selectedStrategyId || loadingUserStrategies}
-              >
-                {loadingUserStrategies ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : null}
+              <Button onClick={addOfficialStrategy} disabled={!selectedStrategyId || loadingUserStrategies}>
+                {loadingUserStrategies ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Add to Recommendations
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
-      )}
+        </Dialog>}
         
       {/* Command dialog for strategy selection */}
-      <CommandDialog
-        open={isSearchOpen}
-        onOpenChange={(open) => {
-          setIsSearchOpen(open);
-          if (!open) {
-            setSearchQuery("");
-          }
-        }}
-      >
-        <CommandInput
-          placeholder="Search your strategies..."
-          value={searchQuery}
-          onValueChange={setSearchQuery}
-          autoFocus={true}
-        />
+      <CommandDialog open={isSearchOpen} onOpenChange={open => {
+      setIsSearchOpen(open);
+      if (!open) {
+        setSearchQuery("");
+      }
+    }}>
+        <CommandInput placeholder="Search your strategies..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
         <CommandList>
           <CommandEmpty>
-            {loadingUserStrategies ? (
-              <div className="flex items-center justify-center p-4">
+            {loadingUserStrategies ? <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <p className="p-4 text-center text-sm text-muted-foreground">
+              </div> : <p className="p-4 text-center text-sm text-muted-foreground">
                 {searchQuery ? "No strategies found" : "Type to search your strategies"}
-              </p>
-            )}
+              </p>}
           </CommandEmpty>
           
-          {filteredUserStrategies.length > 0 && (
-            <CommandGroup heading="Your Strategies">
-              {filteredUserStrategies.map((strategy) => (
-                <CommandItem
-                  key={strategy.id}
-                  value={`${strategy.name} ${strategy.description || ''}`}
-                  onSelect={() => handleStrategySelect(strategy.id)}
-                >
+          {filteredUserStrategies.length > 0 && <CommandGroup heading="Your Strategies">
+              {filteredUserStrategies.map(strategy => <CommandItem key={strategy.id} value={`${strategy.name} ${strategy.description || ''}`} onSelect={() => handleStrategySelect(strategy.id)}>
                   <div className="flex items-center">
-                    {selectedStrategyId === strategy.id && (
-                      <Check className="mr-2 h-4 w-4 text-primary" />
-                    )}
+                    {selectedStrategyId === strategy.id && <Check className="mr-2 h-4 w-4 text-primary" />}
                     <div className="flex flex-col">
                       <span>{strategy.name}</span>
-                      {strategy.description && (
-                        <span className="text-xs text-muted-foreground line-clamp-1">
+                      {strategy.description && <span className="text-xs text-muted-foreground line-clamp-1">
                           {strategy.description}
-                        </span>
-                      )}
+                        </span>}
                     </div>
                   </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+                </CommandItem>)}
+            </CommandGroup>}
         </CommandList>
       </CommandDialog>
-    </div>
-  );
+    </div>;
 };
-
 export default Recommendations;

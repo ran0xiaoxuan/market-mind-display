@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -209,7 +210,7 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
     body: {
       assetType,
       selectedAsset,
-      description
+      strategyDescription: description // Fix: send as strategyDescription instead of description
     }
   });
 

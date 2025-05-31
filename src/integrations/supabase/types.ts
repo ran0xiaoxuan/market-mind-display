@@ -163,6 +163,7 @@ export type Database = {
       recommended_strategies: {
         Row: {
           created_at: string | null
+          deprecated: boolean
           id: string
           is_official: boolean | null
           is_public: boolean | null
@@ -172,6 +173,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deprecated?: boolean
           id?: string
           is_official?: boolean | null
           is_public?: boolean | null
@@ -181,6 +183,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deprecated?: boolean
           id?: string
           is_official?: boolean | null
           is_public?: boolean | null
@@ -241,13 +244,16 @@ export type Database = {
       }
       strategies: {
         Row: {
+          can_be_deleted: boolean
           created_at: string
           description: string | null
           id: string
           is_active: boolean
+          is_recommended_copy: boolean
           max_buy_volume: string | null
           name: string
           single_buy_volume: string | null
+          source_strategy_id: string | null
           stop_loss: string | null
           take_profit: string | null
           target_asset: string | null
@@ -257,13 +263,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_be_deleted?: boolean
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          is_recommended_copy?: boolean
           max_buy_volume?: string | null
           name: string
           single_buy_volume?: string | null
+          source_strategy_id?: string | null
           stop_loss?: string | null
           take_profit?: string | null
           target_asset?: string | null
@@ -273,13 +282,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_be_deleted?: boolean
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          is_recommended_copy?: boolean
           max_buy_volume?: string | null
           name?: string
           single_buy_volume?: string | null
+          source_strategy_id?: string | null
           stop_loss?: string | null
           take_profit?: string | null
           target_asset?: string | null
@@ -288,7 +300,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "strategies_source_strategy_id_fkey"
+            columns: ["source_strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strategy_applications: {
         Row: {
@@ -313,6 +333,93 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      strategy_copies: {
+        Row: {
+          copied_by: string
+          copied_strategy_id: string
+          copy_type: string
+          created_at: string
+          id: string
+          source_strategy_id: string
+        }
+        Insert: {
+          copied_by: string
+          copied_strategy_id: string
+          copy_type: string
+          created_at?: string
+          id?: string
+          source_strategy_id: string
+        }
+        Update: {
+          copied_by?: string
+          copied_strategy_id?: string
+          copy_type?: string
+          created_at?: string
+          id?: string
+          source_strategy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_copies_copied_strategy_id_fkey"
+            columns: ["copied_strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_copies_source_strategy_id_fkey"
+            columns: ["source_strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategy_recommendations: {
+        Row: {
+          created_at: string
+          id: string
+          is_official: boolean
+          original_strategy_id: string
+          recommended_by: string
+          recommended_strategy_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_official?: boolean
+          original_strategy_id: string
+          recommended_by: string
+          recommended_strategy_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_official?: boolean
+          original_strategy_id?: string
+          recommended_by?: string
+          recommended_strategy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_recommendations_original_strategy_id_fkey"
+            columns: ["original_strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_recommendations_recommended_strategy_id_fkey"
+            columns: ["recommended_strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strategy_versions: {
         Row: {
@@ -523,7 +630,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_strategy_application_count: {
+        Args: { strategy_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

@@ -3,8 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpIcon, ArrowDownIcon, Star } from "lucide-react";
 import { useState, useEffect } from "react";
-import { fetchPublicRecommendedStrategies } from "@/integrations/supabase/client";
-import { getStrategyApplyCounts } from "@/services/recommendationService";
+import { getRecommendedStrategies, getStrategyApplyCounts } from "@/services/recommendationService";
 
 interface Strategy {
   id: string;
@@ -20,9 +19,9 @@ export function StrategyRankings() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Fetch recommended strategies and apply counts
+        // Fetch recommended strategies and apply counts using new service
         const [recommendedStrategies, applyCounts] = await Promise.all([
-          fetchPublicRecommendedStrategies(),
+          getRecommendedStrategies(),
           getStrategyApplyCounts()
         ]);
 

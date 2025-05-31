@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -456,41 +455,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     throw new Error("Strategy not found or you don't have permission to delete it");
   }
 
-  // Delete related backtest trades first
-  const { data: backtests } = await supabase
-    .from("backtests")
-    .select("id")
-    .eq("strategy_id", strategyId)
-    .eq("user_id", user.id);
-
-  if (backtests && backtests.length > 0) {
-    const backtestIds = backtests.map(bt => bt.id);
-    
-    // Delete backtest trades for all related backtests
-    const { error: tradesDeleteError } = await supabase
-      .from("backtest_trades")
-      .delete()
-      .in("backtest_id", backtestIds);
-
-    if (tradesDeleteError) {
-      console.error("Error deleting backtest trades:", tradesDeleteError);
-      throw new Error("Failed to delete related backtest trades");
-    }
-
-    // Delete backtests
-    const { error: backtestsDeleteError } = await supabase
-      .from("backtests")
-      .delete()
-      .eq("strategy_id", strategyId)
-      .eq("user_id", user.id);
-
-    if (backtestsDeleteError) {
-      console.error("Error deleting backtests:", backtestsDeleteError);
-      throw new Error("Failed to delete related backtests");
-    }
-  }
-
-  // The database trigger will handle the deletion logic and cleanup for other related data
+  // The database trigger will handle the deletion logic and cleanup
   const { error } = await supabase
     .from("strategies")
     .delete()
@@ -502,7 +467,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     throw new Error(error.message || "Failed to delete strategy");
   }
 
-  console.log("Strategy and related data deleted successfully:", strategyId);
+  console.log("Strategy deleted successfully:", strategyId);
   
   // Dispatch a custom event to notify other components
   window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: strategyId }));

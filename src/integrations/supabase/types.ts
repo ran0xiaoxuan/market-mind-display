@@ -630,6 +630,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_strategy_cascade: {
+        Args: { strategy_uuid: string }
+        Returns: undefined
+      }
       get_strategy_application_count: {
         Args: { strategy_id: string }
         Returns: number

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -455,7 +456,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     throw new Error("Strategy not found or you don't have permission to delete it");
   }
 
-  // The database trigger will handle the deletion logic and cleanup
+  // The database trigger will handle all the cascade deletions automatically
   const { error } = await supabase
     .from("strategies")
     .delete()

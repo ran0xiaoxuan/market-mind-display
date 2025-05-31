@@ -50,7 +50,7 @@ export function StrategyCard({
 
   return (
     <Link to={`/strategy/${id}`} className="block">
-      <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="h-full hover:shadow-md transition-shadow cursor-pointer flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start">
             <CardTitle className="text-xl truncate pr-2">{name}</CardTitle>
@@ -59,10 +59,10 @@ export function StrategyCard({
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1">
           <p className="text-muted-foreground line-clamp-3">{description}</p>
         </CardContent>
-        <CardFooter className="pt-0">
+        <CardFooter className="pt-0 mt-auto">
           <div className="flex items-center justify-between text-sm text-muted-foreground w-full">
             <span>Asset: {asset}</span>
             <span>Updated {formatDistanceToNow(updatedAt, {

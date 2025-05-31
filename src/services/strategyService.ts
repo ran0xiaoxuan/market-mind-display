@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -455,35 +456,34 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     throw new Error("Strategy not found or you don't have permission to delete it");
   }
 
-  // Delete related backtest data first to avoid foreign key constraints
-  console.log("Deleting related backtest data for strategy:", strategyId);
+  // Delete in the correct order to avoid foreign key constraints
+  console.log("Deleting strategy and all related data for:", strategyId);
   
-  // Get all backtests for this strategy
-  const { data: backtests, error: backtestFetchError } = await supabase
-    .from("backtests")
-    .select("id")
-    .eq("strategy_id", strategyId);
+  try {
+    // 1. First delete backtest_trades (they reference backtests)
+    console.log("Step 1: Deleting backtest trades...");
+    const { data: backtests } = await supabase
+      .from("backtests")
+      .select("id")
+      .eq("strategy_id", strategyId);
 
-  if (backtestFetchError) {
-    console.error("Error fetching backtests:", backtestFetchError);
-    throw new Error("Failed to fetch related backtest data");
-  }
+    if (backtests && backtests.length > 0) {
+      const backtestIds = backtests.map(b => b.id);
+      
+      const { error: tradesDeleteError } = await supabase
+        .from("backtest_trades")
+        .delete()
+        .in("backtest_id", backtestIds);
 
-  // Delete backtest trades first (if any backtests exist)
-  if (backtests && backtests.length > 0) {
-    const backtestIds = backtests.map(b => b.id);
-    
-    const { error: tradesDeleteError } = await supabase
-      .from("backtest_trades")
-      .delete()
-      .in("backtest_id", backtestIds);
-
-    if (tradesDeleteError) {
-      console.error("Error deleting backtest trades:", tradesDeleteError);
-      throw new Error("Failed to delete related backtest trades");
+      if (tradesDeleteError) {
+        console.error("Error deleting backtest trades:", tradesDeleteError);
+        throw new Error("Failed to delete backtest trades");
+      }
+      console.log("Deleted backtest trades for backtests:", backtestIds);
     }
 
-    // Then delete the backtests themselves
+    // 2. Then delete backtests (they reference strategies)
+    console.log("Step 2: Deleting backtests...");
     const { error: backtestDeleteError } = await supabase
       .from("backtests")
       .delete()
@@ -491,36 +491,33 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
 
     if (backtestDeleteError) {
       console.error("Error deleting backtests:", backtestDeleteError);
-      throw new Error("Failed to delete related backtests");
-    }
-  }
-
-  // Delete related rule groups and trading rules
-  const { data: ruleGroups, error: ruleGroupsFetchError } = await supabase
-    .from("rule_groups")
-    .select("id")
-    .eq("strategy_id", strategyId);
-
-  if (ruleGroupsFetchError) {
-    console.error("Error fetching rule groups:", ruleGroupsFetchError);
-    throw new Error("Failed to fetch related rule groups");
-  }
-
-  if (ruleGroups && ruleGroups.length > 0) {
-    const ruleGroupIds = ruleGroups.map(rg => rg.id);
-    
-    // Delete trading rules first
-    const { error: rulesDeleteError } = await supabase
-      .from("trading_rules")
-      .delete()
-      .in("rule_group_id", ruleGroupIds);
-
-    if (rulesDeleteError) {
-      console.error("Error deleting trading rules:", rulesDeleteError);
-      throw new Error("Failed to delete related trading rules");
+      throw new Error("Failed to delete backtests");
     }
 
-    // Then delete rule groups
+    // 3. Delete trading_rules (they reference rule_groups)
+    console.log("Step 3: Deleting trading rules...");
+    const { data: ruleGroups } = await supabase
+      .from("rule_groups")
+      .select("id")
+      .eq("strategy_id", strategyId);
+
+    if (ruleGroups && ruleGroups.length > 0) {
+      const ruleGroupIds = ruleGroups.map(rg => rg.id);
+      
+      const { error: rulesDeleteError } = await supabase
+        .from("trading_rules")
+        .delete()
+        .in("rule_group_id", ruleGroupIds);
+
+      if (rulesDeleteError) {
+        console.error("Error deleting trading rules:", rulesDeleteError);
+        throw new Error("Failed to delete trading rules");
+      }
+      console.log("Deleted trading rules for rule groups:", ruleGroupIds);
+    }
+
+    // 4. Delete rule_groups (they reference strategies)
+    console.log("Step 4: Deleting rule groups...");
     const { error: ruleGroupsDeleteError } = await supabase
       .from("rule_groups")
       .delete()
@@ -528,24 +525,65 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
 
     if (ruleGroupsDeleteError) {
       console.error("Error deleting rule groups:", ruleGroupsDeleteError);
-      throw new Error("Failed to delete related rule groups");
+      throw new Error("Failed to delete rule groups");
     }
+
+    // 5. Delete any strategy_applications (they reference strategies)
+    console.log("Step 5: Deleting strategy applications...");
+    const { error: applicationsDeleteError } = await supabase
+      .from("strategy_applications")
+      .delete()
+      .eq("strategy_id", strategyId);
+
+    if (applicationsDeleteError) {
+      console.error("Error deleting strategy applications:", applicationsDeleteError);
+      throw new Error("Failed to delete strategy applications");
+    }
+
+    // 6. Delete any strategy_copies (they reference strategies)
+    console.log("Step 6: Deleting strategy copies...");
+    const { error: copiesDeleteError } = await supabase
+      .from("strategy_copies")
+      .delete()
+      .or(`source_strategy_id.eq.${strategyId},copied_strategy_id.eq.${strategyId}`);
+
+    if (copiesDeleteError) {
+      console.error("Error deleting strategy copies:", copiesDeleteError);
+      throw new Error("Failed to delete strategy copies");
+    }
+
+    // 7. Delete any strategy_recommendations (they reference strategies)
+    console.log("Step 7: Deleting strategy recommendations...");
+    const { error: recommendationsDeleteError } = await supabase
+      .from("strategy_recommendations")
+      .delete()
+      .or(`original_strategy_id.eq.${strategyId},recommended_strategy_id.eq.${strategyId}`);
+
+    if (recommendationsDeleteError) {
+      console.error("Error deleting strategy recommendations:", recommendationsDeleteError);
+      throw new Error("Failed to delete strategy recommendations");
+    }
+
+    // 8. Finally, delete the strategy itself
+    console.log("Step 8: Deleting strategy...");
+    const { error: strategyDeleteError } = await supabase
+      .from("strategies")
+      .delete()
+      .eq("id", strategyId)
+      .eq("user_id", user.id);
+
+    if (strategyDeleteError) {
+      console.error("Error deleting strategy:", strategyDeleteError);
+      throw new Error(strategyDeleteError.message || "Failed to delete strategy");
+    }
+
+    console.log("Strategy deleted successfully:", strategyId);
+    
+    // Dispatch a custom event to notify other components
+    window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: strategyId }));
+
+  } catch (error) {
+    console.error("Error in deleteStrategy:", error);
+    throw error;
   }
-
-  // Finally, delete the strategy itself
-  const { error } = await supabase
-    .from("strategies")
-    .delete()
-    .eq("id", strategyId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    console.error("Error deleting strategy:", error);
-    throw new Error(error.message || "Failed to delete strategy");
-  }
-
-  console.log("Strategy deleted successfully:", strategyId);
-  
-  // Dispatch a custom event to notify other components
-  window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: strategyId }));
 };

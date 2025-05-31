@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Switch } from "@/components/ui/switch";
+import { StrategyCard } from "./StrategyCard";
 
 export function StrategyList() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
@@ -40,6 +42,10 @@ export function StrategyList() {
     } else {
       setFilteredStrategies(strategies.slice(0, 6));
     }
+  };
+
+  const handleStrategyDeleted = () => {
+    fetchStrategies();
   };
 
   useEffect(() => {
@@ -86,7 +92,8 @@ export function StrategyList() {
     setShowActiveOnly(!showActiveOnly);
   };
 
-  return <Card className="h-full flex flex-col">
+  return (
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl">Your Strategies</CardTitle>
@@ -104,23 +111,35 @@ export function StrategyList() {
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <div className="divide-y">
-          {loading ? Array(6).fill(0).map((_, i) => <div key={i} className="flex items-center justify-between px-6 py-4">
+          {loading ? (
+            Array(6).fill(0).map((_, i) => (
+              <div key={i} className="flex items-center justify-between px-6 py-4">
                 <div className="animate-pulse w-2/3 h-6 rounded bg-muted"></div>
                 <div className="animate-pulse w-8 h-8 rounded-full bg-muted"></div>
-              </div>) : error ? <div className="px-6 py-4 text-center text-destructive">
+              </div>
+            ))
+          ) : error ? (
+            <div className="px-6 py-4 text-center text-destructive">
               {error}
               <Button variant="outline" size="sm" className="mt-2 mx-auto block" onClick={() => fetchStrategies()}>
                 Retry
               </Button>
-            </div> : filteredStrategies.length > 0 ? filteredStrategies.map(strategy => <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
+            </div>
+          ) : filteredStrategies.length > 0 ? (
+            filteredStrategies.map(strategy => (
+              <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
                 <div>
                   <div className="flex items-center">
                     <p className="font-medium">{strategy.name}</p>
-                    {strategy.isActive ? <Badge variant="outline" className="ml-2 bg-muted">
+                    {strategy.isActive ? (
+                      <Badge variant="outline" className="ml-2 bg-muted">
                         Active
-                      </Badge> : <Badge variant="outline" className="ml-2 text-muted-foreground">
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="ml-2 text-muted-foreground">
                         Inactive
-                      </Badge>}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {strategy.targetAsset || "Unknown"} • Updated {formatTimeAgo(strategy.updatedAt)}
@@ -131,9 +150,13 @@ export function StrategyList() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </Link>
-              </div>) : <div className="px-6 py-4 text-center text-muted-foreground">
+              </div>
+            ))
+          ) : (
+            <div className="px-6 py-4 text-center text-muted-foreground">
               {showActiveOnly ? "No active strategies available" : "No strategies available"}
-            </div>}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="pt-2 pb-6">
@@ -143,5 +166,6 @@ export function StrategyList() {
           </Button>
         </Link>
       </CardFooter>
-    </Card>;
+    </Card>
+  );
 }

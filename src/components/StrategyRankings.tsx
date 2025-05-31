@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpIcon, ArrowDownIcon, Star } from "lucide-react";
@@ -19,11 +18,16 @@ export function StrategyRankings() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log("Loading strategy rankings data...");
+        
         // Fetch recommended strategies and apply counts using new service
         const [recommendedStrategies, applyCounts] = await Promise.all([
           getRecommendedStrategies(),
           getStrategyApplyCounts()
         ]);
+
+        console.log("Recommended strategies:", recommendedStrategies);
+        console.log("Apply counts:", applyCounts);
 
         // Transform data and add apply counts
         const strategiesWithCounts = recommendedStrategies
@@ -36,9 +40,11 @@ export function StrategyRankings() {
           .sort((a, b) => b.applyCount - a.applyCount) // Sort by apply count descending
           .slice(0, 5); // Take top 5
 
+        console.log("Strategies with counts:", strategiesWithCounts);
         setStrategies(strategiesWithCounts);
       } catch (error) {
         console.error("Error loading strategy rankings:", error);
+        setStrategies([]); // Set empty array on error
       } finally {
         setLoading(false);
       }

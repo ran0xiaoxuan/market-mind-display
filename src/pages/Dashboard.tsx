@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 import { calculatePortfolioMetrics, getRealTradeHistory } from "@/services/marketDataService";
+import { getStrategies } from "@/services/strategyService";
 import { toast } from "sonner";
 
 type TimeRange = "7d" | "30d" | "all";
@@ -36,11 +37,16 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      // Fetch portfolio metrics and trade history in parallel
-      const [portfolioMetrics, realTradeHistory] = await Promise.all([
+      // Fetch strategies, portfolio metrics and trade history in parallel
+      const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([
+        getStrategies(),
         calculatePortfolioMetrics(timeRange),
         getRealTradeHistory(timeRange)
       ]);
+
+      // Calculate strategy metrics from actual user strategies
+      const totalStrategies = strategies.length;
+      const activeStrategies = strategies.filter(s => s.isActive).length;
 
       // Calculate signal and transaction amounts from trade history
       const signalAmount = realTradeHistory.length;
@@ -48,9 +54,13 @@ const Dashboard = () => {
         return total + (trade.contracts || 0);
       }, 0);
 
-      // Update metrics to include signal and transaction amounts
+      // Update metrics with real strategy counts
       const updatedMetrics = {
         ...portfolioMetrics,
+        strategiesCount: totalStrategies.toString(),
+        strategiesChange: { value: "+0", positive: false },
+        activeStrategies: activeStrategies.toString(),
+        activeChange: { value: "+0", positive: false },
         signalAmount: signalAmount.toString(),
         signalChange: { value: "+0", positive: false },
         transactionAmount: transactionAmount.toString(),
@@ -65,7 +75,7 @@ const Dashboard = () => {
         description: "Using cached data. Please check your connection."
       });
       
-      // Fallback to basic metrics if API fails
+      // Fallback to zero metrics if API fails
       setMetrics({
         strategiesCount: "0",
         strategiesChange: { value: "+0", positive: false },

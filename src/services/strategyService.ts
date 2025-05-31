@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -443,7 +442,7 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     throw new Error("User not authenticated");
   }
 
-  // First check if the strategy belongs to the user
+  // First check if the strategy belongs to the user and can be deleted
   const { data: strategy, error: fetchError } = await supabase
     .from("strategies")
     .select("id, user_id, can_be_deleted")
@@ -456,12 +455,10 @@ export const deleteStrategy = async (strategyId: string): Promise<void> => {
     throw new Error("Strategy not found or you don't have permission to delete it");
   }
 
-  // The database trigger will handle all the cascade deletions automatically
-  const { error } = await supabase
-    .from("strategies")
-    .delete()
-    .eq("id", strategyId)
-    .eq("user_id", user.id);
+  // Use the cascade deletion function to avoid recursion issues
+  const { error } = await supabase.rpc('delete_strategy_cascade', {
+    strategy_uuid: strategyId
+  });
 
   if (error) {
     console.error("Error deleting strategy:", error);

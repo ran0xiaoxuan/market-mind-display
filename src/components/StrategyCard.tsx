@@ -1,69 +1,76 @@
 
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
+import { Trash } from "lucide-react";
+import { deleteStrategy } from "@/services/strategyService";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface StrategyCardProps {
+  id: string;
   name: string;
   description: string;
   updatedAt: Date;
   asset: string;
   status: "active" | "inactive";
-  id?: string;
 }
 
-export function StrategyCard({
-  name,
-  description,
-  updatedAt,
-  asset,
-  status,
-  id
-}: StrategyCardProps) {
-  // Format the time distance with more precise units and capitalize if starts with "about"
-  const formatTimeAgo = (date: Date) => {
-    const timeAgo = formatDistanceToNow(date, { addSuffix: false });
+export function StrategyCard({ id, name, description, updatedAt, asset, status }: StrategyCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Capitalize first letter if the string starts with "about"
-    if (timeAgo.toLowerCase().startsWith('about')) {
-      return timeAgo.charAt(0).toUpperCase() + timeAgo.slice(1);
+    if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone.")) {
+      return;
     }
-    
-    return timeAgo;
+
+    try {
+      setIsDeleting(true);
+      await deleteStrategy(id);
+      toast.success("Strategy deleted successfully");
+    } catch (error) {
+      console.error("Error deleting strategy:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete strategy");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <Link 
-      to={id ? `/strategy/${id}` : "/"} 
-      className="block h-full hover:no-underline"
-    >
-      <Card className="overflow-hidden relative flex flex-col h-full transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer">
-        <div className="p-8">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium text-xl">{name}</h3>
-            {status === "active" ? (
-              <Badge variant="outline" className="bg-muted">Active</Badge>
-            ) : (
-              <Badge variant="outline" className="bg-muted text-muted-foreground">Inactive</Badge>
-            )}
+    <Link to={`/strategy/${id}`} className="block">
+      <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-xl">{name}</CardTitle>
+            <Badge variant={status === "active" ? "default" : "secondary"}>
+              {status}
+            </Badge>
           </div>
-          
-          <p className="text-muted-foreground mb-6 line-clamp-2 overflow-hidden text-ellipsis text-base">
-            {description}
-          </p>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-muted-foreground text-xs">Last Updated</p>
-              <p className="text-sm font-medium">{formatTimeAgo(updatedAt)} ago</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Target Asset</p>
-              <p className="text-sm font-medium">{asset || "Unknown"}</p>
-            </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground mb-4 line-clamp-3">{description}</p>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Asset: {asset}</span>
+            <span>Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}</span>
           </div>
-        </div>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            <Trash className="h-4 w-4" />
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </CardFooter>
       </Card>
     </Link>
   );

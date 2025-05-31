@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StrategyApplyCount {
@@ -61,20 +60,6 @@ export const trackStrategyApplication = async (strategyId: string, userId: strin
       // Don't throw error here as the copy was successful
     }
 
-    // Also record in the old table for backward compatibility
-    const { error: applicationError } = await supabase
-      .from('strategy_applications')
-      .insert({
-        strategy_id: strategyId,
-        user_id: userId,
-        applied_at: new Date().toISOString()
-      });
-
-    if (applicationError) {
-      console.error("Error tracking strategy application:", applicationError);
-      // Don't throw error here as the main operation was successful
-    }
-
     return copiedStrategy;
   } catch (error) {
     console.error("Error in trackStrategyApplication:", error);
@@ -82,10 +67,10 @@ export const trackStrategyApplication = async (strategyId: string, userId: strin
   }
 };
 
-// Get apply counts for all strategies using the new database function
+// Get apply counts for all strategies using only the new strategy_copies table
 export const getStrategyApplyCounts = async (): Promise<Map<string, number>> => {
   try {
-    // Get all unique strategy IDs that have been applied
+    // Only count from strategy_copies table to avoid double counting
     const { data: appliedStrategies, error } = await supabase
       .from('strategy_copies')
       .select('source_strategy_id')
@@ -96,28 +81,12 @@ export const getStrategyApplyCounts = async (): Promise<Map<string, number>> => 
       return new Map();
     }
 
-    // Also get from old table for backward compatibility
-    const { data: oldApplications, error: oldError } = await supabase
-      .from('strategy_applications')
-      .select('strategy_id');
-
-    if (oldError) {
-      console.error("Error fetching old strategy applications:", oldError);
-    }
-
     // Count applications per strategy
     const counts = new Map<string, number>();
     
-    // Count from new table
     appliedStrategies?.forEach(application => {
       const currentCount = counts.get(application.source_strategy_id) || 0;
       counts.set(application.source_strategy_id, currentCount + 1);
-    });
-
-    // Add counts from old table
-    oldApplications?.forEach(application => {
-      const currentCount = counts.get(application.strategy_id) || 0;
-      counts.set(application.strategy_id, currentCount + 1);
     });
 
     return counts;

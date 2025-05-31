@@ -62,23 +62,44 @@ const EditStrategy = () => {
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([]);
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([]);
 
-  // More lenient validation functions
+  // Enhanced validation functions
   const validateBasicInfo = () => {
     const errors = [];
     if (!strategyName.trim()) errors.push("Strategy Name is required");
+    if (!description.trim()) errors.push("Description is required");
     if (!timeframe) errors.push("Timeframe is required");
+    if (!targetAsset.trim()) errors.push("Target Asset is required");
     return errors;
   };
 
   const validateRiskManagement = () => {
     const errors = [];
-    // Make risk management optional for now
+    if (!stopLoss.trim()) errors.push("Stop Loss is required");
+    if (!takeProfit.trim()) errors.push("Take Profit is required");
+    if (!singleBuyVolume.trim()) errors.push("Single Buy Volume is required");
+    if (!maxBuyVolume.trim()) errors.push("Max Buy Volume is required");
     return errors;
   };
 
   const validateTradingRules = () => {
     const errors = [];
-    // Make trading rules optional for now to allow saving drafts
+    
+    // Check if entry rules have at least one condition
+    const hasEntryConditions = entryRules.some(group => 
+      group.inequalities && group.inequalities.length > 0
+    );
+    if (!hasEntryConditions) {
+      errors.push("At least one entry rule condition is required");
+    }
+
+    // Check if exit rules have at least one condition
+    const hasExitConditions = exitRules.some(group => 
+      group.inequalities && group.inequalities.length > 0
+    );
+    if (!hasExitConditions) {
+      errors.push("At least one exit rule condition is required");
+    }
+
     return errors;
   };
 
@@ -156,6 +177,10 @@ const EditStrategy = () => {
               id: 1,
               logic: "AND",
               inequalities: []
+            }, {
+              id: 2,
+              logic: "OR",
+              inequalities: []
             }]);
           }
           if (rulesData.exitRules && rulesData.exitRules.length > 0) {
@@ -166,6 +191,10 @@ const EditStrategy = () => {
               id: 1,
               logic: "AND",
               inequalities: []
+            }, {
+              id: 2,
+              logic: "OR",
+              inequalities: []
             }]);
           }
         } else {
@@ -174,10 +203,18 @@ const EditStrategy = () => {
             id: 1,
             logic: "AND",
             inequalities: []
+          }, {
+            id: 2,
+            logic: "OR",
+            inequalities: []
           }]);
           setExitRules([{
             id: 1,
             logic: "AND",
+            inequalities: []
+          }, {
+            id: 2,
+            logic: "OR",
             inequalities: []
           }]);
         }
@@ -274,10 +311,14 @@ const EditStrategy = () => {
     setShowValidation(true);
     
     const basicErrors = validateBasicInfo();
+    const riskErrors = validateRiskManagement();
+    const rulesErrors = validateTradingRules();
     
-    if (basicErrors.length > 0) {
-      toast.error("Please complete required fields before saving", {
-        description: `${basicErrors.length} field(s) need to be completed`
+    const allErrors = [...basicErrors, ...riskErrors, ...rulesErrors];
+    
+    if (allErrors.length > 0) {
+      toast.error("Please complete all required fields before saving", {
+        description: `${allErrors.length} field(s) need to be completed`
       });
       return;
     }
@@ -286,18 +327,18 @@ const EditStrategy = () => {
     try {
       setIsSaving(true);
 
-      // Update strategy information with more flexible approach
+      // Update strategy information
       const { error: strategyError } = await supabase.from('strategies').update({
         name: strategyName,
-        description: description || null,
+        description: description,
         timeframe: timeframe, 
-        target_asset: targetAsset || null,
-        target_asset_name: targetAssetName || null,
+        target_asset: targetAsset,
+        target_asset_name: targetAssetName, // Ensure target_asset_name is included
         is_active: isActive,
-        stop_loss: stopLoss || null,
-        take_profit: takeProfit || null,
-        single_buy_volume: singleBuyVolume || null,
-        max_buy_volume: maxBuyVolume || null,
+        stop_loss: stopLoss,
+        take_profit: takeProfit,
+        single_buy_volume: singleBuyVolume,
+        max_buy_volume: maxBuyVolume,
         updated_at: new Date().toISOString()
       }).eq('id', id);
       
@@ -305,140 +346,129 @@ const EditStrategy = () => {
         throw new Error(`Error updating strategy: ${strategyError.message}`);
       }
 
-      // Only update rules if they exist and have content
-      if (entryRules.length > 0 || exitRules.length > 0) {
-        // Get all existing rule groups for this strategy
+      // Get all existing rule groups for this strategy
+      const {
+        data: existingRuleGroups,
+        error: ruleGroupsError
+      } = await supabase.from('rule_groups').select('id, rule_type').eq('strategy_id', id);
+      if (ruleGroupsError) {
+        throw new Error(`Error fetching rule groups: ${ruleGroupsError.message}`);
+      }
+
+      // Delete existing rule groups and their associated trading rules
+      if (existingRuleGroups && existingRuleGroups.length > 0) {
+        // Get the IDs of all rule groups
+        const ruleGroupIds = existingRuleGroups.map(group => group.id);
+
+        // Delete trading rules first (foreign key constraint)
         const {
-          data: existingRuleGroups,
-          error: ruleGroupsError
-        } = await supabase.from('rule_groups').select('id, rule_type').eq('strategy_id', id);
-        
-        if (ruleGroupsError) {
-          console.warn("Could not fetch existing rule groups:", ruleGroupsError);
+          error: deleteRulesError
+        } = await supabase.from('trading_rules').delete().in('rule_group_id', ruleGroupIds);
+        if (deleteRulesError) {
+          throw new Error(`Error deleting trading rules: ${deleteRulesError.message}`);
         }
 
-        // Delete existing rule groups and their associated trading rules
-        if (existingRuleGroups && existingRuleGroups.length > 0) {
-          // Get the IDs of all rule groups
-          const ruleGroupIds = existingRuleGroups.map(group => group.id);
+        // Delete rule groups
+        const {
+          error: deleteGroupsError
+        } = await supabase.from('rule_groups').delete().eq('strategy_id', id);
+        if (deleteGroupsError) {
+          throw new Error(`Error deleting rule groups: ${deleteGroupsError.message}`);
+        }
+      }
 
-          // Delete trading rules first (foreign key constraint)
-          const {
-            error: deleteRulesError
-          } = await supabase.from('trading_rules').delete().in('rule_group_id', ruleGroupIds);
-          if (deleteRulesError) {
-            console.warn("Could not delete existing trading rules:", deleteRulesError);
-          }
+      // Create new entry rule groups and rules
+      for (let groupIndex = 0; groupIndex < entryRules.length; groupIndex++) {
+        const group = entryRules[groupIndex];
 
-          // Delete rule groups
-          const {
-            error: deleteGroupsError
-          } = await supabase.from('rule_groups').delete().eq('strategy_id', id);
-          if (deleteGroupsError) {
-            console.warn("Could not delete existing rule groups:", deleteGroupsError);
-          }
+        // Insert the rule group
+        const {
+          data: entryGroup,
+          error: entryGroupError
+        } = await supabase.from('rule_groups').insert({
+          strategy_id: id,
+          rule_type: 'entry',
+          group_order: groupIndex + 1,
+          logic: group.logic,
+          required_conditions: group.logic === 'OR' ? group.requiredConditions : null
+        }).select().single();
+        if (entryGroupError) {
+          throw new Error(`Error creating entry rule group: ${entryGroupError.message}`);
         }
 
-        // Create new entry rule groups and rules only if they have content
-        for (let groupIndex = 0; groupIndex < entryRules.length; groupIndex++) {
-          const group = entryRules[groupIndex];
-          if (!group.inequalities || group.inequalities.length === 0) continue;
-
-          // Insert the rule group
+        // Add each inequality as a trading rule
+        for (let i = 0; i < group.inequalities.length; i++) {
+          const inequality = group.inequalities[i];
           const {
-            data: entryGroup,
-            error: entryGroupError
-          } = await supabase.from('rule_groups').insert({
-            strategy_id: id,
-            rule_type: 'entry',
-            group_order: groupIndex + 1,
-            logic: group.logic,
-            required_conditions: group.logic === 'OR' ? group.requiredConditions : null
-          }).select().single();
-          
-          if (entryGroupError) {
-            console.warn("Could not create entry rule group:", entryGroupError);
-            continue;
-          }
-
-          // Add each inequality as a trading rule
-          for (let i = 0; i < group.inequalities.length; i++) {
-            const inequality = group.inequalities[i];
-            const {
-              error: ruleError
-            } = await supabase.from('trading_rules').insert({
-              rule_group_id: entryGroup.id,
-              inequality_order: i + 1,
-              left_type: inequality.left.type,
-              left_indicator: inequality.left.indicator,
-              left_parameters: inequality.left.parameters,
-              left_value: inequality.left.value,
-              left_value_type: inequality.left.valueType,
-              condition: inequality.condition,
-              right_type: inequality.right.type,
-              right_indicator: inequality.right.indicator,
-              right_parameters: inequality.right.parameters,
-              right_value: inequality.right.value,
-              right_value_type: inequality.right.valueType,
-              explanation: inequality.explanation
-            });
-            if (ruleError) {
-              console.warn("Could not save entry rule:", ruleError);
-            }
-          }
-        }
-
-        // Create new exit rule groups and rules only if they have content
-        for (let groupIndex = 0; groupIndex < exitRules.length; groupIndex++) {
-          const group = exitRules[groupIndex];
-          if (!group.inequalities || group.inequalities.length === 0) continue;
-
-          // Insert the rule group
-          const {
-            data: exitGroup,
-            error: exitGroupError
-          } = await supabase.from('rule_groups').insert({
-            strategy_id: id,
-            rule_type: 'exit',
-            group_order: groupIndex + 1,
-            logic: group.logic,
-            required_conditions: group.logic === 'OR' ? group.requiredConditions : null
-          }).select().single();
-          
-          if (exitGroupError) {
-            console.warn("Could not create exit rule group:", exitGroupError);
-            continue;
-          }
-
-          // Add each inequality as a trading rule
-          for (let i = 0; i < group.inequalities.length; i++) {
-            const inequality = group.inequalities[i];
-            const {
-              error: ruleError
-            } = await supabase.from('trading_rules').insert({
-              rule_group_id: exitGroup.id,
-              inequality_order: i + 1,
-              left_type: inequality.left.type,
-              left_indicator: inequality.left.indicator,
-              left_parameters: inequality.left.parameters,
-              left_value: inequality.left.value,
-              left_value_type: inequality.left.valueType,
-              condition: inequality.condition,
-              right_type: inequality.right.type,
-              right_indicator: inequality.right.indicator,
-              right_parameters: inequality.right.parameters,
-              right_value: inequality.right.value,
-              right_value_type: inequality.right.valueType,
-              explanation: inequality.explanation
-            });
-            if (ruleError) {
-              console.warn("Could not save exit rule:", ruleError);
-            }
+            error: ruleError
+          } = await supabase.from('trading_rules').insert({
+            rule_group_id: entryGroup.id,
+            inequality_order: i + 1,
+            left_type: inequality.left.type,
+            left_indicator: inequality.left.indicator,
+            left_parameters: inequality.left.parameters,
+            left_value: inequality.left.value,
+            left_value_type: inequality.left.valueType,
+            condition: inequality.condition,
+            right_type: inequality.right.type,
+            right_indicator: inequality.right.indicator,
+            right_parameters: inequality.right.parameters,
+            right_value: inequality.right.value,
+            right_value_type: inequality.right.valueType,
+            explanation: inequality.explanation
+          });
+          if (ruleError) {
+            throw new Error(`Error saving entry rule: ${ruleError.message}`);
           }
         }
       }
 
-      toast.success("Your strategy has been successfully updated.");
+      // Create new exit rule groups and rules
+      for (let groupIndex = 0; groupIndex < exitRules.length; groupIndex++) {
+        const group = exitRules[groupIndex];
+
+        // Insert the rule group
+        const {
+          data: exitGroup,
+          error: exitGroupError
+        } = await supabase.from('rule_groups').insert({
+          strategy_id: id,
+          rule_type: 'exit',
+          group_order: groupIndex + 1,
+          logic: group.logic,
+          required_conditions: group.logic === 'OR' ? group.requiredConditions : null
+        }).select().single();
+        if (exitGroupError) {
+          throw new Error(`Error creating exit rule group: ${exitGroupError.message}`);
+        }
+
+        // Add each inequality as a trading rule
+        for (let i = 0; i < group.inequalities.length; i++) {
+          const inequality = group.inequalities[i];
+          const {
+            error: ruleError
+          } = await supabase.from('trading_rules').insert({
+            rule_group_id: exitGroup.id,
+            inequality_order: i + 1,
+            left_type: inequality.left.type,
+            left_indicator: inequality.left.indicator,
+            left_parameters: inequality.left.parameters,
+            left_value: inequality.left.value,
+            left_value_type: inequality.left.valueType,
+            condition: inequality.condition,
+            right_type: inequality.right.type,
+            right_indicator: inequality.right.indicator,
+            right_parameters: inequality.right.parameters,
+            right_value: inequality.right.value,
+            right_value_type: inequality.right.valueType,
+            explanation: inequality.explanation
+          });
+          if (ruleError) {
+            throw new Error(`Error saving exit rule: ${ruleError.message}`);
+          }
+        }
+      }
+      toast("Your strategy has been successfully updated.");
       navigate(`/strategy/${id}`);
     } catch (error) {
       console.error("Error saving strategy:", error);
@@ -528,9 +558,8 @@ const EditStrategy = () => {
                   id="description" 
                   value={description} 
                   onChange={e => setDescription(e.target.value)} 
-                  className="mt-1 resize-none" 
+                  className={`mt-1 resize-none ${!description.trim() && showValidation ? 'border-red-500' : ''}`} 
                   rows={3} 
-                  placeholder="Optional description of your strategy"
                 />
               </div>
               
@@ -551,10 +580,10 @@ const EditStrategy = () => {
               </div>
               
               <div>
-                <Label htmlFor="asset" className="block text-sm font-medium mb-2">Target Asset (Optional)</Label>
+                <Label htmlFor="asset" className="block text-sm font-medium mb-2">Target Asset</Label>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start text-left font-normal h-10" 
+                  className={`w-full justify-start text-left font-normal h-10 ${!targetAsset.trim() && showValidation ? 'border-red-500' : ''}`} 
                   onClick={handleSearchOpen}
                 >
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -568,25 +597,19 @@ const EditStrategy = () => {
                   <CommandInput placeholder="Search for stocks..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
                   <CommandList>
                     <CommandEmpty>
-                      {isLoading ? (
-                        <div className="flex items-center justify-center p-4">
+                      {isLoading ? <div className="flex items-center justify-center p-4">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : (
-                        <p className="p-4 text-center text-sm text-muted-foreground">
+                        </div> : <p className="p-4 text-center text-sm text-muted-foreground">
                           No assets found.
-                        </p>
-                      )}
+                        </p>}
                     </CommandEmpty>
                     <CommandGroup heading="Search Results">
-                      {searchResults.map(asset => (
-                        <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
+                      {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
                           <div className="flex flex-col">
                             <span>{asset.symbol}</span>
                             <span className="text-xs text-muted-foreground">{asset.name}</span>
                           </div>
-                        </CommandItem>
-                      ))}
+                        </CommandItem>)}
                     </CommandGroup>
                   </CommandList>
                 </CommandDialog>
@@ -594,9 +617,23 @@ const EditStrategy = () => {
             </div>
           </Card>
           
-          <Card className="p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-1">Risk Management (Optional)</h2>
+          <Card className={`p-6 mb-6 ${riskManagementErrors.length > 0 ? 'border-red-500' : ''}`}>
+            <h2 className="text-xl font-semibold mb-1">Risk Management</h2>
             <p className="text-sm text-muted-foreground mb-4">Define your risk parameters and investment limits</p>
+            
+            {riskManagementErrors.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-1">Please complete the following fields:</div>
+                  <ul className="list-disc pl-4">
+                    {riskManagementErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -608,8 +645,7 @@ const EditStrategy = () => {
                   step="0.1" 
                   value={stopLoss} 
                   onChange={e => setStopLoss(e.target.value)} 
-                  className="mt-1"
-                  placeholder="e.g., 5"
+                  className={`mt-1 ${!stopLoss.trim() && showValidation ? 'border-red-500' : ''}`}
                 />
               </div>
               <div>
@@ -621,8 +657,7 @@ const EditStrategy = () => {
                   step="0.1" 
                   value={takeProfit} 
                   onChange={e => setTakeProfit(e.target.value)} 
-                  className="mt-1"
-                  placeholder="e.g., 10"
+                  className={`mt-1 ${!takeProfit.trim() && showValidation ? 'border-red-500' : ''}`}
                 />
               </div>
             </div>
@@ -637,8 +672,7 @@ const EditStrategy = () => {
                   step="100" 
                   value={singleBuyVolume} 
                   onChange={e => setSingleBuyVolume(e.target.value)} 
-                  className="mt-1"
-                  placeholder="e.g., 1000"
+                  className={`mt-1 ${!singleBuyVolume.trim() && showValidation ? 'border-red-500' : ''}`}
                 />
               </div>
               <div>
@@ -650,16 +684,29 @@ const EditStrategy = () => {
                   step="100" 
                   value={maxBuyVolume} 
                   onChange={e => setMaxBuyVolume(e.target.value)} 
-                  className="mt-1"
-                  placeholder="e.g., 5000"
+                  className={`mt-1 ${!maxBuyVolume.trim() && showValidation ? 'border-red-500' : ''}`}
                 />
               </div>
             </div>
           </Card>
           
-          <Card className="p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-1">Trading Rules (Optional)</h2>
+          <Card className={`p-6 mb-6 ${tradingRulesErrors.length > 0 ? 'border-red-500' : ''}`}>
+            <h2 className="text-xl font-semibold mb-1">Trading Rules</h2>
             <p className="text-sm text-muted-foreground mb-4">Define the entry and exit conditions for your strategy</p>
+            
+            {tradingRulesErrors.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-1">Please complete the following:</div>
+                  <ul className="list-disc pl-4">
+                    {tradingRulesErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             
             <TradingRules 
               entryRules={entryRules} 

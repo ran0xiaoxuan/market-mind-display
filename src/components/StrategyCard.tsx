@@ -16,7 +16,6 @@ interface StrategyCardProps {
   updatedAt: Date;
   asset: string;
   status: "active" | "inactive";
-  onDeleted?: () => void;
 }
 
 export function StrategyCard({
@@ -25,8 +24,7 @@ export function StrategyCard({
   description,
   updatedAt,
   asset,
-  status,
-  onDeleted
+  status
 }: StrategyCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -42,11 +40,6 @@ export function StrategyCard({
       setIsDeleting(true);
       await deleteStrategy(id);
       toast.success("Strategy deleted successfully");
-      if (onDeleted) {
-        onDeleted();
-      }
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: id }));
     } catch (error) {
       console.error("Error deleting strategy:", error);
       toast.error(error instanceof Error ? error.message : "Failed to delete strategy");
@@ -56,25 +49,14 @@ export function StrategyCard({
   };
 
   return (
-    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer flex flex-col">
-      <Link to={`/strategy/${id}`} className="flex flex-col h-full">
+    <Link to={`/strategy/${id}`} className="block">
+      <Card className="h-full hover:shadow-md transition-shadow cursor-pointer flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start">
             <CardTitle className="text-xl truncate pr-2">{name}</CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant={status === "active" ? "default" : "secondary"}>
-                {status}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
-            </div>
+            <Badge variant={status === "active" ? "default" : "secondary"}>
+              {status}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="flex-1">
@@ -88,7 +70,7 @@ export function StrategyCard({
             })}</span>
           </div>
         </CardFooter>
-      </Link>
-    </Card>
+      </Card>
+    </Link>
   );
 }

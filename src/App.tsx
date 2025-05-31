@@ -15,6 +15,7 @@ import Confirm from "./pages/auth/Confirm";
 import Dashboard from "./pages/Dashboard";
 import Strategies from "./pages/Strategies";
 import AIStrategy from "./pages/AIStrategy";
+import StrategyPreview from "./pages/StrategyPreview";
 import Backtest from "./pages/Backtest";
 import BacktestHistory from "./pages/BacktestHistory";
 import EditStrategy from "./pages/EditStrategy";
@@ -53,6 +54,7 @@ function App() {
           <Route path="/strategy/:id" element={<StrategyDetail />} />
           <Route path="/strategy/:id/edit" element={<EditStrategy />} />
           <Route path="/ai-strategy" element={<AIStrategy />} />
+          <Route path="/strategy-preview" element={<StrategyPreview />} />
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/backtest-history" element={<BacktestHistory />} />
           <Route path="/edit-history/:id" element={<EditHistory />} />

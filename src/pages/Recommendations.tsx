@@ -166,16 +166,38 @@ const Recommendations = () => {
       }
       console.log("Applying strategy:", strategy.id);
 
+      // Show loading toast
+      const loadingToast = toast.loading("Applying strategy...", {
+        description: `Copying "${strategy.name}" to your collection`
+      });
+
       // Use new service function that creates a copy and tracks the application
       const copiedStrategy = await trackStrategyApplication(strategy.id, session.user.id);
 
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      // Show success notification with details
+      toast.success("Strategy applied successfully!", {
+        description: `"${strategy.name}" has been added to your strategy collection and is ready to use.`,
+        duration: 5000,
+        action: {
+          label: "View Strategies",
+          onClick: () => window.location.href = "/strategies"
+        }
+      });
+
       // Refresh apply counts to show updated data
       await fetchApplyCounts();
-      toast.success("Strategy copied to your collection");
       console.log("Strategy successfully copied:", copiedStrategy);
     } catch (error) {
       console.error("Error applying strategy:", error);
-      toast.error("Failed to apply strategy");
+      
+      // Show error notification with more details
+      toast.error("Failed to apply strategy", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred while copying the strategy. Please try again.",
+        duration: 7000
+      });
     }
   };
 

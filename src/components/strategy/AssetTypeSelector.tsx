@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,50 +26,71 @@ export const AssetTypeSelector = ({
   const [selectedAssetDetails, setSelectedAssetDetails] = useState<Asset | null>(null);
   const [isSearchError, setIsSearchError] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>('connecting');
   const [hasShownConnectionToast, setHasShownConnectionToast] = useState(false);
 
-  // Fetch and validate API key on component mount and retry if needed
+  // Single connection attempt with better error handling
   useEffect(() => {
-    const fetchAndValidateApiKey = async () => {
+    let isCancelled = false;
+
+    const initializeConnection = async () => {
+      if (connectionStatus === 'connected') return;
+
       try {
         setIsConnecting(true);
-        console.log("Fetching and validating FMP API key...");
+        setConnectionStatus('connecting');
+        console.log("Initializing FMP API connection...");
 
-        // First, fetch the API key
+        // Fetch API key with timeout
         const key = await getFmpApiKey();
-        setApiKey(key);
+        if (isCancelled) return;
+        
         if (!key) {
-          console.log("No API key retrieved");
           throw new Error("Could not retrieve market data API key");
         }
 
-        // Then validate it with a test call
-        console.log("Validating API key...");
+        setApiKey(key);
+        console.log("API key retrieved, validating...");
+
+        // Validate with longer timeout and retry logic
         const isValid = await validateFmpApiKey(key);
-        if (!isValid) {
-          console.log("API key validation failed");
-          throw new Error("Market data API key validation failed");
-        }
-        
-        // Only show success toast once
-        if (!hasShownConnectionToast) {
-          toast.success("Market data connected successfully");
-          setHasShownConnectionToast(true);
+        if (isCancelled) return;
+
+        if (isValid) {
+          setConnectionStatus('connected');
+          if (!hasShownConnectionToast) {
+            toast.success("Market data connected successfully");
+            setHasShownConnectionToast(true);
+          }
+          console.log("FMP API connection successful");
+        } else {
+          throw new Error("API key validation failed");
         }
       } catch (error) {
-        console.error("Error in API key validation:", error);
-        // Only show error toast if we haven't shown a connection toast yet
+        if (isCancelled) return;
+        
+        console.error("FMP API connection failed:", error);
+        setConnectionStatus('failed');
+        
         if (!hasShownConnectionToast) {
-          toast.error("Could not connect to market data service");
+          toast.error("Market data service unavailable", {
+            description: "Please check your connection and try again"
+          });
           setHasShownConnectionToast(true);
         }
       } finally {
-        setIsConnecting(false);
+        if (!isCancelled) {
+          setIsConnecting(false);
+        }
       }
     };
-    fetchAndValidateApiKey();
-  }, [retryCount, hasShownConnectionToast]);
+
+    initializeConnection();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [connectionStatus, hasShownConnectionToast]);
 
   // Set selected asset details when selectedAsset changes
   useEffect(() => {
@@ -84,53 +106,50 @@ export const AssetTypeSelector = ({
       return;
     }
 
-    // If we reach here and still don't have details, try to fetch them
-    if (apiKey) {
+    // If we have a valid connection, try to fetch asset details
+    if (connectionStatus === 'connected' && apiKey) {
       searchStocks(selectedAsset, apiKey).then(results => {
         const match = results.find(asset => asset.symbol === selectedAsset);
         if (match) {
           setSelectedAssetDetails(match);
         }
+      }).catch(error => {
+        console.error("Error fetching asset details:", error);
       });
     }
-  }, [selectedAsset, searchResults, apiKey]);
+  }, [selectedAsset, searchResults, apiKey, connectionStatus]);
 
   // Search for assets with debounce
   const searchAssets = useCallback(debounce(async (query: string) => {
+    if (connectionStatus !== 'connected' || !apiKey) {
+      console.log("Cannot search: API not connected");
+      return;
+    }
+
     setIsLoading(true);
     setIsSearchError(false);
+    
     try {
-      // Get fresh API key if needed
-      const key = apiKey || (await getFmpApiKey());
-      if (!key) {
-        throw new Error("Could not retrieve market data API key");
-      }
-
-      // Only search if there's an actual query
       if (query.trim().length > 0) {
-        // Fetch results from the API service
-        const results = await searchStocks(query, key);
+        const results = await searchStocks(query, apiKey);
         setSearchResults(results);
 
-        // Show toast for no results only if user has typed something significant
         if (results.length === 0 && query.trim().length > 2) {
           toast.info(`No stocks found matching "${query}"`);
         }
       } else {
-        // Clear results when query is empty
         setSearchResults([]);
       }
     } catch (error) {
-      console.error(`Error searching stocks:`, error);
+      console.error("Search failed:", error);
       setIsSearchError(true);
-      // Only show search error toast for actual search queries
       if (query.length > 2) {
         toast.error("Search failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
     }
-  }, 300), [apiKey]);
+  }, 500), [apiKey, connectionStatus]);
 
   // Reset search error state when query changes
   useEffect(() => {
@@ -139,23 +158,27 @@ export const AssetTypeSelector = ({
 
   // Trigger search when query changes
   useEffect(() => {
-    if (isSearchOpen && apiKey) {
+    if (isSearchOpen && connectionStatus === 'connected') {
       searchAssets(searchQuery);
     }
-  }, [searchQuery, isSearchOpen, searchAssets, apiKey]);
+  }, [searchQuery, isSearchOpen, searchAssets, connectionStatus]);
 
   // Handle search dialog open
   const handleSearchOpen = async () => {
+    if (connectionStatus !== 'connected') {
+      toast.error("Market data service not available");
+      return;
+    }
+    
     setIsSearchOpen(true);
-    // Only set loading initially if we have a query to search
     setIsLoading(!!searchQuery.trim().length);
     setSearchResults([]);
   };
 
-  // Retry connecting to the FMP API
+  // Retry connection
   const handleRetryConnection = () => {
-    setRetryCount(prev => prev + 1);
-    setHasShownConnectionToast(false); // Reset to allow new toast
+    setConnectionStatus('connecting');
+    setHasShownConnectionToast(false);
     setIsConnecting(true);
   };
 
@@ -166,77 +189,127 @@ export const AssetTypeSelector = ({
     setIsSearchOpen(false);
   };
 
-  return <Card className="p-6 mb-10 border">
+  return (
+    <Card className="p-6 mb-10 border">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">Target Asset</h2>
         
-        {isConnecting ? <div className="flex items-center gap-1 text-xs">
+        {isConnecting && (
+          <div className="flex items-center gap-1 text-xs">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span className="text-muted-foreground">Connecting to market data...</span>
-          </div> : null}
+          </div>
+        )}
+
+        {connectionStatus === 'connected' && (
+          <div className="flex items-center gap-1 text-xs">
+            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+            <span className="text-muted-foreground">Market data connected</span>
+          </div>
+        )}
       </div>
       
       <div className="mb-6 relative">
-        {isConnecting ? <Button variant="outline" className="w-full justify-start text-left font-normal h-10" disabled>
+        {connectionStatus === 'connecting' ? (
+          <Button variant="outline" className="w-full justify-start text-left font-normal h-10" disabled>
             <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
             Connecting to market data...
-          </Button> : <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
+          </Button>
+        ) : connectionStatus === 'failed' ? (
+          <Button variant="outline" className="w-full justify-start text-left font-normal h-10" disabled>
+            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+            Market data unavailable
+          </Button>
+        ) : (
+          <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for a stock..."}
-          </Button>}
+          </Button>
+        )}
         
-        <CommandDialog open={isSearchOpen} onOpenChange={open => {
-        setIsSearchOpen(open);
-        if (!open) {
-          setTimeout(() => {
-            setSearchQuery("");
-            setIsSearchError(false);
-          }, 100);
-        }
-      }}>
+        <CommandDialog open={isSearchOpen} onOpenChange={(open) => {
+          setIsSearchOpen(open);
+          if (!open) {
+            setTimeout(() => {
+              setSearchQuery("");
+              setIsSearchError(false);
+            }, 100);
+          }
+        }}>
           <DialogTitle className="mx-[20px] my-[20px]">Target Asset</DialogTitle>
           
-          
-          <CommandInput placeholder="Type to search for stocks..." value={searchQuery} onValueChange={setSearchQuery} autoFocus={true} />
+          <CommandInput 
+            placeholder="Type to search for stocks..." 
+            value={searchQuery} 
+            onValueChange={setSearchQuery} 
+            autoFocus={true} 
+          />
           <CommandList>
             <CommandEmpty>
-              {isLoading ? <div className="flex items-center justify-center p-4">
+              {isLoading ? (
+                <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div> : searchQuery.trim() === "" ? <p className="p-4 text-center text-sm text-muted-foreground">Results will be shown here.</p> : <p className="p-4 text-center text-sm text-muted-foreground">
+                </div>
+              ) : searchQuery.trim() === "" ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">Results will be shown here.</p>
+              ) : (
+                <p className="p-4 text-center text-sm text-muted-foreground">
                   No stocks found
-                </p>}
+                </p>
+              )}
             </CommandEmpty>
             
-            {searchResults.length > 0 && <CommandGroup heading="Search Results">
-                {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
+            {searchResults.length > 0 && (
+              <CommandGroup heading="Search Results">
+                {searchResults.map((asset) => (
+                  <CommandItem 
+                    key={asset.symbol} 
+                    value={`${asset.symbol} ${asset.name}`} 
+                    onSelect={() => handleSelectAsset(asset)}
+                  >
                     <div className="flex flex-col">
                       <span className="font-medium">{asset.symbol}</span>
                       <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                         {asset.name}
                       </span>
                     </div>
-                  </CommandItem>)}
-              </CommandGroup>}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </CommandDialog>
       </div>
       
-      {isSearchError && <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-md p-3 text-sm flex items-start gap-2">
+      {connectionStatus === 'failed' && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-md p-3 text-sm flex items-start gap-2">
           <div>
             <p className="text-amber-800 dark:text-amber-300 font-medium">Market data unavailable</p>
             <p className="text-amber-700 dark:text-amber-400 text-xs mt-1">
               Unable to connect to market data service. Please check your connection and try again.
             </p>
-            <Button variant="outline" size="sm" className="mt-2 h-7 text-xs border-amber-300 dark:border-amber-800 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900" onClick={handleRetryConnection} disabled={isConnecting}>
-              {isConnecting ? <>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 h-7 text-xs border-amber-300 dark:border-amber-800 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900" 
+              onClick={handleRetryConnection} 
+              disabled={isConnecting}
+            >
+              {isConnecting ? (
+                <>
                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                   Connecting...
-                </> : <>
+                </>
+              ) : (
+                <>
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Retry Connection
-                </>}
+                </>
+              )}
             </Button>
           </div>
-        </div>}
-    </Card>;
+        </div>
+      )}
+    </Card>
+  );
 };

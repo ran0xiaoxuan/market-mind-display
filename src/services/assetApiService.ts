@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -9,8 +10,8 @@ export interface Asset {
 // Cache the API key to avoid redundant calls
 let cachedApiKey: string | null = null;
 let lastApiKeyFetchAttempt = 0;
-const API_KEY_FETCH_COOLDOWN = 1000; // 1 second between fetch attempts
-const API_CACHE_LIFETIME = 5 * 60 * 1000; // 5 minutes
+const API_KEY_FETCH_COOLDOWN = 2000; // 2 seconds between fetch attempts
+const API_CACHE_LIFETIME = 10 * 60 * 1000; // 10 minutes
 let apiKeyCacheTime = 0;
 
 /**
@@ -70,28 +71,62 @@ export const getFmpApiKey = async (): Promise<string | null> => {
 };
 
 /**
- * Validates a FMP API key by making a test API call
+ * Validates a FMP API key by making a test API call with retry logic
  */
 export const validateFmpApiKey = async (apiKey: string): Promise<boolean> => {
-  try {
-    const testEndpoint = `https://financialmodelingprep.com/api/v3/stock/list?apikey=${apiKey}`;
-    const response = await fetch(testEndpoint, {
-      headers: { 'Content-Type': 'application/json' },
-      mode: 'cors',
-      signal: AbortSignal.timeout(5000) // 5 second timeout
-    });
-    
-    if (!response.ok) {
-      console.error(`API validation failed: ${response.status} ${response.statusText}`);
-      return false;
+  const MAX_RETRIES = 2;
+  const TIMEOUT_MS = 10000; // 10 seconds
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`Validating FMP API key (attempt ${attempt}/${MAX_RETRIES})`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      
+      // Use a simpler endpoint for validation
+      const testEndpoint = `https://financialmodelingprep.com/api/v3/stock/list?apikey=${apiKey}&limit=1`;
+      
+      const response = await fetch(testEndpoint, {
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        console.error(`API validation failed: ${response.status} ${response.statusText}`);
+        if (attempt === MAX_RETRIES) return false;
+        continue;
+      }
+      
+      const data = await response.json();
+      const isValid = Array.isArray(data) && data.length >= 0; // Accept empty arrays too
+      
+      if (isValid) {
+        console.log("FMP API key validation successful");
+        return true;
+      }
+      
+      if (attempt === MAX_RETRIES) {
+        console.error("API returned invalid data format");
+        return false;
+      }
+      
+    } catch (error) {
+      console.error(`API validation attempt ${attempt} failed:`, error);
+      
+      if (attempt === MAX_RETRIES) {
+        return false;
+      }
+      
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, attempt * 1000));
     }
-    
-    const data = await response.json();
-    return Array.isArray(data) && data.length > 0;
-  } catch (error) {
-    console.error("Error validating FMP API key:", error);
-    return false;
   }
+  
+  return false;
 };
 
 /**
@@ -106,52 +141,61 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     
     // If we still don't have an API key, throw an error
     if (!apiKey) {
-      console.log("No API key available");
+      console.log("No API key available for search");
       throw new Error("Unable to access market data: API key not available");
     }
     
-    // If no query, return empty array (no more default popular stocks)
+    // If no query, return empty array
     if (!query.trim()) {
       return [];
     }
     
-    // Define the search endpoint
+    // Define the search endpoint with better parameters
     const endpoint = `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`;
     const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`;
     
-    console.log(`Calling FMP API for search: ${query}`);
+    console.log(`Searching FMP API for: ${query}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout
     
     const response = await fetch(url, { 
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
-      signal: AbortSignal.timeout(8000) // 8 second timeout
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`API error (${response.status}): ${errorText}`);
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      console.error(`Search API error (${response.status}): ${errorText}`);
+      throw new Error(`Search failed: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
     
     if (!Array.isArray(data)) {
-      console.error("API returned non-array response:", data);
-      throw new Error("Invalid API response format");
+      console.error("Search API returned non-array response:", data);
+      throw new Error("Invalid search response format");
     }
     
-    console.log(`FMP API returned ${data.length} results`);
+    console.log(`FMP search returned ${data.length} results for "${query}"`);
     
     // If no results, return empty array
     if (data.length === 0) {
       return [];
     }
     
-    // Map the results
-    return data.map((item: any) => ({
-      symbol: item.symbol,
-      name: item.name || item.symbol
-    }));
+    // Map and filter the results
+    return data
+      .filter((item: any) => item.symbol && item.name) // Filter out invalid entries
+      .map((item: any) => ({
+        symbol: item.symbol,
+        name: item.name || item.symbol
+      }))
+      .slice(0, 20); // Limit to 20 results
+      
   } catch (error) {
     console.error("Error searching stocks:", error);
     

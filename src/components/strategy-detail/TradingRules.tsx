@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -11,6 +12,7 @@ import { Plus, AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { v4 as uuidv4 } from "uuid";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
   exitRules: RuleGroupData[];
@@ -19,6 +21,7 @@ interface TradingRulesProps {
   editable?: boolean;
   showValidation?: boolean;
 }
+
 export const TradingRules = ({
   entryRules = [],
   exitRules = [],
@@ -55,9 +58,7 @@ export const TradingRules = ({
       return {
         ...group,
         logic: group.logic || (rules.indexOf(group) === 0 ? 'AND' : 'OR'),
-        // Default logic
         requiredConditions: group.requiredConditions || 1,
-        // Default required conditions
         inequalities: validInequalities
       };
     });
@@ -70,6 +71,7 @@ export const TradingRules = ({
   // Count total rules for badges
   const entryRuleCount = validatedEntryRules.reduce((total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 0);
   const exitRuleCount = validatedExitRules.reduce((total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 0);
+
   const handleEntryRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onEntryRulesChange) return;
     const updatedRules = [...validatedEntryRules];
@@ -79,6 +81,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+
   const handleEntryRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onEntryRulesChange) return;
     const updatedRules = [...validatedEntryRules];
@@ -88,6 +91,7 @@ export const TradingRules = ({
     };
     onEntryRulesChange(updatedRules);
   };
+
   const handleExitRuleChange = (groupIndex: number, updatedInequalities: Inequality[]) => {
     if (!onExitRulesChange) return;
     const updatedRules = [...validatedExitRules];
@@ -97,6 +101,7 @@ export const TradingRules = ({
     };
     onExitRulesChange(updatedRules);
   };
+
   const handleExitRequiredConditionsChange = (groupIndex: number, count: number) => {
     if (!onExitRulesChange) return;
     const updatedRules = [...validatedExitRules];
@@ -107,38 +112,7 @@ export const TradingRules = ({
     onExitRulesChange(updatedRules);
   };
 
-  // Create rule group if none exists
-  const ensureRuleGroups = (isEntryRules: boolean) => {
-    if (isEntryRules && onEntryRulesChange) {
-      if (validatedEntryRules.length === 0) {
-        onEntryRulesChange([{
-          id: 1,
-          logic: "AND",
-          inequalities: []
-        }, {
-          id: 2,
-          logic: "OR",
-          inequalities: [],
-          requiredConditions: 1
-        }]);
-      }
-    } else if (!isEntryRules && onExitRulesChange) {
-      if (validatedExitRules.length === 0) {
-        onExitRulesChange([{
-          id: 1,
-          logic: "AND",
-          inequalities: []
-        }, {
-          id: 2,
-          logic: "OR",
-          inequalities: [],
-          requiredConditions: 1
-        }]);
-      }
-    }
-  };
-
-  // Add new condition to a rule group - no toast notification
+  // Add new condition to a rule group
   const handleAddCondition = (isEntryRule: boolean, groupIndex: number) => {
     const newInequalityId = uuidv4();
     if (isEntryRule && onEntryRulesChange) {
@@ -189,6 +163,36 @@ export const TradingRules = ({
       setNewlyAddedConditionId(newInequalityId);
     }
   };
+
+  // Add OR group when it doesn't exist
+  const handleAddOrGroup = (isEntryRule: boolean) => {
+    if (isEntryRule && onEntryRulesChange) {
+      const updatedRules = [...validatedEntryRules];
+      // Add OR group if it doesn't exist (should be at index 1)
+      if (updatedRules.length < 2) {
+        updatedRules.push({
+          id: Date.now(), // Simple ID generation
+          logic: "OR",
+          inequalities: [],
+          requiredConditions: 1
+        });
+        onEntryRulesChange(updatedRules);
+      }
+    } else if (!isEntryRule && onExitRulesChange) {
+      const updatedRules = [...validatedExitRules];
+      // Add OR group if it doesn't exist (should be at index 1)
+      if (updatedRules.length < 2) {
+        updatedRules.push({
+          id: Date.now(), // Simple ID generation
+          logic: "OR",
+          inequalities: [],
+          requiredConditions: 1
+        });
+        onExitRulesChange(updatedRules);
+      }
+    }
+  };
+
   const handleAddFirstEntryRuleGroup = () => {
     if (!onEntryRulesChange) return;
     onEntryRulesChange([{
@@ -202,6 +206,7 @@ export const TradingRules = ({
       requiredConditions: 1
     }]);
   };
+
   const handleAddFirstExitRuleGroup = () => {
     if (!onExitRulesChange) return;
     onExitRulesChange([{
@@ -216,33 +221,27 @@ export const TradingRules = ({
     }]);
   };
 
-  // Updated check for no rules - also checking if the inequalities arrays are empty
+  // Check if no rules exist
   const hasNoRules = (validatedEntryRules.length === 0 || validatedEntryRules.every(group => !group.inequalities || group.inequalities.length === 0)) && (validatedExitRules.length === 0 || validatedExitRules.every(group => !group.inequalities || group.inequalities.length === 0));
 
   // Clear newly added condition ID after it's been used
   const handleClearNewlyAddedCondition = () => {
     setNewlyAddedConditionId(null);
   };
-  const ensureMultipleConditionsInOrGroup = (rules: RuleGroupData[]) => {
-    if (rules.length > 1 && rules[1]?.logic === "OR") {
-      const orGroup = rules[1];
-      if (orGroup.inequalities.length < 2 && editable) {
-        return;
-      }
-    }
-    return null;
-  };
-  return <Card className="p-6">
-      {hasNoRules && !editable && <Alert variant="default" className="mb-4">
+
+  return (
+    <Card className="p-6">
+      {hasNoRules && !editable && (
+        <Alert variant="default" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             No trading rules have been defined for this strategy yet.
           </AlertDescription>
-        </Alert>}
+        </Alert>
+      )}
       
       <Tabs defaultValue="entry" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex items-center justify-between mb-4">
-          
           <TabsList>
             <TabsTrigger value="entry" className="relative">
               Entry Rules
@@ -258,61 +257,160 @@ export const TradingRules = ({
             </TabsTrigger>
           </TabsList>
           
-          {editable && <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                
-              </TooltipTrigger>
-              <TooltipContent className="max-w-sm p-4">
-                <p className="text-sm mb-2 font-medium">Trading Rule Structure:</p>
-                <ul className="space-y-2 list-disc pl-4 text-sm">
-                  <li><span className="font-medium">AND Group:</span> All conditions must be met simultaneously for a valid signal.</li>
-                  <li><span className="font-medium">OR Group:</span> Should contain at least 2 conditions. Only the specified number of conditions need to be true for confirmation.</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>}
+          {editable && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm p-4">
+                  <p className="text-sm mb-2 font-medium">Trading Rule Structure:</p>
+                  <ul className="space-y-2 list-disc pl-4 text-sm">
+                    <li><span className="font-medium">AND Group:</span> All conditions must be met simultaneously for a valid signal.</li>
+                    <li><span className="font-medium">OR Group:</span> Should contain at least 2 conditions. Only the specified number of conditions need to be true for confirmation.</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         
         <Separator className="mb-6" />
         
         <TabsContent value="entry" className="mt-0">
           <div className="space-y-6">
-            {validatedEntryRules.length > 0 ? <>
-                {editable && ensureMultipleConditionsInOrGroup(validatedEntryRules)}
+            {validatedEntryRules.length > 0 ? (
+              <>
+                <RuleGroup 
+                  title="AND Group" 
+                  color="blue" 
+                  description="All conditions in this group must be met simultaneously for a valid entry signal." 
+                  inequalities={validatedEntryRules[0]?.inequalities || []} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} 
+                  className="bg-blue-50/50 border border-blue-100" 
+                  onAddRule={() => handleAddCondition(true, 0)} 
+                  showValidation={showValidation} 
+                  newlyAddedConditionId={newlyAddedConditionId} 
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                />
                 
-                <RuleGroup title="AND Group" color="blue" description="All conditions in this group must be met simultaneously for a valid entry signal." inequalities={validatedEntryRules[0]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleEntryRuleChange(0, inequalities)} className="bg-blue-50/50 border border-blue-100" onAddRule={() => handleAddCondition(true, 0)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />
-                
-                {validatedEntryRules.length > 1 && <RuleGroup title="OR Group" color="amber" description={`At least ${validatedEntryRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedEntryRules[1]?.inequalities || []).length)} conditions must be met to confirm the entry signal.`} inequalities={validatedEntryRules[1]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} requiredConditions={validatedEntryRules[1]?.requiredConditions} onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} className="bg-amber-50/50 border border-amber-100" onAddRule={() => handleAddCondition(true, 1)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />}
-              </> : editable ? <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
+                {validatedEntryRules.length > 1 ? (
+                  <RuleGroup 
+                    title="OR Group" 
+                    color="amber" 
+                    description={`At least ${validatedEntryRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedEntryRules[1]?.inequalities || []).length)} conditions must be met to confirm the entry signal.`} 
+                    inequalities={validatedEntryRules[1]?.inequalities || []} 
+                    editable={editable} 
+                    onInequitiesChange={inequalities => handleEntryRuleChange(1, inequalities)} 
+                    requiredConditions={validatedEntryRules[1]?.requiredConditions} 
+                    onRequiredConditionsChange={count => handleEntryRequiredConditionsChange(1, count)} 
+                    className="bg-amber-50/50 border border-amber-100" 
+                    onAddRule={() => handleAddCondition(true, 1)} 
+                    showValidation={showValidation} 
+                    newlyAddedConditionId={newlyAddedConditionId} 
+                    onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                  />
+                ) : editable ? (
+                  <div className="p-4 border border-dashed border-amber-200 rounded-lg bg-amber-50/30">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Add an OR group to create alternative entry conditions
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddOrGroup(true)}
+                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add OR Group
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : editable ? (
+              <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
                 <p className="text-muted-foreground mb-4">No entry rules defined yet</p>
                 <Button onClick={handleAddFirstEntryRuleGroup}>
                   <Plus className="h-4 w-4 mr-2" /> Create Rule Groups
                 </Button>
-              </div> : <div className="p-4 text-center text-muted-foreground">
+              </div>
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
                 No entry rules defined
-              </div>}
+              </div>
+            )}
           </div>
         </TabsContent>
         
         <TabsContent value="exit" className="mt-0">
           <div className="space-y-6">
-            {validatedExitRules.length > 0 ? <>
-                {editable && ensureMultipleConditionsInOrGroup(validatedExitRules)}
+            {validatedExitRules.length > 0 ? (
+              <>
+                <RuleGroup 
+                  title="AND Group" 
+                  color="blue" 
+                  description="All conditions in this group must be met simultaneously for a valid exit signal." 
+                  inequalities={validatedExitRules[0]?.inequalities || []} 
+                  editable={editable} 
+                  onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} 
+                  className="bg-blue-50/50 border border-blue-100" 
+                  onAddRule={() => handleAddCondition(false, 0)} 
+                  showValidation={showValidation} 
+                  newlyAddedConditionId={newlyAddedConditionId} 
+                  onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                />
                 
-                <RuleGroup title="AND Group" color="blue" description="All conditions in this group must be met simultaneously for a valid exit signal." inequalities={validatedExitRules[0]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleExitRuleChange(0, inequalities)} className="bg-blue-50/50 border border-blue-100" onAddRule={() => handleAddCondition(false, 0)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />
-                
-                {validatedExitRules.length > 1 && <RuleGroup title="OR Group" color="amber" description={`At least ${validatedExitRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedExitRules[1]?.inequalities || []).length)} conditions must be met to confirm the exit signal.`} inequalities={validatedExitRules[1]?.inequalities || []} editable={editable} onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} requiredConditions={validatedExitRules[1]?.requiredConditions} onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} className="bg-amber-50/50 border border-amber-100" onAddRule={() => handleAddCondition(false, 1)} showValidation={showValidation} newlyAddedConditionId={newlyAddedConditionId} onClearNewlyAddedCondition={handleClearNewlyAddedCondition} />}
-              </> : editable ? <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
+                {validatedExitRules.length > 1 ? (
+                  <RuleGroup 
+                    title="OR Group" 
+                    color="amber" 
+                    description={`At least ${validatedExitRules[1]?.requiredConditions || 1} of ${Math.max(1, (validatedExitRules[1]?.inequalities || []).length)} conditions must be met to confirm the exit signal.`} 
+                    inequalities={validatedExitRules[1]?.inequalities || []} 
+                    editable={editable} 
+                    onInequitiesChange={inequalities => handleExitRuleChange(1, inequalities)} 
+                    requiredConditions={validatedExitRules[1]?.requiredConditions} 
+                    onRequiredConditionsChange={count => handleExitRequiredConditionsChange(1, count)} 
+                    className="bg-amber-50/50 border border-amber-100" 
+                    onAddRule={() => handleAddCondition(false, 1)} 
+                    showValidation={showValidation} 
+                    newlyAddedConditionId={newlyAddedConditionId} 
+                    onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
+                  />
+                ) : editable ? (
+                  <div className="p-4 border border-dashed border-amber-200 rounded-lg bg-amber-50/30">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Add an OR group to create alternative exit conditions
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddOrGroup(false)}
+                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add OR Group
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : editable ? (
+              <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg border-gray-300 bg-gray-50">
                 <p className="text-muted-foreground mb-4">No exit rules defined yet</p>
                 <Button onClick={handleAddFirstExitRuleGroup}>
                   <Plus className="h-4 w-4 mr-2" /> Create Rule Groups
                 </Button>
-              </div> : <div className="p-4 text-center text-muted-foreground">
+              </div>
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
                 No exit rules defined
-              </div>}
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
-    </Card>;
+    </Card>
+  );
 };

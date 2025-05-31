@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { Trash } from "lucide-react";
 import { deleteStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { useState } from "react";
-
 interface StrategyCardProps {
   id: string;
   name: string;
@@ -17,18 +15,21 @@ interface StrategyCardProps {
   asset: string;
   status: "active" | "inactive";
 }
-
-export function StrategyCard({ id, name, description, updatedAt, asset, status }: StrategyCardProps) {
+export function StrategyCard({
+  id,
+  name,
+  description,
+  updatedAt,
+  asset,
+  status
+}: StrategyCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone.")) {
       return;
     }
-
     try {
       setIsDeleting(true);
       await deleteStrategy(id);
@@ -40,9 +41,7 @@ export function StrategyCard({ id, name, description, updatedAt, asset, status }
       setIsDeleting(false);
     }
   };
-
-  return (
-    <Link to={`/strategy/${id}`} className="block">
+  return <Link to={`/strategy/${id}`} className="block">
       <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -56,22 +55,12 @@ export function StrategyCard({ id, name, description, updatedAt, asset, status }
           <p className="text-muted-foreground mb-4 line-clamp-3">{description}</p>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Asset: {asset}</span>
-            <span>Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}</span>
+            <span>Updated {formatDistanceToNow(updatedAt, {
+              addSuffix: true
+            })}</span>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            <Trash className="h-4 w-4" />
-            {isDeleting ? "Deleting..." : "Delete"}
-          </Button>
-        </CardFooter>
+        
       </Card>
-    </Link>
-  );
+    </Link>;
 }

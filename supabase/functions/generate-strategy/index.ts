@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -131,7 +130,8 @@ serve(async (req) => {
         hasAssetType: !!requestData.assetType,
         hasSelectedAsset: !!requestData.selectedAsset,
         hasStrategyDescription: !!requestData.strategyDescription,
-        descriptionLength: requestData.strategyDescription?.length || 0
+        hasDescription: !!requestData.description,
+        descriptionLength: (requestData.strategyDescription || requestData.description || '').length
       });
     } catch (parseError) {
       logWithTimestamp('ERROR', 'Request parsing failed', { error: parseError.message });
@@ -148,13 +148,15 @@ serve(async (req) => {
       );
     }
     
-    const { assetType, selectedAsset, strategyDescription } = requestData;
+    // Support both 'strategyDescription' and 'description' for backward compatibility
+    const { assetType, selectedAsset } = requestData;
+    const strategyDescription = requestData.strategyDescription || requestData.description;
     
     // Enhanced parameter validation
     const validationErrors = [];
     if (!assetType) validationErrors.push('assetType is required');
     if (!selectedAsset) validationErrors.push('selectedAsset is required');
-    if (!strategyDescription) validationErrors.push('strategyDescription is required');
+    if (!strategyDescription) validationErrors.push('strategyDescription (or description) is required');
     if (strategyDescription && strategyDescription.length < 10) {
       validationErrors.push('strategyDescription must be at least 10 characters');
     }

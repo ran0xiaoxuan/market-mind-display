@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -186,55 +187,203 @@ serve(async (req) => {
       descriptionLength: strategyDescription.length 
     });
     
-    // Enhanced system prompt
-    const systemPrompt = `You are a professional trading strategy assistant. Generate a complete, practical trading strategy in valid JSON format.
+    // Enhanced and comprehensive system prompt
+    const systemPrompt = `You are an expert trading strategy architect. Generate a complete, actionable trading strategy with NO BLANK FIELDS. Every parameter must be filled with realistic, practical values.
 
-CRITICAL JSON STRUCTURE REQUIREMENTS:
+CRITICAL REQUIREMENTS - ALL MUST BE FULFILLED:
+1. Strategy name MUST include the ${selectedAsset} symbol and be descriptive (8-15 words)
+2. Description MUST be 80-120 words explaining the strategy's logic and purpose
+3. ALL risk management fields MUST have realistic numeric values
+4. BOTH entry and exit rules MUST have at least one complete condition with ALL parameters filled
+5. If OR groups exist, they MUST have at least 2 conditions and specify requiredConditions count
+6. ALL indicator parameters MUST be populated with standard values
+7. ALL explanations MUST be clear and educational
+
+EXACT JSON STRUCTURE REQUIRED:
 {
-  "name": "Strategy name including asset symbol",
-  "description": "60-80 word description",
+  "name": "Complete strategy name including ${selectedAsset} symbol",
+  "description": "80-120 word comprehensive description of strategy logic, market conditions, and expected performance",
   "timeframe": "Daily|Weekly|Monthly|1h|4h|15m|30m|5m|1m",
-  "targetAsset": "Asset symbol",
-  "entryRules": [RuleGroup array],
-  "exitRules": [RuleGroup array],
+  "targetAsset": "${selectedAsset}",
+  "entryRules": [
+    {
+      "id": 1,
+      "logic": "AND",
+      "inequalities": [
+        {
+          "id": 1,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "RSI|SMA|EMA|MACD|BB_UPPER|BB_LOWER|STOCH|ADX|CCI|ROC",
+            "parameters": {"period": "14", "source": "close"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "GREATER_THAN|LESS_THAN|CROSSES_ABOVE|CROSSES_BELOW|EQUALS",
+          "right": {
+            "type": "VALUE|INDICATOR",
+            "indicator": "",
+            "parameters": {},
+            "value": "specific_number",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation of what this condition detects"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "logic": "OR",
+      "requiredConditions": 1,
+      "inequalities": [
+        {
+          "id": 1,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "different_indicator_from_AND_group",
+            "parameters": {"period": "value", "multiplier": "value"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "condition_type",
+          "right": {
+            "type": "VALUE",
+            "indicator": "",
+            "parameters": {},
+            "value": "specific_number",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation"
+        },
+        {
+          "id": 2,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "another_different_indicator",
+            "parameters": {"period": "value"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "condition_type",
+          "right": {
+            "type": "VALUE",
+            "indicator": "",
+            "parameters": {},
+            "value": "specific_number",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation"
+        }
+      ]
+    }
+  ],
+  "exitRules": [
+    {
+      "id": 1,
+      "logic": "AND",
+      "inequalities": [
+        {
+          "id": 1,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "indicator_name",
+            "parameters": {"period": "value"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "condition_type",
+          "right": {
+            "type": "VALUE",
+            "indicator": "",
+            "parameters": {},
+            "value": "specific_number",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "logic": "OR",
+      "requiredConditions": 1,
+      "inequalities": [
+        {
+          "id": 1,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "indicator_name",
+            "parameters": {"period": "value"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "condition_type",
+          "right": {
+            "type": "VALUE",
+            "indicator": "",
+            "parameters": {},
+            "value": "specific_number",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation"
+        },
+        {
+          "id": 2,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "different_indicator",
+            "parameters": {"period": "value"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "condition_type",
+          "right": {
+            "type": "VALUE",
+            "indicator": "",
+            "parameters": {},
+            "value": "specific_number",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation"
+        }
+      ]
+    }
+  ],
   "riskManagement": {
-    "stopLoss": "percentage%",
-    "takeProfit": "percentage%",
-    "singleBuyVolume": "$amount",
-    "maxBuyVolume": "$amount"
+    "stopLoss": "realistic_percentage_without_%_symbol",
+    "takeProfit": "realistic_percentage_without_%_symbol",
+    "singleBuyVolume": "realistic_dollar_amount_without_$",
+    "maxBuyVolume": "realistic_dollar_amount_without_$"
   }
 }
 
-RULE GROUP STRUCTURE:
-{
-  "id": number,
-  "logic": "AND"|"OR",
-  "requiredConditions": number,
-  "explanation": "description",
-  "inequalities": [Inequality array]
-}
+MANDATORY PARAMETER VALUES:
+- RSI: {"period": "14"}
+- SMA/EMA: {"period": "20"}
+- MACD: {"fast": "12", "slow": "26", "signal": "9"}
+- Bollinger Bands: {"period": "20", "multiplier": "2"}
+- Stochastic: {"k": "14", "d": "3"}
+- ADX: {"period": "14"}
+- CCI: {"period": "20"}
+- ROC: {"period": "10"}
 
-INEQUALITY STRUCTURE:
-{
-  "id": number,
-  "left": {"type": "INDICATOR"|"VALUE", "indicator": "name", "parameters": {}, "value": "string", "valueType": "number"},
-  "condition": "GREATER_THAN"|"LESS_THAN"|"CROSSES_ABOVE"|"CROSSES_BELOW",
-  "right": {"type": "INDICATOR"|"VALUE", "indicator": "name", "parameters": {}, "value": "string", "valueType": "number"},
-  "explanation": "description"
-}
+VALIDATION CHECKLIST BEFORE GENERATING:
+✓ Strategy name includes ${selectedAsset} and is descriptive
+✓ Description is 80-120 words
+✓ Both AND and OR groups exist for entry and exit
+✓ OR groups have requiredConditions specified
+✓ All indicators have complete parameters
+✓ All conditions have clear explanations
+✓ Risk management has realistic values
+✓ No empty strings or missing fields
 
-IMPORTANT RULES:
-- ALWAYS include ${selectedAsset} in strategy name
-- Use BOTH AND and OR rule groups effectively
-- OR groups MUST have at least 2 conditions
-- Use exact timeframe values: "Daily", "Weekly", "Monthly", "1h", "4h", "15m", "30m", "5m", "1m"
-- Return ONLY valid JSON, no markdown formatting`;
+Return ONLY valid JSON with no markdown formatting.`;
 
     const userPrompt = `Asset: ${selectedAsset}
 Type: ${assetType}
-Strategy: ${strategyDescription}
+User Requirements: ${strategyDescription}
 
-Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" in the name and create balanced entry/exit rules with proper risk management.`;
+Generate a comprehensive trading strategy following ALL requirements above. Ensure every field is populated with realistic values and all conditions are properly explained. The strategy must be immediately usable without any blank fields or missing parameters.`;
 
     // Make OpenAI API call with enhanced error handling
     logWithTimestamp('INFO', 'Making OpenAI API request', { 
@@ -254,11 +403,11 @@ Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" i
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2500,
+        temperature: 0.5,
+        max_tokens: 3500,
         stream: false
       }),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(45000) // 45 second timeout for comprehensive generation
     });
 
     if (!openaiResponse.ok) {
@@ -361,15 +510,59 @@ Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" i
       }
     }
 
-    // Validate required fields
+    // Enhanced validation of required fields and content quality
     const requiredFields = ['name', 'description', 'timeframe', 'targetAsset', 'entryRules', 'exitRules', 'riskManagement'];
     const missingFields = requiredFields.filter(field => !strategyJSON[field]);
     
     if (missingFields.length > 0) {
-      logWithTimestamp('ERROR', 'Strategy validation failed', { missingFields });
+      logWithTimestamp('ERROR', 'Strategy validation failed - missing fields', { missingFields });
       return new Response(
         JSON.stringify({
           error: `Generated strategy missing required fields: ${missingFields.join(', ')}`,
+          type: "parsing_error",
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    // Additional validation for content quality
+    const validationIssues = [];
+    
+    // Check strategy name includes asset
+    if (!strategyJSON.name?.includes(selectedAsset)) {
+      validationIssues.push('Strategy name must include asset symbol');
+    }
+    
+    // Check description length
+    if (!strategyJSON.description || strategyJSON.description.length < 80) {
+      validationIssues.push('Strategy description must be at least 80 words');
+    }
+    
+    // Check entry rules have conditions
+    if (!strategyJSON.entryRules?.length || !strategyJSON.entryRules[0]?.inequalities?.length) {
+      validationIssues.push('Entry rules must have at least one condition');
+    }
+    
+    // Check exit rules have conditions
+    if (!strategyJSON.exitRules?.length || !strategyJSON.exitRules[0]?.inequalities?.length) {
+      validationIssues.push('Exit rules must have at least one condition');
+    }
+    
+    // Check risk management values
+    const riskMgmt = strategyJSON.riskManagement;
+    if (!riskMgmt?.stopLoss || !riskMgmt?.takeProfit || !riskMgmt?.singleBuyVolume || !riskMgmt?.maxBuyVolume) {
+      validationIssues.push('All risk management fields must be populated');
+    }
+    
+    if (validationIssues.length > 0) {
+      logWithTimestamp('ERROR', 'Strategy content validation failed', { validationIssues });
+      return new Response(
+        JSON.stringify({
+          error: `Generated strategy quality issues: ${validationIssues.join(', ')}`,
           type: "parsing_error",
           timestamp: new Date().toISOString()
         }),
@@ -389,8 +582,10 @@ Generate a detailed trading strategy as valid JSON. Include "${selectedAsset}" i
     logWithTimestamp('INFO', 'Strategy generation completed successfully', {
       processingTimeMs: processingTime,
       strategyName: strategyJSON.name,
+      descriptionLength: strategyJSON.description?.length || 0,
       entryRulesCount: strategyJSON.entryRules?.length || 0,
-      exitRulesCount: strategyJSON.exitRules?.length || 0
+      exitRulesCount: strategyJSON.exitRules?.length || 0,
+      hasRiskManagement: !!strategyJSON.riskManagement
     });
 
     return new Response(

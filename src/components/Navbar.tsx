@@ -86,16 +86,6 @@ export function Navbar() {
                 >
                   Backtest
                 </Link>
-                <Link
-                  to="/notification-test"
-                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                    location.pathname === "/notification-test"
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
-                  }`}
-                >
-                  Notifications
-                </Link>
               </div>
             )}
           </div>
@@ -214,13 +204,6 @@ export function Navbar() {
                 onClick={closeMobileMenu}
               >
                 Backtest
-              </Link>
-              <Link
-                to="/notification-test"
-                className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                onClick={closeMobileMenu}
-              >
-                Notifications
               </Link>
               <Link
                 to="/settings"

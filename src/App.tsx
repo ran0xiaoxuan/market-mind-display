@@ -23,7 +23,6 @@ import StrategyPreview from "@/pages/StrategyPreview";
 import EditHistory from "@/pages/EditHistory";
 import Recommendations from "@/pages/Recommendations";
 import AITest from "@/pages/AITest";
-import NotificationTest from "@/pages/NotificationTest";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,7 +55,6 @@ function App() {
           <Route path="/edit-history" element={<ProtectedRoute><EditHistory /></ProtectedRoute>} />
           <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
           <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
-          <Route path="/notification-test" element={<ProtectedRoute><NotificationTest /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

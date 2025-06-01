@@ -23,7 +23,10 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   if (req.method !== 'POST') {
@@ -66,7 +69,7 @@ serve(async (req) => {
     try {
       const bodyText = await req.text();
       console.log('Raw request body length:', bodyText.length);
-      console.log('Raw request body:', bodyText.substring(0, 500)); // Log first 500 chars
+      console.log('Raw request body:', bodyText.substring(0, 500));
       
       if (!bodyText || bodyText.trim() === '') {
         throw new Error('Request body is empty');
@@ -136,7 +139,7 @@ serve(async (req) => {
 
     const signalTitle = getSignalTitle(signalType || 'entry');
     const emailSubject = `${signalTitle} - ${signalData.asset || 'Test Signal'}`;
-    const fromEmail = 'notifications@strataige.cc';
+    const fromEmail = 'onboarding@resend.dev';
 
     // Simple email HTML
     const emailHtml = `

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationRateLimiter } from "@/components/RateLimiter";
 
@@ -187,26 +188,51 @@ export const testEmailNotification = async (userEmail: string, signalData: any, 
 
     console.log('Calling send-email-notification with payload:', requestPayload);
 
-    // Call the edge function with proper error handling
-    const { data, error } = await supabase.functions.invoke('send-email-notification', {
-      body: requestPayload
-    });
+    // Call the edge function with proper error handling and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    console.log('Edge function response data:', data);
-    console.log('Edge function response error:', error);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email-notification', {
+        body: requestPayload,
+        signal: controller.signal
+      });
 
-    if (error) {
-      console.error('Edge function returned error:', error);
-      throw new Error(error.message || 'Failed to send test email via edge function');
+      clearTimeout(timeoutId);
+
+      console.log('Edge function response data:', data);
+      console.log('Edge function response error:', error);
+
+      if (error) {
+        console.error('Edge function returned error:', error);
+        
+        // Handle specific error types
+        if (error.message?.includes('Failed to fetch')) {
+          throw new Error('Network error: Unable to connect to email service. Please check your internet connection and try again.');
+        } else if (error.message?.includes('timeout')) {
+          throw new Error('Request timeout: The email service took too long to respond. Please try again.');
+        } else {
+          throw new Error(error.message || 'Failed to send test email via edge function');
+        }
+      }
+
+      if (data && data.error) {
+        console.error('Edge function returned data error:', data.error);
+        throw new Error(data.error || 'Failed to send test email');
+      }
+
+      console.log('Email sent successfully!');
+      return data;
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timeout: The email service took too long to respond. Please try again.');
+      }
+      
+      throw fetchError;
     }
-
-    if (data && data.error) {
-      console.error('Edge function returned data error:', data.error);
-      throw new Error(data.error || 'Failed to send test email');
-    }
-
-    console.log('Email sent successfully!');
-    return data;
 
   } catch (error) {
     console.error('Error in testEmailNotification:', error);

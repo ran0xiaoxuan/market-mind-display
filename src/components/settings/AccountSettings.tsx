@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -216,44 +217,42 @@ export function AccountSettings() {
     }
   };
 
-  const handleUpdateAvatar = async () => {
-    // This function is now redundant as we upload automatically on selection
-    // We'll keep it for backward compatibility
-    toast({
-      title: "Avatar updated",
-      description: "Your avatar has been updated successfully."
-    });
-  };
-
   const handleSaveProfile = async () => {
+    if (!user) return;
+    
     setIsUpdating(true);
     try {
       // Check if email has changed
-      const emailChanged = email !== user?.email;
+      const emailChanged = email !== user.email;
       
       // Update email if changed
       if (emailChanged) {
+        console.log('Updating email from', user.email, 'to', email);
+        
         const { error: emailError } = await supabase.auth.updateUser({
           email: email
         });
         
-        if (emailError) throw emailError;
+        if (emailError) {
+          console.error('Email update error:', emailError);
+          throw emailError;
+        }
         
         toast({
-          title: "Verification email sent",
-          description: "Please check your inbox to confirm your new email address."
+          title: "Email update initiated",
+          description: "Please check both your old and new email addresses for confirmation links to complete the email change."
+        });
+      } else {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully."
         });
       }
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully."
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
         title: "Update failed",
-        description: "Failed to update your profile. Please try again.",
+        description: error.message || "Failed to update your profile. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -262,6 +261,36 @@ export function AccountSettings() {
   };
 
   const handleUpdatePassword = async () => {
+    if (!user) return;
+    
+    // Validate inputs
+    if (!currentPassword) {
+      toast({
+        title: "Current password required",
+        description: "Please enter your current password to change it.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!newPassword) {
+      toast({
+        title: "New password required",
+        description: "Please enter a new password.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "New password must be at least 8 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (newPassword !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -270,14 +299,26 @@ export function AccountSettings() {
       });
       return;
     }
+    
     setIsUpdating(true);
     try {
-      const {
-        error
-      } = await supabase.auth.updateUser({
+      // First verify the current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: currentPassword
+      });
+      
+      if (signInError) {
+        throw new Error("Current password is incorrect");
+      }
+      
+      // If current password is correct, update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword
       });
-      if (error) throw error;
+      
+      if (updateError) throw updateError;
+      
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully."
@@ -287,11 +328,11 @@ export function AccountSettings() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating password:", error);
       toast({
         title: "Update failed",
-        description: "Failed to update your password. Please try again.",
+        description: error.message || "Failed to update your password. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -429,12 +470,25 @@ export function AccountSettings() {
         <div className="grid gap-4">
           <div>
             <label htmlFor="email" className="block text-sm mb-2">Email</label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-            <p className="text-xs text-muted-foreground mt-1">Changing your email will require confirmation</p>
+            <Input 
+              id="email" 
+              type="email" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Changing your email will require confirmation from both old and new email addresses
+            </p>
           </div>
           
           <div>
-            <Button variant="default" className="bg-black text-white mt-2" onClick={handleSaveProfile} disabled={isUpdating}>
+            <Button 
+              variant="default" 
+              className="bg-black text-white mt-2" 
+              onClick={handleSaveProfile} 
+              disabled={isUpdating || !email || email === user?.email}
+            >
               {isUpdating ? "Saving..." : "Save Changes"}
             </Button>
           </div>
@@ -448,21 +502,44 @@ export function AccountSettings() {
         <div className="grid gap-4">
           <div>
             <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
-            <Input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+            <Input 
+              id="current-password" 
+              type="password" 
+              value={currentPassword} 
+              onChange={e => setCurrentPassword(e.target.value)}
+              placeholder="Enter your current password"
+            />
           </div>
           
           <div>
             <label htmlFor="new-password" className="block text-sm mb-2">New Password</label>
-            <Input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+            <Input 
+              id="new-password" 
+              type="password" 
+              value={newPassword} 
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Enter your new password (min 8 characters)"
+            />
           </div>
           
           <div>
             <label htmlFor="confirm-password" className="block text-sm mb-2">Confirm New Password</label>
-            <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+            <Input 
+              id="confirm-password" 
+              type="password" 
+              value={confirmPassword} 
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your new password"
+            />
           </div>
           
           <div>
-            <Button variant="default" className="bg-black text-white mt-2" onClick={handleUpdatePassword} disabled={isUpdating}>
+            <Button 
+              variant="default" 
+              className="bg-black text-white mt-2" 
+              onClick={handleUpdatePassword} 
+              disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}
+            >
               {isUpdating ? "Updating..." : "Update Password"}
             </Button>
           </div>

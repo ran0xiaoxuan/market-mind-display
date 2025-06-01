@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt)
     
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return new Response(
         JSON.stringify({ error: 'Invalid token or user not found' }),
         { 
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('Deleting auth user:', user.id)
+    console.log('Starting account deletion for user:', user.id)
 
     // Delete user data from public tables first (in correct order to handle foreign keys)
     
@@ -63,6 +64,8 @@ Deno.serve(async (req) => {
 
     if (backtestsError) {
       console.error('Error deleting backtests:', backtestsError)
+    } else {
+      console.log('Backtests deleted successfully')
     }
 
     // Delete strategy applications
@@ -73,38 +76,85 @@ Deno.serve(async (req) => {
 
     if (applicationsError) {
       console.error('Error deleting strategy applications:', applicationsError)
+    } else {
+      console.log('Strategy applications deleted successfully')
     }
 
-    // Delete trading rules that reference rule groups
-    const { data: ruleGroups } = await supabaseAdmin
-      .from('rule_groups')
+    // Get all strategies owned by this user
+    const { data: userStrategies, error: strategiesQueryError } = await supabaseAdmin
+      .from('strategies')
       .select('id')
-      .eq('strategy_id', user.id)
+      .eq('user_id', user.id)
 
-    if (ruleGroups && ruleGroups.length > 0) {
-      const ruleGroupIds = ruleGroups.map(rg => rg.id)
+    if (strategiesQueryError) {
+      console.error('Error querying user strategies:', strategiesQueryError)
+    } else {
+      console.log('Found user strategies:', userStrategies?.length || 0)
       
-      const { error: rulesError } = await supabaseAdmin
-        .from('trading_rules')
-        .delete()
-        .in('rule_group_id', ruleGroupIds)
+      if (userStrategies && userStrategies.length > 0) {
+        const strategyIds = userStrategies.map(s => s.id)
+        
+        // Delete rule groups for these strategies
+        const { data: ruleGroups, error: ruleGroupsQueryError } = await supabaseAdmin
+          .from('rule_groups')
+          .select('id')
+          .in('strategy_id', strategyIds)
 
-      if (rulesError) {
-        console.error('Error deleting trading rules:', rulesError)
+        if (!ruleGroupsQueryError && ruleGroups && ruleGroups.length > 0) {
+          const ruleGroupIds = ruleGroups.map(rg => rg.id)
+          
+          // Delete trading rules that reference rule groups
+          const { error: rulesError } = await supabaseAdmin
+            .from('trading_rules')
+            .delete()
+            .in('rule_group_id', ruleGroupIds)
+
+          if (rulesError) {
+            console.error('Error deleting trading rules:', rulesError)
+          } else {
+            console.log('Trading rules deleted successfully')
+          }
+        }
+
+        // Delete rule groups
+        const { error: ruleGroupsError } = await supabaseAdmin
+          .from('rule_groups')
+          .delete()
+          .in('strategy_id', strategyIds)
+
+        if (ruleGroupsError) {
+          console.error('Error deleting rule groups:', ruleGroupsError)
+        } else {
+          console.log('Rule groups deleted successfully')
+        }
       }
     }
 
-    // Delete rule groups
-    const { error: ruleGroupsError } = await supabaseAdmin
-      .from('rule_groups')
+    // Delete strategy copies where this user is involved
+    const { error: strategyCopiesError } = await supabaseAdmin
+      .from('strategy_copies')
       .delete()
-      .eq('strategy_id', user.id)
+      .eq('copied_by', user.id)
 
-    if (ruleGroupsError) {
-      console.error('Error deleting rule groups:', ruleGroupsError)
+    if (strategyCopiesError) {
+      console.error('Error deleting strategy copies:', strategyCopiesError)
+    } else {
+      console.log('Strategy copies deleted successfully')
     }
 
-    // Delete strategies
+    // Delete strategy recommendations where this user is involved
+    const { error: recommendationsError } = await supabaseAdmin
+      .from('strategy_recommendations')
+      .delete()
+      .eq('recommended_by', user.id)
+
+    if (recommendationsError) {
+      console.error('Error deleting strategy recommendations:', recommendationsError)
+    } else {
+      console.log('Strategy recommendations deleted successfully')
+    }
+
+    // Delete strategies owned by the user
     const { error: strategiesError } = await supabaseAdmin
       .from('strategies')
       .delete()
@@ -112,6 +162,8 @@ Deno.serve(async (req) => {
 
     if (strategiesError) {
       console.error('Error deleting strategies:', strategiesError)
+    } else {
+      console.log('Strategies deleted successfully')
     }
 
     // Delete profile
@@ -122,6 +174,8 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       console.error('Error deleting profile:', profileError)
+    } else {
+      console.log('Profile deleted successfully')
     }
 
     // Finally, delete the auth user account
@@ -130,7 +184,7 @@ Deno.serve(async (req) => {
     if (deleteUserError) {
       console.error('Error deleting auth user:', deleteUserError)
       return new Response(
-        JSON.stringify({ error: 'Failed to delete user account' }),
+        JSON.stringify({ error: 'Failed to delete user account: ' + deleteUserError.message }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -151,7 +205,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in delete-user-account function:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error: ' + (error instanceof Error ? error.message : 'Unknown error') }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

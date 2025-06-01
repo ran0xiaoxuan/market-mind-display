@@ -187,17 +187,24 @@ serve(async (req) => {
       descriptionLength: strategyDescription.length 
     });
     
-    // Enhanced and comprehensive system prompt
-    const systemPrompt = `You are an expert trading strategy architect. Generate a complete, actionable trading strategy with NO BLANK FIELDS. Every parameter must be filled with realistic, practical values.
+    // Enhanced and comprehensive system prompt with strict parameter requirements
+    const systemPrompt = `You are an expert trading strategy architect. Generate a complete, actionable trading strategy with ABSOLUTELY NO BLANK FIELDS OR PLACEHOLDER VALUES. Every parameter must be filled with realistic, specific, concrete values.
 
 CRITICAL REQUIREMENTS - ALL MUST BE FULFILLED:
 1. Strategy name MUST include the ${selectedAsset} symbol and be descriptive (8-15 words)
 2. Description MUST be 80-120 words explaining the strategy's logic and purpose
-3. ALL risk management fields MUST have realistic numeric values
-4. BOTH entry and exit rules MUST have at least one complete condition with ALL parameters filled
+3. ALL risk management fields MUST have realistic numeric values (no placeholders)
+4. BOTH entry and exit rules MUST have at least one complete condition with ALL parameters filled with CONCRETE VALUES
 5. If OR groups exist, they MUST have at least 2 conditions and specify requiredConditions count
-6. ALL indicator parameters MUST be populated with standard values
-7. ALL explanations MUST be clear and educational
+6. ALL indicator parameters MUST be populated with standard, specific numeric values
+7. ALL price references MUST specify exactly one of: "open", "high", "low", "close" - NEVER use generic terms
+8. ALL value fields MUST contain SPECIFIC NUMBERS - NEVER use placeholders like "current_price", "market_value", etc.
+9. ALL explanations MUST be clear and educational
+
+STRICT VALUE REQUIREMENTS:
+- When using PRICE type: MUST specify exactly "open", "high", "low", or "close" in the "value" field
+- When using VALUE type: MUST specify exact numbers like "30", "70", "2.5", "1.2" - NEVER placeholders
+- When using INDICATOR type: MUST specify exact indicator name and ALL required parameters with specific values
 
 EXACT JSON STRUCTURE REQUIRED:
 {
@@ -221,10 +228,10 @@ EXACT JSON STRUCTURE REQUIRED:
           },
           "condition": "GREATER_THAN|LESS_THAN|CROSSES_ABOVE|CROSSES_BELOW|EQUALS",
           "right": {
-            "type": "VALUE|INDICATOR",
+            "type": "VALUE",
             "indicator": "",
             "parameters": {},
-            "value": "specific_number",
+            "value": "70",
             "valueType": "number"
           },
           "explanation": "Clear explanation of what this condition detects"
@@ -239,18 +246,18 @@ EXACT JSON STRUCTURE REQUIRED:
         {
           "id": 1,
           "left": {
-            "type": "INDICATOR",
-            "indicator": "different_indicator_from_AND_group",
-            "parameters": {"period": "value", "multiplier": "value"},
-            "value": "",
-            "valueType": "number"
-          },
-          "condition": "condition_type",
-          "right": {
-            "type": "VALUE",
+            "type": "PRICE",
             "indicator": "",
             "parameters": {},
-            "value": "specific_number",
+            "value": "close",
+            "valueType": "number"
+          },
+          "condition": "GREATER_THAN",
+          "right": {
+            "type": "INDICATOR",
+            "indicator": "SMA",
+            "parameters": {"period": "20", "source": "close"},
+            "value": "",
             "valueType": "number"
           },
           "explanation": "Clear explanation"
@@ -259,17 +266,17 @@ EXACT JSON STRUCTURE REQUIRED:
           "id": 2,
           "left": {
             "type": "INDICATOR",
-            "indicator": "another_different_indicator",
-            "parameters": {"period": "value"},
+            "indicator": "MACD",
+            "parameters": {"fast": "12", "slow": "26", "signal": "9"},
             "value": "",
             "valueType": "number"
           },
-          "condition": "condition_type",
+          "condition": "CROSSES_ABOVE",
           "right": {
             "type": "VALUE",
             "indicator": "",
             "parameters": {},
-            "value": "specific_number",
+            "value": "0",
             "valueType": "number"
           },
           "explanation": "Clear explanation"
@@ -286,17 +293,17 @@ EXACT JSON STRUCTURE REQUIRED:
           "id": 1,
           "left": {
             "type": "INDICATOR",
-            "indicator": "indicator_name",
-            "parameters": {"period": "value"},
+            "indicator": "RSI",
+            "parameters": {"period": "14", "source": "close"},
             "value": "",
             "valueType": "number"
           },
-          "condition": "condition_type",
+          "condition": "GREATER_THAN",
           "right": {
             "type": "VALUE",
             "indicator": "",
             "parameters": {},
-            "value": "specific_number",
+            "value": "80",
             "valueType": "number"
           },
           "explanation": "Clear explanation"
@@ -311,18 +318,18 @@ EXACT JSON STRUCTURE REQUIRED:
         {
           "id": 1,
           "left": {
-            "type": "INDICATOR",
-            "indicator": "indicator_name",
-            "parameters": {"period": "value"},
-            "value": "",
-            "valueType": "number"
-          },
-          "condition": "condition_type",
-          "right": {
-            "type": "VALUE",
+            "type": "PRICE",
             "indicator": "",
             "parameters": {},
-            "value": "specific_number",
+            "value": "close",
+            "valueType": "number"
+          },
+          "condition": "LESS_THAN",
+          "right": {
+            "type": "INDICATOR",
+            "indicator": "SMA",
+            "parameters": {"period": "50", "source": "close"},
+            "value": "",
             "valueType": "number"
           },
           "explanation": "Clear explanation"
@@ -331,17 +338,17 @@ EXACT JSON STRUCTURE REQUIRED:
           "id": 2,
           "left": {
             "type": "INDICATOR",
-            "indicator": "different_indicator",
-            "parameters": {"period": "value"},
+            "indicator": "STOCH",
+            "parameters": {"k": "14", "d": "3"},
             "value": "",
             "valueType": "number"
           },
-          "condition": "condition_type",
+          "condition": "LESS_THAN",
           "right": {
             "type": "VALUE",
             "indicator": "",
             "parameters": {},
-            "value": "specific_number",
+            "value": "20",
             "valueType": "number"
           },
           "explanation": "Clear explanation"
@@ -350,32 +357,46 @@ EXACT JSON STRUCTURE REQUIRED:
     }
   ],
   "riskManagement": {
-    "stopLoss": "realistic_percentage_without_%_symbol",
-    "takeProfit": "realistic_percentage_without_%_symbol",
-    "singleBuyVolume": "realistic_dollar_amount_without_$",
-    "maxBuyVolume": "realistic_dollar_amount_without_$"
+    "stopLoss": "5",
+    "takeProfit": "10",
+    "singleBuyVolume": "1000",
+    "maxBuyVolume": "5000"
   }
 }
 
-MANDATORY PARAMETER VALUES:
-- RSI: {"period": "14"}
-- SMA/EMA: {"period": "20"}
+MANDATORY PARAMETER VALUES (use these exact values):
+- RSI: {"period": "14", "source": "close"}
+- SMA: {"period": "20", "source": "close"} or {"period": "50", "source": "close"}
+- EMA: {"period": "20", "source": "close"} or {"period": "12", "source": "close"}
 - MACD: {"fast": "12", "slow": "26", "signal": "9"}
-- Bollinger Bands: {"period": "20", "multiplier": "2"}
-- Stochastic: {"k": "14", "d": "3"}
+- BB_UPPER/BB_LOWER: {"period": "20", "multiplier": "2", "source": "close"}
+- STOCH: {"k": "14", "d": "3"}
 - ADX: {"period": "14"}
 - CCI: {"period": "20"}
-- ROC: {"period": "10"}
+- ROC: {"period": "10", "source": "close"}
+
+PRICE VALUE REQUIREMENTS:
+- When type is "PRICE", value MUST be exactly one of: "open", "high", "low", "close"
+- NEVER use "price", "current_price", "market_price" or any other variation
+
+VALUE REQUIREMENTS:
+- When type is "VALUE", use ONLY specific numbers like: "30", "70", "0", "50", "80", "20", "1.5", "2.0"
+- NEVER use: "current_price", "market_value", "threshold", "level", or any placeholder text
+- Common RSI values: 30, 70, 20, 80
+- Common MACD values: 0, 0.5, -0.5
+- Common percentage values: 2, 5, 10, 15
 
 VALIDATION CHECKLIST BEFORE GENERATING:
 ✓ Strategy name includes ${selectedAsset} and is descriptive
 ✓ Description is 80-120 words
 ✓ Both AND and OR groups exist for entry and exit
 ✓ OR groups have requiredConditions specified
-✓ All indicators have complete parameters
+✓ All indicators have complete parameters with specific values
+✓ All PRICE types use exactly "open", "high", "low", or "close"
+✓ All VALUE types use specific numbers, no placeholders
 ✓ All conditions have clear explanations
-✓ Risk management has realistic values
-✓ No empty strings or missing fields
+✓ Risk management has realistic numeric values
+✓ No empty strings, placeholders, or missing fields
 
 Return ONLY valid JSON with no markdown formatting.`;
 
@@ -383,7 +404,7 @@ Return ONLY valid JSON with no markdown formatting.`;
 Type: ${assetType}
 User Requirements: ${strategyDescription}
 
-Generate a comprehensive trading strategy following ALL requirements above. Ensure every field is populated with realistic values and all conditions are properly explained. The strategy must be immediately usable without any blank fields or missing parameters.`;
+Generate a comprehensive trading strategy following ALL requirements above. Ensure every field is populated with realistic, specific values and all conditions are properly explained. The strategy must be immediately usable without any blank fields, placeholder values, or missing parameters. Pay special attention to using specific price types (open/high/low/close) and exact numeric values instead of placeholders.`;
 
     // Make OpenAI API call with enhanced error handling
     logWithTimestamp('INFO', 'Making OpenAI API request', { 
@@ -403,8 +424,8 @@ Generate a comprehensive trading strategy following ALL requirements above. Ensu
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.5,
-        max_tokens: 3500,
+        temperature: 0.3,
+        max_tokens: 4000,
         stream: false
       }),
       signal: AbortSignal.timeout(45000) // 45 second timeout for comprehensive generation
@@ -529,7 +550,7 @@ Generate a comprehensive trading strategy following ALL requirements above. Ensu
       );
     }
 
-    // Additional validation for content quality
+    // Additional validation for content quality and placeholder detection
     const validationIssues = [];
     
     // Check strategy name includes asset
@@ -557,6 +578,36 @@ Generate a comprehensive trading strategy following ALL requirements above. Ensu
     if (!riskMgmt?.stopLoss || !riskMgmt?.takeProfit || !riskMgmt?.singleBuyVolume || !riskMgmt?.maxBuyVolume) {
       validationIssues.push('All risk management fields must be populated');
     }
+    
+    // Enhanced validation for placeholder detection
+    const checkForPlaceholders = (obj, path = '') => {
+      if (typeof obj === 'string') {
+        const placeholderPatterns = [
+          'current_price', 'market_price', 'market_value', 'threshold', 'level',
+          'value-current_price', 'specific_number', 'realistic_', 'specific_',
+          'appropriate_', 'suitable_'
+        ];
+        for (const pattern of placeholderPatterns) {
+          if (obj.toLowerCase().includes(pattern.toLowerCase())) {
+            validationIssues.push(`Placeholder value detected at ${path}: "${obj}"`);
+          }
+        }
+        
+        // Check for PRICE type values
+        if (path.includes('value') && path.includes('PRICE')) {
+          const validPriceValues = ['open', 'high', 'low', 'close'];
+          if (!validPriceValues.includes(obj)) {
+            validationIssues.push(`Invalid PRICE value at ${path}: "${obj}" (must be open/high/low/close)`);
+          }
+        }
+      } else if (typeof obj === 'object' && obj !== null) {
+        for (const [key, value] of Object.entries(obj)) {
+          checkForPlaceholders(value, path ? `${path}.${key}` : key);
+        }
+      }
+    };
+    
+    checkForPlaceholders(strategyJSON);
     
     if (validationIssues.length > 0) {
       logWithTimestamp('ERROR', 'Strategy content validation failed', { validationIssues });

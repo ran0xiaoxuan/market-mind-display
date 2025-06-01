@@ -61,27 +61,24 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body with better error handling
+    // Parse request body with comprehensive error handling
     let requestBody: EmailNotificationRequest;
     try {
-      const rawBody = await req.text();
-      console.log('Raw request body length:', rawBody.length);
-      console.log('Raw request body preview:', rawBody.substring(0, 200));
+      const bodyText = await req.text();
+      console.log('Raw request body:', bodyText);
       
-      if (!rawBody || rawBody.trim() === '') {
+      if (!bodyText || bodyText.trim() === '') {
         throw new Error('Request body is empty');
       }
       
-      requestBody = JSON.parse(rawBody);
-      console.log('Successfully parsed request body');
-      console.log('Request body keys:', Object.keys(requestBody));
+      requestBody = JSON.parse(bodyText);
+      console.log('Parsed request body:', requestBody);
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid request body', 
-          details: parseError.message,
-          received: await req.text().catch(() => 'Could not read body')
+          error: 'Invalid JSON in request body', 
+          details: parseError.message 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -97,7 +94,7 @@ serve(async (req) => {
     console.log('- signalId:', signalId);
     console.log('- userEmail:', userEmail);
     console.log('- signalType:', signalType);
-    console.log('- signalData keys:', signalData ? Object.keys(signalData) : 'null');
+    console.log('- signalData:', signalData);
 
     if (!userEmail) {
       console.error('User email is required but not provided');
@@ -122,17 +119,17 @@ serve(async (req) => {
     }
 
     // Initialize Resend
-    console.log('Initializing Resend with API key...');
+    console.log('Initializing Resend...');
     const resend = new Resend(resendApiKey);
 
-    // Initialize Supabase client
+    // Initialize Supabase client if available
     let supabaseClient = null;
     if (supabaseUrl && supabaseServiceKey) {
       console.log('Initializing Supabase client...');
       supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     }
 
-    // Create email content
+    // Create email content based on signal type
     const getSignalTitle = (type: string) => {
       switch (type) {
         case 'entry': return '🎯 New Entry Signal';
@@ -156,7 +153,7 @@ serve(async (req) => {
     const signalTitle = getSignalTitle(signalType || 'entry');
     const signalColor = getSignalColor(signalType || 'entry');
 
-    // Create email HTML content
+    // Create comprehensive email HTML content
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -169,7 +166,7 @@ serve(async (req) => {
           <div style="max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
             <div style="background: linear-gradient(135deg, ${signalColor}, ${signalColor}dd); padding: 30px; text-align: center;">
               <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">${signalTitle}</h1>
-              <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Trading Signal Alert</p>
+              <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Trading Signal Alert from Strataige</p>
             </div>
             
             <div style="padding: 30px;">
@@ -196,7 +193,7 @@ serve(async (req) => {
               
               <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
-                  This is an automated trading signal from your strategy monitoring system.
+                  This is an automated trading signal from your Strataige strategy monitoring system.
                 </p>
                 <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
                   Please verify all signals before taking any trading action.
@@ -216,7 +213,7 @@ serve(async (req) => {
     console.log('- To:', userEmail);
     console.log('- Subject:', emailSubject);
 
-    // Send email using Resend
+    // Send email using Resend with comprehensive error handling
     try {
       console.log('Calling Resend API...');
       const emailResponse = await resend.emails.send({
@@ -233,7 +230,9 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Failed to send email via Resend', 
-            details: emailResponse.error 
+            details: emailResponse.error,
+            from: fromEmail,
+            to: userEmail
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -287,7 +286,9 @@ serve(async (req) => {
         JSON.stringify({ 
           error: 'Failed to send email', 
           details: resendError.message,
-          type: 'resend_api_error'
+          type: 'resend_api_error',
+          from: fromEmail,
+          to: userEmail
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

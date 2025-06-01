@@ -168,9 +168,16 @@ export const sendNotificationWithRateLimit = async (
   }
 };
 
-// Helper function to test email notifications
+// Helper function to test email notifications - FIXED VERSION
 export const testEmailNotification = async (userEmail: string, signalData: any, signalType: string) => {
   try {
+    console.log('Calling send-email-notification with:', {
+      signalId: 'test-' + Date.now(),
+      userEmail,
+      signalData,
+      signalType
+    });
+
     const { data, error } = await supabase.functions.invoke('send-email-notification', {
       body: { 
         signalId: 'test-' + Date.now(), 
@@ -183,13 +190,16 @@ export const testEmailNotification = async (userEmail: string, signalData: any, 
       }
     });
 
+    console.log('Edge function response:', { data, error });
+
     if (error) {
+      console.error('Edge function error:', error);
       throw new Error(error.message || 'Failed to send test email');
     }
 
     return data;
   } catch (error) {
-    console.error('Error sending test email:', error);
+    console.error('Error in testEmailNotification:', error);
     throw error;
   }
 };

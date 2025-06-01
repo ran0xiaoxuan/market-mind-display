@@ -24,8 +24,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestBody: EmailNotificationRequest | null = null;
+  
   try {
     console.log('Processing email notification request...');
+    
+    // Parse request body once
+    requestBody = await req.json();
+    console.log('Request body received:', requestBody);
     
     // Check if Resend API key exists
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -45,11 +51,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
-
-    const requestBody = await req.json();
-    console.log('Request body received:', requestBody);
     
-    const { signalId, userEmail, signalData, signalType }: EmailNotificationRequest = requestBody;
+    const { signalId, userEmail, signalData, signalType } = requestBody;
 
     if (!userEmail) {
       console.error('User email is required but not provided');
@@ -207,32 +210,32 @@ serve(async (req) => {
     console.error('Error sending email notification:', error);
     
     // Log the failed notification if we have enough data
-    try {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-      
-      const requestBody = await req.json();
-      const { signalId, signalData } = requestBody;
-      
-      if (signalData?.userId) {
+    if (requestBody?.signalData?.userId) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
         await supabaseClient
           .from('notification_logs')
           .insert({
-            user_id: signalData.userId,
-            signal_id: signalId,
+            user_id: requestBody.signalData.userId,
+            signal_id: requestBody.signalId,
             notification_type: 'email',
             status: 'failed',
             error_message: error.message
           });
+      } catch (logError) {
+        console.error('Error logging failed email notification:', logError);
       }
-    } catch (logError) {
-      console.error('Error logging failed email notification:', logError);
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check function logs for more information'
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

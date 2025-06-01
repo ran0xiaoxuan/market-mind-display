@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { generateTradingSignal } from "@/services/signalGenerationService";
+import { testEmailNotification } from "@/services/notificationService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Send, TestTube } from "lucide-react";
 
@@ -24,25 +24,25 @@ export function TestNotifications() {
 
     setIsLoading(true);
     try {
-      // For testing, we'll use a dummy strategy ID
-      // In a real app, this would come from the user's actual strategies
-      const dummyStrategyId = 'test-strategy-' + Date.now();
-      
-      await generateTradingSignal(dummyStrategyId, signalType, {
-        strategyId: dummyStrategyId,
+      // Create test signal data for email notification
+      const testSignalData = {
+        strategyId: 'test-strategy',
         strategyName: 'Test Strategy',
         asset: asset,
         price: parseFloat(price),
         userId: user.id,
         timestamp: new Date().toISOString(),
-        conditions: ['Test condition triggered'],
+        conditions: ['Test condition triggered', 'Manual test signal'],
         confidence: 0.85
-      });
+      };
 
-      toast.success(`${signalType.replace('_', ' ')} signal sent successfully!`);
+      // Send test email notification directly
+      await testEmailNotification(user.email!, testSignalData, signalType);
+
+      toast.success(`${signalType.replace('_', ' ')} test notification sent successfully!`);
     } catch (error) {
-      console.error('Error sending test signal:', error);
-      toast.error("Failed to send test signal");
+      console.error('Error sending test notification:', error);
+      toast.error("Failed to send test notification: " + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
@@ -113,11 +113,11 @@ export function TestNotifications() {
           className="w-full"
         >
           <Send className="mr-2 h-4 w-4" />
-          {isLoading ? "Sending Test Signal..." : "Send Test Signal"}
+          {isLoading ? "Sending Test Email..." : "Send Test Email Notification"}
         </Button>
         
         <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
-          <p>This will send a test notification to all your enabled notification channels based on your current settings.</p>
+          <p>This will send a test email notification directly to your email address to verify the email system is working.</p>
         </div>
       </CardContent>
     </Card>

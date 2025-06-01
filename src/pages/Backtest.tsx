@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,225 +178,227 @@ const Backtest = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Backtest</h1>
-        </div>
+      <main className="flex-1">
+        <Container className="py-6">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">Backtest</h1>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="shadow-sm border-zinc-200">
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-bold mb-1">Backtest Parameters</h2>
-              <p className="text-muted-foreground text-sm mb-6">Configure the parameters for your backtest with real market data.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="shadow-sm border-zinc-200">
+              <CardContent className="pt-6">
+                <h2 className="text-xl font-bold mb-1">Backtest Parameters</h2>
+                <p className="text-muted-foreground text-sm mb-6">Configure the parameters for your backtest with real market data.</p>
 
-              <div className="space-y-6">
-                <StrategySelect 
-                  selectedStrategy={strategy} 
-                  strategies={strategies} 
-                  isLoading={isLoading} 
-                  onSelectStrategy={setStrategy} 
-                  disabled={runningBacktest} 
-                />
+                <div className="space-y-6">
+                  <StrategySelect 
+                    selectedStrategy={strategy} 
+                    strategies={strategies} 
+                    isLoading={isLoading} 
+                    onSelectStrategy={setStrategy} 
+                    disabled={runningBacktest} 
+                  />
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Time Period</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">Start Date</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !startDate && "text-muted-foreground"
-                            )} 
-                            disabled={runningBacktest}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-white" align="start">
-                          <Calendar 
-                            mode="single" 
-                            selected={startDate} 
-                            onSelect={setStartDate} 
-                            disabled={disableFutureDates} 
-                            initialFocus 
-                            className="p-3 pointer-events-auto" 
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">End Date</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !endDate && "text-muted-foreground"
-                            )} 
-                            disabled={runningBacktest}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-white" align="start">
-                          <Calendar 
-                            mode="single" 
-                            selected={endDate} 
-                            onSelect={setEndDate} 
-                            disabled={disableFutureDates} 
-                            initialFocus 
-                            className="p-3 pointer-events-auto" 
-                          />
-                        </PopoverContent>
-                      </Popover>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Time Period</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Start Date</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !startDate && "text-muted-foreground"
+                              )} 
+                              disabled={runningBacktest}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {startDate ? format(startDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-white" align="start">
+                            <Calendar 
+                              mode="single" 
+                              selected={startDate} 
+                              onSelect={setStartDate} 
+                              disabled={disableFutureDates} 
+                              initialFocus 
+                              className="p-3 pointer-events-auto" 
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">End Date</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !endDate && "text-muted-foreground"
+                              )} 
+                              disabled={runningBacktest}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {endDate ? format(endDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-white" align="start">
+                            <Calendar 
+                              mode="single" 
+                              selected={endDate} 
+                              onSelect={setEndDate} 
+                              disabled={disableFutureDates} 
+                              initialFocus 
+                              className="p-3 pointer-events-auto" 
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="initialCapital" className="text-sm font-medium">Initial Capital ($)</label>
+                    <Input 
+                      id="initialCapital" 
+                      type="number" 
+                      value={initialCapital} 
+                      onChange={e => setInitialCapital(e.target.value)} 
+                      placeholder="10000" 
+                      disabled={runningBacktest} 
+                      className="bg-background" 
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={runBacktest} 
+                    className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" 
+                    disabled={runningBacktest}
+                  >
+                    {runningBacktest ? (
+                      <>
+                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent" /> 
+                        Running Backtest...
+                      </>
+                    ) : (
+                      <>
+                        <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
+                      </>
+                    )}
+                  </Button>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <label htmlFor="initialCapital" className="text-sm font-medium">Initial Capital ($)</label>
-                  <Input 
-                    id="initialCapital" 
-                    type="number" 
-                    value={initialCapital} 
-                    onChange={e => setInitialCapital(e.target.value)} 
-                    placeholder="10000" 
-                    disabled={runningBacktest} 
-                    className="bg-background" 
-                  />
-                </div>
+            <Card className="shadow-sm border-zinc-200">
+              <CardContent className="pt-6">
+                <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
+                <p className="text-muted-foreground text-sm mb-6">
+                  {hasResults ? "View the performance of your strategy using real market data." : "Run a backtest to see results here."}
+                </p>
 
-                <Button 
-                  onClick={runBacktest} 
-                  className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" 
-                  disabled={runningBacktest}
-                >
-                  {runningBacktest ? (
-                    <>
-                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent" /> 
-                      Running Backtest...
-                    </>
-                  ) : (
-                    <>
-                      <PlayIcon className="h-4 w-4 mr-2" /> Run Backtest
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-zinc-200">
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-bold mb-1">Backtest Results</h2>
-              <p className="text-muted-foreground text-sm mb-6">
-                {hasResults ? "View the performance of your strategy using real market data." : "Run a backtest to see results here."}
-              </p>
-
-              {hasResults && metrics ? (
-                <div>
-                  <Tabs defaultValue="summary" className="mb-6">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="summary">Summary</TabsTrigger>
-                      <TabsTrigger value="trades">Trades</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="summary" className="pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h3 className="font-medium mb-3">Performance Metrics</h3>
-                          <div className="space-y-2">
-                            {metrics.performanceMetrics.map((metric, index) => (
-                              <div key={index} className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">{metric.name}</span>
-                                <span className={cn(
-                                  "text-sm font-medium",
-                                  metric.green ? "text-green-600" : 
-                                  metric.value.startsWith("+") ? "text-green-600" : 
-                                  metric.value.startsWith("-") ? "text-red-600" : ""
-                                )}>
-                                  {metric.value}
-                                </span>
-                              </div>
-                            ))}
+                {hasResults && metrics ? (
+                  <div>
+                    <Tabs defaultValue="summary" className="mb-6">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="summary">Summary</TabsTrigger>
+                        <TabsTrigger value="trades">Trades</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="summary" className="pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="font-medium mb-3">Performance Metrics</h3>
+                            <div className="space-y-2">
+                              {metrics.performanceMetrics.map((metric, index) => (
+                                <div key={index} className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">{metric.name}</span>
+                                  <span className={cn(
+                                    "text-sm font-medium",
+                                    metric.green ? "text-green-600" : 
+                                    metric.value.startsWith("+") ? "text-green-600" : 
+                                    metric.value.startsWith("-") ? "text-red-600" : ""
+                                  )}>
+                                    {metric.value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="font-medium mb-3">Trade Statistics</h3>
+                            <div className="space-y-2">
+                              {metrics.tradeStatistics.map((stat, index) => (
+                                <div key={index} className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">{stat.name}</span>
+                                  <span className={cn(
+                                    "text-sm font-medium",
+                                    stat.green ? "text-green-600" : 
+                                    stat.value.startsWith("+") ? "text-green-600" : 
+                                    stat.value.startsWith("-") ? "text-red-600" : ""
+                                  )}>
+                                    {stat.value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium mb-3">Trade Statistics</h3>
-                          <div className="space-y-2">
-                            {metrics.tradeStatistics.map((stat, index) => (
-                              <div key={index} className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">{stat.name}</span>
-                                <span className={cn(
-                                  "text-sm font-medium",
-                                  stat.green ? "text-green-600" : 
-                                  stat.value.startsWith("+") ? "text-green-600" : 
-                                  stat.value.startsWith("-") ? "text-red-600" : ""
-                                )}>
-                                  {stat.value}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="trades">
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Price</TableHead>
-                              <TableHead>Shares</TableHead>
-                              <TableHead className="text-right">P/L</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {backtestResults?.trades.slice(0, 10).map((trade, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{new Date(trade.date).toLocaleDateString()}</TableCell>
-                                <TableCell>{trade.type}</TableCell>
-                                <TableCell>${trade.price.toFixed(2)}</TableCell>
-                                <TableCell>{trade.contracts}</TableCell>
-                                <TableCell className={cn(
-                                  "text-right",
-                                  trade.profit ? (
-                                    trade.profit > 0 ? "text-green-600" : "text-red-600"
-                                  ) : ""
-                                )}>
-                                  {trade.profit ? `$${trade.profit.toFixed(2)}` : "-"}
-                                </TableCell>
+                      </TabsContent>
+                      <TabsContent value="trades">
+                        <div className="rounded-md border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Shares</TableHead>
+                                <TableHead className="text-right">P/L</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {backtestResults?.trades.slice(0, 10).map((trade, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{new Date(trade.date).toLocaleDateString()}</TableCell>
+                                  <TableCell>{trade.type}</TableCell>
+                                  <TableCell>${trade.price.toFixed(2)}</TableCell>
+                                  <TableCell>{trade.contracts}</TableCell>
+                                  <TableCell className={cn(
+                                    "text-right",
+                                    trade.profit ? (
+                                      trade.profit > 0 ? "text-green-600" : "text-red-600"
+                                    ) : ""
+                                  )}>
+                                    {trade.profit ? `$${trade.profit.toFixed(2)}` : "-"}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64">
+                    {runningBacktest ? (
+                      <div className="flex flex-col items-center">
+                        <div className="h-8 w-8 mb-4 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" /> 
+                        <p className="text-muted-foreground">Processing your backtest with real market data...</p>
                       </div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-64">
-                  {runningBacktest ? (
-                    <div className="flex flex-col items-center">
-                      <div className="h-8 w-8 mb-4 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" /> 
-                      <p className="text-muted-foreground">Processing your backtest with real market data...</p>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No backtest results to display. Click "Run Backtest" to start.</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    ) : (
+                      <p className="text-muted-foreground">No backtest results to display. Click "Run Backtest" to start.</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
       </main>
     </div>
   );

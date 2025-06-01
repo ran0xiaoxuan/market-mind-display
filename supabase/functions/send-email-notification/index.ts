@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from 'npm:resend@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,7 @@ serve(async (req) => {
   }
 
   try {
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -30,16 +32,112 @@ serve(async (req) => {
 
     console.log('Processing email notification for signal:', signalId)
 
-    // Here you would integrate with an email service like Resend
-    // For now, we'll simulate the email sending
-    const emailContent = `
-      <h2>Trading Signal Alert</h2>
-      <p><strong>Signal Type:</strong> ${signalType}</p>
-      <p><strong>Strategy:</strong> ${signalData.strategyName || 'Unknown'}</p>
-      <p><strong>Asset:</strong> ${signalData.asset || 'Unknown'}</p>
-      <p><strong>Price:</strong> $${signalData.price || 'N/A'}</p>
-      <p><strong>Time:</strong> ${new Date().toISOString()}</p>
-    `
+    // Create email content based on signal type
+    const getSignalTitle = (type: string) => {
+      switch (type) {
+        case 'entry': return '🎯 New Entry Signal';
+        case 'exit': return '🔄 Exit Signal';
+        case 'stop_loss': return '🛑 Stop Loss Alert';
+        case 'take_profit': return '💰 Take Profit Alert';
+        default: return '📊 Trading Signal';
+      }
+    };
+
+    const getSignalColor = (type: string) => {
+      switch (type) {
+        case 'entry': return '#10B981'; // green
+        case 'exit': return '#F59E0B'; // amber
+        case 'stop_loss': return '#EF4444'; // red
+        case 'take_profit': return '#8B5CF6'; // purple
+        default: return '#6B7280'; // gray
+      }
+    };
+
+    const signalTitle = getSignalTitle(signalType);
+    const signalColor = getSignalColor(signalType);
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${signalTitle}</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-top: 20px; margin-bottom: 20px;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, ${signalColor}, ${signalColor}dd); padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">${signalTitle}</h1>
+              <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Trading Signal Alert</p>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px;">
+              <div style="background-color: #f8fafc; border-radius: 6px; padding: 20px; margin-bottom: 25px;">
+                <div style="display: grid; gap: 15px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="font-weight: 600; color: #374151;">Strategy:</span>
+                    <span style="color: #6b7280;">${signalData.strategyName || 'Unknown'}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="font-weight: 600; color: #374151;">Asset:</span>
+                    <span style="color: #6b7280; font-weight: 500;">${signalData.asset || 'Unknown'}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="font-weight: 600; color: #374151;">Price:</span>
+                    <span style="color: #6b7280; font-weight: 500;">$${signalData.price || 'N/A'}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                    <span style="font-weight: 600; color: #374151;">Time:</span>
+                    <span style="color: #6b7280;">${new Date().toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              
+              ${signalData.conditions && signalData.conditions.length > 0 ? `
+                <div style="margin-bottom: 25px;">
+                  <h3 style="color: #374151; margin: 0 0 15px 0; font-size: 16px;">Signal Conditions:</h3>
+                  <ul style="margin: 0; padding-left: 20px; color: #6b7280;">
+                    ${signalData.conditions.map((condition: string) => `<li style="margin-bottom: 5px;">${condition}</li>`).join('')}
+                  </ul>
+                </div>
+              ` : ''}
+              
+              ${signalData.confidence ? `
+                <div style="margin-bottom: 25px;">
+                  <h3 style="color: #374151; margin: 0 0 10px 0; font-size: 16px;">Confidence Level:</h3>
+                  <div style="background-color: #f3f4f6; border-radius: 6px; padding: 8px;">
+                    <div style="background-color: ${signalColor}; height: 8px; border-radius: 4px; width: ${Math.round(signalData.confidence * 100)}%;"></div>
+                    <span style="color: #6b7280; font-size: 14px; margin-top: 5px; display: block;">${Math.round(signalData.confidence * 100)}%</span>
+                  </div>
+                </div>
+              ` : ''}
+              
+              <!-- Footer -->
+              <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                  This is an automated trading signal from your strategy monitoring system.
+                </p>
+                <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
+                  Please verify all signals before taking any trading action.
+                </p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Send email using Resend
+    const emailResponse = await resend.emails.send({
+      from: 'Trading Signals <onboarding@resend.dev>',
+      to: [userEmail],
+      subject: `${signalTitle} - ${signalData.asset || 'Trading Signal'}`,
+      html: emailHtml
+    });
+
+    console.log('Email sent successfully:', emailResponse);
 
     // Log the notification attempt
     const { error: logError } = await supabaseClient
@@ -58,7 +156,11 @@ serve(async (req) => {
     console.log('Email notification sent successfully to:', userEmail)
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Email sent successfully' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Email sent successfully',
+        emailId: emailResponse.data?.id 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -67,6 +169,29 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error sending email notification:', error)
+    
+    // Log the failed notification
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+      
+      const { signalId, signalData } = await req.json()
+      
+      await supabaseClient
+        .from('notification_logs')
+        .insert({
+          user_id: signalData?.userId,
+          signal_id: signalId,
+          notification_type: 'email',
+          status: 'failed',
+          error_message: error.message
+        })
+    } catch (logError) {
+      console.error('Error logging failed email notification:', logError)
+    }
+
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

@@ -99,7 +99,7 @@ export const createTradingSignal = async (strategyId: string, signalType: string
   return data;
 };
 
-// Enhanced notification sending with rate limiting
+// Enhanced notification sending with rate limiting and better error handling
 export const sendNotificationWithRateLimit = async (
   userId: string,
   notificationType: 'email' | 'discord' | 'telegram',
@@ -115,21 +115,81 @@ export const sendNotificationWithRateLimit = async (
     throw new Error(`Rate limit exceeded for ${notificationType}. Try again in ${minutesUntilReset} minutes.`);
   }
 
-  // Send the notification based on type
-  switch (notificationType) {
-    case 'email':
-      return await supabase.functions.invoke('send-email-notification', {
-        body: { signalId, userEmail: args[0], signalData: args[1], signalType: args[2] }
-      });
-    case 'discord':
-      return await supabase.functions.invoke('send-discord-notification', {
-        body: { signalId, webhookUrl: args[0], signalData: args[1], signalType: args[2] }
-      });
-    case 'telegram':
-      return await supabase.functions.invoke('send-telegram-notification', {
-        body: { signalId, botToken: args[0], chatId: args[1], signalData: args[2], signalType: args[3] }
-      });
-    default:
-      throw new Error(`Unknown notification type: ${notificationType}`);
+  try {
+    let result;
+    
+    // Send the notification based on type
+    switch (notificationType) {
+      case 'email':
+        result = await supabase.functions.invoke('send-email-notification', {
+          body: { signalId, userEmail: args[0], signalData: args[1], signalType: args[2] }
+        });
+        break;
+      case 'discord':
+        result = await supabase.functions.invoke('send-discord-notification', {
+          body: { signalId, webhookUrl: args[0], signalData: args[1], signalType: args[2] }
+        });
+        break;
+      case 'telegram':
+        result = await supabase.functions.invoke('send-telegram-notification', {
+          body: { signalId, botToken: args[0], chatId: args[1], signalData: args[2], signalType: args[3] }
+        });
+        break;
+      default:
+        throw new Error(`Unknown notification type: ${notificationType}`);
+    }
+
+    if (result.error) {
+      throw new Error(result.error.message || `Failed to send ${notificationType} notification`);
+    }
+
+    console.log(`${notificationType} notification sent successfully:`, result.data);
+    return result;
+
+  } catch (error) {
+    console.error(`Error sending ${notificationType} notification:`, error);
+    
+    // Log the error but don't prevent other notifications from being sent
+    try {
+      await supabase
+        .from('notification_logs')
+        .insert({
+          user_id: userId,
+          signal_id: signalId,
+          notification_type: notificationType,
+          status: 'failed',
+          error_message: error.message
+        });
+    } catch (logError) {
+      console.error('Error logging notification failure:', logError);
+    }
+    
+    throw error;
+  }
+};
+
+// Helper function to test email notifications
+export const testEmailNotification = async (userEmail: string, signalData: any, signalType: string) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-email-notification', {
+      body: { 
+        signalId: 'test-' + Date.now(), 
+        userEmail, 
+        signalData: {
+          ...signalData,
+          strategyName: signalData.strategyName || 'Test Strategy'
+        }, 
+        signalType 
+      }
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to send test email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    throw error;
   }
 };

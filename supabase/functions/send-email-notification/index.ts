@@ -16,21 +16,53 @@ interface EmailNotificationRequest {
 }
 
 serve(async (req) => {
+  console.log('Email notification function called with method:', req.method);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    console.log('Processing email notification request...');
+    
+    // Check if Resend API key exists
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not found in environment variables');
+      return new Response(
+        JSON.stringify({ error: 'RESEND_API_KEY not configured' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
+    const resend = new Resend(resendApiKey);
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { signalId, userEmail, signalData, signalType }: EmailNotificationRequest = await req.json()
+    const requestBody = await req.json();
+    console.log('Request body received:', requestBody);
+    
+    const { signalId, userEmail, signalData, signalType }: EmailNotificationRequest = requestBody;
 
-    console.log('Processing email notification for signal:', signalId)
+    if (!userEmail) {
+      console.error('User email is required but not provided');
+      return new Response(
+        JSON.stringify({ error: 'User email is required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    console.log('Processing email notification for signal:', signalId, 'to email:', userEmail);
 
     // Create email content based on signal type
     const getSignalTitle = (type: string) => {
@@ -129,6 +161,8 @@ serve(async (req) => {
       </html>
     `;
 
+    console.log('Sending email to:', userEmail);
+
     // Send email using Resend
     const emailResponse = await resend.emails.send({
       from: 'Trading Signals <onboarding@resend.dev>',
@@ -139,21 +173,23 @@ serve(async (req) => {
 
     console.log('Email sent successfully:', emailResponse);
 
-    // Log the notification attempt
-    const { error: logError } = await supabaseClient
-      .from('notification_logs')
-      .insert({
-        user_id: signalData.userId,
-        signal_id: signalId,
-        notification_type: 'email',
-        status: 'sent'
-      })
+    // Log the notification attempt only if signalData.userId exists
+    if (signalData.userId) {
+      const { error: logError } = await supabaseClient
+        .from('notification_logs')
+        .insert({
+          user_id: signalData.userId,
+          signal_id: signalId,
+          notification_type: 'email',
+          status: 'sent'
+        });
 
-    if (logError) {
-      console.error('Error logging email notification:', logError)
+      if (logError) {
+        console.error('Error logging email notification:', logError);
+      }
     }
 
-    console.log('Email notification sent successfully to:', userEmail)
+    console.log('Email notification sent successfully to:', userEmail);
 
     return new Response(
       JSON.stringify({ 
@@ -165,31 +201,34 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
-    )
+    );
 
   } catch (error) {
-    console.error('Error sending email notification:', error)
+    console.error('Error sending email notification:', error);
     
-    // Log the failed notification
+    // Log the failed notification if we have enough data
     try {
       const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
+      );
       
-      const { signalId, signalData } = await req.json()
+      const requestBody = await req.json();
+      const { signalId, signalData } = requestBody;
       
-      await supabaseClient
-        .from('notification_logs')
-        .insert({
-          user_id: signalData?.userId,
-          signal_id: signalId,
-          notification_type: 'email',
-          status: 'failed',
-          error_message: error.message
-        })
+      if (signalData?.userId) {
+        await supabaseClient
+          .from('notification_logs')
+          .insert({
+            user_id: signalData.userId,
+            signal_id: signalId,
+            notification_type: 'email',
+            status: 'failed',
+            error_message: error.message
+          });
+      }
     } catch (logError) {
-      console.error('Error logging failed email notification:', logError)
+      console.error('Error logging failed email notification:', logError);
     }
 
     return new Response(
@@ -198,6 +237,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
       }
-    )
+    );
   }
-})
+});

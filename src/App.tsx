@@ -45,14 +45,17 @@ function App() {
           <Route path="/confirm" element={<Confirm />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/strategies" element={<ProtectedRoute><Strategies /></ProtectedRoute>} />
+          <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
           <Route path="/strategies/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
           <Route path="/strategies/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
+          <Route path="/strategy/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
           <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
           <Route path="/backtest-history" element={<ProtectedRoute><BacktestHistory /></ProtectedRoute>} />
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
           <Route path="/edit-history" element={<ProtectedRoute><EditHistory /></ProtectedRoute>} />
+          <Route path="/edit-history/:strategyId" element={<ProtectedRoute><EditHistory /></ProtectedRoute>} />
           <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
           <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />

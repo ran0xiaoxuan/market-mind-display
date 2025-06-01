@@ -30,8 +30,22 @@ serve(async (req) => {
     console.log('Processing email notification request...');
     
     // Parse request body once
-    requestBody = await req.json();
-    console.log('Request body received:', requestBody);
+    const rawBody = await req.text();
+    console.log('Raw request body:', rawBody);
+    
+    try {
+      requestBody = JSON.parse(rawBody);
+      console.log('Parsed request body:', requestBody);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
     
     // Check if Resend API key exists
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -52,12 +66,35 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
     
+    // Validate request body structure
+    if (!requestBody || typeof requestBody !== 'object') {
+      console.error('Request body is not a valid object:', requestBody);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body format' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
     const { signalId, userEmail, signalData, signalType } = requestBody;
 
     if (!userEmail) {
-      console.error('User email is required but not provided');
+      console.error('User email is required but not provided. Request body:', requestBody);
       return new Response(
         JSON.stringify({ error: 'User email is required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    if (!signalData) {
+      console.error('Signal data is required but not provided');
+      return new Response(
+        JSON.stringify({ error: 'Signal data is required' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -166,9 +203,9 @@ serve(async (req) => {
 
     console.log('Sending email to:', userEmail);
 
-    // Send email using Resend
+    // Send email using Resend with your verified domain
     const emailResponse = await resend.emails.send({
-      from: 'Trading Signals <onboarding@resend.dev>',
+      from: 'Trading Signals <notifications@strataige.cc>',
       to: [userEmail],
       subject: `${signalTitle} - ${signalData.asset || 'Trading Signal'}`,
       html: emailHtml

@@ -23,7 +23,7 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
-    return new Response(null, { 
+    return new Response('ok', { 
       headers: corsHeaders,
       status: 200
     });
@@ -45,31 +45,15 @@ serve(async (req) => {
     
     // Get environment variables
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     console.log('Environment check:');
     console.log('- RESEND_API_KEY exists:', !!resendApiKey);
     console.log('- RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0);
-    console.log('- RESEND_API_KEY starts with re_:', resendApiKey ? resendApiKey.startsWith('re_') : false);
-    console.log('- SUPABASE_URL exists:', !!supabaseUrl);
-    console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseServiceKey);
 
     if (!resendApiKey) {
       console.error('RESEND_API_KEY not found in environment variables');
       return new Response(
         JSON.stringify({ error: 'Email service not configured - missing RESEND_API_KEY' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
-    if (!resendApiKey.startsWith('re_')) {
-      console.error('RESEND_API_KEY appears to be invalid - should start with re_');
-      return new Response(
-        JSON.stringify({ error: 'Invalid RESEND_API_KEY format' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 

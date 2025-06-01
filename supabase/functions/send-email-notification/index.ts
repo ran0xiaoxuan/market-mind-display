@@ -16,7 +16,9 @@ interface EmailNotificationRequest {
 }
 
 serve(async (req) => {
-  console.log('Email notification function called with method:', req.method);
+  console.log('=== Email Notification Function Started ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -24,25 +26,63 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 405 
+      }
+    );
+  }
+
   try {
     console.log('Processing email notification request...');
     
-    // Parse request body
+    // Get and validate environment variables first
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    console.log('Environment check:');
+    console.log('- RESEND_API_KEY exists:', !!resendApiKey);
+    console.log('- SUPABASE_URL exists:', !!supabaseUrl);
+    console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseServiceKey);
+
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not found in environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Email service not configured - missing RESEND_API_KEY' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
+    // Parse request body with better error handling
     let requestBody: EmailNotificationRequest;
     try {
       const rawBody = await req.text();
-      console.log('Raw request body received:', rawBody);
+      console.log('Raw request body length:', rawBody.length);
+      console.log('Raw request body preview:', rawBody.substring(0, 200));
       
-      if (!rawBody.trim()) {
-        throw new Error('Empty request body');
+      if (!rawBody || rawBody.trim() === '') {
+        throw new Error('Request body is empty');
       }
       
       requestBody = JSON.parse(rawBody);
-      console.log('Parsed request body successfully:', requestBody);
+      console.log('Successfully parsed request body');
+      console.log('Request body keys:', Object.keys(requestBody));
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body: ' + parseError.message }),
+        JSON.stringify({ 
+          error: 'Invalid request body', 
+          details: parseError.message,
+          received: await req.text().catch(() => 'Could not read body')
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -53,10 +93,16 @@ serve(async (req) => {
     // Validate required fields
     const { signalId, userEmail, signalData, signalType } = requestBody;
 
+    console.log('Validating request fields:');
+    console.log('- signalId:', signalId);
+    console.log('- userEmail:', userEmail);
+    console.log('- signalType:', signalType);
+    console.log('- signalData keys:', signalData ? Object.keys(signalData) : 'null');
+
     if (!userEmail) {
       console.error('User email is required but not provided');
       return new Response(
-        JSON.stringify({ error: 'User email is required' }),
+        JSON.stringify({ error: 'userEmail is required' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -67,7 +113,7 @@ serve(async (req) => {
     if (!signalData) {
       console.error('Signal data is required but not provided');
       return new Response(
-        JSON.stringify({ error: 'Signal data is required' }),
+        JSON.stringify({ error: 'signalData is required' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -75,29 +121,18 @@ serve(async (req) => {
       );
     }
 
-    // Check if Resend API key exists
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY not found in environment variables');
-      return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+    // Initialize Resend
+    console.log('Initializing Resend with API key...');
+    const resend = new Resend(resendApiKey);
+
+    // Initialize Supabase client
+    let supabaseClient = null;
+    if (supabaseUrl && supabaseServiceKey) {
+      console.log('Initializing Supabase client...');
+      supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     }
 
-    console.log('Initializing Resend and Supabase clients...');
-    const resend = new Resend(resendApiKey);
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    console.log('Processing email notification for signal:', signalId, 'to email:', userEmail);
-
-    // Create email content based on signal type
+    // Create email content
     const getSignalTitle = (type: string) => {
       switch (type) {
         case 'entry': return '🎯 New Entry Signal';
@@ -118,8 +153,8 @@ serve(async (req) => {
       }
     };
 
-    const signalTitle = getSignalTitle(signalType);
-    const signalColor = getSignalColor(signalType);
+    const signalTitle = getSignalTitle(signalType || 'entry');
+    const signalColor = getSignalColor(signalType || 'entry');
 
     // Create email HTML content
     const emailHtml = `
@@ -131,7 +166,7 @@ serve(async (req) => {
           <title>${signalTitle}</title>
         </head>
         <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-top: 20px; margin-bottom: 20px;">
+          <div style="max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
             <div style="background: linear-gradient(135deg, ${signalColor}, ${signalColor}dd); padding: 30px; text-align: center;">
               <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">${signalTitle}</h1>
               <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Trading Signal Alert</p>
@@ -173,57 +208,103 @@ serve(async (req) => {
       </html>
     `;
 
-    console.log('Sending email to:', userEmail, 'with subject:', `${signalTitle} - ${signalData.asset || 'Trading Signal'}`);
+    const emailSubject = `${signalTitle} - ${signalData.asset || 'Trading Signal'}`;
+    const fromEmail = 'notifications@strataige.cc';
 
-    // Send email using Resend with your verified domain
-    const emailResponse = await resend.emails.send({
-      from: 'Trading Signals <notifications@strataige.cc>',
-      to: [userEmail],
-      subject: `${signalTitle} - ${signalData.asset || 'Trading Signal'}`,
-      html: emailHtml
-    });
+    console.log('Preparing to send email:');
+    console.log('- From:', fromEmail);
+    console.log('- To:', userEmail);
+    console.log('- Subject:', emailSubject);
 
-    console.log('Email sent successfully:', emailResponse);
+    // Send email using Resend
+    try {
+      console.log('Calling Resend API...');
+      const emailResponse = await resend.emails.send({
+        from: fromEmail,
+        to: [userEmail],
+        subject: emailSubject,
+        html: emailHtml
+      });
 
-    // Log the notification attempt if userId exists
-    if (signalData.userId) {
-      try {
-        const { error: logError } = await supabaseClient
-          .from('notification_logs')
-          .insert({
-            user_id: signalData.userId,
-            signal_id: signalId,
-            notification_type: 'email',
-            status: 'sent'
-          });
+      console.log('Resend API response:', emailResponse);
 
-        if (logError) {
-          console.error('Error logging email notification:', logError);
-        }
-      } catch (logError) {
-        console.error('Failed to log notification:', logError);
+      if (emailResponse.error) {
+        console.error('Resend API returned error:', emailResponse.error);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to send email via Resend', 
+            details: emailResponse.error 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500 
+          }
+        );
       }
+
+      console.log('Email sent successfully! Email ID:', emailResponse.data?.id);
+
+      // Log the notification attempt if possible
+      if (supabaseClient && signalData.userId) {
+        try {
+          console.log('Logging notification to database...');
+          const { error: logError } = await supabaseClient
+            .from('notification_logs')
+            .insert({
+              user_id: signalData.userId,
+              signal_id: signalId || 'test-' + Date.now(),
+              notification_type: 'email',
+              status: 'sent'
+            });
+
+          if (logError) {
+            console.error('Error logging email notification:', logError);
+          } else {
+            console.log('Successfully logged notification to database');
+          }
+        } catch (logError) {
+          console.error('Failed to log notification:', logError);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Email sent successfully',
+          emailId: emailResponse.data?.id,
+          from: fromEmail,
+          to: userEmail
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+
+    } catch (resendError) {
+      console.error('Error calling Resend API:', resendError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to send email', 
+          details: resendError.message,
+          type: 'resend_api_error'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Email sent successfully',
-        emailId: emailResponse.data?.id 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    );
-
   } catch (error) {
-    console.error('Error in email notification function:', error);
+    console.error('Unexpected error in email notification function:', error);
+    console.error('Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error: ' + error.message,
-        details: 'Check function logs for more information'
+        error: 'Internal server error',
+        details: error.message,
+        type: 'unexpected_error'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

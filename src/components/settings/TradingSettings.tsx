@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -158,7 +159,7 @@ export function TradingSettings() {
           
           <div className="opacity-60 pointer-events-none">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+              <form className="space-y-8">
                 {/* Email Notifications */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -168,13 +169,17 @@ export function TradingSettings() {
                       <p className="text-sm text-muted-foreground">Receive trading signals via email</p>
                     </div>
                   </div>
-                  <FormField control={form.control} name="email_enabled" render={({
-                  field
-                }) => <FormItem>
+                  <FormField 
+                    control={form.control} 
+                    name="email_enabled" 
+                    render={({ field }) => (
+                      <FormItem>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
-                      </FormItem>} />
+                      </FormItem>
+                    )} 
+                  />
                 </div>
                 
                 {/* Discord Integration */}
@@ -187,18 +192,25 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
                       </div>
                     </div>
-                    <FormField control={form.control} name="discord_enabled" render={({
-                    field
-                  }) => <FormItem>
+                    <FormField 
+                      control={form.control} 
+                      name="discord_enabled" 
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
-                        </FormItem>} />
+                        </FormItem>
+                      )} 
+                    />
                   </div>
                   
-                  {form.watch("discord_enabled") && <FormField control={form.control} name="discord_webhook_url" render={({
-                  field
-                }) => <FormItem>
+                  {form.watch("discord_enabled") && (
+                    <FormField 
+                      control={form.control} 
+                      name="discord_webhook_url" 
+                      render={({ field }) => (
+                        <FormItem>
                           <FormLabel>Discord Webhook URL</FormLabel>
                           <FormControl>
                             <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
@@ -206,7 +218,10 @@ export function TradingSettings() {
                           <FormDescription>
                             Create a webhook in your Discord server settings and paste the URL here
                           </FormDescription>
-                        </FormItem>} />}
+                        </FormItem>
+                      )} 
+                    />
+                  )}
                 </div>
                 
                 {/* Telegram Integration */}
@@ -219,19 +234,26 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
                       </div>
                     </div>
-                    <FormField control={form.control} name="telegram_enabled" render={({
-                    field
-                  }) => <FormItem>
+                    <FormField 
+                      control={form.control} 
+                      name="telegram_enabled" 
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
-                        </FormItem>} />
+                        </FormItem>
+                      )} 
+                    />
                   </div>
                   
-                  {form.watch("telegram_enabled") && <div className="space-y-4">
-                      <FormField control={form.control} name="telegram_bot_token" render={({
-                    field
-                  }) => <FormItem>
+                  {form.watch("telegram_enabled") && (
+                    <div className="space-y-4">
+                      <FormField 
+                        control={form.control} 
+                        name="telegram_bot_token" 
+                        render={({ field }) => (
+                          <FormItem>
                             <FormLabel>Telegram Bot Token</FormLabel>
                             <FormControl>
                               <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
@@ -239,11 +261,15 @@ export function TradingSettings() {
                             <FormDescription>
                               Create a bot with @BotFather and paste the token here
                             </FormDescription>
-                          </FormItem>} />
+                          </FormItem>
+                        )} 
+                      />
                       
-                      <FormField control={form.control} name="telegram_chat_id" render={({
-                    field
-                  }) => <FormItem>
+                      <FormField 
+                        control={form.control} 
+                        name="telegram_chat_id" 
+                        render={({ field }) => (
+                          <FormItem>
                             <FormLabel>Telegram Chat ID</FormLabel>
                             <FormControl>
                               <Input placeholder="-100123456789" {...field} />
@@ -251,15 +277,11 @@ export function TradingSettings() {
                             <FormDescription>
                               The ID of the chat where signals should be sent
                             </FormDescription>
-                          </FormItem>} />
-                    </div>}
-                </div>
-                
-                {/* Save Button */}
-                <div className="pt-4">
-                  <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-                    {isLoading ? "Saving..." : "Save Notification Settings"}
-                  </Button>
+                          </FormItem>
+                        )} 
+                      />
+                    </div>
+                  )}
                 </div>
               </form>
             </Form>
@@ -586,79 +608,81 @@ export function TradingSettings() {
     }
 
     return (
-      <div className="space-y-4">
-        <FormField
-          control={form.control}
-          name="entry_signals"
-          render={({ field }) => (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Entry Signals</p>
-                <p className="text-sm text-muted-foreground">Notify when a new trade opportunity is detected</p>
+      <Form {...form}>
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="entry_signals"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Entry Signals</p>
+                  <p className="text-sm text-muted-foreground">Notify when a new trade opportunity is detected</p>
+                </div>
+                <FormItem>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
               </div>
-              <FormItem>
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-              </FormItem>
-            </div>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="exit_signals"
-          render={({ field }) => (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Exit Signals</p>
-                <p className="text-sm text-muted-foreground">Notify when a position should be closed</p>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="exit_signals"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Exit Signals</p>
+                  <p className="text-sm text-muted-foreground">Notify when a position should be closed</p>
+                </div>
+                <FormItem>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
               </div>
-              <FormItem>
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-              </FormItem>
-            </div>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="stop_loss_alerts"
-          render={({ field }) => (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Stop Loss Alerts</p>
-                <p className="text-sm text-muted-foreground">Notify when stop loss is triggered</p>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="stop_loss_alerts"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Stop Loss Alerts</p>
+                  <p className="text-sm text-muted-foreground">Notify when stop loss is triggered</p>
+                </div>
+                <FormItem>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
               </div>
-              <FormItem>
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-              </FormItem>
-            </div>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="take_profit_alerts"
-          render={({ field }) => (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Take Profit Alerts</p>
-                <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="take_profit_alerts"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Take Profit Alerts</p>
+                  <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
+                </div>
+                <FormItem>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
               </div>
-              <FormItem>
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-              </FormItem>
-            </div>
-          )}
-        />
-      </div>
+            )}
+          />
+        </div>
+      </Form>
     );
   };
 

@@ -18,3 +18,18 @@ verify_jwt = false
 
 [functions.openai-chat]
 verify_jwt = false
+
+[functions.send-email-notification]
+verify_jwt = true
+
+[functions.send-discord-notification]
+verify_jwt = true
+
+[functions.send-telegram-notification]
+verify_jwt = true
+
+[functions.verify-discord-webhook]
+verify_jwt = true
+
+[functions.verify-telegram-bot]
+verify_jwt = true

@@ -130,6 +130,95 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          notification_type: string
+          signal_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_type: string
+          signal_id: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_type?: string
+          signal_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "trading_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          discord_enabled: boolean
+          discord_webhook_url: string | null
+          email_enabled: boolean
+          entry_signals: boolean
+          exit_signals: boolean
+          id: string
+          stop_loss_alerts: boolean
+          take_profit_alerts: boolean
+          telegram_bot_token: string | null
+          telegram_chat_id: string | null
+          telegram_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discord_enabled?: boolean
+          discord_webhook_url?: string | null
+          email_enabled?: boolean
+          entry_signals?: boolean
+          exit_signals?: boolean
+          id?: string
+          stop_loss_alerts?: boolean
+          take_profit_alerts?: boolean
+          telegram_bot_token?: string | null
+          telegram_chat_id?: string | null
+          telegram_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discord_enabled?: boolean
+          discord_webhook_url?: string | null
+          email_enabled?: boolean
+          entry_signals?: boolean
+          exit_signals?: boolean
+          id?: string
+          stop_loss_alerts?: boolean
+          take_profit_alerts?: boolean
+          telegram_bot_token?: string | null
+          telegram_chat_id?: string | null
+          telegram_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -618,6 +707,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "trading_rules_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trading_signals: {
+        Row: {
+          created_at: string
+          id: string
+          processed: boolean
+          signal_data: Json
+          signal_type: string
+          strategy_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          processed?: boolean
+          signal_data: Json
+          signal_type: string
+          strategy_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          processed?: boolean
+          signal_data?: Json
+          signal_type?: string
+          strategy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trading_signals_strategy_id_fkey"
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "strategies"

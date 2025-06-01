@@ -492,24 +492,12 @@ const Recommendations = () => {
                             <span className="text-sm text-muted-foreground">Timeframe:</span>
                             <span className="text-sm font-medium">{selectedStrategy?.timeframe || "N/A"}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Applications:</span>
-                            <span className="text-sm font-medium">{applyCounts.get(selectedStrategy?.id || '') || 0}</span>
-                          </div>
                         </div>
                         
                         <div className="space-y-3">
                           <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Stop Loss:</span>
-                            <span className="text-sm font-medium text-red-500">{selectedStrategy?.stop_loss || "N/A"}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Take Profit:</span>
-                            <span className="text-sm font-medium text-green-500">{selectedStrategy?.take_profit || "N/A"}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Max Buy Volume:</span>
-                            <span className="text-sm font-medium">{selectedStrategy?.max_buy_volume || "N/A"}</span>
+                            <span className="text-sm text-muted-foreground">Applications:</span>
+                            <span className="text-sm font-medium">{applyCounts.get(selectedStrategy?.id || '') || 0}</span>
                           </div>
                         </div>
                       </div>

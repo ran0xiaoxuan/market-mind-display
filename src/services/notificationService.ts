@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationRateLimiter } from "@/components/RateLimiter";
 
@@ -168,36 +167,47 @@ export const sendNotificationWithRateLimit = async (
   }
 };
 
-// Helper function to test email notifications - FIXED VERSION
+// Helper function to test email notifications - UPDATED VERSION
 export const testEmailNotification = async (userEmail: string, signalData: any, signalType: string) => {
   try {
-    console.log('Calling send-email-notification with:', {
+    console.log('Starting test email notification...');
+    console.log('Target email:', userEmail);
+    console.log('Signal data:', signalData);
+    console.log('Signal type:', signalType);
+
+    const requestPayload = {
       signalId: 'test-' + Date.now(),
-      userEmail,
-      signalData,
-      signalType
-    });
+      userEmail: userEmail,
+      signalData: {
+        ...signalData,
+        strategyName: signalData.strategyName || 'Test Strategy'
+      },
+      signalType: signalType
+    };
 
+    console.log('Calling send-email-notification with payload:', requestPayload);
+
+    // Call the edge function with proper error handling
     const { data, error } = await supabase.functions.invoke('send-email-notification', {
-      body: { 
-        signalId: 'test-' + Date.now(), 
-        userEmail, 
-        signalData: {
-          ...signalData,
-          strategyName: signalData.strategyName || 'Test Strategy'
-        }, 
-        signalType 
-      }
+      body: requestPayload
     });
 
-    console.log('Edge function response:', { data, error });
+    console.log('Edge function response data:', data);
+    console.log('Edge function response error:', error);
 
     if (error) {
-      console.error('Edge function error:', error);
-      throw new Error(error.message || 'Failed to send test email');
+      console.error('Edge function returned error:', error);
+      throw new Error(error.message || 'Failed to send test email via edge function');
     }
 
+    if (data && data.error) {
+      console.error('Edge function returned data error:', data.error);
+      throw new Error(data.error || 'Failed to send test email');
+    }
+
+    console.log('Email sent successfully!');
     return data;
+
   } catch (error) {
     console.error('Error in testEmailNotification:', error);
     throw error;

@@ -40,7 +40,7 @@ serve(async (req) => {
   try {
     console.log('Processing email notification request...');
     
-    // Get and validate environment variables first
+    // Get environment variables
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -61,18 +61,19 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body with comprehensive error handling
+    // Parse request body
     let requestBody: EmailNotificationRequest;
     try {
       const bodyText = await req.text();
-      console.log('Raw request body:', bodyText);
+      console.log('Raw request body length:', bodyText.length);
+      console.log('Raw request body:', bodyText.substring(0, 500)); // Log first 500 chars
       
       if (!bodyText || bodyText.trim() === '') {
         throw new Error('Request body is empty');
       }
       
       requestBody = JSON.parse(bodyText);
-      console.log('Parsed request body:', requestBody);
+      console.log('Parsed request body successfully');
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return new Response(
@@ -94,7 +95,7 @@ serve(async (req) => {
     console.log('- signalId:', signalId);
     console.log('- userEmail:', userEmail);
     console.log('- signalType:', signalType);
-    console.log('- signalData:', signalData);
+    console.log('- signalData exists:', !!signalData);
 
     if (!userEmail) {
       console.error('User email is required but not provided');
@@ -122,14 +123,7 @@ serve(async (req) => {
     console.log('Initializing Resend...');
     const resend = new Resend(resendApiKey);
 
-    // Initialize Supabase client if available
-    let supabaseClient = null;
-    if (supabaseUrl && supabaseServiceKey) {
-      console.log('Initializing Supabase client...');
-      supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    }
-
-    // Create email content based on signal type
+    // Create email content
     const getSignalTitle = (type: string) => {
       switch (type) {
         case 'entry': return '🎯 New Entry Signal';
@@ -140,80 +134,25 @@ serve(async (req) => {
       }
     };
 
-    const getSignalColor = (type: string) => {
-      switch (type) {
-        case 'entry': return '#10B981';
-        case 'exit': return '#F59E0B';
-        case 'stop_loss': return '#EF4444';
-        case 'take_profit': return '#8B5CF6';
-        default: return '#6B7280';
-      }
-    };
-
     const signalTitle = getSignalTitle(signalType || 'entry');
-    const signalColor = getSignalColor(signalType || 'entry');
-
-    // Create comprehensive email HTML content
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${signalTitle}</title>
-        </head>
-        <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <div style="max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <div style="background: linear-gradient(135deg, ${signalColor}, ${signalColor}dd); padding: 30px; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">${signalTitle}</h1>
-              <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Trading Signal Alert from Strataige</p>
-            </div>
-            
-            <div style="padding: 30px;">
-              <div style="background-color: #f8fafc; border-radius: 6px; padding: 20px; margin-bottom: 25px;">
-                <div style="display: grid; gap: 15px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                    <span style="font-weight: 600; color: #374151;">Strategy:</span>
-                    <span style="color: #6b7280;">${signalData.strategyName || 'Test Strategy'}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                    <span style="font-weight: 600; color: #374151;">Asset:</span>
-                    <span style="color: #6b7280; font-weight: 500;">${signalData.asset || 'Unknown'}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                    <span style="font-weight: 600; color: #374151;">Price:</span>
-                    <span style="color: #6b7280; font-weight: 500;">$${signalData.price || 'N/A'}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-                    <span style="font-weight: 600; color: #374151;">Time:</span>
-                    <span style="color: #6b7280;">${new Date().toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                <p style="color: #6b7280; font-size: 14px; margin: 0;">
-                  This is an automated trading signal from your Strataige strategy monitoring system.
-                </p>
-                <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
-                  Please verify all signals before taking any trading action.
-                </p>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const emailSubject = `${signalTitle} - ${signalData.asset || 'Trading Signal'}`;
+    const emailSubject = `${signalTitle} - ${signalData.asset || 'Test Signal'}`;
     const fromEmail = 'notifications@strataige.cc';
 
-    console.log('Preparing to send email:');
+    // Simple email HTML
+    const emailHtml = `
+      <h1>${signalTitle}</h1>
+      <p><strong>Strategy:</strong> ${signalData.strategyName || 'Test Strategy'}</p>
+      <p><strong>Asset:</strong> ${signalData.asset || 'Unknown'}</p>
+      <p><strong>Price:</strong> $${signalData.price || 'N/A'}</p>
+      <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+      <p>This is a test email from your Strataige notification system.</p>
+    `;
+
+    console.log('Sending email:');
     console.log('- From:', fromEmail);
     console.log('- To:', userEmail);
     console.log('- Subject:', emailSubject);
 
-    // Send email using Resend with comprehensive error handling
     try {
       console.log('Calling Resend API...');
       const emailResponse = await resend.emails.send({
@@ -230,9 +169,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Failed to send email via Resend', 
-            details: emailResponse.error,
-            from: fromEmail,
-            to: userEmail
+            details: emailResponse.error
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -243,36 +180,11 @@ serve(async (req) => {
 
       console.log('Email sent successfully! Email ID:', emailResponse.data?.id);
 
-      // Log the notification attempt if possible
-      if (supabaseClient && signalData.userId) {
-        try {
-          console.log('Logging notification to database...');
-          const { error: logError } = await supabaseClient
-            .from('notification_logs')
-            .insert({
-              user_id: signalData.userId,
-              signal_id: signalId || 'test-' + Date.now(),
-              notification_type: 'email',
-              status: 'sent'
-            });
-
-          if (logError) {
-            console.error('Error logging email notification:', logError);
-          } else {
-            console.log('Successfully logged notification to database');
-          }
-        } catch (logError) {
-          console.error('Failed to log notification:', logError);
-        }
-      }
-
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Email sent successfully',
-          emailId: emailResponse.data?.id,
-          from: fromEmail,
-          to: userEmail
+          emailId: emailResponse.data?.id
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -285,10 +197,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to send email', 
-          details: resendError.message,
-          type: 'resend_api_error',
-          from: fromEmail,
-          to: userEmail
+          details: resendError.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -299,13 +208,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error in email notification function:', error);
-    console.error('Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message,
-        type: 'unexpected_error'
+        details: error.message
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

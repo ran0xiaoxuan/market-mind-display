@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,10 +19,9 @@ interface NotificationPreferences {
   telegramBotToken: string;
   telegramChatId: string;
 }
+
 export function TradingSettings() {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const isPro = user?.user_metadata?.is_pro === true;
   const [isLoading, setIsLoading] = useState(false);
   const [isDiscordVerified, setIsDiscordVerified] = useState(false);
@@ -480,6 +480,7 @@ export function TradingSettings() {
         </div>
       </div>;
   };
+
   return <div className="space-y-12">
       <div>
         <h2 className="text-xl font-medium mb-2">Trading Signal Notifications</h2>
@@ -498,6 +499,24 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      
+      {/* Signal Notification Types - Only show for Pro users */}
+      {isPro && (
+        <div>
+          <h2 className="text-xl font-medium mb-2">Signal Types</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Choose which types of trading signals you want to receive
+          </p>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Notification Types</CardTitle>
+              <CardDescription>Customize which signal types trigger notifications</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              {renderSignalNotificationTypes()}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>;
 }

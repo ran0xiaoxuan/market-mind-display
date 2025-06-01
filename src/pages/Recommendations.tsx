@@ -397,7 +397,7 @@ const Recommendations = () => {
                 </div> : <div className="text-center py-12">
                   <p className="text-muted-foreground">No recommendations match your criteria</p>
                 </div>}
-            </>}
+            </>
         </div>
       </main>
       
@@ -429,57 +429,51 @@ const Recommendations = () => {
             
             <ScrollArea className="h-[50vh] pr-4">
               <TabsContent value="overview" className="mt-0">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold">Description</h3>
-                    <p className="text-sm mt-2">{selectedStrategy?.description || "No description provided."}</p>
+                    <h3 className="text-lg font-semibold mb-2">Description</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {selectedStrategy?.description || "No description provided."}
+                    </p>
                   </div>
                   
                   <Separator />
                   
                   <div>
-                    <h3 className="text-lg font-semibold">Strategy Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <Card className="p-4">
-                        <h4 className="font-medium">Key Metrics</h4>
-                        <dl className="mt-2 space-y-1 text-sm">
+                    <h3 className="text-lg font-semibold mb-4">Strategy Details</h3>
+                    <Card className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
                           <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Asset:</dt>
-                            <dd className="font-medium">{selectedStrategy?.target_asset || "N/A"}</dd>
+                            <span className="text-sm text-muted-foreground">Target Asset:</span>
+                            <span className="text-sm font-medium">{selectedStrategy?.target_asset || "N/A"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Timeframe:</dt>
-                            <dd className="font-medium">{selectedStrategy?.timeframe || "N/A"}</dd>
+                            <span className="text-sm text-muted-foreground">Timeframe:</span>
+                            <span className="text-sm font-medium">{selectedStrategy?.timeframe || "N/A"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Applications:</dt>
-                            <dd className="font-medium">{applyCounts.get(selectedStrategy?.id || '') || 0}</dd>
+                            <span className="text-sm text-muted-foreground">Applications:</span>
+                            <span className="text-sm font-medium">{applyCounts.get(selectedStrategy?.id || '') || 0}</span>
                           </div>
-                        </dl>
-                      </Card>
-                      
-                      <Card className="p-4">
-                        <h4 className="font-medium">Risk Parameters</h4>
-                        <dl className="mt-2 space-y-1 text-sm">
+                        </div>
+                        
+                        <div className="space-y-3">
                           <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Stop Loss:</dt>
-                            <dd className="font-medium text-red-500">{selectedStrategy?.stop_loss || "N/A"}</dd>
+                            <span className="text-sm text-muted-foreground">Stop Loss:</span>
+                            <span className="text-sm font-medium text-red-500">{selectedStrategy?.stop_loss || "N/A"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Take Profit:</dt>
-                            <dd className="font-medium text-green-500">{selectedStrategy?.take_profit || "N/A"}</dd>
+                            <span className="text-sm text-muted-foreground">Take Profit:</span>
+                            <span className="text-sm font-medium text-green-500">{selectedStrategy?.take_profit || "N/A"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Single Buy:</dt>
-                            <dd className="font-medium">{selectedStrategy?.single_buy_volume || "N/A"}</dd>
+                            <span className="text-sm text-muted-foreground">Max Buy Volume:</span>
+                            <span className="text-sm font-medium">{selectedStrategy?.max_buy_volume || "N/A"}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Max Buy:</dt>
-                            <dd className="font-medium">{selectedStrategy?.max_buy_volume || "N/A"}</dd>
-                          </div>
-                        </dl>
-                      </Card>
-                    </div>
+                        </div>
+                      </div>
+                    </Card>
                   </div>
                 </div>
               </TabsContent>

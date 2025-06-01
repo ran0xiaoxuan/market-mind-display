@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationRateLimiter } from "@/components/RateLimiter";
 
 export interface NotificationSettings {
   email_enabled: boolean;
@@ -28,9 +29,13 @@ export const getNotificationSettings = async () => {
 };
 
 export const saveNotificationSettings = async (settings: Partial<NotificationSettings>) => {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Not authenticated');
+
   const { data: existingSettings } = await supabase
     .from('notification_settings')
     .select('id')
+    .eq('user_id', user.user.id)
     .single();
 
   if (existingSettings) {
@@ -40,7 +45,7 @@ export const saveNotificationSettings = async (settings: Partial<NotificationSet
         ...settings,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('user_id', user.user.id)
       .select()
       .single();
 
@@ -50,7 +55,7 @@ export const saveNotificationSettings = async (settings: Partial<NotificationSet
     const { data, error } = await supabase
       .from('notification_settings')
       .insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: user.user.id,
         ...settings
       })
       .select()
@@ -92,4 +97,39 @@ export const createTradingSignal = async (strategyId: string, signalType: string
 
   if (error) throw error;
   return data;
+};
+
+// Enhanced notification sending with rate limiting
+export const sendNotificationWithRateLimit = async (
+  userId: string,
+  notificationType: 'email' | 'discord' | 'telegram',
+  signalId: string,
+  ...args: any[]
+) => {
+  const rateLimiter = NotificationRateLimiter.getInstance();
+  
+  if (!rateLimiter.canSendNotification(userId, notificationType)) {
+    const timeUntilReset = rateLimiter.getTimeUntilReset(userId, notificationType);
+    const minutesUntilReset = Math.ceil(timeUntilReset / (1000 * 60));
+    
+    throw new Error(`Rate limit exceeded for ${notificationType}. Try again in ${minutesUntilReset} minutes.`);
+  }
+
+  // Send the notification based on type
+  switch (notificationType) {
+    case 'email':
+      return await supabase.functions.invoke('send-email-notification', {
+        body: { signalId, userEmail: args[0], signalData: args[1], signalType: args[2] }
+      });
+    case 'discord':
+      return await supabase.functions.invoke('send-discord-notification', {
+        body: { signalId, webhookUrl: args[0], signalData: args[1], signalType: args[2] }
+      });
+    case 'telegram':
+      return await supabase.functions.invoke('send-telegram-notification', {
+        body: { signalId, botToken: args[0], chatId: args[1], signalData: args[2], signalType: args[3] }
+      });
+    default:
+      throw new Error(`Unknown notification type: ${notificationType}`);
+  }
 };

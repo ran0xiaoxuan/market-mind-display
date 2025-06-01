@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,15 +46,15 @@ export const PerformanceMetricsCard = ({
   });
 
   useEffect(() => {
-    const fetchBacktestData = async () => {
+    const fetchAndCalculateMetrics = async () => {
       try {
         setLoading(true);
-        console.log("Fetching backtest data for strategy:", strategyId);
+        console.log("Fetching trade data for strategy:", strategyId);
 
-        // Get latest backtest for this strategy
+        // Get latest backtest for this strategy to get trades
         const { data: backtest, error: backtestError } = await supabase
           .from("backtests")
-          .select("*")
+          .select("id, initial_capital")
           .eq("strategy_id", strategyId)
           .order("created_at", { ascending: false })
           .limit(1);
@@ -65,8 +64,6 @@ export const PerformanceMetricsCard = ({
           throw backtestError;
         }
 
-        console.log("Backtest data retrieved:", backtest);
-
         if (!backtest || backtest.length === 0) {
           console.log("No backtest data found for strategy");
           setLoading(false);
@@ -75,56 +72,118 @@ export const PerformanceMetricsCard = ({
 
         const latestBacktest = backtest[0];
         console.log("Latest backtest:", latestBacktest);
-        
-        // Helper function to safely format numbers
-        const formatPercentage = (value: number | null): string => {
-          if (value === null || value === undefined || isNaN(value)) {
-            console.log("Invalid percentage value:", value);
-            return "0.00%";
-          }
-          return `${value.toFixed(2)}%`;
-        };
 
-        const formatNumber = (value: number | null, decimals: number = 2): string => {
-          if (value === null || value === undefined || isNaN(value)) {
-            console.log("Invalid number value:", value);
-            return "0.00";
-          }
-          return value.toFixed(decimals);
-        };
+        // Fetch actual trade data
+        const { data: trades, error: tradesError } = await supabase
+          .from("backtest_trades")
+          .select("*")
+          .eq("backtest_id", latestBacktest.id)
+          .order("date", { ascending: true });
 
-        const formatCurrency = (value: number | null): string => {
-          if (value === null || value === undefined || isNaN(value)) {
-            console.log("Invalid currency value:", value);
-            return "$0.00";
-          }
-          return `$${value.toFixed(2)}`;
-        };
+        if (tradesError) {
+          console.error("Error fetching trades:", tradesError);
+          throw tradesError;
+        }
 
-        // Format the metrics with proper null handling
+        console.log("Trades data retrieved:", trades);
+
+        if (!trades || trades.length === 0) {
+          console.log("No trades found for backtest");
+          setLoading(false);
+          return;
+        }
+
+        // Calculate metrics from trade data
+        const initialCapital = latestBacktest.initial_capital || 10000;
+        let totalProfit = 0;
+        let winningTrades = 0;
+        let losingTrades = 0;
+        let totalWinningProfit = 0;
+        let totalLosingProfit = 0;
+        let runningBalance = initialCapital;
+        let peak = initialCapital;
+        let maxDrawdown = 0;
+        const returns: number[] = [];
+
+        // Process trades to calculate metrics
+        trades.forEach((trade) => {
+          const profit = trade.profit || 0;
+          totalProfit += profit;
+          runningBalance += profit;
+
+          // Track peak and drawdown
+          if (runningBalance > peak) {
+            peak = runningBalance;
+          }
+          const currentDrawdown = ((peak - runningBalance) / peak) * 100;
+          if (currentDrawdown > maxDrawdown) {
+            maxDrawdown = currentDrawdown;
+          }
+
+          // Count winning/losing trades and track profits/losses
+          if (profit > 0) {
+            winningTrades++;
+            totalWinningProfit += profit;
+          } else if (profit < 0) {
+            losingTrades++;
+            totalLosingProfit += Math.abs(profit);
+          }
+
+          // Calculate return for this trade
+          if (trade.profit_percentage) {
+            returns.push(trade.profit_percentage);
+          }
+        });
+
+        // Calculate total return percentage
+        const totalReturnPercentage = ((runningBalance - initialCapital) / initialCapital) * 100;
+
+        // Calculate annualized return (simplified - assumes 1 year period)
+        const annualizedReturn = totalReturnPercentage;
+
+        // Calculate win rate
+        const totalTradesCount = winningTrades + losingTrades;
+        const winRate = totalTradesCount > 0 ? (winningTrades / totalTradesCount) * 100 : 0;
+
+        // Calculate average profit and loss
+        const avgProfit = winningTrades > 0 ? totalWinningProfit / winningTrades : 0;
+        const avgLoss = losingTrades > 0 ? totalLosingProfit / losingTrades : 0;
+
+        // Calculate Sharpe ratio (simplified)
+        let sharpeRatio = 0;
+        if (returns.length > 0) {
+          const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+          const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / returns.length;
+          const stdDev = Math.sqrt(variance);
+          if (stdDev > 0) {
+            sharpeRatio = (avgReturn - 2) / stdDev; // Assuming 2% risk-free rate
+          }
+        }
+
+        // Format the calculated metrics
         const formattedMetrics = {
-          totalReturn: formatPercentage(latestBacktest.total_return_percentage),
-          annualizedReturn: formatPercentage(latestBacktest.annualized_return),
-          sharpeRatio: formatNumber(latestBacktest.sharpe_ratio),
-          maxDrawdown: formatPercentage(latestBacktest.max_drawdown),
-          winRate: formatPercentage(latestBacktest.win_rate)
+          totalReturn: `${totalReturnPercentage >= 0 ? '+' : ''}${totalReturnPercentage.toFixed(2)}%`,
+          annualizedReturn: `${annualizedReturn >= 0 ? '+' : ''}${annualizedReturn.toFixed(2)}%`,
+          sharpeRatio: sharpeRatio.toFixed(2),
+          maxDrawdown: `-${maxDrawdown.toFixed(2)}%`,
+          winRate: `${winRate.toFixed(2)}%`
         };
 
         const formattedTradeStats = {
-          totalTrades: latestBacktest.total_trades || 0,
-          winningTrades: latestBacktest.winning_trades || 0,
-          losingTrades: latestBacktest.losing_trades || 0,
-          avgProfit: formatCurrency(latestBacktest.avg_profit),
-          avgLoss: formatCurrency(latestBacktest.avg_loss)
+          totalTrades: trades.length,
+          winningTrades,
+          losingTrades,
+          avgProfit: `$${avgProfit.toFixed(2)}`,
+          avgLoss: `$${avgLoss.toFixed(2)}`
         };
 
-        console.log("Formatted metrics:", formattedMetrics);
-        console.log("Formatted trade stats:", formattedTradeStats);
+        console.log("Calculated metrics:", formattedMetrics);
+        console.log("Calculated trade stats:", formattedTradeStats);
 
         setPerformanceMetrics(formattedMetrics);
         setTradeStats(formattedTradeStats);
       } catch (err: any) {
-        console.error("Error fetching backtest data:", err);
+        console.error("Error calculating performance metrics:", err);
         setError("Failed to load performance metrics");
       } finally {
         setLoading(false);
@@ -132,7 +191,7 @@ export const PerformanceMetricsCard = ({
     };
 
     if (strategyId) {
-      fetchBacktestData();
+      fetchAndCalculateMetrics();
     }
   }, [strategyId]);
 

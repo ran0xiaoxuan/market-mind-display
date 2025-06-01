@@ -50,6 +50,8 @@ serve(async (req) => {
 
     console.log('Environment check:');
     console.log('- RESEND_API_KEY exists:', !!resendApiKey);
+    console.log('- RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0);
+    console.log('- RESEND_API_KEY starts with re_:', resendApiKey ? resendApiKey.startsWith('re_') : false);
     console.log('- SUPABASE_URL exists:', !!supabaseUrl);
     console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseServiceKey);
 
@@ -64,12 +66,23 @@ serve(async (req) => {
       );
     }
 
+    if (!resendApiKey.startsWith('re_')) {
+      console.error('RESEND_API_KEY appears to be invalid - should start with re_');
+      return new Response(
+        JSON.stringify({ error: 'Invalid RESEND_API_KEY format' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
     // Parse request body
     let requestBody: EmailNotificationRequest;
     try {
       const bodyText = await req.text();
       console.log('Raw request body length:', bodyText.length);
-      console.log('Raw request body:', bodyText.substring(0, 500));
+      console.log('Raw request body preview:', bodyText.substring(0, 200));
       
       if (!bodyText || bodyText.trim() === '') {
         throw new Error('Request body is empty');
@@ -123,7 +136,7 @@ serve(async (req) => {
     }
 
     // Initialize Resend
-    console.log('Initializing Resend...');
+    console.log('Initializing Resend with API key...');
     const resend = new Resend(resendApiKey);
 
     // Create email content
@@ -141,17 +154,22 @@ serve(async (req) => {
     const emailSubject = `${signalTitle} - ${signalData.asset || 'Test Signal'}`;
     const fromEmail = 'onboarding@resend.dev';
 
-    // Simple email HTML
+    // Create email HTML
     const emailHtml = `
-      <h1>${signalTitle}</h1>
-      <p><strong>Strategy:</strong> ${signalData.strategyName || 'Test Strategy'}</p>
-      <p><strong>Asset:</strong> ${signalData.asset || 'Unknown'}</p>
-      <p><strong>Price:</strong> $${signalData.price || 'N/A'}</p>
-      <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-      <p>This is a test email from your Strataige notification system.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1f2937;">${signalTitle}</h1>
+        <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Strategy:</strong> ${signalData.strategyName || 'Test Strategy'}</p>
+          <p><strong>Asset:</strong> ${signalData.asset || 'Unknown'}</p>
+          <p><strong>Price:</strong> $${signalData.price || 'N/A'}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+        <p>This is a test email from your Strataige notification system.</p>
+        <p style="color: #6b7280; font-size: 14px;">Signal ID: ${signalId}</p>
+      </div>
     `;
 
-    console.log('Sending email:');
+    console.log('Email details:');
     console.log('- From:', fromEmail);
     console.log('- To:', userEmail);
     console.log('- Subject:', emailSubject);
@@ -165,7 +183,7 @@ serve(async (req) => {
         html: emailHtml
       });
 
-      console.log('Resend API response:', emailResponse);
+      console.log('Resend API response:', JSON.stringify(emailResponse, null, 2));
 
       if (emailResponse.error) {
         console.error('Resend API returned error:', emailResponse.error);
@@ -187,7 +205,8 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           message: 'Email sent successfully',
-          emailId: emailResponse.data?.id
+          emailId: emailResponse.data?.id,
+          resendResponse: emailResponse.data
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -197,10 +216,12 @@ serve(async (req) => {
 
     } catch (resendError) {
       console.error('Error calling Resend API:', resendError);
+      console.error('Resend error details:', JSON.stringify(resendError, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Failed to send email', 
-          details: resendError.message
+          details: resendError.message,
+          resendError: resendError
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -211,11 +232,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error in email notification function:', error);
+    console.error('Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message
+        details: error.message,
+        stack: error.stack
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

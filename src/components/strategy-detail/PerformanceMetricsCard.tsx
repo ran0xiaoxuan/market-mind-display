@@ -50,6 +50,7 @@ export const PerformanceMetricsCard = ({
     const fetchBacktestData = async () => {
       try {
         setLoading(true);
+        console.log("Fetching backtest data for strategy:", strategyId);
 
         // Get latest backtest for this strategy
         const { data: backtest, error: backtestError } = await supabase
@@ -60,33 +61,65 @@ export const PerformanceMetricsCard = ({
           .limit(1);
 
         if (backtestError) {
+          console.error("Error fetching backtest:", backtestError);
           throw backtestError;
         }
 
+        console.log("Backtest data retrieved:", backtest);
+
         if (!backtest || backtest.length === 0) {
+          console.log("No backtest data found for strategy");
           setLoading(false);
-          // No backtest data, we'll use the default values
           return;
         }
 
         const latestBacktest = backtest[0];
+        console.log("Latest backtest:", latestBacktest);
         
-        // Format the metrics
+        // Helper function to safely format numbers
+        const formatPercentage = (value: number | null): string => {
+          if (value === null || value === undefined || isNaN(value)) {
+            console.log("Invalid percentage value:", value);
+            return "0.00%";
+          }
+          return `${value.toFixed(2)}%`;
+        };
+
+        const formatNumber = (value: number | null, decimals: number = 2): string => {
+          if (value === null || value === undefined || isNaN(value)) {
+            console.log("Invalid number value:", value);
+            return "0.00";
+          }
+          return value.toFixed(decimals);
+        };
+
+        const formatCurrency = (value: number | null): string => {
+          if (value === null || value === undefined || isNaN(value)) {
+            console.log("Invalid currency value:", value);
+            return "$0.00";
+          }
+          return `$${value.toFixed(2)}`;
+        };
+
+        // Format the metrics with proper null handling
         const formattedMetrics = {
-          totalReturn: `${latestBacktest.total_return_percentage ? latestBacktest.total_return_percentage.toFixed(2) : '0'}%`,
-          annualizedReturn: `${latestBacktest.annualized_return ? latestBacktest.annualized_return.toFixed(2) : '0'}%`,
-          sharpeRatio: latestBacktest.sharpe_ratio ? latestBacktest.sharpe_ratio.toFixed(2) : '0',
-          maxDrawdown: `${latestBacktest.max_drawdown ? latestBacktest.max_drawdown.toFixed(2) : '0'}%`,
-          winRate: `${latestBacktest.win_rate ? latestBacktest.win_rate.toFixed(2) : '0'}%`
+          totalReturn: formatPercentage(latestBacktest.total_return_percentage),
+          annualizedReturn: formatPercentage(latestBacktest.annualized_return),
+          sharpeRatio: formatNumber(latestBacktest.sharpe_ratio),
+          maxDrawdown: formatPercentage(latestBacktest.max_drawdown),
+          winRate: formatPercentage(latestBacktest.win_rate)
         };
 
         const formattedTradeStats = {
           totalTrades: latestBacktest.total_trades || 0,
           winningTrades: latestBacktest.winning_trades || 0,
           losingTrades: latestBacktest.losing_trades || 0,
-          avgProfit: `$${latestBacktest.avg_profit ? latestBacktest.avg_profit.toFixed(2) : '0'}`,
-          avgLoss: `$${latestBacktest.avg_loss ? latestBacktest.avg_loss.toFixed(2) : '0'}`
+          avgProfit: formatCurrency(latestBacktest.avg_profit),
+          avgLoss: formatCurrency(latestBacktest.avg_loss)
         };
+
+        console.log("Formatted metrics:", formattedMetrics);
+        console.log("Formatted trade stats:", formattedTradeStats);
 
         setPerformanceMetrics(formattedMetrics);
         setTradeStats(formattedTradeStats);

@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,23 @@ export const StrategyHeader = ({
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Handle case where strategyId might be undefined or invalid
+  if (!strategyId || strategyId === 'undefined') {
+    return (
+      <div className="mb-6">
+        <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Strategies
+        </Link>
+        
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold">Invalid Strategy</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleDeleteStrategy = async () => {
     try {

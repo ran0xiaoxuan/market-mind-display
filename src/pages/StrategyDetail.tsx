@@ -31,8 +31,11 @@ const StrategyDetail = () => {
   const [error, setError] = useState<string | null>(null);
   
   const fetchStrategyDetails = async () => {
-    if (!id) {
-      setError("Strategy ID is missing");
+    console.log("Strategy ID from params:", id);
+    
+    if (!id || id === 'undefined') {
+      console.error("Invalid strategy ID:", id);
+      setError("Invalid strategy ID. Please check the URL and try again.");
       setLoading(false);
       return;
     }
@@ -172,6 +175,23 @@ const StrategyDetail = () => {
       setIsActive(!checked);
     }
   };
+  
+  if (!id || id === 'undefined') {
+    return (
+      <>
+        <Navbar />
+        <Container>
+          <Alert variant="destructive" className="my-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Invalid Strategy ID</AlertTitle>
+            <AlertDescription>
+              The strategy ID is missing or invalid. Please check the URL and try again.
+            </AlertDescription>
+          </Alert>
+        </Container>
+      </>
+    );
+  }
   
   if (loading) {
     return (

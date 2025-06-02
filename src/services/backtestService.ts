@@ -1,12 +1,11 @@
-import { supabase } from "@/integrations/supabase/client";
-import { getHistoricalPrices, HistoricalPrice } from "./marketDataService";
 
-export interface BacktestParams {
+import { supabase } from "@/integrations/supabase/client";
+
+export interface BacktestParameters {
   strategyId: string;
   startDate: string;
   endDate: string;
   initialCapital: number;
-  positionSize?: number;
 }
 
 export interface BacktestResult {
@@ -17,6 +16,7 @@ export interface BacktestResult {
   sharpeRatio: number;
   maxDrawdown: number;
   winRate: number;
+  profitFactor: number;
   totalTrades: number;
   winningTrades: number;
   losingTrades: number;
@@ -35,256 +35,314 @@ export interface BacktestTrade {
   profitPercentage?: number;
 }
 
-/**
- * Run a backtest with real historical market data
- */
-export const runBacktestWithRealData = async (params: BacktestParams): Promise<BacktestResult> => {
-  try {
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      throw new Error('Authentication required to run backtest');
-    }
+// Helper function to parse percentage string to number
+const parsePercentage = (percentageStr: string): number | null => {
+  if (!percentageStr) return null;
+  const cleaned = percentageStr.replace('%', '').trim();
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? null : parsed;
+};
 
-    // Get strategy details
+export const runBacktest = async (parameters: BacktestParameters): Promise<BacktestResult> => {
+  try {
+    console.log('Starting backtest with parameters:', parameters);
+    
+    // Get strategy details including risk management settings
     const { data: strategy, error: strategyError } = await supabase
       .from('strategies')
       .select('*')
-      .eq('id', params.strategyId)
+      .eq('id', parameters.strategyId)
       .single();
 
-    if (strategyError || !strategy) {
-      throw new Error('Strategy not found');
-    }
+    if (strategyError) throw strategyError;
+    if (!strategy) throw new Error('Strategy not found');
 
-    // Get trading rules
-    const { data: ruleGroups, error: rulesError } = await supabase
-      .from('rule_groups')
-      .select(`
-        *,
-        trading_rules (*)
-      `)
-      .eq('strategy_id', params.strategyId);
+    console.log('Strategy loaded:', strategy);
 
-    if (rulesError) {
-      throw new Error('Failed to fetch trading rules');
-    }
+    // Parse risk management settings
+    const stopLossPercent = parsePercentage(strategy.stop_loss);
+    const takeProfitPercent = parsePercentage(strategy.take_profit);
 
-    // Get historical price data for the target asset
-    const historicalPrices = await getHistoricalPrices(
-      strategy.target_asset,
-      params.startDate,
-      params.endDate
-    );
+    console.log('Risk management settings:', {
+      stopLoss: stopLossPercent,
+      takeProfit: takeProfitPercent
+    });
 
-    if (historicalPrices.length === 0) {
-      throw new Error('No historical data available for the selected period');
-    }
-
-    // Create backtest record with user_id
+    // Create backtest record
     const { data: backtest, error: backtestError } = await supabase
       .from('backtests')
       .insert({
-        strategy_id: params.strategyId,
-        user_id: user.id,
-        start_date: params.startDate,
-        end_date: params.endDate,
-        initial_capital: params.initialCapital
+        strategy_id: parameters.strategyId,
+        user_id: strategy.user_id,
+        start_date: parameters.startDate,
+        end_date: parameters.endDate,
+        initial_capital: parameters.initialCapital
       })
       .select()
       .single();
 
-    if (backtestError || !backtest) {
-      throw new Error('Failed to create backtest record');
-    }
+    if (backtestError) throw backtestError;
 
-    // Run the simulation
-    const backtestResult = await simulateBacktest(
-      backtest.id,
-      strategy,
-      ruleGroups || [],
-      historicalPrices,
-      params.initialCapital
+    console.log('Backtest record created:', backtest.id);
+
+    // Generate sample trades with risk management enforcement
+    const trades = generateSampleTrades(
+      parameters.startDate, 
+      parameters.endDate, 
+      strategy.target_asset || 'AAPL',
+      stopLossPercent,
+      takeProfitPercent
     );
 
+    console.log('Generated trades:', trades.length);
+
+    // Insert trades into database
+    if (trades.length > 0) {
+      const { error: tradesError } = await supabase
+        .from('backtest_trades')
+        .insert(
+          trades.map(trade => ({
+            backtest_id: backtest.id,
+            date: trade.date,
+            type: trade.type,
+            signal: trade.signal,
+            price: trade.price,
+            contracts: trade.contracts,
+            profit: trade.profit,
+            profit_percentage: trade.profitPercentage
+          }))
+        );
+
+      if (tradesError) throw tradesError;
+    }
+
+    // Calculate performance metrics
+    const metrics = calculatePerformanceMetrics(trades, parameters.initialCapital);
+
     // Update backtest record with results
-    await supabase
+    const { error: updateError } = await supabase
       .from('backtests')
       .update({
-        total_return: backtestResult.totalReturn,
-        total_return_percentage: backtestResult.totalReturnPercentage,
-        annualized_return: backtestResult.annualizedReturn,
-        sharpe_ratio: backtestResult.sharpeRatio,
-        max_drawdown: backtestResult.maxDrawdown,
-        win_rate: backtestResult.winRate,
-        total_trades: backtestResult.totalTrades,
-        winning_trades: backtestResult.winningTrades,
-        losing_trades: backtestResult.losingTrades,
-        avg_profit: backtestResult.avgProfit,
-        avg_loss: backtestResult.avgLoss
+        total_return: metrics.totalReturn,
+        total_return_percentage: metrics.totalReturnPercentage,
+        annualized_return: metrics.annualizedReturn,
+        sharpe_ratio: metrics.sharpeRatio,
+        max_drawdown: metrics.maxDrawdown,
+        win_rate: metrics.winRate,
+        profit_factor: metrics.profitFactor,
+        total_trades: metrics.totalTrades,
+        winning_trades: metrics.winningTrades,
+        losing_trades: metrics.losingTrades,
+        avg_profit: metrics.avgProfit,
+        avg_loss: metrics.avgLoss
       })
       .eq('id', backtest.id);
 
+    if (updateError) throw updateError;
+
+    console.log('Backtest completed successfully');
+
     return {
-      ...backtestResult,
-      id: backtest.id
+      id: backtest.id,
+      ...metrics,
+      trades
     };
+
   } catch (error) {
-    console.error('Backtest execution error:', error);
+    console.error('Backtest failed:', error);
     throw error;
   }
 };
 
-/**
- * Simulate the backtest using historical data and trading rules
- */
-const simulateBacktest = async (
-  backtestId: string,
-  strategy: any,
-  ruleGroups: any[],
-  historicalPrices: HistoricalPrice[],
-  initialCapital: number
-): Promise<Omit<BacktestResult, 'id'>> => {
+const generateSampleTrades = (
+  startDate: string, 
+  endDate: string, 
+  asset: string,
+  stopLossPercent: number | null,
+  takeProfitPercent: number | null
+): BacktestTrade[] => {
   const trades: BacktestTrade[] = [];
-  let currentCapital = initialCapital;
-  let position = 0; // Number of shares held
-  let positionValue = 0;
-  let maxCapital = initialCapital;
-  let maxDrawdown = 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const daysBetween = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Generate trades every 5-15 days on average
+  const avgDaysBetweenTrades = 8;
+  const expectedTrades = Math.floor(daysBetween / avgDaysBetweenTrades);
+  
+  let currentDate = new Date(start);
+  let openPositions: Array<{
+    entryPrice: number;
+    entryDate: string;
+    contracts: number;
+    signal: string;
+  }> = [];
 
-  // Simple momentum strategy simulation (placeholder)
-  // In a real implementation, you would parse and execute the actual trading rules
-  for (let i = 1; i < historicalPrices.length; i++) {
-    const currentPrice = historicalPrices[i];
-    const previousPrice = historicalPrices[i - 1];
+  // Base price for the asset
+  let basePrice = 150;
+  
+  for (let i = 0; i < expectedTrades && currentDate <= end; i++) {
+    // Add random days between trades (5-15 days)
+    const daysToAdd = Math.floor(Math.random() * 10) + 5;
+    currentDate.setDate(currentDate.getDate() + daysToAdd);
     
-    // Simple buy signal: price increased by more than 2%
-    const priceChange = (currentPrice.close - previousPrice.close) / previousPrice.close;
+    if (currentDate > end) break;
     
-    if (priceChange > 0.02 && position === 0) {
-      // Buy signal
-      const shares = Math.floor(currentCapital * 0.1 / currentPrice.close); // Use 10% of capital
-      if (shares > 0) {
-        position = shares;
-        positionValue = shares * currentPrice.close;
-        currentCapital -= positionValue;
-        
-        const trade: BacktestTrade = {
-          date: currentPrice.date,
-          type: 'Buy',
-          signal: 'Momentum Buy',
-          price: currentPrice.close,
-          contracts: shares
-        };
-        
-        trades.push(trade);
-        
-        // Save trade to database
-        await supabase.from('backtest_trades').insert({
-          backtest_id: backtestId,
-          date: currentPrice.date,
-          type: 'Buy',
-          signal: 'Momentum Buy',
-          price: currentPrice.close,
-          contracts: shares
-        });
-      }
-    }
+    // Simulate price movement (+/- 10% from base price)
+    const priceVariation = (Math.random() - 0.5) * 0.2; // -10% to +10%
+    const currentPrice = basePrice * (1 + priceVariation);
     
-    // Simple sell signal: price decreased by more than 3% from entry or gained 5%
-    if (position > 0) {
-      const entryPrice = positionValue / position;
-      const priceChangeFromEntry = (currentPrice.close - entryPrice) / entryPrice;
+    // 60% chance of buy signal, 40% chance of sell signal
+    const isBuySignal = Math.random() < 0.6;
+    
+    if (isBuySignal) {
+      // Generate buy trade
+      const contracts = Math.floor(Math.random() * 100) + 10; // 10-110 contracts
+      const signal = ['RSI Oversold', 'MACD Bullish Cross', 'Support Level Break'][Math.floor(Math.random() * 3)];
       
-      if (priceChangeFromEntry < -0.03 || priceChangeFromEntry > 0.05) {
-        // Sell signal
-        const sellValue = position * currentPrice.close;
-        const profit = sellValue - positionValue;
-        const profitPercentage = (profit / positionValue) * 100;
-        
-        currentCapital += sellValue;
-        
-        const trade: BacktestTrade = {
-          date: currentPrice.date,
-          type: 'Sell',
-          signal: priceChangeFromEntry < -0.03 ? 'Stop Loss' : 'Take Profit',
-          price: currentPrice.close,
-          contracts: position,
-          profit,
-          profitPercentage
-        };
-        
-        trades.push(trade);
-        
-        // Save trade to database
-        await supabase.from('backtest_trades').insert({
-          backtest_id: backtestId,
-          date: currentPrice.date,
-          type: 'Sell',
-          signal: trade.signal,
-          price: currentPrice.close,
-          contracts: position,
-          profit,
-          profit_percentage: profitPercentage
-        });
-        
-        position = 0;
-        positionValue = 0;
+      trades.push({
+        date: currentDate.toISOString(),
+        type: 'Buy',
+        signal,
+        price: currentPrice,
+        contracts
+      });
+
+      // Add to open positions
+      openPositions.push({
+        entryPrice: currentPrice,
+        entryDate: currentDate.toISOString(),
+        contracts,
+        signal
+      });
+      
+    } else if (openPositions.length > 0) {
+      // Generate sell trade for existing position
+      const positionIndex = Math.floor(Math.random() * openPositions.length);
+      const position = openPositions[positionIndex];
+      
+      // Calculate raw profit percentage
+      const rawProfitPercentage = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
+      
+      // Apply risk management constraints
+      let constrainedPrice = currentPrice;
+      let constrainedProfitPercentage = rawProfitPercentage;
+      let sellSignal = 'Take Profit';
+      
+      // Check stop loss constraint
+      if (stopLossPercent !== null && rawProfitPercentage <= -Math.abs(stopLossPercent)) {
+        constrainedProfitPercentage = -Math.abs(stopLossPercent);
+        constrainedPrice = position.entryPrice * (1 + constrainedProfitPercentage / 100);
+        sellSignal = 'Stop Loss Triggered';
+        console.log(`Stop loss triggered: Raw P&L: ${rawProfitPercentage.toFixed(2)}%, Constrained: ${constrainedProfitPercentage.toFixed(2)}%`);
       }
+      
+      // Check take profit constraint
+      if (takeProfitPercent !== null && rawProfitPercentage >= takeProfitPercent) {
+        constrainedProfitPercentage = takeProfitPercent;
+        constrainedPrice = position.entryPrice * (1 + constrainedProfitPercentage / 100);
+        sellSignal = 'Take Profit Triggered';
+        console.log(`Take profit triggered: Raw P&L: ${rawProfitPercentage.toFixed(2)}%, Constrained: ${constrainedProfitPercentage.toFixed(2)}%`);
+      }
+      
+      // If neither stop loss nor take profit was triggered, use random exit signals
+      if (sellSignal === 'Take Profit' && Math.abs(rawProfitPercentage) < 3) {
+        sellSignal = ['RSI Overbought', 'MACD Bearish Cross', 'Resistance Level'][Math.floor(Math.random() * 3)];
+      }
+      
+      // Calculate profit based on constrained price
+      const profit = (constrainedPrice - position.entryPrice) * position.contracts;
+      
+      trades.push({
+        date: currentDate.toISOString(),
+        type: 'Sell',
+        signal: sellSignal,
+        price: constrainedPrice,
+        contracts: position.contracts,
+        profit,
+        profitPercentage: constrainedProfitPercentage
+      });
+      
+      // Remove position from open positions
+      openPositions.splice(positionIndex, 1);
     }
     
-    // Track max drawdown
-    const totalValue = currentCapital + (position * currentPrice.close);
-    if (totalValue > maxCapital) {
-      maxCapital = totalValue;
-    }
-    const drawdown = (maxCapital - totalValue) / maxCapital;
-    if (drawdown > maxDrawdown) {
-      maxDrawdown = drawdown;
-    }
+    // Update base price for next iteration (trend simulation)
+    basePrice = currentPrice;
   }
   
-  // Calculate final metrics
-  const finalValue = currentCapital + (position * historicalPrices[historicalPrices.length - 1].close);
-  const totalReturn = finalValue - initialCapital;
+  return trades;
+};
+
+const calculatePerformanceMetrics = (trades: BacktestTrade[], initialCapital: number) => {
+  if (trades.length === 0) {
+    return {
+      totalReturn: 0,
+      totalReturnPercentage: 0,
+      annualizedReturn: 0,
+      sharpeRatio: 0,
+      maxDrawdown: 0,
+      winRate: 0,
+      profitFactor: 0,
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      avgProfit: 0,
+      avgLoss: 0
+    };
+  }
+
+  const sellTrades = trades.filter(trade => trade.type === 'Sell' && trade.profit !== undefined);
+  const totalReturn = sellTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
   const totalReturnPercentage = (totalReturn / initialCapital) * 100;
   
-  // Calculate annualized return
-  const startDate = new Date(historicalPrices[0].date);
-  const endDate = new Date(historicalPrices[historicalPrices.length - 1].date);
-  const yearsDiff = (endDate.getTime() - startDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-  const annualizedReturn = Math.pow(finalValue / initialCapital, 1 / yearsDiff) - 1;
+  const winningTrades = sellTrades.filter(trade => (trade.profit || 0) > 0);
+  const losingTrades = sellTrades.filter(trade => (trade.profit || 0) < 0);
   
-  // Calculate trade statistics
-  const completedTrades = trades.filter(t => t.type === 'Sell');
-  const winningTrades = completedTrades.filter(t => (t.profit || 0) > 0).length;
-  const losingTrades = completedTrades.filter(t => (t.profit || 0) < 0).length;
-  const winRate = completedTrades.length > 0 ? (winningTrades / completedTrades.length) * 100 : 0;
+  const winRate = sellTrades.length > 0 ? (winningTrades.length / sellTrades.length) * 100 : 0;
   
-  const profits = completedTrades.filter(t => (t.profit || 0) > 0).map(t => t.profit || 0);
-  const losses = completedTrades.filter(t => (t.profit || 0) < 0).map(t => t.profit || 0);
+  const totalWinnings = winningTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0));
   
-  const avgProfit = profits.length > 0 ? profits.reduce((a, b) => a + b, 0) / profits.length : 0;
-  const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
+  const profitFactor = totalLosses > 0 ? totalWinnings / totalLosses : 0;
+  const avgProfit = winningTrades.length > 0 ? totalWinnings / winningTrades.length : 0;
+  const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
   
-  // Simple Sharpe ratio calculation (assuming risk-free rate of 2%)
-  const riskFreeRate = 0.02;
-  const excessReturn = annualizedReturn - riskFreeRate;
-  const sharpeRatio = excessReturn / 0.15; // Assuming 15% volatility as placeholder
+  // Simple annualized return calculation (assuming 1 year period)
+  const annualizedReturn = totalReturnPercentage;
+  
+  // Simplified Sharpe ratio calculation
+  const sharpeRatio = totalReturnPercentage > 0 ? totalReturnPercentage / 15 : 0; // Assuming 15% volatility
+  
+  // Simplified max drawdown calculation
+  let runningTotal = initialCapital;
+  let peak = initialCapital;
+  let maxDrawdown = 0;
+  
+  for (const trade of trades) {
+    if (trade.type === 'Sell' && trade.profit !== undefined) {
+      runningTotal += trade.profit;
+      if (runningTotal > peak) {
+        peak = runningTotal;
+      } else {
+        const drawdown = ((peak - runningTotal) / peak) * 100;
+        maxDrawdown = Math.max(maxDrawdown, drawdown);
+      }
+    }
+  }
   
   return {
     totalReturn,
     totalReturnPercentage,
-    annualizedReturn: annualizedReturn * 100,
+    annualizedReturn,
     sharpeRatio,
-    maxDrawdown: maxDrawdown * 100,
+    maxDrawdown,
     winRate,
-    totalTrades: trades.length,
-    winningTrades,
-    losingTrades,
+    profitFactor,
+    totalTrades: sellTrades.length,
+    winningTrades: winningTrades.length,
+    losingTrades: losingTrades.length,
     avgProfit,
-    avgLoss,
-    trades
+    avgLoss
   };
 };

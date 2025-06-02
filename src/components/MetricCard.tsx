@@ -11,9 +11,11 @@ type MetricCardProps = {
   };
   direction?: "up" | "down";
   showChart?: boolean;
+  price?: number;
+  volume?: number;
 };
 
-export function MetricCard({ title, value, change, direction, showChart = true }: MetricCardProps) {
+export function MetricCard({ title, value, change, direction, showChart = true, price, volume }: MetricCardProps) {
   const isPositive = change?.positive || direction === "up";
   
   // Determine color based on value for Total Return
@@ -26,8 +28,16 @@ export function MetricCard({ title, value, change, direction, showChart = true }
     }
   }
 
-  // Format value with dollar sign for Transaction Amount
-  const displayValue = title === "Transaction Amount" ? `$${value}` : value;
+  // Calculate transaction amount as Price * Volume for Transaction Amount
+  let displayValue = value;
+  if (title === "Transaction Amount" && price !== undefined && volume !== undefined) {
+    const transactionAmount = price * volume;
+    displayValue = `$${transactionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } else if (title === "Transaction Amount" && typeof value === "number") {
+    displayValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } else if (title === "Transaction Amount" && typeof value === "string" && !value.startsWith("$")) {
+    displayValue = `$${value}`;
+  }
 
   return (
     <div className="rounded-md border bg-card p-4 shadow-sm">

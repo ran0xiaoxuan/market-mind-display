@@ -18,7 +18,7 @@ import { useLocation } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
-import { runBacktestWithRealData, BacktestResult } from "@/services/backtestService";
+import { runBacktest, BacktestResult } from "@/services/backtestService";
 
 const Backtest = () => {
   const location = useLocation();
@@ -72,7 +72,7 @@ const Backtest = () => {
     return date > new Date();
   };
 
-  const runBacktest = async () => {
+  const runBacktestHandler = async () => {
     if (!strategy) {
       showToast({
         title: "Strategy is required",
@@ -96,7 +96,7 @@ const Backtest = () => {
     });
 
     try {
-      const result = await runBacktestWithRealData({
+      const result = await runBacktest({
         strategyId: strategy,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
@@ -275,7 +275,7 @@ const Backtest = () => {
                   </div>
 
                   <Button 
-                    onClick={runBacktest} 
+                    onClick={runBacktestHandler} 
                     className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" 
                     disabled={runningBacktest}
                   >

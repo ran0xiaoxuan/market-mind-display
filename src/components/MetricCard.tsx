@@ -11,11 +11,10 @@ type MetricCardProps = {
   };
   direction?: "up" | "down";
   showChart?: boolean;
-  price?: number;
-  volume?: number;
+  trades?: any[]; // Array of trade objects for calculating transaction amount
 };
 
-export function MetricCard({ title, value, change, direction, showChart = true, price, volume }: MetricCardProps) {
+export function MetricCard({ title, value, change, direction, showChart = true, trades }: MetricCardProps) {
   const isPositive = change?.positive || direction === "up";
   
   // Determine color based on value for Total Return
@@ -28,10 +27,14 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
     }
   }
 
-  // Calculate transaction amount as Price * Volume for Transaction Amount
+  // Calculate transaction amount as sum of (Price * Volume) for each trade
   let displayValue = value;
-  if (title === "Transaction Amount" && price !== undefined && volume !== undefined) {
-    const transactionAmount = price * volume;
+  if (title === "Transaction Amount" && trades && Array.isArray(trades)) {
+    const transactionAmount = trades.reduce((total, trade) => {
+      const price = trade.price || trade.entry_price || 0;
+      const volume = trade.contracts || trade.volume || 0;
+      return total + (price * volume);
+    }, 0);
     displayValue = `$${transactionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   } else if (title === "Transaction Amount" && typeof value === "number") {
     displayValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

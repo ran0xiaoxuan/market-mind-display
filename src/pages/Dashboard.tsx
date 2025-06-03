@@ -49,10 +49,14 @@ const Dashboard = () => {
       const totalStrategies = strategies.length;
       const activeStrategies = strategies.filter(s => s.isActive).length;
 
-      // Calculate signal and transaction amounts from trade history
+      // Calculate signal amount and transaction amount from trade history
       const signalAmount = realTradeHistory.length;
+      
+      // Calculate total transaction amount as sum of (price × volume) for each trade
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
-        return total + (trade.contracts || 0);
+        const price = trade.price || trade.entry_price || 0;
+        const volume = trade.contracts || trade.volume || 0;
+        return total + (price * volume);
       }, 0);
 
       // Update metrics with real strategy counts
@@ -186,7 +190,7 @@ const Dashboard = () => {
               <MetricCard title="Total Strategies" value={metrics.strategiesCount} change={metrics.strategiesChange} />
               <MetricCard title="Active Strategies" value={metrics.activeStrategies} change={metrics.activeChange} />
               <MetricCard title="Signal Amount" value={metrics.signalAmount} change={metrics.signalChange} />
-              <MetricCard title="Transaction Amount" value={metrics.transactionAmount} change={metrics.transactionChange} />
+              <MetricCard title="Transaction Amount" value={metrics.transactionAmount} change={metrics.transactionChange} trades={tradeHistory} />
             </div>
           )}
 

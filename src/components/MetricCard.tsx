@@ -27,13 +27,13 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
     }
   }
 
-  // Calculate transaction amount as sum of (Price * Volume) for each trade
+  // Calculate transaction amount as sum of (Price * Contracts) for each trade
   let displayValue = value;
   if (title === "Transaction Amount" && trades && Array.isArray(trades)) {
     const transactionAmount = trades.reduce((total, trade) => {
       const price = parseFloat(trade.price) || 0;
-      const volume = trade.contracts || 0;
-      return total + (price * volume);
+      const contracts = parseInt(trade.contracts) || 0;
+      return total + (price * contracts);
     }, 0);
     displayValue = `$${transactionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   } else if (title === "Transaction Amount" && typeof value === "number") {

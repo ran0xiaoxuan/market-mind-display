@@ -52,12 +52,15 @@ const Dashboard = () => {
       // Calculate signal amount and transaction amount from trade history
       const signalAmount = realTradeHistory.length;
       
-      // Calculate total transaction amount as sum of (price × volume) for each trade
+      // Calculate total transaction amount as sum of (price × contracts) for each trade
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
         const price = parseFloat(trade.price) || 0;
-        const volume = trade.contracts || 0;
-        return total + (price * volume);
+        const contracts = parseInt(trade.contracts) || 0;
+        console.log(`Trade: price=${price}, contracts=${contracts}, subtotal=${price * contracts}`);
+        return total + (price * contracts);
       }, 0);
+
+      console.log(`Total transaction amount: ${transactionAmount}`);
 
       // Update metrics with real strategy counts
       const updatedMetrics = {
@@ -68,7 +71,7 @@ const Dashboard = () => {
         activeChange: { value: "+0", positive: false },
         signalAmount: signalAmount.toString(),
         signalChange: { value: "+0", positive: false },
-        transactionAmount: transactionAmount.toString(),
+        transactionAmount: transactionAmount,
         transactionChange: { value: "+0", positive: false }
       };
 
@@ -88,7 +91,7 @@ const Dashboard = () => {
         activeChange: { value: "+0", positive: false },
         signalAmount: "0",
         signalChange: { value: "+0", positive: false },
-        transactionAmount: "0",
+        transactionAmount: 0,
         transactionChange: { value: "+0", positive: false }
       });
       setTradeHistory([]);

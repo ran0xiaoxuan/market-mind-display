@@ -56,11 +56,13 @@ const Dashboard = () => {
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
         const price = parseFloat(trade.price) || 0;
         const contracts = parseInt(trade.contracts.toString()) || 0;
-        console.log(`Trade: price=${price}, contracts=${contracts}, subtotal=${price * contracts}`);
-        return total + (price * contracts);
+        const subtotal = price * contracts;
+        console.log(`Trade: price=${price}, contracts=${contracts}, subtotal=${subtotal}`);
+        return total + subtotal;
       }, 0);
 
       console.log(`Total transaction amount: ${transactionAmount}`);
+      console.log(`Trade history data:`, realTradeHistory);
 
       // Update metrics with real strategy counts
       const updatedMetrics = {

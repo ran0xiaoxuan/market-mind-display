@@ -54,8 +54,8 @@ const Dashboard = () => {
       
       // Calculate total transaction amount as sum of (price × volume) for each trade
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
-        const price = trade.price || trade.entry_price || 0;
-        const volume = trade.contracts || trade.volume || 0;
+        const price = parseFloat(trade.price) || 0;
+        const volume = trade.contracts || 0;
         return total + (price * volume);
       }, 0);
 

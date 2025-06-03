@@ -31,8 +31,8 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
   let displayValue = value;
   if (title === "Transaction Amount" && trades && Array.isArray(trades)) {
     const transactionAmount = trades.reduce((total, trade) => {
-      const price = trade.price || trade.entry_price || 0;
-      const volume = trade.contracts || trade.volume || 0;
+      const price = parseFloat(trade.price) || 0;
+      const volume = trade.contracts || 0;
       return total + (price * volume);
     }, 0);
     displayValue = `$${transactionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

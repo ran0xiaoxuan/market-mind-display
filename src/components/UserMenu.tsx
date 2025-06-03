@@ -97,9 +97,6 @@ export function UserMenu() {
     }
   };
 
-  // Extract display name from user metadata
-  const email = user?.email || "user@example.com";
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -108,10 +105,9 @@ export function UserMenu() {
         </Button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-64 p-0" align="end">
+      <PopoverContent className="w-56 p-0" align="end">
         <div className="p-4 border-b">
-          <p className="text-sm text-slate-900">{email}</p>
-          <div className="mt-2">
+          <div className="flex justify-center">
             {isLoadingSubscription ? (
               <div className="h-5 w-12 bg-gray-200 rounded animate-pulse"></div>
             ) : (

@@ -9,6 +9,7 @@ import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
 import Strategies from "@/pages/Strategies";
 import StrategyDetail from "@/pages/StrategyDetail";
+import EditStrategy from "@/pages/EditStrategy";
 import AIStrategy from "@/pages/AIStrategy";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
@@ -16,6 +17,7 @@ import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import Confirm from "@/pages/auth/Confirm";
+import Backtest from "@/pages/Backtest";
 import BacktestHistory from "@/pages/BacktestHistory";
 import StrategyPreview from "@/pages/StrategyPreview";
 import EditHistory from "@/pages/EditHistory";
@@ -45,8 +47,11 @@ function App() {
           <Route path="/strategies" element={<ProtectedRoute><Strategies /></ProtectedRoute>} />
           <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
           <Route path="/strategies/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
+          <Route path="/strategies/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
+          <Route path="/strategy/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
           <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
           <Route path="/backtest-history" element={<ProtectedRoute><BacktestHistory /></ProtectedRoute>} />
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
           <Route path="/edit-history" element={<ProtectedRoute><EditHistory /></ProtectedRoute>} />

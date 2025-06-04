@@ -1,9 +1,9 @@
+
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, PlayIcon, Edit, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, PlayIcon, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { History, LineChart, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { deleteStrategy } from "@/services/strategyService";
 import {
@@ -117,24 +117,6 @@ export const StrategyHeader = ({
             <Trash2 className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">{isDeleting ? "Deleting..." : "Delete"}</span>
           </Button>
-            
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 px-2.5 border border-input">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate(`/edit-history/${strategyId}`)}>
-                <History className="h-4 w-4 mr-2" />
-                Edit History
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/backtest-history?strategyId=${strategyId}`)}>
-                <LineChart className="h-4 w-4 mr-2" />
-                Backtest History
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { AccountSettings } from "@/components/settings/AccountSettings";
-import { TradingSettings } from "@/components/settings/TradingSettings";
+import TradingSettings from "@/components/settings/TradingSettings";
 import { ContactUs } from "@/components/settings/ContactUs";
 
 type SettingsTab = "account" | "trading" | "contact";

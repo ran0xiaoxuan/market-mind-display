@@ -1,189 +1,166 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface RecommendedStrategy {
   id: string;
-  name: string;
-  description: string;
-  targetAsset: string;
-  targetAssetName: string;
-  timeframe: string;
+  strategyId: string;
+  recommendedBy: string;
+  isOfficial: boolean;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
-  isOfficial: boolean;
-  applicationCount?: number;
+  strategy: {
+    id: string;
+    name: string;
+    description?: string;
+    targetAsset?: string;
+    targetAssetName?: string;
+    timeframe: string;
+    isActive: boolean;
+  };
 }
 
 export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]> => {
-  try {
-    console.log('Fetching recommended strategies...');
-    
-    const { data, error } = await supabase
-      .from('recommended_strategies')
-      .select(`
+  const { data, error } = await supabase
+    .from('recommended_strategies')
+    .select(`
+      *,
+      strategy:strategies!strategy_id (
         id,
-        strategy_id,
-        is_official,
-        strategies!inner (
-          id,
-          name,
-          description,
-          target_asset,
-          target_asset_name,
-          timeframe,
-          created_at,
-          updated_at
-        )
-      `)
-      .eq('is_public', true)
-      .eq('deprecated', false);
+        name,
+        description,
+        target_asset,
+        target_asset_name,
+        timeframe,
+        is_active
+      )
+    `)
+    .eq('is_public', true)
+    .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching recommended strategies:', error);
-      throw error;
-    }
-
-    console.log('Raw recommended strategies data:', data);
-
-    if (!data || data.length === 0) {
-      console.log('No recommended strategies found');
-      return [];
-    }
-
-    const strategies = await Promise.all(
-      data.map(async (item: any) => {
-        const strategy = item.strategies;
-        
-        // Get application count using the database function
-        let applicationCount = 0;
-        try {
-          const { data: countData, error: countError } = await supabase
-            .rpc('get_strategy_application_count', { strategy_id: strategy.id });
-          
-          if (countError) {
-            console.error('Error getting application count:', countError);
-          } else {
-            applicationCount = countData || 0;
-          }
-        } catch (err) {
-          console.error('Error fetching application count:', err);
-        }
-
-        return {
-          id: strategy.id,
-          name: strategy.name || 'Unnamed Strategy',
-          description: strategy.description || 'No description available',
-          targetAsset: strategy.target_asset || 'Unknown',
-          targetAssetName: strategy.target_asset_name || strategy.target_asset || 'Unknown Asset',
-          timeframe: strategy.timeframe || '1h',
-          createdAt: strategy.created_at,
-          updatedAt: strategy.updated_at,
-          isOfficial: item.is_official || false,
-          applicationCount
-        };
-      })
-    );
-
-    console.log('Processed recommended strategies:', strategies);
-    return strategies;
-
-  } catch (error) {
-    console.error('Error in getRecommendedStrategies:', error);
-    return [];
+  if (error) {
+    console.error('Error fetching recommended strategies:', error);
+    throw error;
   }
+
+  return data?.map(item => ({
+    id: item.id,
+    strategyId: item.strategy_id,
+    recommendedBy: item.recommended_by,
+    isOfficial: item.is_official,
+    isPublic: item.is_public,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+    strategy: {
+      id: item.strategy.id,
+      name: item.strategy.name,
+      description: item.strategy.description,
+      targetAsset: item.strategy.target_asset,
+      targetAssetName: item.strategy.target_asset_name,
+      timeframe: item.strategy.timeframe,
+      isActive: item.strategy.is_active
+    }
+  })) || [];
 };
 
-export const applyRecommendedStrategy = async (strategyId: string): Promise<string> => {
+export const getStrategyApplyCounts = async (): Promise<Record<string, number>> => {
+  const { data, error } = await supabase
+    .from('strategy_applications')
+    .select('strategy_id');
+
+  if (error) {
+    console.error('Error fetching strategy apply counts:', error);
+    throw error;
+  }
+
+  const counts: Record<string, number> = {};
+  data?.forEach(application => {
+    counts[application.strategy_id] = (counts[application.strategy_id] || 0) + 1;
+  });
+
+  return counts;
+};
+
+export const applyStrategy = async (strategyId: string): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('Authentication required');
   }
 
-  try {
-    // Get the original strategy (only public ones)
-    const { data: originalStrategy, error: fetchError } = await supabase
-      .from('strategies')
-      .select('*')
-      .eq('id', strategyId)
-      .single();
+  // Check if strategy exists and is public
+  const { data: strategy, error: strategyError } = await supabase
+    .from('strategies')
+    .select('id, name, description, target_asset, target_asset_name, timeframe, stop_loss, take_profit, single_buy_volume, max_buy_volume')
+    .eq('id', strategyId)
+    .single();
 
-    if (fetchError || !originalStrategy) {
-      throw new Error('Strategy not found or not accessible');
-    }
+  if (strategyError || !strategy) {
+    throw new Error('Strategy not found or not accessible');
+  }
 
-    // Verify it's a public recommended strategy
-    const { data: recommendedStrategy } = await supabase
-      .from('recommended_strategies')
-      .select('*')
-      .eq('strategy_id', strategyId)
-      .eq('is_public', true)
-      .eq('deprecated', false)
-      .single();
+  // Create a copy of the strategy for the user
+  const { data: newStrategy, error: createError } = await supabase
+    .from('strategies')
+    .insert({
+      user_id: user.id,
+      name: `${strategy.name} (Copy)`,
+      description: strategy.description,
+      target_asset: strategy.target_asset,
+      target_asset_name: strategy.target_asset_name,
+      timeframe: strategy.timeframe,
+      stop_loss: strategy.stop_loss,
+      take_profit: strategy.take_profit,
+      single_buy_volume: strategy.single_buy_volume,
+      max_buy_volume: strategy.max_buy_volume,
+      is_active: false,
+      source_strategy_id: strategyId,
+      is_recommended_copy: true
+    })
+    .select()
+    .single();
 
-    if (!recommendedStrategy) {
-      throw new Error('Strategy is not publicly available');
-    }
+  if (createError) {
+    console.error('Error creating strategy copy:', createError);
+    throw createError;
+  }
 
-    // Create a copy for the user
-    const { data: newStrategy, error: createError } = await supabase
-      .from('strategies')
-      .insert({
-        user_id: user.id,
-        name: `${originalStrategy.name} (Copy)`,
-        description: originalStrategy.description,
-        timeframe: originalStrategy.timeframe,
-        target_asset: originalStrategy.target_asset,
-        target_asset_name: originalStrategy.target_asset_name,
-        stop_loss: originalStrategy.stop_loss,
-        take_profit: originalStrategy.take_profit,
-        single_buy_volume: originalStrategy.single_buy_volume,
-        max_buy_volume: originalStrategy.max_buy_volume,
-        is_active: false,
-        is_recommended_copy: true,
-        source_strategy_id: strategyId,
-        can_be_deleted: true
-      })
-      .select()
-      .single();
+  // Record the application
+  const { error: applicationError } = await supabase
+    .from('strategy_applications')
+    .insert({
+      strategy_id: strategyId,
+      user_id: user.id
+    });
 
-    if (createError || !newStrategy) {
-      console.error('Error creating strategy copy:', createError);
-      throw new Error('Failed to create strategy copy');
-    }
+  if (applicationError) {
+    console.error('Error recording strategy application:', applicationError);
+    // Don't throw here as the strategy copy was successful
+  }
+};
 
-    // Record the application
-    const { error: applicationError } = await supabase
-      .from('strategy_applications')
-      .insert({
-        strategy_id: strategyId,
-        user_id: user.id
-      });
+export const createRecommendation = async (
+  originalStrategyId: string,
+  recommendedStrategyId: string,
+  isOfficial: boolean = false
+): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('Authentication required');
+  }
 
-    if (applicationError) {
-      console.error('Error recording strategy application:', applicationError);
-      // Don't throw here as the strategy was already created
-    }
+  const { error } = await supabase
+    .from('strategy_recommendations')
+    .insert({
+      original_strategy_id: originalStrategyId,
+      recommended_strategy_id: recommendedStrategyId,
+      recommended_by: user.id,
+      is_official: isOfficial
+    });
 
-    // Record the copy relationship
-    const { error: copyError } = await supabase
-      .from('strategy_copies')
-      .insert({
-        source_strategy_id: strategyId,
-        copied_strategy_id: newStrategy.id,
-        copied_by: user.id,
-        copy_type: 'recommendation_apply'
-      });
-
-    if (copyError) {
-      console.error('Error recording strategy copy:', copyError);
-      // Don't throw here as the strategy was already created
-    }
-
-    return newStrategy.id;
-
-  } catch (error) {
-    console.error('Error applying recommended strategy:', error);
+  if (error) {
+    console.error('Error creating recommendation:', error);
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface NotificationSettings {
   id: string;
@@ -33,7 +33,7 @@ export const getNotificationSettings = async (): Promise<NotificationSettings | 
 
   if (error) {
     if (error.code === 'PGRST116') {
-      // No settings found, return null
+      // No settings found, return null to create default
       return null;
     }
     console.error('Error fetching notification settings:', error);
@@ -58,15 +58,18 @@ export const getNotificationSettings = async (): Promise<NotificationSettings | 
   };
 };
 
-export const updateNotificationSettings = async (settings: Partial<Omit<NotificationSettings, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<NotificationSettings> => {
+export const saveNotificationSettings = async (settings: Partial<NotificationSettings>): Promise<NotificationSettings> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('Authentication required');
   }
 
-  const updateData: any = {};
-  
+  const updateData: any = {
+    user_id: user.id,
+    updated_at: new Date().toISOString()
+  };
+
   if (settings.emailEnabled !== undefined) updateData.email_enabled = settings.emailEnabled;
   if (settings.discordEnabled !== undefined) updateData.discord_enabled = settings.discordEnabled;
   if (settings.telegramEnabled !== undefined) updateData.telegram_enabled = settings.telegramEnabled;
@@ -76,21 +79,16 @@ export const updateNotificationSettings = async (settings: Partial<Omit<Notifica
   if (settings.takeProfitAlerts !== undefined) updateData.take_profit_alerts = settings.takeProfitAlerts;
   if (settings.discordWebhookUrl !== undefined) updateData.discord_webhook_url = settings.discordWebhookUrl;
   if (settings.telegramBotToken !== undefined) updateData.telegram_bot_token = settings.telegramBotToken;
-  if (settings.telegramChatId !== undefined) updateData.telegram_chat_id = settings.telegramChatId;
-
-  updateData.updated_at = new Date().toISOString();
+  if (settings.telegramChatId !== undefined) updateData.telegramChatId = settings.telegramChatId;
 
   const { data, error } = await supabase
     .from('notification_settings')
-    .upsert({
-      ...updateData,
-      user_id: user.id
-    })
+    .upsert(updateData)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating notification settings:', error);
+    console.error('Error saving notification settings:', error);
     throw error;
   }
 
@@ -112,89 +110,84 @@ export const updateNotificationSettings = async (settings: Partial<Omit<Notifica
   };
 };
 
-export const sendNotification = async (signalId: string, signalData: any, signalType: string) => {
+export const verifyDiscordWebhook = async (webhookUrl: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('verify-discord-webhook', {
+      body: { webhookUrl }
+    });
+
+    if (error) {
+      console.error('Error verifying Discord webhook:', error);
+      return false;
+    }
+
+    return data?.isValid || false;
+  } catch (error) {
+    console.error('Error verifying Discord webhook:', error);
+    return false;
+  }
+};
+
+export const verifyTelegramBot = async (botToken: string, chatId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('verify-telegram-bot', {
+      body: { botToken, chatId }
+    });
+
+    if (error) {
+      console.error('Error verifying Telegram bot:', error);
+      return false;
+    }
+
+    return data?.isValid || false;
+  } catch (error) {
+    console.error('Error verifying Telegram bot:', error);
+    return false;
+  }
+};
+
+export const sendNotification = async (
+  type: 'email' | 'discord' | 'telegram',
+  message: string,
+  subject?: string
+): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    console.error('No authenticated user for notification');
-    return;
+    throw new Error('Authentication required');
   }
 
   try {
-    const settings = await getNotificationSettings();
-    
-    if (!settings) {
-      console.log('No notification settings found for user');
-      return;
+    let functionName: string;
+    let body: any;
+
+    switch (type) {
+      case 'email':
+        functionName = 'send-email-notification';
+        body = { message, subject };
+        break;
+      case 'discord':
+        functionName = 'send-discord-notification';
+        body = { message };
+        break;
+      case 'telegram':
+        functionName = 'send-telegram-notification';
+        body = { message };
+        break;
+      default:
+        throw new Error('Invalid notification type');
     }
 
-    const notifications = [];
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
 
-    // Send email notification if enabled
-    if (settings.emailEnabled) {
-      try {
-        const { error } = await supabase.functions.invoke('send-email-notification', {
-          body: { signalId, signalData: { ...signalData, userId: user.id }, signalType }
-        });
-        
-        if (error) {
-          console.error('Email notification error:', error);
-        } else {
-          notifications.push('email');
-        }
-      } catch (error) {
-        console.error('Email notification failed:', error);
-      }
+    if (error) {
+      console.error(`Error sending ${type} notification:`, error);
+      return false;
     }
 
-    // Send Discord notification if enabled and webhook URL is set
-    if (settings.discordEnabled && settings.discordWebhookUrl) {
-      try {
-        const { error } = await supabase.functions.invoke('send-discord-notification', {
-          body: { 
-            webhookUrl: settings.discordWebhookUrl,
-            signalId, 
-            signalData: { ...signalData, userId: user.id }, 
-            signalType 
-          }
-        });
-        
-        if (error) {
-          console.error('Discord notification error:', error);
-        } else {
-          notifications.push('discord');
-        }
-      } catch (error) {
-        console.error('Discord notification failed:', error);
-      }
-    }
-
-    // Send Telegram notification if enabled and bot token/chat ID are set
-    if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId) {
-      try {
-        const { error } = await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            botToken: settings.telegramBotToken,
-            chatId: settings.telegramChatId,
-            signalId, 
-            signalData: { ...signalData, userId: user.id }, 
-            signalType 
-          }
-        });
-        
-        if (error) {
-          console.error('Telegram notification error:', error);
-        } else {
-          notifications.push('telegram');
-        }
-      } catch (error) {
-        console.error('Telegram notification failed:', error);
-      }
-    }
-
-    console.log(`Sent ${notifications.length} notifications:`, notifications);
-
+    return data?.success || false;
   } catch (error) {
-    console.error('Error sending notifications:', error);
+    console.error(`Error sending ${type} notification:`, error);
+    return false;
   }
 };

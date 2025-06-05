@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Strategy {
@@ -104,6 +103,52 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
     canBeDeleted: data.can_be_deleted,
     isRecommendedCopy: data.is_recommended_copy,
     sourceStrategyId: data.source_strategy_id
+  };
+};
+
+export const getTradingRulesForStrategy = async (strategyId: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+
+  // Fetch rule groups for this strategy
+  const { data: ruleGroups, error: ruleGroupsError } = await supabase
+    .from('rule_groups')
+    .select(`
+      *,
+      trading_rules (*)
+    `)
+    .eq('strategy_id', strategyId)
+    .order('group_order');
+
+  if (ruleGroupsError) {
+    console.error('Error fetching rule groups:', ruleGroupsError);
+    throw ruleGroupsError;
+  }
+
+  const entryRules = ruleGroups?.filter(group => group.rule_type === 'entry') || [];
+  const exitRules = ruleGroups?.filter(group => group.rule_type === 'exit') || [];
+
+  return {
+    entryRules,
+    exitRules
+  };
+};
+
+export const getRiskManagementForStrategy = async (strategyId: string) => {
+  const strategy = await getStrategyById(strategyId);
+  
+  if (!strategy) {
+    throw new Error('Strategy not found');
+  }
+
+  return {
+    stopLoss: strategy.stopLoss,
+    takeProfit: strategy.takeProfit,
+    singleBuyVolume: strategy.singleBuyVolume,
+    maxBuyVolume: strategy.maxBuyVolume
   };
 };
 

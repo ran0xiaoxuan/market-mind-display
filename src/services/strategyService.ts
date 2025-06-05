@@ -377,3 +377,36 @@ export const generateFallbackStrategy = (
     exitRules: []
   };
 };
+
+export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy): Promise<Strategy> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+
+  // Create the strategy
+  const strategy = await createStrategy({
+    name: generatedStrategy.name,
+    description: generatedStrategy.description,
+    isActive: false,
+    targetAsset: generatedStrategy.targetAsset,
+    targetAssetName: generatedStrategy.targetAssetName,
+    timeframe: generatedStrategy.timeframe,
+    stopLoss: generatedStrategy.stopLoss,
+    takeProfit: generatedStrategy.takeProfit,
+    singleBuyVolume: generatedStrategy.singleBuyVolume,
+    maxBuyVolume: generatedStrategy.maxBuyVolume
+  });
+
+  // TODO: Save entry and exit rules if provided
+  if (generatedStrategy.entryRules && generatedStrategy.entryRules.length > 0) {
+    // Implementation for saving rules would go here
+  }
+
+  if (generatedStrategy.exitRules && generatedStrategy.exitRules.length > 0) {
+    // Implementation for saving rules would go here
+  }
+
+  return strategy;
+};

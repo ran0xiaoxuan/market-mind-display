@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import {
   verifyTelegramBot,
   NotificationSettings 
 } from '@/services/notificationService';
-import { Bell, Discord, Send, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Bell, Send, Mail, CheckCircle, XCircle } from 'lucide-react';
 
 const TradingSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -159,7 +158,7 @@ const TradingSettings = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <Discord className="h-5 w-5" />
+              <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M524.5 63.3c-5.4-1.8-21.1-6.6-38.2-6.6-17.1 0-32.8 4.8-38.2 6.6-25.7 8.6-45.3 21.1-60.6 39.1-3.3 3.8-7.4 8.4-12.1 13.4-2.1-1.3-4.2-2.6-6.4-3.9-5.1-3.1-11.1-5.7-17.7-7.6-1.4-.4-2.9-.8-4.3-1.3-12.9-4.7-26.5-7.1-40.6-7.1-14.2 0-27.8 2.4-40.6 7.1-1.5 .5-2.9 .9-4.3 1.3-6.6 1.9-12.6 4.5-17.7 7.6-2.2 1.3-4.3 2.6-6.4 3.9-4.7-5-8.8-9.6-12.1-13.4-15.3-18-34.9-30.5-60.6-39.1zm115.5 149.7c0 17-13.8 30.7-30.7 30.7H483.8c-17 0-30.7-13.8-30.7-30.7v85.2c0 25.4-20.7 46.1-46.1 46.1H182.9c-25.4 0-46.1-20.7-46.1-46.1v-85.2c0-17-13.8-30.7-30.7-30.7H30.7C13.8 213 0 226.8 0 243.8v138.2c0 45.4 37 82.3 82.3 82.3H366c20.4 0 39.2-7.4 53.1-19.7 4.2-3.6 9.4-6.6 15.2-9.1 2.4 3.6 4.8 7.1 7.2 10.6 13.9 22.3 42.7 36.7 74.3 36.7 31.7 0 60.4-14.4 74.3-36.7 2.4-3.5 4.8-7 7.2-10.6 5.8 2.5 11 5.5 15.2 9.1 13.9 12.3 32.7 19.7 53.1 19.7h82.3c45.4 0 82.3-37 82.3-82.3V243.8c0-17-13.8-30.7-30.7-30.7z"></path></svg>
               <CardTitle>Discord Notifications</CardTitle>
             </div>
             <CardDescription>

@@ -1,23 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { Strategy } from './strategyService';
 
 export interface RecommendedStrategy {
   id: string;
   strategyId: string;
-  recommendedBy: string;
   isOfficial: boolean;
-  isPublic: boolean;
-  createdAt: string;
-  updatedAt: string;
-  strategy: {
-    id: string;
-    name: string;
-    description?: string;
-    targetAsset?: string;
-    targetAssetName?: string;
-    timeframe: string;
-    isActive: boolean;
-  };
+  strategy: Strategy;
 }
 
 export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]> => {
@@ -25,17 +14,9 @@ export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]>
     .from('recommended_strategies')
     .select(`
       *,
-      strategy:strategies!strategy_id (
-        id,
-        name,
-        description,
-        target_asset,
-        target_asset_name,
-        timeframe,
-        is_active
-      )
+      strategies (*)
     `)
-    .eq('is_public', true)
+    .eq('is_active', true)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -46,19 +27,25 @@ export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]>
   return data?.map(item => ({
     id: item.id,
     strategyId: item.strategy_id,
-    recommendedBy: item.recommended_by,
     isOfficial: item.is_official,
-    isPublic: item.is_public,
-    createdAt: item.created_at,
-    updatedAt: item.updated_at,
     strategy: {
-      id: item.strategy.id,
-      name: item.strategy.name,
-      description: item.strategy.description,
-      targetAsset: item.strategy.target_asset,
-      targetAssetName: item.strategy.target_asset_name,
-      timeframe: item.strategy.timeframe,
-      isActive: item.strategy.is_active
+      id: item.strategies.id,
+      name: item.strategies.name,
+      description: item.strategies.description,
+      createdAt: item.strategies.created_at,
+      updatedAt: item.strategies.updated_at,
+      isActive: item.strategies.is_active,
+      targetAsset: item.strategies.target_asset,
+      targetAssetName: item.strategies.target_asset_name,
+      timeframe: item.strategies.timeframe,
+      stopLoss: item.strategies.stop_loss,
+      takeProfit: item.strategies.take_profit,
+      singleBuyVolume: item.strategies.single_buy_volume,
+      maxBuyVolume: item.strategies.max_buy_volume,
+      userId: item.strategies.user_id,
+      canBeDeleted: item.strategies.can_be_deleted,
+      isRecommendedCopy: item.strategies.is_recommended_copy,
+      sourceStrategyId: item.strategies.source_strategy_id
     }
   })) || [];
 };
@@ -66,56 +53,77 @@ export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]>
 export const getStrategyApplyCounts = async (): Promise<Record<string, number>> => {
   const { data, error } = await supabase
     .from('strategy_applications')
-    .select('strategy_id');
+    .select('strategy_id')
+    .order('strategy_id');
 
   if (error) {
-    console.error('Error fetching strategy apply counts:', error);
-    throw error;
+    console.error('Error fetching apply counts:', error);
+    return {};
   }
 
   const counts: Record<string, number> = {};
-  data?.forEach(application => {
-    counts[application.strategy_id] = (counts[application.strategy_id] || 0) + 1;
+  data?.forEach(item => {
+    counts[item.strategy_id] = (counts[item.strategy_id] || 0) + 1;
   });
 
   return counts;
 };
 
-export const applyStrategy = async (strategyId: string): Promise<void> => {
+export const trackStrategyApplication = async (strategyId: string): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('Authentication required');
   }
 
-  // Check if strategy exists and is public
-  const { data: strategy, error: strategyError } = await supabase
+  const { error } = await supabase
+    .from('strategy_applications')
+    .insert({
+      strategy_id: strategyId,
+      user_id: user.id
+    });
+
+  if (error) {
+    console.error('Error tracking strategy application:', error);
+    throw error;
+  }
+};
+
+export const applyStrategy = async (strategyId: string): Promise<Strategy> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+
+  // Get the original strategy
+  const { data: originalStrategy, error: fetchError } = await supabase
     .from('strategies')
-    .select('id, name, description, target_asset, target_asset_name, timeframe, stop_loss, take_profit, single_buy_volume, max_buy_volume')
+    .select('*')
     .eq('id', strategyId)
     .single();
 
-  if (strategyError || !strategy) {
-    throw new Error('Strategy not found or not accessible');
+  if (fetchError || !originalStrategy) {
+    throw new Error('Strategy not found');
   }
 
-  // Create a copy of the strategy for the user
+  // Create a copy for the user
   const { data: newStrategy, error: createError } = await supabase
     .from('strategies')
     .insert({
-      user_id: user.id,
-      name: `${strategy.name} (Copy)`,
-      description: strategy.description,
-      target_asset: strategy.target_asset,
-      target_asset_name: strategy.target_asset_name,
-      timeframe: strategy.timeframe,
-      stop_loss: strategy.stop_loss,
-      take_profit: strategy.take_profit,
-      single_buy_volume: strategy.single_buy_volume,
-      max_buy_volume: strategy.max_buy_volume,
+      name: `${originalStrategy.name} (Copy)`,
+      description: originalStrategy.description,
+      target_asset: originalStrategy.target_asset,
+      target_asset_name: originalStrategy.target_asset_name,
+      timeframe: originalStrategy.timeframe,
+      stop_loss: originalStrategy.stop_loss,
+      take_profit: originalStrategy.take_profit,
+      single_buy_volume: originalStrategy.single_buy_volume,
+      max_buy_volume: originalStrategy.max_buy_volume,
       is_active: false,
-      source_strategy_id: strategyId,
-      is_recommended_copy: true
+      user_id: user.id,
+      is_recommended_copy: true,
+      source_strategy_id: strategyId
     })
     .select()
     .single();
@@ -125,42 +133,54 @@ export const applyStrategy = async (strategyId: string): Promise<void> => {
     throw createError;
   }
 
-  // Record the application
-  const { error: applicationError } = await supabase
-    .from('strategy_applications')
-    .insert({
-      strategy_id: strategyId,
-      user_id: user.id
-    });
+  // Track the application
+  await trackStrategyApplication(strategyId);
 
-  if (applicationError) {
-    console.error('Error recording strategy application:', applicationError);
-    // Don't throw here as the strategy copy was successful
-  }
+  return {
+    id: newStrategy.id,
+    name: newStrategy.name,
+    description: newStrategy.description,
+    createdAt: newStrategy.created_at,
+    updatedAt: newStrategy.updated_at,
+    isActive: newStrategy.is_active,
+    targetAsset: newStrategy.target_asset,
+    targetAssetName: newStrategy.target_asset_name,
+    timeframe: newStrategy.timeframe,
+    stopLoss: newStrategy.stop_loss,
+    takeProfit: newStrategy.take_profit,
+    singleBuyVolume: newStrategy.single_buy_volume,
+    maxBuyVolume: newStrategy.max_buy_volume,
+    userId: newStrategy.user_id,
+    canBeDeleted: newStrategy.can_be_deleted,
+    isRecommendedCopy: newStrategy.is_recommended_copy,
+    sourceStrategyId: newStrategy.source_strategy_id
+  };
 };
 
-export const createRecommendation = async (
-  originalStrategyId: string,
-  recommendedStrategyId: string,
-  isOfficial: boolean = false
-): Promise<void> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Authentication required');
-  }
-
+export const createRecommendedStrategy = async (strategyId: string): Promise<void> => {
   const { error } = await supabase
-    .from('strategy_recommendations')
+    .from('recommended_strategies')
     .insert({
-      original_strategy_id: originalStrategyId,
-      recommended_strategy_id: recommendedStrategyId,
-      recommended_by: user.id,
-      is_official: isOfficial
+      strategy_id: strategyId,
+      is_official: false
     });
 
   if (error) {
-    console.error('Error creating recommendation:', error);
+    console.error('Error creating recommended strategy:', error);
     throw error;
   }
 };
+
+export const removeRecommendedStrategy = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('recommended_strategies')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error removing recommended strategy:', error);
+    throw error;
+  }
+};
+
+export const createRecommendation = createRecommendedStrategy;

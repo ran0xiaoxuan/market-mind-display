@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface BacktestResult {
@@ -9,10 +8,16 @@ export interface BacktestResult {
   initialCapital: number;
   finalCapital: number;
   totalReturn: number;
+  totalReturnPercentage: number;
+  annualizedReturn: number;
   maxDrawdown: number;
   sharpeRatio: number;
   winRate: number;
   totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  avgProfit: number;
+  avgLoss: number;
   createdAt: string;
   trades: BacktestTrade[];
 }
@@ -27,6 +32,10 @@ export interface BacktestTrade {
   quantity: number;
   pnl: number;
   type: 'buy' | 'sell';
+  date: string;
+  price: number;
+  contracts: number;
+  profit?: number;
 }
 
 export interface BacktestParams {
@@ -98,10 +107,16 @@ export const getBacktestResults = async (strategyId: string): Promise<BacktestRe
     initialCapital: result.initial_capital,
     finalCapital: result.final_capital,
     totalReturn: result.total_return,
+    totalReturnPercentage: result.total_return_percentage,
+    annualizedReturn: result.annualized_return,
     maxDrawdown: result.max_drawdown,
     sharpeRatio: result.sharpe_ratio,
     winRate: result.win_rate,
     totalTrades: result.total_trades,
+    winningTrades: result.winning_trades,
+    losingTrades: result.losing_trades,
+    avgProfit: result.avg_profit,
+    avgLoss: result.avg_loss,
     createdAt: result.created_at,
     trades: result.backtest_trades?.map((trade: any) => ({
       id: trade.id,
@@ -112,7 +127,11 @@ export const getBacktestResults = async (strategyId: string): Promise<BacktestRe
       exitPrice: trade.exit_price,
       quantity: trade.quantity,
       pnl: trade.pnl,
-      type: trade.type
+      type: trade.type,
+      date: trade.date,
+      price: trade.price,
+      contracts: trade.contracts,
+      profit: trade.profit
     })) || []
   })) || [];
 };

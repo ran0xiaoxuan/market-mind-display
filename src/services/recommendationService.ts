@@ -7,6 +7,19 @@ export interface RecommendedStrategy {
   strategyId: string;
   isOfficial: boolean;
   strategy: Strategy;
+  user_id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  target_asset: string;
+  target_asset_name: string;
+  timeframe: string;
+  stop_loss: string;
+  take_profit: string;
+  single_buy_volume: string;
+  max_buy_volume: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]> => {
@@ -16,7 +29,7 @@ export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]>
       *,
       strategies (*)
     `)
-    .eq('is_active', true)
+    .eq('is_public', true)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -28,6 +41,19 @@ export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]>
     id: item.id,
     strategyId: item.strategy_id,
     isOfficial: item.is_official,
+    user_id: item.strategies.user_id,
+    name: item.strategies.name,
+    description: item.strategies.description,
+    is_active: item.strategies.is_active,
+    target_asset: item.strategies.target_asset,
+    target_asset_name: item.strategies.target_asset_name,
+    timeframe: item.strategies.timeframe,
+    stop_loss: item.strategies.stop_loss,
+    take_profit: item.strategies.take_profit,
+    single_buy_volume: item.strategies.single_buy_volume,
+    max_buy_volume: item.strategies.max_buy_volume,
+    created_at: item.strategies.created_at,
+    updated_at: item.strategies.updated_at,
     strategy: {
       id: item.strategies.id,
       name: item.strategies.name,

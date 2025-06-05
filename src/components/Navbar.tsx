@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { User, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+
 export function Navbar() {
   const {
     user,
@@ -13,6 +16,79 @@ export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+
+  // Load subscription status
+  useEffect(() => {
+    const loadSubscriptionStatus = async () => {
+      if (!user) {
+        setIsPro(false);
+        setIsLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // Profile doesn't exist, create one
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              subscription_tier: 'free'
+            });
+
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          }
+          setIsPro(false);
+        } else if (error) {
+          console.error('Error fetching profile:', error);
+          setIsPro(false);
+        } else {
+          setIsPro(profile?.subscription_tier === 'pro');
+        }
+      } catch (error) {
+        console.error('Error loading subscription status:', error);
+        setIsPro(false);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+
+    loadSubscriptionStatus();
+
+    // Set up real-time subscription to profile changes
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          if (payload.new && payload.new.subscription_tier) {
+            setIsPro(payload.new.subscription_tier === 'pro');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const toggleMobileMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -27,6 +103,7 @@ export function Navbar() {
       console.error("Sign out failed:", error);
     }
   };
+
   return <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
@@ -60,9 +137,18 @@ export function Navbar() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="leading-none text-sm text-slate-950">
-                        {user.email}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="leading-none text-sm text-slate-950">
+                          {user.email}
+                        </p>
+                        {isLoadingSubscription ? (
+                          <div className="h-5 w-12 bg-gray-200 rounded animate-pulse"></div>
+                        ) : (
+                          <Badge variant={isPro ? 'pro' : 'free'}>
+                            {isPro ? 'Pro' : 'Free'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

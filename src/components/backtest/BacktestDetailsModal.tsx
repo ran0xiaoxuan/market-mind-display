@@ -38,10 +38,6 @@ export const BacktestDetailsModal = ({ isOpen, onClose, backtest }: BacktestDeta
 
   const performanceMetrics = [
     {
-      name: "Initial Capital",
-      value: `$${backtest.initialCapital.toLocaleString()}`
-    },
-    {
       name: "Total Return",
       value: `${backtest.totalReturnPercentage >= 0 ? '+' : ''}${backtest.totalReturnPercentage.toFixed(2)}%`,
       green: backtest.totalReturnPercentage > 0

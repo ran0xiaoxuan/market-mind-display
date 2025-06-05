@@ -56,7 +56,7 @@ Asset Type: ${assetType}
 Selected Asset: ${selectedAsset}
 Strategy Description: ${strategyDescription}
 
-Generate a comprehensive trading strategy with the following structure:
+Generate a comprehensive trading strategy with the following structure. Pay special attention to OR groups and required conditions:
 
 {
   "name": "Strategy Name",
@@ -88,12 +88,58 @@ Generate a comprehensive trading strategy with the following structure:
           "explanation": "RSI crosses above 30 indicating bullish momentum"
         }
       ]
+    },
+    {
+      "id": 2,
+      "logic": "OR",
+      "requiredConditions": 1, // MUST be less than the number of inequalities in this OR group
+      "inequalities": [
+        {
+          "id": 1,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "MACD", // MUST be from the valid indicators list
+            "parameters": {"fast": "12", "slow": "26", "signal": "9"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "CROSSES_ABOVE",
+          "right": {
+            "type": "VALUE",
+            "indicator": "",
+            "parameters": {},
+            "value": "0",
+            "valueType": "number"
+          },
+          "explanation": "MACD crosses above zero line"
+        },
+        {
+          "id": 2,
+          "left": {
+            "type": "INDICATOR",
+            "indicator": "Volume", // MUST be from the valid indicators list
+            "parameters": {"period": "20"},
+            "value": "",
+            "valueType": "number"
+          },
+          "condition": "GREATER_THAN",
+          "right": {
+            "type": "INDICATOR",
+            "indicator": "SMA",
+            "parameters": {"period": "20"},
+            "value": "",
+            "valueType": "number"
+          },
+          "explanation": "Volume is above 20-day average"
+        }
+      ]
     }
   ],
   "exitRules": [
     {
       "id": 1,
       "logic": "OR",
+      "requiredConditions": 1, // MUST be less than the number of inequalities in this OR group
       "inequalities": [
         {
           "id": 1,
@@ -135,6 +181,9 @@ IMPORTANT RULES:
 5. Provide clear explanations for each condition
 6. Create realistic and practical trading rules
 7. Ensure entry and exit rules make logical sense together
+8. FOR OR GROUPS: The "requiredConditions" field MUST be less than the total number of inequalities in that group
+9. FOR AND GROUPS: Do not include a "requiredConditions" field (all conditions must be met)
+10. If an OR group has 2 conditions, requiredConditions should be 1. If it has 3 conditions, requiredConditions should be 1 or 2, etc.
 
 Return ONLY the JSON object, no additional text.`
 
@@ -199,9 +248,23 @@ Return ONLY the JSON object, no additional text.`
       }
     }
 
+    // Validate OR group required conditions
+    const validateOrGroupRequiredConditions = (rules) => {
+      for (const ruleGroup of rules) {
+        if (ruleGroup.logic === 'OR' && ruleGroup.requiredConditions) {
+          const totalConditions = ruleGroup.inequalities.length
+          if (ruleGroup.requiredConditions >= totalConditions) {
+            throw new Error(`Invalid OR group: requiredConditions (${ruleGroup.requiredConditions}) must be less than total conditions (${totalConditions})`)
+          }
+        }
+      }
+    }
+
     // Validate entry and exit rules
     validateIndicators(strategy.entryRules || [])
     validateIndicators(strategy.exitRules || [])
+    validateOrGroupRequiredConditions(strategy.entryRules || [])
+    validateOrGroupRequiredConditions(strategy.exitRules || [])
 
     return new Response(
       JSON.stringify(strategy),
@@ -216,10 +279,13 @@ Return ONLY the JSON object, no additional text.`
       message: error.message || 'Strategy generation failed',
       type: error.message?.includes('API key') ? 'api_key_error' : 
             error.message?.includes('Invalid indicator') ? 'validation_error' :
+            error.message?.includes('Invalid OR group') ? 'validation_error' :
             error.message?.includes('JSON') ? 'parsing_error' : 'unknown_error',
       retryable: !error.message?.includes('API key'),
       details: error.message?.includes('Invalid indicator') ? 
-        ['Please check that all indicators are from the supported list'] : undefined
+        ['Please check that all indicators are from the supported list'] : 
+        error.message?.includes('Invalid OR group') ? 
+        ['Please check that OR group required conditions are valid'] : undefined
     }
 
     return new Response(

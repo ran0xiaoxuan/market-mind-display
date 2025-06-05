@@ -1,106 +1,98 @@
-import { supabase } from '@/integrations/supabase/client';
+
+import { supabase } from "@/integrations/supabase/client";
+import { RuleGroupData } from "@/components/strategy-detail/types";
 
 export interface Strategy {
   id: string;
   name: string;
   description?: string;
-  createdAt: string;
-  updatedAt?: string;
-  isActive: boolean;
   targetAsset?: string;
   targetAssetName?: string;
+  isActive: boolean;
   timeframe: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
   stopLoss?: string;
   takeProfit?: string;
   singleBuyVolume?: string;
   maxBuyVolume?: string;
-  userId: string;
-  canBeDeleted: boolean;
-  isRecommendedCopy: boolean;
-  sourceStrategyId?: string;
-}
-
-export interface ServiceError {
-  message: string;
-  type: 'connection_error' | 'api_key_error' | 'timeout_error' | 'rate_limit_error' | 'validation_error' | 'parsing_error' | 'unknown_error';
-  retryable: boolean;
-  details?: string[];
 }
 
 export interface GeneratedStrategy {
   name: string;
   description: string;
-  targetAsset: string;
-  targetAssetName: string;
   timeframe: string;
-  stopLoss?: string;
-  takeProfit?: string;
-  singleBuyVolume?: string;
-  maxBuyVolume?: string;
-  entryRules: any[];
-  exitRules: any[];
+  targetAsset?: string;
+  entryRules: RuleGroupData[];
+  exitRules: RuleGroupData[];
+  riskManagement: {
+    stopLoss: string;
+    takeProfit: string;
+    singleBuyVolume: string;
+    maxBuyVolume: string;
+  };
+}
+
+export interface ServiceError {
+  message: string;
+  type: string;
+  retryable: boolean;
+  details?: string[];
 }
 
 export const getStrategies = async (): Promise<Strategy[]> => {
-  console.log('Fetching strategies...');
-  
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    console.log('No authenticated user found');
-    return [];
+    throw new Error("User not authenticated");
   }
 
   const { data, error } = await supabase
-    .from('strategies')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false });
+    .from("strategies")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false });
 
   if (error) {
-    console.error('Error fetching strategies:', error);
-    throw error;
+    console.error("Error fetching strategies:", error);
+    throw new Error("Failed to fetch strategies");
   }
 
-  console.log('Fetched strategies:', data);
-
-  return data?.map(strategy => ({
+  return data.map(strategy => ({
     id: strategy.id,
     name: strategy.name,
-    description: strategy.description,
+    description: strategy.description || "",
+    targetAsset: strategy.target_asset || "",
+    targetAssetName: strategy.target_asset_name || "",
+    isActive: strategy.is_active,
+    timeframe: strategy.timeframe,
     createdAt: strategy.created_at,
     updatedAt: strategy.updated_at,
-    isActive: strategy.is_active,
-    targetAsset: strategy.target_asset,
-    targetAssetName: strategy.target_asset_name,
-    timeframe: strategy.timeframe,
-    stopLoss: strategy.stop_loss,
-    takeProfit: strategy.take_profit,
-    singleBuyVolume: strategy.single_buy_volume,
-    maxBuyVolume: strategy.max_buy_volume,
     userId: strategy.user_id,
-    canBeDeleted: strategy.can_be_deleted,
-    isRecommendedCopy: strategy.is_recommended_copy,
-    sourceStrategyId: strategy.source_strategy_id
-  })) || [];
+    stopLoss: strategy.stop_loss || "",
+    takeProfit: strategy.take_profit || "",
+    singleBuyVolume: strategy.single_buy_volume || "",
+    maxBuyVolume: strategy.max_buy_volume || ""
+  }));
 };
 
-export const getStrategyById = async (id: string): Promise<Strategy | null> => {
+export const getStrategyById = async (strategyId: string): Promise<Strategy | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('Authentication required');
+    throw new Error("User not authenticated");
   }
 
   const { data, error } = await supabase
-    .from('strategies')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
+    .from("strategies")
+    .select("*")
+    .eq("id", strategyId)
+    .eq("user_id", user.id)
     .single();
 
   if (error) {
-    console.error('Error fetching strategy:', error);
+    console.error("Error fetching strategy:", error);
     return null;
   }
 
@@ -109,205 +101,257 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
   return {
     id: data.id,
     name: data.name,
-    description: data.description,
+    description: data.description || "",
+    targetAsset: data.target_asset || "",
+    targetAssetName: data.target_asset_name || "",
+    isActive: data.is_active,
+    timeframe: data.timeframe,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
-    isActive: data.is_active,
-    targetAsset: data.target_asset,
-    targetAssetName: data.target_asset_name,
-    timeframe: data.timeframe,
-    stopLoss: data.stop_loss,
-    takeProfit: data.take_profit,
-    singleBuyVolume: data.single_buy_volume,
-    maxBuyVolume: data.max_buy_volume,
     userId: data.user_id,
-    canBeDeleted: data.can_be_deleted,
-    isRecommendedCopy: data.is_recommended_copy,
-    sourceStrategyId: data.source_strategy_id
+    stopLoss: data.stop_loss || "",
+    takeProfit: data.take_profit || "",
+    singleBuyVolume: data.single_buy_volume || "",
+    maxBuyVolume: data.max_buy_volume || ""
   };
 };
 
-export const getTradingRulesForStrategy = async (strategyId: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Authentication required');
-  }
-
-  // Fetch rule groups for this strategy
+export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ entryRules: RuleGroupData[], exitRules: RuleGroupData[] } | null> => {
   const { data: ruleGroups, error: ruleGroupsError } = await supabase
-    .from('rule_groups')
+    .from("rule_groups")
     .select(`
-      *,
-      trading_rules (*)
+      id,
+      rule_type,
+      group_order,
+      logic,
+      required_conditions,
+      trading_rules (
+        id,
+        inequality_order,
+        left_type,
+        left_indicator,
+        left_parameters,
+        left_value,
+        left_value_type,
+        condition,
+        right_type,
+        right_indicator,
+        right_parameters,
+        right_value,
+        right_value_type,
+        explanation
+      )
     `)
-    .eq('strategy_id', strategyId)
-    .order('group_order');
+    .eq("strategy_id", strategyId)
+    .order("group_order");
 
   if (ruleGroupsError) {
-    console.error('Error fetching rule groups:', ruleGroupsError);
-    throw ruleGroupsError;
+    console.error("Error fetching rule groups:", ruleGroupsError);
+    return null;
   }
 
-  const entryRules = ruleGroups?.filter(group => group.rule_type === 'entry') || [];
-  const exitRules = ruleGroups?.filter(group => group.rule_type === 'exit') || [];
+  const entryRules: RuleGroupData[] = [];
+  const exitRules: RuleGroupData[] = [];
 
-  return {
-    entryRules,
-    exitRules
-  };
+  ruleGroups?.forEach(group => {
+    const inequalities = group.trading_rules
+      ?.sort((a, b) => a.inequality_order - b.inequality_order)
+      .map(rule => ({
+        id: rule.id,
+        left: {
+          type: rule.left_type,
+          indicator: rule.left_indicator,
+          parameters: (rule.left_parameters as any) || {},
+          value: rule.left_value,
+          valueType: rule.left_value_type
+        },
+        condition: rule.condition,
+        right: {
+          type: rule.right_type,
+          indicator: rule.right_indicator,
+          parameters: (rule.right_parameters as any) || {},
+          value: rule.right_value,
+          valueType: rule.right_value_type
+        },
+        explanation: rule.explanation
+      })) || [];
+
+    const ruleGroupData: RuleGroupData = {
+      id: group.id,
+      logic: group.logic as "AND" | "OR",
+      inequalities,
+      requiredConditions: group.required_conditions
+    };
+
+    if (group.rule_type === "entry") {
+      entryRules.push(ruleGroupData);
+    } else {
+      exitRules.push(ruleGroupData);
+    }
+  });
+
+  return { entryRules, exitRules };
 };
 
 export const getRiskManagementForStrategy = async (strategyId: string) => {
   const strategy = await getStrategyById(strategyId);
-  
-  if (!strategy) {
-    throw new Error('Strategy not found');
-  }
+  if (!strategy) return null;
 
   return {
-    stopLoss: strategy.stopLoss,
-    takeProfit: strategy.takeProfit,
-    singleBuyVolume: strategy.singleBuyVolume,
-    maxBuyVolume: strategy.maxBuyVolume
+    stopLoss: strategy.stopLoss || "Not set",
+    takeProfit: strategy.takeProfit || "Not set",
+    singleBuyVolume: strategy.singleBuyVolume || "Not set",
+    maxBuyVolume: strategy.maxBuyVolume || "Not set"
   };
 };
 
-export const createStrategy = async (strategy: Omit<Strategy, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'canBeDeleted' | 'isRecommendedCopy'>): Promise<Strategy> => {
+export const generateStrategy = async (assetType: string, selectedAsset: string, description: string): Promise<GeneratedStrategy> => {
+  const { data, error } = await supabase.functions.invoke('generate-strategy', {
+    body: {
+      assetType,
+      selectedAsset,
+      strategyDescription: description // Fix: send as strategyDescription instead of description
+    }
+  });
+
+  if (error) {
+    console.error("Error generating strategy:", error);
+    throw {
+      message: error.message || "Failed to generate strategy",
+      type: "api_error",
+      retryable: true
+    } as ServiceError;
+  }
+
+  return data;
+};
+
+export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy): Promise<string> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('Authentication required');
+    throw new Error("User not authenticated");
   }
 
-  const { data, error } = await supabase
-    .from('strategies')
+  // Insert strategy
+  const { data: strategy, error: strategyError } = await supabase
+    .from("strategies")
     .insert({
-      name: strategy.name,
-      description: strategy.description,
-      is_active: strategy.isActive,
-      target_asset: strategy.targetAsset,
-      target_asset_name: strategy.targetAssetName,
-      timeframe: strategy.timeframe,
-      stop_loss: strategy.stopLoss,
-      take_profit: strategy.takeProfit,
-      single_buy_volume: strategy.singleBuyVolume,
-      max_buy_volume: strategy.maxBuyVolume,
+      name: generatedStrategy.name,
+      description: generatedStrategy.description,
+      timeframe: generatedStrategy.timeframe,
+      target_asset: generatedStrategy.targetAsset,
       user_id: user.id,
-      source_strategy_id: strategy.sourceStrategyId
+      is_active: true,
+      stop_loss: generatedStrategy.riskManagement.stopLoss,
+      take_profit: generatedStrategy.riskManagement.takeProfit,
+      single_buy_volume: generatedStrategy.riskManagement.singleBuyVolume,
+      max_buy_volume: generatedStrategy.riskManagement.maxBuyVolume
     })
     .select()
     .single();
 
-  if (error) {
-    console.error('Error creating strategy:', error);
-    throw error;
+  if (strategyError) {
+    throw new Error("Failed to save strategy");
   }
 
-  return {
-    id: data.id,
-    name: data.name,
-    description: data.description,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    isActive: data.is_active,
-    targetAsset: data.target_asset,
-    targetAssetName: data.target_asset_name,
-    timeframe: data.timeframe,
-    stopLoss: data.stop_loss,
-    takeProfit: data.take_profit,
-    singleBuyVolume: data.single_buy_volume,
-    maxBuyVolume: data.max_buy_volume,
-    userId: data.user_id,
-    canBeDeleted: data.can_be_deleted,
-    isRecommendedCopy: data.is_recommended_copy,
-    sourceStrategyId: data.source_strategy_id
-  };
-};
+  const strategyId = strategy.id;
 
-export const updateStrategy = async (id: string, updates: Partial<Omit<Strategy, 'id' | 'createdAt' | 'userId'>>): Promise<Strategy> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Authentication required');
+  // Save entry rules
+  for (let groupIndex = 0; groupIndex < generatedStrategy.entryRules.length; groupIndex++) {
+    const group = generatedStrategy.entryRules[groupIndex];
+    
+    const { data: entryGroup, error: entryGroupError } = await supabase
+      .from("rule_groups")
+      .insert({
+        strategy_id: strategyId,
+        rule_type: "entry",
+        group_order: groupIndex + 1,
+        logic: group.logic,
+        required_conditions: group.logic === "OR" ? group.requiredConditions : null
+      })
+      .select()
+      .single();
+
+    if (entryGroupError) throw new Error("Failed to save entry rules");
+
+    // Save inequalities for this group
+    for (let i = 0; i < group.inequalities.length; i++) {
+      const inequality = group.inequalities[i];
+      const { error: ruleError } = await supabase
+        .from("trading_rules")
+        .insert({
+          rule_group_id: entryGroup.id,
+          inequality_order: i + 1,
+          left_type: inequality.left.type,
+          left_indicator: inequality.left.indicator,
+          left_parameters: inequality.left.parameters,
+          left_value: inequality.left.value,
+          left_value_type: inequality.left.valueType,
+          condition: inequality.condition,
+          right_type: inequality.right.type,
+          right_indicator: inequality.right.indicator,
+          right_parameters: inequality.right.parameters,
+          right_value: inequality.right.value,
+          right_value_type: inequality.right.valueType,
+          explanation: inequality.explanation
+        });
+
+      if (ruleError) throw new Error("Failed to save trading rule");
+    }
   }
 
-  const updateData: any = {};
-  
-  if (updates.name !== undefined) updateData.name = updates.name;
-  if (updates.description !== undefined) updateData.description = updates.description;
-  if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
-  if (updates.targetAsset !== undefined) updateData.target_asset = updates.targetAsset;
-  if (updates.targetAssetName !== undefined) updateData.target_asset_name = updates.targetAssetName;
-  if (updates.timeframe !== undefined) updateData.timeframe = updates.timeframe;
-  if (updates.stopLoss !== undefined) updateData.stop_loss = updates.stopLoss;
-  if (updates.takeProfit !== undefined) updateData.take_profit = updates.takeProfit;
-  if (updates.singleBuyVolume !== undefined) updateData.single_buy_volume = updates.singleBuyVolume;
-  if (updates.maxBuyVolume !== undefined) updateData.max_buy_volume = updates.maxBuyVolume;
+  // Save exit rules
+  for (let groupIndex = 0; groupIndex < generatedStrategy.exitRules.length; groupIndex++) {
+    const group = generatedStrategy.exitRules[groupIndex];
+    
+    const { data: exitGroup, error: exitGroupError } = await supabase
+      .from("rule_groups")
+      .insert({
+        strategy_id: strategyId,
+        rule_type: "exit",
+        group_order: groupIndex + 1,
+        logic: group.logic,
+        required_conditions: group.logic === "OR" ? group.requiredConditions : null
+      })
+      .select()
+      .single();
 
-  updateData.updated_at = new Date().toISOString();
+    if (exitGroupError) throw new Error("Failed to save exit rules");
 
-  const { data, error } = await supabase
-    .from('strategies')
-    .update(updateData)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
+    // Save inequalities for this group
+    for (let i = 0; i < group.inequalities.length; i++) {
+      const inequality = group.inequalities[i];
+      const { error: ruleError } = await supabase
+        .from("trading_rules")
+        .insert({
+          rule_group_id: exitGroup.id,
+          inequality_order: i + 1,
+          left_type: inequality.left.type,
+          left_indicator: inequality.left.indicator,
+          left_parameters: inequality.left.parameters,
+          left_value: inequality.left.value,
+          left_value_type: inequality.left.valueType,
+          condition: inequality.condition,
+          right_type: inequality.right.type,
+          right_indicator: inequality.right.indicator,
+          right_parameters: inequality.right.parameters,
+          right_value: inequality.right.value,
+          right_value_type: inequality.right.valueType,
+          explanation: inequality.explanation
+        });
 
-  if (error) {
-    console.error('Error updating strategy:', error);
-    throw error;
+      if (ruleError) throw new Error("Failed to save trading rule");
+    }
   }
 
-  return {
-    id: data.id,
-    name: data.name,
-    description: data.description,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    isActive: data.is_active,
-    targetAsset: data.target_asset,
-    targetAssetName: data.target_asset_name,
-    timeframe: data.timeframe,
-    stopLoss: data.stop_loss,
-    takeProfit: data.take_profit,
-    singleBuyVolume: data.single_buy_volume,
-    maxBuyVolume: data.max_buy_volume,
-    userId: data.user_id,
-    canBeDeleted: data.can_be_deleted,
-    isRecommendedCopy: data.is_recommended_copy,
-    sourceStrategyId: data.source_strategy_id
-  };
-};
-
-export const deleteStrategy = async (id: string): Promise<void> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Authentication required');
-  }
-
-  // Use the database function for safe cascade deletion
-  const { error } = await supabase.rpc('delete_strategy_cascade', {
-    strategy_uuid: id
-  });
-
-  if (error) {
-    console.error('Error deleting strategy:', error);
-    throw error;
-  }
+  return strategyId;
 };
 
 export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: { 
-        test: true,
-        assetType: 'stocks',
-        selectedAsset: 'AAPL',
-        strategyDescription: 'health check'
-      }
+      body: { healthCheck: true }
     });
 
     if (error) {
@@ -316,97 +360,114 @@ export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; detail
 
     return { healthy: true, details: data };
   } catch (error) {
-    return { healthy: false, error: 'Health check failed' };
+    console.error("Health check failed:", error);
+    return { healthy: false, error: "Health check failed" };
   }
 };
 
-export const generateStrategy = async (
-  assetType: string,
-  selectedAsset: string,
-  strategyDescription: string
-): Promise<GeneratedStrategy> => {
-  try {
-    const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: {
-        assetType,
-        selectedAsset,
-        strategyDescription
-      }
-    });
-
-    if (error) {
-      const serviceError: ServiceError = {
-        message: error.message || 'Failed to generate strategy',
-        type: 'api_key_error',
-        retryable: true
-      };
-      throw serviceError;
-    }
-
-    return data as GeneratedStrategy;
-  } catch (error: any) {
-    if (error.type) {
-      throw error;
-    }
-
-    const serviceError: ServiceError = {
-      message: error.message || 'Unknown error occurred',
-      type: 'unknown_error',
-      retryable: false
-    };
-    throw serviceError;
-  }
-};
-
-export const generateFallbackStrategy = (
-  assetType: string,
-  selectedAsset: string,
-  strategyDescription: string
-): GeneratedStrategy => {
+export const generateFallbackStrategy = (assetType: string, selectedAsset: string, description: string): GeneratedStrategy => {
   return {
     name: `${selectedAsset} Template Strategy`,
-    description: `Template strategy for ${selectedAsset} based on: ${strategyDescription}`,
+    description: `A template trading strategy for ${selectedAsset} based on: ${description}`,
+    timeframe: "Daily",
     targetAsset: selectedAsset,
-    targetAssetName: selectedAsset,
-    timeframe: '1d',
-    stopLoss: '5%',
-    takeProfit: '10%',
-    singleBuyVolume: '100',
-    maxBuyVolume: '1000',
-    entryRules: [],
-    exitRules: []
+    entryRules: [
+      {
+        id: 1,
+        logic: "AND",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              value: "",
+              valueType: "number"
+            },
+            condition: "<",
+            right: {
+              type: "value",
+              indicator: "",
+              parameters: {},
+              value: "30",
+              valueType: "number"
+            },
+            explanation: "RSI is oversold (below 30)"
+          }
+        ]
+      }
+    ],
+    exitRules: [
+      {
+        id: 1,
+        logic: "OR",
+        inequalities: [
+          {
+            id: 1,
+            left: {
+              type: "indicator",
+              indicator: "RSI",
+              parameters: { period: "14" },
+              value: "",
+              valueType: "number"
+            },
+            condition: ">",
+            right: {
+              type: "value",
+              indicator: "",
+              parameters: {},
+              value: "70",
+              valueType: "number"
+            },
+            explanation: "RSI is overbought (above 70)"
+          }
+        ]
+      }
+    ],
+    riskManagement: {
+      stopLoss: "5",
+      takeProfit: "10",
+      singleBuyVolume: "1000",
+      maxBuyVolume: "5000"
+    }
   };
 };
 
-export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy): Promise<Strategy> => {
+export const deleteStrategy = async (strategyId: string): Promise<void> => {
+  console.log("Attempting to delete strategy:", strategyId);
+  
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('Authentication required');
+    throw new Error("User not authenticated");
   }
 
-  // Create the strategy
-  const strategy = await createStrategy({
-    name: generatedStrategy.name,
-    description: generatedStrategy.description,
-    isActive: false,
-    targetAsset: generatedStrategy.targetAsset,
-    targetAssetName: generatedStrategy.targetAssetName,
-    timeframe: generatedStrategy.timeframe,
-    stopLoss: generatedStrategy.stopLoss,
-    takeProfit: generatedStrategy.takeProfit,
-    singleBuyVolume: generatedStrategy.singleBuyVolume,
-    maxBuyVolume: generatedStrategy.maxBuyVolume
+  // First check if the strategy belongs to the user and can be deleted
+  const { data: strategy, error: fetchError } = await supabase
+    .from("strategies")
+    .select("id, user_id, can_be_deleted")
+    .eq("id", strategyId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError || !strategy) {
+    console.error("Strategy not found or access denied:", fetchError);
+    throw new Error("Strategy not found or you don't have permission to delete it");
+  }
+
+  // Use the cascade deletion function to avoid recursion issues
+  const { error } = await supabase.rpc('delete_strategy_cascade', {
+    strategy_uuid: strategyId
   });
 
-  // TODO: Save entry and exit rules if provided
-  if (generatedStrategy.entryRules && generatedStrategy.entryRules.length > 0) {
-    // Implementation for saving rules would go here
+  if (error) {
+    console.error("Error deleting strategy:", error);
+    throw new Error(error.message || "Failed to delete strategy");
   }
 
-  if (generatedStrategy.exitRules && generatedStrategy.exitRules.length > 0) {
-    // Implementation for saving rules would go here
-  }
-
-  return strategy;
+  console.log("Strategy deleted successfully:", strategyId);
+  
+  // Dispatch a custom event to notify other components
+  window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: strategyId }));
 };

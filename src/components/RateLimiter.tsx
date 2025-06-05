@@ -1,129 +1,101 @@
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from "react";
 
-interface RateLimiterState {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
+interface RateLimit {
+  count: number;
+  lastReset: number;
 }
 
 const RATE_LIMITS = {
-  strategy_generation: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
-  backtest_execution: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
-  api_calls: { limit: 100, windowMs: 60 * 60 * 1000 }, // 100 per hour
+  email: { max: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
+  discord: { max: 30, windowMs: 60 * 60 * 1000 }, // 30 per hour
+  telegram: { max: 30, windowMs: 60 * 60 * 1000 } // 30 per hour
 };
 
-export const useRateLimit = () => {
-  const { user } = useAuth();
-  const [rateLimitState, setRateLimitState] = useState<RateLimiterState>({});
+export class NotificationRateLimiter {
+  private static instance: NotificationRateLimiter;
+  private rateLimits: Map<string, RateLimit> = new Map();
 
-  const checkRateLimit = (action: keyof typeof RATE_LIMITS): boolean => {
-    if (!user) return false;
+  static getInstance(): NotificationRateLimiter {
+    if (!NotificationRateLimiter.instance) {
+      NotificationRateLimiter.instance = new NotificationRateLimiter();
+    }
+    return NotificationRateLimiter.instance;
+  }
 
-    const key = `${user.id}_${action}`;
-    const config = RATE_LIMITS[action];
+  private getKey(userId: string, type: string): string {
+    return `${userId}:${type}`;
+  }
+
+  private isRateLimitExceeded(userId: string, type: 'email' | 'discord' | 'telegram'): boolean {
+    const key = this.getKey(userId, type);
     const now = Date.now();
+    const limit = RATE_LIMITS[type];
     
-    const current = rateLimitState[key];
+    let rateLimit = this.rateLimits.get(key);
     
-    // If no previous state or window has expired, allow and reset
-    if (!current || now > current.resetTime) {
-      setRateLimitState(prev => ({
-        ...prev,
-        [key]: {
-          count: 1,
-          resetTime: now + config.windowMs
-        }
-      }));
+    if (!rateLimit) {
+      rateLimit = { count: 0, lastReset: now };
+      this.rateLimits.set(key, rateLimit);
+    }
+    
+    // Reset counter if window has passed
+    if (now - rateLimit.lastReset >= limit.windowMs) {
+      rateLimit.count = 0;
+      rateLimit.lastReset = now;
+    }
+    
+    // Check if limit exceeded
+    if (rateLimit.count >= limit.max) {
       return true;
     }
     
-    // If within limit, increment and allow
-    if (current.count < config.limit) {
-      setRateLimitState(prev => ({
-        ...prev,
-        [key]: {
-          ...current,
-          count: current.count + 1
-        }
-      }));
-      return true;
-    }
-    
-    // Rate limit exceeded
+    // Increment counter
+    rateLimit.count++;
     return false;
-  };
+  }
 
-  const getRemainingAttempts = (action: keyof typeof RATE_LIMITS): number => {
-    if (!user) return 0;
+  canSendNotification(userId: string, type: 'email' | 'discord' | 'telegram'): boolean {
+    return !this.isRateLimitExceeded(userId, type);
+  }
 
-    const key = `${user.id}_${action}`;
-    const config = RATE_LIMITS[action];
-    const current = rateLimitState[key];
+  getRemainingCount(userId: string, type: 'email' | 'discord' | 'telegram'): number {
+    const key = this.getKey(userId, type);
+    const rateLimit = this.rateLimits.get(key);
+    const limit = RATE_LIMITS[type];
     
-    if (!current || Date.now() > current.resetTime) {
-      return config.limit;
+    if (!rateLimit) return limit.max;
+    
+    const now = Date.now();
+    if (now - rateLimit.lastReset >= limit.windowMs) {
+      return limit.max;
     }
     
-    return Math.max(0, config.limit - current.count);
-  };
+    return Math.max(0, limit.max - rateLimit.count);
+  }
 
-  const getResetTime = (action: keyof typeof RATE_LIMITS): number => {
-    if (!user) return 0;
-
-    const key = `${user.id}_${action}`;
-    const current = rateLimitState[key];
+  getTimeUntilReset(userId: string, type: 'email' | 'discord' | 'telegram'): number {
+    const key = this.getKey(userId, type);
+    const rateLimit = this.rateLimits.get(key);
+    const limit = RATE_LIMITS[type];
     
-    return current?.resetTime || 0;
-  };
+    if (!rateLimit) return 0;
+    
+    const elapsed = Date.now() - rateLimit.lastReset;
+    return Math.max(0, limit.windowMs - elapsed);
+  }
+}
 
+// Hook for using rate limiter in components
+export function useNotificationRateLimit() {
+  const [rateLimiter] = useState(() => NotificationRateLimiter.getInstance());
+  
   return {
-    checkRateLimit,
-    getRemainingAttempts,
-    getResetTime
+    canSend: (userId: string, type: 'email' | 'discord' | 'telegram') => 
+      rateLimiter.canSendNotification(userId, type),
+    getRemainingCount: (userId: string, type: 'email' | 'discord' | 'telegram') => 
+      rateLimiter.getRemainingCount(userId, type),
+    getTimeUntilReset: (userId: string, type: 'email' | 'discord' | 'telegram') => 
+      rateLimiter.getTimeUntilReset(userId, type)
   };
-};
-
-// Input sanitization utility
-export const sanitizeInput = (input: string): string => {
-  return input
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocols
-    .replace(/on\w+\s*=/gi, '') // Remove event handlers
-    .trim()
-    .slice(0, 5000); // Limit length
-};
-
-// Validate strategy generation prompt
-export const validateStrategyPrompt = (prompt: string): { isValid: boolean; error?: string } => {
-  const sanitized = sanitizeInput(prompt);
-  
-  if (sanitized.length < 10) {
-    return { isValid: false, error: 'Prompt must be at least 10 characters long' };
-  }
-  
-  if (sanitized.length > 5000) {
-    return { isValid: false, error: 'Prompt must be less than 5000 characters' };
-  }
-  
-  // Check for potentially harmful content
-  const harmfulPatterns = [
-    /delete\s+from/gi,
-    /drop\s+table/gi,
-    /insert\s+into/gi,
-    /update\s+set/gi,
-    /<script/gi,
-    /eval\s*\(/gi,
-    /function\s*\(/gi
-  ];
-  
-  for (const pattern of harmfulPatterns) {
-    if (pattern.test(sanitized)) {
-      return { isValid: false, error: 'Prompt contains potentially harmful content' };
-    }
-  }
-  
-  return { isValid: true };
-};
+}

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BacktestParameters {
@@ -95,7 +96,7 @@ export const runBacktest = async (parameters: BacktestParameters): Promise<Backt
 
     console.log('Generated trades:', trades.length);
 
-    // Insert trades into database
+    // Insert trades into database if we have any
     if (trades.length > 0) {
       const { error: tradesError } = await supabase
         .from('backtest_trades')
@@ -112,7 +113,10 @@ export const runBacktest = async (parameters: BacktestParameters): Promise<Backt
           }))
         );
 
-      if (tradesError) throw tradesError;
+      if (tradesError) {
+        console.error('Error inserting trades:', tradesError);
+        throw tradesError;
+      }
     }
 
     // Calculate performance metrics
@@ -137,7 +141,10 @@ export const runBacktest = async (parameters: BacktestParameters): Promise<Backt
       })
       .eq('id', backtest.id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Error updating backtest results:', updateError);
+      throw updateError;
+    }
 
     console.log('Backtest completed successfully');
 
@@ -160,6 +167,8 @@ const generateSampleTrades = (
   stopLossPercent: number | null,
   takeProfitPercent: number | null
 ): BacktestTrade[] => {
+  console.log('Starting trade generation for:', { startDate, endDate, asset });
+  
   const trades: BacktestTrade[] = [];
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -171,9 +180,11 @@ const generateSampleTrades = (
     return trades;
   }
   
-  // Generate trades every 5-15 days on average
-  const avgDaysBetweenTrades = Math.max(5, Math.min(15, Math.floor(daysBetween / 10)));
-  const maxTrades = Math.min(50, Math.floor(daysBetween / 3)); // Cap at 50 trades or every 3 days
+  console.log(`Generating trades over ${daysBetween} days`);
+  
+  // Cap the maximum number of trades to prevent infinite loops
+  const maxTrades = Math.min(30, Math.floor(daysBetween / 2));
+  const avgDaysBetweenTrades = Math.max(3, Math.floor(daysBetween / maxTrades));
   
   let currentDate = new Date(start);
   let openPositions: Array<{
@@ -186,46 +197,27 @@ const generateSampleTrades = (
   // Base price for the asset
   let basePrice = 150;
   let tradeCount = 0;
+  let iterationCount = 0;
+  const maxIterations = maxTrades * 3; // Safety limit to prevent infinite loops
   
-  // Prevent infinite loops with a hard limit
-  while (tradeCount < maxTrades && currentDate <= end) {
+  while (tradeCount < maxTrades && currentDate <= end && iterationCount < maxIterations) {
+    iterationCount++;
+    
     // Add random days between trades
-    const daysToAdd = Math.floor(Math.random() * 10) + avgDaysBetweenTrades;
+    const daysToAdd = Math.floor(Math.random() * 5) + avgDaysBetweenTrades;
     currentDate = new Date(currentDate);
     currentDate.setDate(currentDate.getDate() + daysToAdd);
     
     if (currentDate > end) break;
     
-    // Simulate price movement (+/- 15% from base price)
-    const priceVariation = (Math.random() - 0.5) * 0.3; // -15% to +15%
-    const currentPrice = Math.max(10, basePrice * (1 + priceVariation)); // Ensure price doesn't go below $10
+    // Simulate price movement (+/- 20% from base price)
+    const priceVariation = (Math.random() - 0.5) * 0.4; // -20% to +20%
+    const currentPrice = Math.max(50, basePrice * (1 + priceVariation));
     
-    // Decide trade type: 60% buy, 40% sell (if positions exist)
-    const shouldBuy = Math.random() < 0.6;
+    // Decide trade type: if no positions, buy; otherwise 70% chance to sell existing
+    const shouldSell = openPositions.length > 0 && Math.random() < 0.7;
     
-    if (shouldBuy || openPositions.length === 0) {
-      // Generate buy trade
-      const contracts = Math.floor(Math.random() * 50) + 10; // 10-60 contracts
-      const signals = ['RSI Oversold', 'MACD Bullish Cross', 'Support Level Break', 'Moving Average Cross'];
-      const signal = signals[Math.floor(Math.random() * signals.length)];
-      
-      trades.push({
-        date: currentDate.toISOString(),
-        type: 'Buy',
-        signal,
-        price: currentPrice,
-        contracts
-      });
-
-      // Add to open positions
-      openPositions.push({
-        entryPrice: currentPrice,
-        entryDate: currentDate.toISOString(),
-        contracts,
-        signal
-      });
-      
-    } else if (openPositions.length > 0) {
+    if (shouldSell) {
       // Generate sell trade for existing position
       const positionIndex = Math.floor(Math.random() * openPositions.length);
       const position = openPositions[positionIndex];
@@ -236,7 +228,7 @@ const generateSampleTrades = (
       // Apply risk management constraints
       let constrainedPrice = currentPrice;
       let constrainedProfitPercentage = rawProfitPercentage;
-      let sellSignal = 'Take Profit';
+      let sellSignal = 'Market Exit';
       
       // Check stop loss constraint
       if (stopLossPercent !== null && rawProfitPercentage <= -Math.abs(stopLossPercent)) {
@@ -244,15 +236,13 @@ const generateSampleTrades = (
         constrainedPrice = position.entryPrice * (1 + constrainedProfitPercentage / 100);
         sellSignal = 'Stop Loss Triggered';
       }
-      
       // Check take profit constraint
       else if (takeProfitPercent !== null && rawProfitPercentage >= takeProfitPercent) {
         constrainedProfitPercentage = takeProfitPercent;
         constrainedPrice = position.entryPrice * (1 + constrainedProfitPercentage / 100);
         sellSignal = 'Take Profit Triggered';
       }
-      
-      // If neither stop loss nor take profit was triggered, use random exit signals
+      // Random exit signals
       else {
         const exitSignals = ['RSI Overbought', 'MACD Bearish Cross', 'Resistance Level', 'Profit Taking'];
         sellSignal = exitSignals[Math.floor(Math.random() * exitSignals.length)];
@@ -265,26 +255,78 @@ const generateSampleTrades = (
         date: currentDate.toISOString(),
         type: 'Sell',
         signal: sellSignal,
-        price: constrainedPrice,
+        price: Number(constrainedPrice.toFixed(2)),
         contracts: position.contracts,
-        profit,
-        profitPercentage: constrainedProfitPercentage
+        profit: Number(profit.toFixed(2)),
+        profitPercentage: Number(constrainedProfitPercentage.toFixed(2))
       });
       
       // Remove position from open positions
       openPositions.splice(positionIndex, 1);
+      
+    } else {
+      // Generate buy trade
+      const contracts = Math.floor(Math.random() * 40) + 10; // 10-50 contracts
+      const signals = ['RSI Oversold', 'MACD Bullish Cross', 'Support Level', 'Moving Average Cross'];
+      const signal = signals[Math.floor(Math.random() * signals.length)];
+      
+      trades.push({
+        date: currentDate.toISOString(),
+        type: 'Buy',
+        signal,
+        price: Number(currentPrice.toFixed(2)),
+        contracts
+      });
+
+      // Add to open positions (limit to 3 concurrent positions)
+      if (openPositions.length < 3) {
+        openPositions.push({
+          entryPrice: currentPrice,
+          entryDate: currentDate.toISOString(),
+          contracts,
+          signal
+        });
+      }
     }
     
     // Update base price for next iteration (trend simulation)
-    basePrice = currentPrice * (1 + (Math.random() - 0.5) * 0.02); // Small trend
+    basePrice = currentPrice * (1 + (Math.random() - 0.5) * 0.01); // Small trend
     tradeCount++;
+    
+    // Log progress every 10 trades
+    if (tradeCount % 10 === 0) {
+      console.log(`Generated ${tradeCount} trades, ${openPositions.length} open positions`);
+    }
   }
   
-  console.log(`Generated ${trades.length} trades over ${daysBetween} days`);
+  // Close any remaining open positions at the end
+  if (openPositions.length > 0) {
+    console.log(`Closing ${openPositions.length} remaining positions`);
+    const finalPrice = basePrice;
+    
+    openPositions.forEach(position => {
+      const profit = (finalPrice - position.entryPrice) * position.contracts;
+      const profitPercentage = ((finalPrice - position.entryPrice) / position.entryPrice) * 100;
+      
+      trades.push({
+        date: end.toISOString(),
+        type: 'Sell',
+        signal: 'End of Period',
+        price: Number(finalPrice.toFixed(2)),
+        contracts: position.contracts,
+        profit: Number(profit.toFixed(2)),
+        profitPercentage: Number(profitPercentage.toFixed(2))
+      });
+    });
+  }
+  
+  console.log(`Trade generation completed: ${trades.length} trades over ${daysBetween} days (${iterationCount} iterations)`);
   return trades;
 };
 
 const calculatePerformanceMetrics = (trades: BacktestTrade[], initialCapital: number) => {
+  console.log('Calculating performance metrics for', trades.length, 'trades');
+  
   if (trades.length === 0) {
     return {
       totalReturn: 0,
@@ -341,18 +383,21 @@ const calculatePerformanceMetrics = (trades: BacktestTrade[], initialCapital: nu
     }
   }
   
-  return {
-    totalReturn,
-    totalReturnPercentage,
-    annualizedReturn,
-    sharpeRatio,
-    maxDrawdown,
-    winRate,
-    profitFactor,
+  const metrics = {
+    totalReturn: Number(totalReturn.toFixed(2)),
+    totalReturnPercentage: Number(totalReturnPercentage.toFixed(2)),
+    annualizedReturn: Number(annualizedReturn.toFixed(2)),
+    sharpeRatio: Number(sharpeRatio.toFixed(2)),
+    maxDrawdown: Number(maxDrawdown.toFixed(2)),
+    winRate: Number(winRate.toFixed(2)),
+    profitFactor: Number(profitFactor.toFixed(2)),
     totalTrades: sellTrades.length,
     winningTrades: winningTrades.length,
     losingTrades: losingTrades.length,
-    avgProfit,
-    avgLoss
+    avgProfit: Number(avgProfit.toFixed(2)),
+    avgLoss: Number(avgLoss.toFixed(2))
   };
+  
+  console.log('Performance metrics calculated:', metrics);
+  return metrics;
 };

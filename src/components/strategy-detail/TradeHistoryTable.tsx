@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/Badge";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -90,7 +91,12 @@ export const TradeHistoryTable = ({
                     </TooltipProvider>
                   </TableCell>
                   <TableCell>
-                    {trade.type}
+                    <Badge 
+                      variant={isBuy ? "default" : "outline"}
+                      className={isBuy ? "bg-green-100 text-green-800 border-green-200" : "bg-red-100 text-red-800 border-red-200"}
+                    >
+                      {trade.type}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {trade.date}

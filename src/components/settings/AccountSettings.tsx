@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,21 +39,28 @@ export function AccountSettings() {
   // Load user profile and subscription status
   useEffect(() => {
     const loadUserProfile = async () => {
+      console.log('Loading user profile...', { userId: user?.id, userEmail: user?.email });
+      
       if (!user) {
+        console.log('No user found, setting loading to false');
         setIsLoadingProfile(false);
         return;
       }
 
       try {
         // Check if profile exists, if not create one
+        console.log('Fetching profile for user:', user.id);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('subscription_tier')
           .eq('id', user.id)
           .single();
 
+        console.log('Profile fetch result:', { profile, error });
+
         if (error && error.code === 'PGRST116') {
           // Profile doesn't exist, create one
+          console.log('Profile does not exist, creating new profile');
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -64,6 +70,8 @@ export function AccountSettings() {
 
           if (insertError) {
             console.error('Error creating profile:', insertError);
+          } else {
+            console.log('Profile created successfully');
           }
           setIsPro(false);
         } else if (error) {
@@ -71,6 +79,7 @@ export function AccountSettings() {
           setIsPro(false);
         } else {
           const isProUser = profile?.subscription_tier === 'pro';
+          console.log('Profile loaded successfully:', { subscription_tier: profile?.subscription_tier, isProUser });
           setIsPro(isProUser);
           
           // If user is Pro, ensure the status is properly updated in the database
@@ -82,6 +91,7 @@ export function AccountSettings() {
         console.error('Error loading user profile:', error);
         setIsPro(false);
       } finally {
+        console.log('Setting loading to false');
         setIsLoadingProfile(false);
       }
     };

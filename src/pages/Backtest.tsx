@@ -456,9 +456,9 @@ const Backtest = () => {
                           >
                             <TableCell className="font-medium">{backtest.strategyName}</TableCell>
                             <TableCell>
-                              <div className="text-sm">
+                              <div className="text-sm text-foreground">
                                 <div>{format(new Date(backtest.startDate), "MMM dd, yyyy")}</div>
-                                <div className="text-muted-foreground">to {format(new Date(backtest.endDate), "MMM dd, yyyy")}</div>
+                                <div>to {format(new Date(backtest.endDate), "MMM dd, yyyy")}</div>
                               </div>
                             </TableCell>
                             <TableCell>${backtest.initialCapital.toLocaleString()}</TableCell>

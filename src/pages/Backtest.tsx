@@ -448,12 +448,9 @@ const Backtest = () => {
                             </TableCell>
                             <TableCell className="text-sm text-zinc-600">${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                {backtest.totalReturnPercentage >= 0 ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-600" />}
-                                <span className={cn("font-medium text-sm", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
-                                  {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
-                                </span>
-                              </div>
+                              <span className={cn("font-medium text-sm", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
+                                {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
+                              </span>
                             </TableCell>
                             <TableCell className="text-sm text-zinc-600">{backtest.winRate.toFixed(0)}%</TableCell>
                             <TableCell className="text-sm text-zinc-600">{backtest.totalTrades}</TableCell>

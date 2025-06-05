@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,6 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
       }
+
+      if (event === 'USER_UPDATED') {
+        console.log('User updated successfully');
+      }
     });
 
     // Get initial session
@@ -157,6 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (message.includes("oauth")) {
       return "There was an issue with Google sign-in. Please try again.";
     }
+    if (message.includes("weak password")) {
+      return "Please choose a stronger password with at least 8 characters.";
+    }
     
     return error.message;
   };
@@ -213,12 +221,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (result.error) {
         console.log('Sign in error:', result.error);
+        // Return error with user-friendly message
+        return {
+          ...result,
+          error: {
+            ...result.error,
+            message: getErrorMessage(result.error)
+          }
+        };
       }
       
       return result;
     } catch (error) {
       console.error("Error signing in:", error);
-      return { error, data: null };
+      return { 
+        error: {
+          message: getErrorMessage(error)
+        }, 
+        data: null 
+      };
     }
   };
 
@@ -241,7 +262,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return result;
     } catch (error) {
       console.error("Error signing in with Google:", error);
-      return { error, data: null };
+      return { 
+        error: {
+          message: getErrorMessage(error)
+        }, 
+        data: null 
+      };
     }
   };
 
@@ -256,6 +282,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
       
+      if (result.error) {
+        return {
+          ...result,
+          error: {
+            ...result.error,
+            message: getErrorMessage(result.error)
+          }
+        };
+      }
+      
       if (!result.error && result.data.user && !result.data.session) {
         toast({
           title: "Account created successfully",
@@ -266,7 +302,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return result;
     } catch (error) {
       console.error("Error signing up:", error);
-      return { error, data: null };
+      return { 
+        error: {
+          message: getErrorMessage(error)
+        }, 
+        data: null 
+      };
     }
   };
 
@@ -306,10 +347,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + "/auth/reset-password",
       });
+      
+      if (result.error) {
+        return {
+          ...result,
+          error: {
+            ...result.error,
+            message: getErrorMessage(result.error)
+          }
+        };
+      }
+      
       return result;
     } catch (error) {
       console.error("Error resetting password:", error);
-      return { error, data: null };
+      return { 
+        error: {
+          message: getErrorMessage(error)
+        }, 
+        data: null 
+      };
     }
   };
 
@@ -322,10 +379,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           emailRedirectTo: window.location.origin + '/auth/confirm'
         }
       });
+      
+      if (result.error) {
+        return {
+          ...result,
+          error: {
+            ...result.error,
+            message: getErrorMessage(result.error)
+          }
+        };
+      }
+      
       return result;
     } catch (error) {
       console.error("Error resending confirmation:", error);
-      return { error, data: null };
+      return { 
+        error: {
+          message: getErrorMessage(error)
+        }, 
+        data: null 
+      };
     }
   };
 

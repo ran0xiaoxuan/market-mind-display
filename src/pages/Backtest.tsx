@@ -425,7 +425,6 @@ const Backtest = () => {
                           <TableHead className="font-semibold text-zinc-700">Win Rate</TableHead>
                           <TableHead className="font-semibold text-zinc-700">Trades</TableHead>
                           <TableHead className="font-semibold text-zinc-700">Date</TableHead>
-                          <TableHead className="font-semibold text-zinc-700 w-16"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -448,21 +447,13 @@ const Backtest = () => {
                             </TableCell>
                             <TableCell className="text-sm text-zinc-600">${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                {backtest.totalReturnPercentage >= 0 ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-600" />}
-                                <span className={cn("font-medium text-sm", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
-                                  {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
-                                </span>
-                              </div>
+                              <span className={cn("font-medium text-sm", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
+                                {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
+                              </span>
                             </TableCell>
                             <TableCell className="text-sm text-zinc-600">{backtest.winRate.toFixed(0)}%</TableCell>
                             <TableCell className="text-sm text-zinc-600">{backtest.totalTrades}</TableCell>
                             <TableCell className="text-sm text-zinc-500">{format(new Date(backtest.createdAt), "MMM dd")}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm" onClick={e => handleViewDetails(backtest, e)} className="p-2 h-8 w-8 hover:bg-zinc-100">
-                                <Eye className="h-4 w-4 text-zinc-500" />
-                              </Button>
-                            </TableCell>
                           </TableRow>)}
                       </TableBody>
                     </Table>

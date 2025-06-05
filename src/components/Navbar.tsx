@@ -134,31 +134,40 @@ export function Navbar() {
                     <User className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="leading-none text-sm text-slate-950">
-                          {user.email}
-                        </p>
-                        {isLoadingSubscription ? (
-                          <div className="h-5 w-12 bg-gray-200 rounded animate-pulse"></div>
-                        ) : (
-                          <Badge variant={isPro ? 'pro' : 'free'}>
-                            {isPro ? 'Pro' : 'Free'}
-                          </Badge>
-                        )}
+                <DropdownMenuContent className="w-80" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal p-4">
+                    <div className="flex flex-col space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {user.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Account Settings
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {isLoadingSubscription ? (
+                            <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                          ) : (
+                            <Badge variant={isPro ? 'pro' : 'free'} className="text-xs">
+                              {isPro ? 'Pro Plan' : 'Free Plan'}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 hover:text-red-600 hover:bg-red-50">
-                    
-                    Log out
-                  </DropdownMenuItem>
+                  <div className="p-1">
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="w-full">Settings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 hover:text-red-600 hover:bg-red-50">
+                      
+                      Log out
+                    </DropdownMenuItem>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu> : <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
                 <Link to="/login" className="inline-flex items-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">

@@ -437,10 +437,8 @@ const Backtest = () => {
                         <TableRow>
                           <TableHead>Strategy</TableHead>
                           <TableHead>Time Period</TableHead>
-                          <TableHead>Initial Capital</TableHead>
+                          <TableHead>Capital</TableHead>
                           <TableHead>Total Return</TableHead>
-                          <TableHead>Sharpe Ratio</TableHead>
-                          <TableHead>Max Drawdown</TableHead>
                           <TableHead>Win Rate</TableHead>
                           <TableHead>Trades</TableHead>
                           <TableHead>Date Run</TableHead>
@@ -469,11 +467,8 @@ const Backtest = () => {
                             }}
                           >
                             <TableCell className="font-medium">{backtest.strategyName}</TableCell>
-                            <TableCell>
-                              <div className="text-sm text-foreground">
-                                <div>{format(new Date(backtest.startDate), "MMM dd, yyyy")}</div>
-                                <div>to {format(new Date(backtest.endDate), "MMM dd, yyyy")}</div>
-                              </div>
+                            <TableCell className="text-sm">
+                              {format(new Date(backtest.startDate), "MMM dd")} - {format(new Date(backtest.endDate), "MMM dd, yyyy")}
                             </TableCell>
                             <TableCell>${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
@@ -481,11 +476,9 @@ const Backtest = () => {
                                 {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(2)}%
                               </span>
                             </TableCell>
-                            <TableCell>{backtest.sharpeRatio.toFixed(2)}</TableCell>
-                            <TableCell className="text-red-600">-{backtest.maxDrawdown.toFixed(2)}%</TableCell>
                             <TableCell>{backtest.winRate.toFixed(1)}%</TableCell>
                             <TableCell>{backtest.totalTrades}</TableCell>
-                            <TableCell>{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
+                            <TableCell className="text-sm">{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
                             <TableCell>
                               <Button
                                 variant="ghost"

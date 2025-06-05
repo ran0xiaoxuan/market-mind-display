@@ -27,15 +27,16 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
     }
   }
 
-  // Calculate transaction amount as sum of (Price * Contracts) for each trade
+  // Calculate transaction amount as sum of (Price * Volume) for each trade
   let displayValue = value;
   if (title === "Transaction Amount" && trades && Array.isArray(trades)) {
     console.log(`MetricCard: Calculating transaction amount for ${trades.length} trades`);
     const transactionAmount = trades.reduce((total, trade) => {
       const price = parseFloat(trade.price) || 0;
-      const contracts = parseInt(trade.contracts.toString()) || 0;
-      const subtotal = price * contracts;
-      console.log(`MetricCard Trade: price=${price}, contracts=${contracts}, subtotal=${subtotal}`);
+      // Use 'contracts' field as volume since that's what's available in the trade data
+      const volume = parseInt(trade.contracts.toString()) || 0;
+      const subtotal = price * volume;
+      console.log(`MetricCard Trade: price=${price}, volume=${volume}, subtotal=${subtotal}`);
       return total + subtotal;
     }, 0);
     console.log(`MetricCard: Final transaction amount = ${transactionAmount}`);

@@ -20,7 +20,6 @@ import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runBacktest, BacktestResult } from "@/services/backtestService";
 import { supabase } from "@/integrations/supabase/client";
 import { BacktestDetailsModal } from "@/components/backtest/BacktestDetailsModal";
-
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -35,7 +34,6 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
-
 const Backtest = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -405,7 +403,7 @@ const Backtest = () => {
             <Card className="shadow-sm border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-6">
-                  <History className="h-5 w-5 text-zinc-600" />
+                  
                   <h2 className="text-xl font-bold">Backtest History</h2>
                 </div>
                 
@@ -451,14 +449,8 @@ const Backtest = () => {
                             <TableCell className="text-sm text-zinc-600">${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                {backtest.totalReturnPercentage >= 0 ? (
-                                  <TrendingUp className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <TrendingDown className="h-3 w-3 text-red-600" />
-                                )}
-                                <span className={cn("font-medium text-sm", 
-                                  backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600"
-                                )}>
+                                {backtest.totalReturnPercentage >= 0 ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-600" />}
+                                <span className={cn("font-medium text-sm", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
                                   {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
                                 </span>
                               </div>
@@ -467,12 +459,7 @@ const Backtest = () => {
                             <TableCell className="text-sm text-zinc-600">{backtest.totalTrades}</TableCell>
                             <TableCell className="text-sm text-zinc-500">{format(new Date(backtest.createdAt), "MMM dd")}</TableCell>
                             <TableCell>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={e => handleViewDetails(backtest, e)} 
-                                className="p-2 h-8 w-8 hover:bg-zinc-100"
-                              >
+                              <Button variant="ghost" size="sm" onClick={e => handleViewDetails(backtest, e)} className="p-2 h-8 w-8 hover:bg-zinc-100">
                                 <Eye className="h-4 w-4 text-zinc-500" />
                               </Button>
                             </TableCell>

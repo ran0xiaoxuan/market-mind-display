@@ -32,7 +32,9 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
   if (title === "Transaction Amount" && trades && Array.isArray(trades)) {
     console.log(`MetricCard: Calculating transaction amount for ${trades.length} trades`);
     const transactionAmount = trades.reduce((total, trade) => {
-      const price = parseFloat(trade.price) || 0;
+      // Remove dollar sign and parse the price correctly
+      const priceString = trade.price.toString().replace('$', '');
+      const price = parseFloat(priceString) || 0;
       // Use 'contracts' field as volume since that's what's available in the trade data
       const volume = parseInt(trade.contracts.toString()) || 0;
       const subtotal = price * volume;

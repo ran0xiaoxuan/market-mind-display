@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, PlayIcon, History, Eye } from "lucide-react";
+import { CalendarIcon, PlayIcon, History } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,18 +19,23 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runBacktest, BacktestResult } from "@/services/backtestService";
+import { supabase } from "@/integrations/supabase/client";
+
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
-  date: string;
+  startDate: string;
+  endDate: string;
+  initialCapital: number;
   totalReturn: number;
   totalReturnPercentage: number;
   sharpeRatio: number;
   maxDrawdown: number;
   winRate: number;
   totalTrades: number;
-  initialCapital: number;
+  createdAt: string;
 }
+
 const Backtest = () => {
   const location = useLocation();
   const [strategy, setStrategy] = useState<string>("");
@@ -42,48 +48,69 @@ const Backtest = () => {
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
   const [runningBacktest, setRunningBacktest] = useState<boolean>(false);
   const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(true);
   const {
     toast: showToast
   } = useToast();
 
-  // Sample backtest history data
+  // Fetch real backtest history data from database
   useEffect(() => {
-    const sampleHistory: BacktestHistoryItem[] = [{
-      id: "1",
-      strategyName: "RSI Mean Reversion",
-      date: "2024-01-15",
-      totalReturn: 1250.50,
-      totalReturnPercentage: 12.51,
-      sharpeRatio: 1.35,
-      maxDrawdown: 8.2,
-      winRate: 65.4,
-      totalTrades: 24,
-      initialCapital: 10000
-    }, {
-      id: "2",
-      strategyName: "MACD Crossover",
-      date: "2024-01-10",
-      totalReturn: -340.20,
-      totalReturnPercentage: -3.40,
-      sharpeRatio: 0.82,
-      maxDrawdown: 12.5,
-      winRate: 42.1,
-      totalTrades: 18,
-      initialCapital: 10000
-    }, {
-      id: "3",
-      strategyName: "Bollinger Bands",
-      date: "2024-01-05",
-      totalReturn: 875.30,
-      totalReturnPercentage: 8.75,
-      sharpeRatio: 1.12,
-      maxDrawdown: 6.8,
-      winRate: 58.3,
-      totalTrades: 31,
-      initialCapital: 10000
-    }];
-    setBacktestHistory(sampleHistory);
-  }, []);
+    const fetchBacktestHistory = async () => {
+      try {
+        setLoadingHistory(true);
+        const { data: backtests, error } = await supabase
+          .from('backtests')
+          .select(`
+            id,
+            start_date,
+            end_date,
+            initial_capital,
+            total_return,
+            total_return_percentage,
+            sharpe_ratio,
+            max_drawdown,
+            win_rate,
+            total_trades,
+            created_at,
+            strategies!inner(name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching backtest history:', error);
+          return;
+        }
+
+        const formattedHistory: BacktestHistoryItem[] = backtests.map(backtest => ({
+          id: backtest.id,
+          strategyName: backtest.strategies.name,
+          startDate: backtest.start_date,
+          endDate: backtest.end_date,
+          initialCapital: backtest.initial_capital,
+          totalReturn: backtest.total_return || 0,
+          totalReturnPercentage: backtest.total_return_percentage || 0,
+          sharpeRatio: backtest.sharpe_ratio || 0,
+          maxDrawdown: backtest.max_drawdown || 0,
+          winRate: backtest.win_rate || 0,
+          totalTrades: backtest.total_trades || 0,
+          createdAt: backtest.created_at
+        }));
+
+        setBacktestHistory(formattedHistory);
+      } catch (error) {
+        console.error('Error fetching backtest history:', error);
+        showToast({
+          title: "Error loading backtest history",
+          description: "Failed to load backtest history data",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchBacktestHistory();
+  }, [showToast]);
 
   // Fetch strategies from database
   useEffect(() => {
@@ -123,6 +150,7 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
+
   const runBacktestHandler = async () => {
     if (!strategy) {
       showToast({
@@ -156,6 +184,43 @@ const Backtest = () => {
       toast.success("Backtest completed", {
         description: `Generated ${result.totalTrades} trades with ${result.totalReturnPercentage.toFixed(2)}% return`
       });
+      
+      // Refresh backtest history after successful completion
+      const { data: backtests, error } = await supabase
+        .from('backtests')
+        .select(`
+          id,
+          start_date,
+          end_date,
+          initial_capital,
+          total_return,
+          total_return_percentage,
+          sharpe_ratio,
+          max_drawdown,
+          win_rate,
+          total_trades,
+          created_at,
+          strategies!inner(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (!error && backtests) {
+        const formattedHistory: BacktestHistoryItem[] = backtests.map(backtest => ({
+          id: backtest.id,
+          strategyName: backtest.strategies.name,
+          startDate: backtest.start_date,
+          endDate: backtest.end_date,
+          initialCapital: backtest.initial_capital,
+          totalReturn: backtest.total_return || 0,
+          totalReturnPercentage: backtest.total_return_percentage || 0,
+          sharpeRatio: backtest.sharpe_ratio || 0,
+          maxDrawdown: backtest.max_drawdown || 0,
+          winRate: backtest.win_rate || 0,
+          totalTrades: backtest.total_trades || 0,
+          createdAt: backtest.created_at
+        }));
+        setBacktestHistory(formattedHistory);
+      }
     } catch (error: any) {
       console.error("Backtest error:", error);
       toast.error("Backtest failed", {
@@ -165,6 +230,7 @@ const Backtest = () => {
       setRunningBacktest(false);
     }
   };
+
   const formatMetrics = () => {
     if (!backtestResults) return null;
     return {
@@ -205,7 +271,9 @@ const Backtest = () => {
       }]
     };
   };
+
   const metrics = formatMetrics();
+
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
@@ -358,28 +426,39 @@ const Backtest = () => {
             <Card className="shadow-sm border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-6">
-                  
+                  <History className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-xl font-bold">Backtest History</h2>
                 </div>
                 
-                {backtestHistory.length > 0 ? <div className="rounded-md border">
+                {loadingHistory ? (
+                  <div className="flex justify-center py-8">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" />
+                  </div>
+                ) : backtestHistory.length > 0 ? <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Strategy</TableHead>
-                          <TableHead>Date</TableHead>
+                          <TableHead>Time Period</TableHead>
+                          <TableHead>Initial Capital</TableHead>
                           <TableHead>Total Return</TableHead>
                           <TableHead>Sharpe Ratio</TableHead>
                           <TableHead>Max Drawdown</TableHead>
                           <TableHead>Win Rate</TableHead>
                           <TableHead>Trades</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                          <TableHead>Date Run</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {backtestHistory.map(backtest => <TableRow key={backtest.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium">{backtest.strategyName}</TableCell>
-                            <TableCell>{format(new Date(backtest.date), "MMM dd, yyyy")}</TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>{format(new Date(backtest.startDate), "MMM dd, yyyy")}</div>
+                                <div className="text-muted-foreground">to {format(new Date(backtest.endDate), "MMM dd, yyyy")}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
                               <span className={cn("font-medium", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
                                 {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(2)}%
@@ -389,15 +468,7 @@ const Backtest = () => {
                             <TableCell className="text-red-600">-{backtest.maxDrawdown.toFixed(2)}%</TableCell>
                             <TableCell>{backtest.winRate.toFixed(1)}%</TableCell>
                             <TableCell>{backtest.totalTrades}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => {
-                          toast.info("Feature coming soon", {
-                            description: "Detailed backtest view will be available soon"
-                          });
-                        }}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
+                            <TableCell>{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
                           </TableRow>)}
                       </TableBody>
                     </Table>

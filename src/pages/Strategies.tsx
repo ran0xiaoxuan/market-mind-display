@@ -8,10 +8,8 @@ import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { ArrowUp, ArrowDown } from "lucide-react";
-
 type SortOption = 'name' | 'created' | 'updated' | 'total_return';
 type SortDirection = 'asc' | 'desc';
-
 const Strategies = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -19,7 +17,6 @@ const Strategies = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
@@ -36,6 +33,7 @@ const Strategies = () => {
     fetchStrategies();
   }, []);
 
+  // Filter and sort strategies
   const filteredAndSortedStrategies = strategies.filter(strategy => {
     const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || statusFilter === "active" && strategy.isActive || statusFilter === "inactive" && !strategy.isActive;
@@ -64,13 +62,10 @@ const Strategies = () => {
     }
     return sortDirection === 'asc' ? comparison : -comparison;
   });
-
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -85,12 +80,7 @@ const Strategies = () => {
           
           <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
             <div className="w-full lg:w-2/5">
-              <Input 
-                placeholder="Search strategies..." 
-                value={searchTerm} 
-                onChange={e => setSearchTerm(e.target.value)} 
-                className="w-full" 
-              />
+              <Input placeholder="Search strategies..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full" />
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-3/5 lg:justify-end">
@@ -121,29 +111,9 @@ const Strategies = () => {
                 </Select>
               </div>
               
-              <button
-                onClick={toggleSortDirection}
-                className="group relative w-full sm:w-auto h-10 px-4 rounded-lg border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 ease-in-out shadow-sm hover:shadow-md active:scale-95"
-                title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <div className={`transition-transform duration-300 ease-in-out ${sortDirection === 'desc' ? 'rotate-0' : 'rotate-180'}`}>
-                    {sortDirection === 'asc' ? 
-                      <ArrowUp className="h-4 w-4 text-gray-600 group-hover:text-gray-800" /> : 
-                      <ArrowDown className="h-4 w-4 text-gray-600 group-hover:text-gray-800" />
-                    }
-                  </div>
-                  <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 hidden sm:inline">
-                    {sortDirection === 'asc' ? 'A→Z' : 'Z→A'}
-                  </span>
-                </div>
-                
-                {/* Subtle gradient background on hover */}
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 opacity-0 group-hover:opacity-30 transition-opacity duration-200" />
-                
-                {/* Active state indicator */}
-                <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-blue-500 transition-all duration-200 ${sortDirection === 'desc' ? 'opacity-100' : 'opacity-60'}`} />
-              </button>
+              <Button variant="outline" size="icon" onClick={toggleSortDirection} className="w-full sm:w-auto" title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}>
+                {sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
 
@@ -166,8 +136,6 @@ const Strategies = () => {
             </div>}
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Strategies;

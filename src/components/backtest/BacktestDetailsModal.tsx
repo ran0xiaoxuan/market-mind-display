@@ -92,16 +92,15 @@ export const BacktestDetailsModal = ({ isOpen, onClose, backtest }: BacktestDeta
         </DialogHeader>
 
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Performance Metrics</TabsTrigger>
-            <TabsTrigger value="statistics">Trade Statistics</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="trades">Individual Trades</TabsTrigger>
           </TabsList>
 
           <TabsContent value="summary" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-medium mb-4">Performance Overview</h3>
+                <h3 className="font-medium mb-4">Performance Metrics</h3>
                 <div className="space-y-3">
                   {performanceMetrics.map((metric, index) => (
                     <div key={index} className="flex justify-between items-center">
@@ -118,13 +117,9 @@ export const BacktestDetailsModal = ({ isOpen, onClose, backtest }: BacktestDeta
                   ))}
                 </div>
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="statistics" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
               <div>
-                <h3 className="font-medium mb-4">Trading Statistics</h3>
+                <h3 className="font-medium mb-4">Trade Statistics</h3>
                 <div className="space-y-3">
                   {tradeStatistics.map((stat, index) => (
                     <div key={index} className="flex justify-between items-center">

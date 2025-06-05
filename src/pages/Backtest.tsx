@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, PlayIcon, History } from "lucide-react";
+import { CalendarIcon, PlayIcon, History, Eye } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runBacktest, BacktestResult } from "@/services/backtestService";
 import { supabase } from "@/integrations/supabase/client";
+import { BacktestDetailsModal } from "@/components/backtest/BacktestDetailsModal";
 
 interface BacktestHistoryItem {
   id: string;
@@ -51,6 +52,8 @@ const Backtest = () => {
   const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [selectedBacktest, setSelectedBacktest] = useState<BacktestHistoryItem | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const {
     toast: showToast
   } = useToast();
@@ -208,6 +211,18 @@ const Backtest = () => {
       setRunningBacktest(false);
     }
   };
+
+  const handleViewDetails = (backtest: BacktestHistoryItem, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent row click navigation
+    setSelectedBacktest(backtest);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedBacktest(null);
+  };
+
   const formatMetrics = () => {
     if (!backtestResults) return null;
     return {
@@ -248,6 +263,7 @@ const Backtest = () => {
       }]
     };
   };
+
   const metrics = formatMetrics();
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -429,6 +445,7 @@ const Backtest = () => {
                           <TableHead>Win Rate</TableHead>
                           <TableHead>Trades</TableHead>
                           <TableHead>Date Run</TableHead>
+                          <TableHead>Details</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -472,6 +489,16 @@ const Backtest = () => {
                             <TableCell>{backtest.winRate.toFixed(1)}%</TableCell>
                             <TableCell>{backtest.totalTrades}</TableCell>
                             <TableCell>{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => handleViewDetails(backtest, e)}
+                                className="p-2"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -489,6 +516,12 @@ const Backtest = () => {
           </div>
         </Container>
       </main>
+
+      <BacktestDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
+        backtest={selectedBacktest}
+      />
     </div>;
 };
 

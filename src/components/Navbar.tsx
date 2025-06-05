@@ -7,7 +7,6 @@ import { User, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-
 export function Navbar() {
   const {
     user,
@@ -27,23 +26,19 @@ export function Navbar() {
         setIsLoadingSubscription(false);
         return;
       }
-
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .single();
-
+        const {
+          data: profile,
+          error
+        } = await supabase.from('profiles').select('subscription_tier').eq('id', user.id).single();
         if (error && error.code === 'PGRST116') {
           // Profile doesn't exist, create one
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              subscription_tier: 'free'
-            });
-
+          const {
+            error: insertError
+          } = await supabase.from('profiles').insert({
+            id: user.id,
+            subscription_tier: 'free'
+          });
           if (insertError) {
             console.error('Error creating profile:', insertError);
           }
@@ -61,34 +56,24 @@ export function Navbar() {
         setIsLoadingSubscription(false);
       }
     };
-
     loadSubscriptionStatus();
 
     // Set up real-time subscription to profile changes
-    const channel = supabase
-      .channel('profile-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${user?.id}`
-        },
-        (payload) => {
-          console.log('Profile updated:', payload);
-          if (payload.new && payload.new.subscription_tier) {
-            setIsPro(payload.new.subscription_tier === 'pro');
-          }
-        }
-      )
-      .subscribe();
-
+    const channel = supabase.channel('profile-changes').on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'profiles',
+      filter: `id=eq.${user?.id}`
+    }, payload => {
+      console.log('Profile updated:', payload);
+      if (payload.new && payload.new.subscription_tier) {
+        setIsPro(payload.new.subscription_tier === 'pro');
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user]);
-
   const toggleMobileMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -103,7 +88,6 @@ export function Navbar() {
       console.error("Sign out failed:", error);
     }
   };
-
   return <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
@@ -142,18 +126,12 @@ export function Navbar() {
                           <p className="text-sm font-medium text-foreground truncate">
                             {user.email}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Account Settings
-                          </p>
+                          
                         </div>
                         <div className="flex-shrink-0">
-                          {isLoadingSubscription ? (
-                            <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
-                          ) : (
-                            <Badge variant={isPro ? 'pro' : 'free'} className="text-xs">
+                          {isLoadingSubscription ? <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div> : <Badge variant={isPro ? 'pro' : 'free'} className="text-xs">
                               {isPro ? 'Pro Plan' : 'Free Plan'}
-                            </Badge>
-                          )}
+                            </Badge>}
                         </div>
                       </div>
                     </div>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
-import { ArrowUpDown, Clock, TrendingUp } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 type SortOption = 'name' | 'created' | 'updated' | 'total_return';
 type SortDirection = 'asc' | 'desc';
@@ -107,30 +107,16 @@ const Strategies = () => {
                 </Select>
               </div>
               
-              <div className="w-full sm:w-auto min-w-[200px]">
+              <div className="w-full sm:w-auto min-w-[160px]">
                 <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                  <SelectTrigger className="w-full bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-600" />
-                      <SelectValue placeholder="Sort by" />
-                    </div>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-2 border-gray-200 shadow-lg">
-                    <SelectItem value="updated" className="flex items-center gap-2 py-3 px-4 hover:bg-gray-50 cursor-pointer">
-                      <Clock className="h-4 w-4 text-gray-600" />
-                      <span className="font-medium">Last Updated</span>
-                    </SelectItem>
-                    <SelectItem value="created" className="flex items-center gap-2 py-3 px-4 hover:bg-gray-50 cursor-pointer">
-                      <Clock className="h-4 w-4 text-gray-600" />
-                      <span className="font-medium">Date Created</span>
-                    </SelectItem>
-                    <SelectItem value="name" className="flex items-center gap-2 py-3 px-4 hover:bg-gray-50 cursor-pointer">
-                      <span className="font-medium">Name (A-Z)</span>
-                    </SelectItem>
-                    <SelectItem value="total_return" className="flex items-center gap-2 py-3 px-4 hover:bg-gray-50 cursor-pointer">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="font-medium">Total Return</span>
-                    </SelectItem>
+                  <SelectContent>
+                    <SelectItem value="updated">Last Updated</SelectItem>
+                    <SelectItem value="created">Date Created</SelectItem>
+                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                    <SelectItem value="total_return">Total Return</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -139,15 +125,16 @@ const Strategies = () => {
                 variant="outline" 
                 size="icon" 
                 onClick={toggleSortDirection} 
-                className="w-full sm:w-auto relative group bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-300 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 shadow-sm hover:shadow-lg transform hover:scale-105" 
+                className="w-full sm:w-auto relative overflow-hidden group hover:bg-accent/50 transition-all duration-200 border-2" 
                 title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}
               >
                 <div className="relative flex items-center justify-center">
-                  <ArrowUpDown className={`h-4 w-4 transition-all duration-300 ${
-                    sortDirection === 'asc' ? 'text-blue-600 rotate-180' : 'text-blue-600'
-                  } group-hover:scale-110`} />
+                  {sortDirection === 'asc' ? (
+                    <ArrowUp className="h-4 w-4 transform transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 transform transition-transform duration-300 group-hover:scale-110 group-hover:translate-y-0.5" />
+                  )}
                 </div>
-                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-blue-500 group-hover:w-8 transition-all duration-300"></div>
               </Button>
             </div>
           </div>

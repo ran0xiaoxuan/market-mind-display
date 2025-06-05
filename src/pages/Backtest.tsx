@@ -20,7 +20,6 @@ import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runBacktest, BacktestResult } from "@/services/backtestService";
 import { supabase } from "@/integrations/supabase/client";
 import { BacktestDetailsModal } from "@/components/backtest/BacktestDetailsModal";
-
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -35,11 +34,9 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
-
 const Backtest = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
   const [strategy, setStrategy] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -63,12 +60,11 @@ const Backtest = () => {
     try {
       setLoadingHistory(true);
       setHistoryError(null);
-      
       console.log('Fetching backtest history...');
-      
-      const { data: backtests, error } = await supabase
-        .from('backtests')
-        .select(`
+      const {
+        data: backtests,
+        error
+      } = await supabase.from('backtests').select(`
           id,
           start_date,
           end_date,
@@ -81,17 +77,15 @@ const Backtest = () => {
           total_trades,
           created_at,
           strategies!inner(name)
-        `)
-        .order('created_at', { ascending: false });
-      
+        `).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error fetching backtest history:', error);
         setHistoryError('Failed to load backtest history');
         return;
       }
-      
       console.log('Raw backtest data:', backtests);
-      
       const formattedHistory: BacktestHistoryItem[] = backtests?.map(backtest => ({
         id: backtest.id,
         strategyName: backtest.strategies.name,
@@ -106,7 +100,6 @@ const Backtest = () => {
         totalTrades: backtest.total_trades || 0,
         createdAt: backtest.created_at
       })) || [];
-      
       console.log('Formatted backtest history:', formattedHistory);
       setBacktestHistory(formattedHistory);
     } catch (error) {
@@ -160,11 +153,9 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
-
   const handleBacktestRowClick = (strategyId: string) => {
     navigate(`/strategy/${strategyId}`);
   };
-
   const runBacktestHandler = async () => {
     if (!strategy) {
       showToast({
@@ -210,18 +201,15 @@ const Backtest = () => {
       setRunningBacktest(false);
     }
   };
-
   const handleViewDetails = (backtest: BacktestHistoryItem, event: React.MouseEvent) => {
     event.stopPropagation();
     setSelectedBacktest(backtest);
     setIsDetailsModalOpen(true);
   };
-
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false);
     setSelectedBacktest(null);
   };
-
   const formatMetrics = () => {
     if (!backtestResults) return null;
     return {
@@ -262,7 +250,6 @@ const Backtest = () => {
       }]
     };
   };
-
   const metrics = formatMetrics();
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -419,26 +406,23 @@ const Backtest = () => {
                   <h2 className="text-xl font-bold">Backtest History</h2>
                 </div>
                 
-                {loadingHistory ? (
-                  <div className="flex justify-center py-8">
+                {loadingHistory ? <div className="flex justify-center py-8">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" />
-                  </div>
-                ) : historyError ? (
-                  <div className="flex flex-col items-center justify-center py-12">
+                  </div> : historyError ? <div className="flex flex-col items-center justify-center py-12">
                     <History className="h-12 w-12 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground text-lg mb-2">Error loading backtest history</p>
                     <p className="text-sm text-muted-foreground mb-4">{historyError}</p>
                     <Button onClick={fetchBacktestHistory} variant="outline">Try Again</Button>
-                  </div>
-                ) : backtestHistory.length > 0 ? (
-                  <div className="rounded-md border">
+                  </div> : backtestHistory.length > 0 ? <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Strategy</TableHead>
                           <TableHead>Time Period</TableHead>
-                          <TableHead>Capital</TableHead>
+                          <TableHead>Initial Capital</TableHead>
                           <TableHead>Total Return</TableHead>
+                          <TableHead>Sharpe Ratio</TableHead>
+                          <TableHead>Max Drawdown</TableHead>
                           <TableHead>Win Rate</TableHead>
                           <TableHead>Trades</TableHead>
                           <TableHead>Date Run</TableHead>
@@ -446,29 +430,25 @@ const Backtest = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {backtestHistory.map(backtest => (
-                          <TableRow 
-                            key={backtest.id} 
-                            className="hover:bg-muted/50 cursor-pointer"
-                            onClick={() => {
-                              supabase
-                                .from('strategies')
-                                .select('id')
-                                .eq('name', backtest.strategyName)
-                                .single()
-                                .then(({ data, error }) => {
-                                  if (data && !error) {
-                                    handleBacktestRowClick(data.id);
-                                  } else {
-                                    console.error('Could not find strategy ID:', error);
-                                    toast.error('Could not navigate to strategy details');
-                                  }
-                                });
-                            }}
-                          >
+                        {backtestHistory.map(backtest => <TableRow key={backtest.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => {
+                      supabase.from('strategies').select('id').eq('name', backtest.strategyName).single().then(({
+                        data,
+                        error
+                      }) => {
+                        if (data && !error) {
+                          handleBacktestRowClick(data.id);
+                        } else {
+                          console.error('Could not find strategy ID:', error);
+                          toast.error('Could not navigate to strategy details');
+                        }
+                      });
+                    }}>
                             <TableCell className="font-medium">{backtest.strategyName}</TableCell>
-                            <TableCell className="text-sm">
-                              {format(new Date(backtest.startDate), "MMM dd")} - {format(new Date(backtest.endDate), "MMM dd, yyyy")}
+                            <TableCell>
+                              <div className="text-sm text-foreground">
+                                <div>{format(new Date(backtest.startDate), "MMM dd, yyyy")}</div>
+                                <div>to {format(new Date(backtest.endDate), "MMM dd, yyyy")}</div>
+                              </div>
                             </TableCell>
                             <TableCell>${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
@@ -476,43 +456,31 @@ const Backtest = () => {
                                 {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(2)}%
                               </span>
                             </TableCell>
+                            <TableCell>{backtest.sharpeRatio.toFixed(2)}</TableCell>
+                            <TableCell className="text-red-600">-{backtest.maxDrawdown.toFixed(2)}%</TableCell>
                             <TableCell>{backtest.winRate.toFixed(1)}%</TableCell>
                             <TableCell>{backtest.totalTrades}</TableCell>
-                            <TableCell className="text-sm">{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
+                            <TableCell>{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => handleViewDetails(backtest, e)}
-                                className="p-2"
-                              >
+                              <Button variant="ghost" size="sm" onClick={e => handleViewDetails(backtest, e)} className="p-2">
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </TableCell>
-                          </TableRow>
-                        ))}
+                          </TableRow>)}
                       </TableBody>
                     </Table>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12">
+                  </div> : <div className="flex flex-col items-center justify-center py-12">
                     <History className="h-12 w-12 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground text-lg mb-2">No backtest history yet</p>
                     <p className="text-sm text-muted-foreground">Run your first backtest to see results here</p>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </div>
         </Container>
       </main>
 
-      <BacktestDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseDetailsModal}
-        backtest={selectedBacktest}
-      />
+      <BacktestDetailsModal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} backtest={selectedBacktest} />
     </div>;
 };
-
 export default Backtest;

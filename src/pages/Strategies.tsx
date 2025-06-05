@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
@@ -35,6 +36,39 @@ const Strategies = () => {
     };
     fetchStrategies();
   }, []);
+
+  // Filter and sort strategies
+  const filteredAndSortedStrategies = strategies.filter(strategy => {
+    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && strategy.isActive) || 
+      (statusFilter === "inactive" && !strategy.isActive);
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name);
+        break;
+      case 'created':
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        break;
+      case 'updated':
+        comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
+        break;
+      case 'total_return':
+        // For now, we'll use a placeholder return value since totalReturn isn't in the Strategy type
+        // This can be updated when the Strategy type includes totalReturn or performance data
+        const aReturn = Math.random() * 100; // Placeholder
+        const bReturn = Math.random() * 100; // Placeholder
+        comparison = aReturn - bReturn;
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
 
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -101,28 +135,44 @@ const Strategies = () => {
                     <ArrowDown className="h-4 w-4 transform transition-transform duration-300 group-hover:scale-110 group-hover:translate-y-0.5" />
                   )}
                 </div>
-                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary transform scale-x-0 transition-transform duration-200 group-hover:scale-x-100" />
               </Button>
             </div>
           </div>
 
-          {loading ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />)}
-            </div> : filteredAndSortedStrategies.length > 0 ? <div className="space-y-4">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-64 rounded-lg border bg-card animate-pulse" />
+              ))}
+            </div>
+          ) : filteredAndSortedStrategies.length > 0 ? (
+            <div className="space-y-4">
               <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                 <span>
                   Showing {filteredAndSortedStrategies.length} strategies
                   {statusFilter !== "all" && ` (${statusFilter})`}
                 </span>
-                
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {filteredAndSortedStrategies.map(strategy => <StrategyCard key={strategy.id} name={strategy.name} description={strategy.description || "No description provided"} updatedAt={new Date(strategy.updatedAt || Date.now())} asset={strategy.targetAsset || "Unknown"} status={strategy.isActive ? "active" : "inactive"} id={strategy.id} />)}
+                {filteredAndSortedStrategies.map(strategy => (
+                  <StrategyCard 
+                    key={strategy.id} 
+                    name={strategy.name} 
+                    description={strategy.description || "No description provided"} 
+                    updatedAt={new Date(strategy.updatedAt || Date.now())} 
+                    asset={strategy.targetAsset || "Unknown"} 
+                    status={strategy.isActive ? "active" : "inactive"} 
+                    id={strategy.id} 
+                  />
+                ))}
               </div>
-            </div> : <div className="text-center py-12">
+            </div>
+          ) : (
+            <div className="text-center py-12">
               <p className="text-muted-foreground">No strategies found.</p>
-            </div>}
+            </div>
+          )}
         </div>
       </main>
     </div>

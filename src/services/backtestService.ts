@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BacktestParameters {
@@ -57,7 +56,7 @@ export const runBacktest = async (parameters: BacktestParameters): Promise<Backt
     if (strategyError) throw strategyError;
     if (!strategy) throw new Error('Strategy not found');
 
-    console.log('Strategy loaded:', strategy);
+    console.log('Strategy loaded:', strategy.name);
 
     // Parse risk management settings
     const stopLossPercent = parsePercentage(strategy.stop_loss);
@@ -166,9 +165,15 @@ const generateSampleTrades = (
   const end = new Date(endDate);
   const daysBetween = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   
+  // Ensure we have a reasonable time period
+  if (daysBetween <= 0) {
+    console.log('Invalid date range for backtest');
+    return trades;
+  }
+  
   // Generate trades every 5-15 days on average
-  const avgDaysBetweenTrades = 8;
-  const expectedTrades = Math.floor(daysBetween / avgDaysBetweenTrades);
+  const avgDaysBetweenTrades = Math.max(5, Math.min(15, Math.floor(daysBetween / 10)));
+  const maxTrades = Math.min(50, Math.floor(daysBetween / 3)); // Cap at 50 trades or every 3 days
   
   let currentDate = new Date(start);
   let openPositions: Array<{
@@ -180,25 +185,29 @@ const generateSampleTrades = (
 
   // Base price for the asset
   let basePrice = 150;
+  let tradeCount = 0;
   
-  for (let i = 0; i < expectedTrades && currentDate <= end; i++) {
-    // Add random days between trades (5-15 days)
-    const daysToAdd = Math.floor(Math.random() * 10) + 5;
+  // Prevent infinite loops with a hard limit
+  while (tradeCount < maxTrades && currentDate <= end) {
+    // Add random days between trades
+    const daysToAdd = Math.floor(Math.random() * 10) + avgDaysBetweenTrades;
+    currentDate = new Date(currentDate);
     currentDate.setDate(currentDate.getDate() + daysToAdd);
     
     if (currentDate > end) break;
     
-    // Simulate price movement (+/- 10% from base price)
-    const priceVariation = (Math.random() - 0.5) * 0.2; // -10% to +10%
-    const currentPrice = basePrice * (1 + priceVariation);
+    // Simulate price movement (+/- 15% from base price)
+    const priceVariation = (Math.random() - 0.5) * 0.3; // -15% to +15%
+    const currentPrice = Math.max(10, basePrice * (1 + priceVariation)); // Ensure price doesn't go below $10
     
-    // 60% chance of buy signal, 40% chance of sell signal
-    const isBuySignal = Math.random() < 0.6;
+    // Decide trade type: 60% buy, 40% sell (if positions exist)
+    const shouldBuy = Math.random() < 0.6;
     
-    if (isBuySignal) {
+    if (shouldBuy || openPositions.length === 0) {
       // Generate buy trade
-      const contracts = Math.floor(Math.random() * 100) + 10; // 10-110 contracts
-      const signal = ['RSI Oversold', 'MACD Bullish Cross', 'Support Level Break'][Math.floor(Math.random() * 3)];
+      const contracts = Math.floor(Math.random() * 50) + 10; // 10-60 contracts
+      const signals = ['RSI Oversold', 'MACD Bullish Cross', 'Support Level Break', 'Moving Average Cross'];
+      const signal = signals[Math.floor(Math.random() * signals.length)];
       
       trades.push({
         date: currentDate.toISOString(),
@@ -234,20 +243,19 @@ const generateSampleTrades = (
         constrainedProfitPercentage = -Math.abs(stopLossPercent);
         constrainedPrice = position.entryPrice * (1 + constrainedProfitPercentage / 100);
         sellSignal = 'Stop Loss Triggered';
-        console.log(`Stop loss triggered: Raw P&L: ${rawProfitPercentage.toFixed(2)}%, Constrained: ${constrainedProfitPercentage.toFixed(2)}%`);
       }
       
       // Check take profit constraint
-      if (takeProfitPercent !== null && rawProfitPercentage >= takeProfitPercent) {
+      else if (takeProfitPercent !== null && rawProfitPercentage >= takeProfitPercent) {
         constrainedProfitPercentage = takeProfitPercent;
         constrainedPrice = position.entryPrice * (1 + constrainedProfitPercentage / 100);
         sellSignal = 'Take Profit Triggered';
-        console.log(`Take profit triggered: Raw P&L: ${rawProfitPercentage.toFixed(2)}%, Constrained: ${constrainedProfitPercentage.toFixed(2)}%`);
       }
       
       // If neither stop loss nor take profit was triggered, use random exit signals
-      if (sellSignal === 'Take Profit' && Math.abs(rawProfitPercentage) < 3) {
-        sellSignal = ['RSI Overbought', 'MACD Bearish Cross', 'Resistance Level'][Math.floor(Math.random() * 3)];
+      else {
+        const exitSignals = ['RSI Overbought', 'MACD Bearish Cross', 'Resistance Level', 'Profit Taking'];
+        sellSignal = exitSignals[Math.floor(Math.random() * exitSignals.length)];
       }
       
       // Calculate profit based on constrained price
@@ -268,9 +276,11 @@ const generateSampleTrades = (
     }
     
     // Update base price for next iteration (trend simulation)
-    basePrice = currentPrice;
+    basePrice = currentPrice * (1 + (Math.random() - 0.5) * 0.02); // Small trend
+    tradeCount++;
   }
   
+  console.log(`Generated ${trades.length} trades over ${daysBetween} days`);
   return trades;
 };
 

@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { Upload, Undo } from "lucide-react";
@@ -21,6 +21,7 @@ const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 export function AccountSettings() {
   const { user } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
+  const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -226,23 +227,8 @@ export function AccountSettings() {
     }
   };
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const handleSaveProfile = async () => {
     if (!user) return;
-    
-    // Validate email format
-    if (!validateEmail(email)) {
-      toast({
-        title: "Invalid email format",
-        description: "Please enter a valid email address.",
-        variant: "destructive"
-      });
-      return;
-    }
     
     setIsUpdating(true);
     try {
@@ -259,15 +245,7 @@ export function AccountSettings() {
         
         if (emailError) {
           console.error('Email update error:', emailError);
-          
-          // Provide user-friendly error messages
-          if (emailError.message.includes('email rate limit exceeded')) {
-            throw new Error('Too many email change requests. Please wait a few minutes before trying again.');
-          } else if (emailError.message.includes('email already exists')) {
-            throw new Error('This email address is already registered to another account.');
-          } else {
-            throw emailError;
-          }
+          throw emailError;
         }
         
         toast({
@@ -292,28 +270,6 @@ export function AccountSettings() {
     }
   };
 
-  const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-    
-    if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
-    }
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
-    }
-    if (!/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
-    }
-    if (!/\d/.test(password)) {
-      errors.push('Password must contain at least one number');
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  };
-
   const handleUpdatePassword = async () => {
     if (!user) return;
     
@@ -336,12 +292,10 @@ export function AccountSettings() {
       return;
     }
     
-    // Validate new password strength
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.isValid) {
+    if (newPassword.length < 8) {
       toast({
-        title: "Password requirements not met",
-        description: passwordValidation.errors.join('. '),
+        title: "Password too short",
+        description: "New password must be at least 8 characters long.",
         variant: "destructive"
       });
       return;
@@ -351,15 +305,6 @@ export function AccountSettings() {
       toast({
         title: "Passwords don't match",
         description: "New password and confirm password must match.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (newPassword === currentPassword) {
-      toast({
-        title: "Same password",
-        description: "New password must be different from current password.",
         variant: "destructive"
       });
       return;
@@ -382,12 +327,7 @@ export function AccountSettings() {
         password: newPassword
       });
       
-      if (updateError) {
-        if (updateError.message.includes('password should be at least')) {
-          throw new Error('Password must meet minimum security requirements');
-        }
-        throw updateError;
-      }
+      if (updateError) throw updateError;
       
       toast({
         title: "Password updated",
@@ -469,8 +409,7 @@ export function AccountSettings() {
     );
   }
 
-  return (
-    <div className="space-y-12">
+  return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
         <h2 className="text-xl font-medium">Subscription Plan</h2>
@@ -547,7 +486,6 @@ export function AccountSettings() {
               value={email} 
               onChange={e => setEmail(e.target.value)}
               placeholder="Enter your email address"
-              disabled={isUpdating}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Changing your email will require confirmation from both old and new email addresses
@@ -559,7 +497,7 @@ export function AccountSettings() {
               variant="default" 
               className="bg-black text-white mt-2" 
               onClick={handleSaveProfile} 
-              disabled={isUpdating || !email || email === user?.email || !validateEmail(email)}
+              disabled={isUpdating || !email || email === user?.email}
             >
               {isUpdating ? "Saving..." : "Save Changes"}
             </Button>
@@ -568,8 +506,8 @@ export function AccountSettings() {
       </div>
       
       <div>
-        <h2 className="text-xl font-medium">Change Password</h2>
-        <p className="text-sm text-muted-foreground mb-4">Update your account password</p>
+        <h2 className="text-xl font-medium">Password</h2>
+        <p className="text-sm text-muted-foreground mb-4">Change your password</p>
         
         <div className="grid gap-4">
           <div>
@@ -580,7 +518,6 @@ export function AccountSettings() {
               value={currentPassword} 
               onChange={e => setCurrentPassword(e.target.value)}
               placeholder="Enter your current password"
-              disabled={isUpdating}
             />
           </div>
           
@@ -591,12 +528,8 @@ export function AccountSettings() {
               type="password" 
               value={newPassword} 
               onChange={e => setNewPassword(e.target.value)}
-              placeholder="Enter your new password"
-              disabled={isUpdating}
+              placeholder="Enter your new password (min 8 characters)"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Must be at least 8 characters with uppercase, lowercase, and number
-            </p>
           </div>
           
           <div>
@@ -607,7 +540,6 @@ export function AccountSettings() {
               value={confirmPassword} 
               onChange={e => setConfirmPassword(e.target.value)}
               placeholder="Confirm your new password"
-              disabled={isUpdating}
             />
           </div>
           
@@ -638,7 +570,6 @@ export function AccountSettings() {
               <Button 
                 variant="destructive" 
                 onClick={() => setShowDeleteDialog(true)}
-                disabled={isUpdating}
               >
                 Delete Account
               </Button>
@@ -651,6 +582,5 @@ export function AccountSettings() {
         open={showDeleteDialog} 
         onOpenChange={setShowDeleteDialog} 
       />
-    </div>
-  );
+    </div>;
 }

@@ -8,8 +8,10 @@ import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { ArrowUp, ArrowDown } from "lucide-react";
+
 type SortOption = 'name' | 'created' | 'updated' | 'total_return';
 type SortDirection = 'asc' | 'desc';
+
 const Strategies = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -17,6 +19,7 @@ const Strategies = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
@@ -33,39 +36,12 @@ const Strategies = () => {
     fetchStrategies();
   }, []);
 
-  // Filter and sort strategies
-  const filteredAndSortedStrategies = strategies.filter(strategy => {
-    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || statusFilter === "active" && strategy.isActive || statusFilter === "inactive" && !strategy.isActive;
-    return matchesSearch && matchesStatus;
-  }).sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'created':
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        break;
-      case 'updated':
-        comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
-        break;
-      case 'total_return':
-        // For now, we'll use a placeholder return value since totalReturn isn't in the Strategy type
-        // This can be updated when the Strategy type includes totalReturn or performance data
-        const aReturn = Math.random() * 100; // Placeholder
-        const bReturn = Math.random() * 100; // Placeholder
-        comparison = aReturn - bReturn;
-        break;
-      default:
-        comparison = 0;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
-  return <div className="min-h-screen flex flex-col bg-background">
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
@@ -111,8 +87,21 @@ const Strategies = () => {
                 </Select>
               </div>
               
-              <Button variant="outline" size="icon" onClick={toggleSortDirection} className="w-full sm:w-auto" title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}>
-                {sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={toggleSortDirection} 
+                className="w-full sm:w-auto relative overflow-hidden group hover:bg-accent/50 transition-all duration-200 border-2" 
+                title={`Sort ${sortDirection === 'asc' ? 'ascending' : 'descending'}`}
+              >
+                <div className="relative flex items-center justify-center">
+                  {sortDirection === 'asc' ? (
+                    <ArrowUp className="h-4 w-4 transform transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 transform transition-transform duration-300 group-hover:scale-110 group-hover:translate-y-0.5" />
+                  )}
+                </div>
+                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary transform scale-x-0 transition-transform duration-200 group-hover:scale-x-100" />
               </Button>
             </div>
           </div>
@@ -136,6 +125,8 @@ const Strategies = () => {
             </div>}
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default Strategies;

@@ -66,10 +66,9 @@ const Backtest = () => {
       
       console.log('Fetching backtest history...');
       
-      const {
-        data: backtests,
-        error
-      } = await supabase.from('backtests').select(`
+      const { data: backtests, error } = await supabase
+        .from('backtests')
+        .select(`
           id,
           start_date,
           end_date,
@@ -82,9 +81,8 @@ const Backtest = () => {
           total_trades,
           created_at,
           strategies!inner(name)
-        `).order('created_at', {
-        ascending: false
-      });
+        `)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching backtest history:', error);
@@ -92,14 +90,14 @@ const Backtest = () => {
         return;
       }
       
-      console.log('Backtest history fetched:', backtests?.length || 0, 'records');
+      console.log('Raw backtest data:', backtests);
       
       const formattedHistory: BacktestHistoryItem[] = backtests?.map(backtest => ({
         id: backtest.id,
         strategyName: backtest.strategies.name,
         startDate: backtest.start_date,
         endDate: backtest.end_date,
-        initialCapital: backtest.initial_capital,
+        initialCapital: backtest.initial_capital || 0,
         totalReturn: backtest.total_return || 0,
         totalReturnPercentage: backtest.total_return_percentage || 0,
         sharpeRatio: backtest.sharpe_ratio || 0,
@@ -109,6 +107,7 @@ const Backtest = () => {
         createdAt: backtest.created_at
       })) || [];
       
+      console.log('Formatted backtest history:', formattedHistory);
       setBacktestHistory(formattedHistory);
     } catch (error) {
       console.error('Error in fetchBacktestHistory:', error);
@@ -213,7 +212,7 @@ const Backtest = () => {
   };
 
   const handleViewDetails = (backtest: BacktestHistoryItem, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent row click navigation
+    event.stopPropagation();
     setSelectedBacktest(backtest);
     setIsDetailsModalOpen(true);
   };
@@ -454,8 +453,6 @@ const Backtest = () => {
                             key={backtest.id} 
                             className="hover:bg-muted/50 cursor-pointer"
                             onClick={() => {
-                              // Extract strategy ID from the backtest data
-                              // We need to fetch this from the strategies table since it's not directly available
                               supabase
                                 .from('strategies')
                                 .select('id')

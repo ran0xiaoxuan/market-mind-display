@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, PlayIcon, History, Eye } from "lucide-react";
+import { CalendarIcon, PlayIcon, History, Eye, TrendingUp, TrendingDown } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runBacktest, BacktestResult } from "@/services/backtestService";
 import { supabase } from "@/integrations/supabase/client";
 import { BacktestDetailsModal } from "@/components/backtest/BacktestDetailsModal";
+
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -34,6 +35,7 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
+
 const Backtest = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -403,6 +405,7 @@ const Backtest = () => {
             <Card className="shadow-sm border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-6">
+                  <History className="h-5 w-5 text-zinc-600" />
                   <h2 className="text-xl font-bold">Backtest History</h2>
                 </div>
                 
@@ -413,24 +416,22 @@ const Backtest = () => {
                     <p className="text-muted-foreground text-lg mb-2">Error loading backtest history</p>
                     <p className="text-sm text-muted-foreground mb-4">{historyError}</p>
                     <Button onClick={fetchBacktestHistory} variant="outline">Try Again</Button>
-                  </div> : backtestHistory.length > 0 ? <div className="rounded-md border">
+                  </div> : backtestHistory.length > 0 ? <div className="rounded-lg border border-zinc-200 overflow-hidden">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Strategy</TableHead>
-                          <TableHead>Time Period</TableHead>
-                          <TableHead>Initial Capital</TableHead>
-                          <TableHead>Total Return</TableHead>
-                          <TableHead>Sharpe Ratio</TableHead>
-                          <TableHead>Max Drawdown</TableHead>
-                          <TableHead>Win Rate</TableHead>
-                          <TableHead>Trades</TableHead>
-                          <TableHead>Date Run</TableHead>
-                          <TableHead>Details</TableHead>
+                        <TableRow className="bg-zinc-50/50">
+                          <TableHead className="font-semibold text-zinc-700">Strategy</TableHead>
+                          <TableHead className="font-semibold text-zinc-700">Period</TableHead>
+                          <TableHead className="font-semibold text-zinc-700">Capital</TableHead>
+                          <TableHead className="font-semibold text-zinc-700">Return</TableHead>
+                          <TableHead className="font-semibold text-zinc-700">Win Rate</TableHead>
+                          <TableHead className="font-semibold text-zinc-700">Trades</TableHead>
+                          <TableHead className="font-semibold text-zinc-700">Date</TableHead>
+                          <TableHead className="font-semibold text-zinc-700 w-16"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {backtestHistory.map(backtest => <TableRow key={backtest.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => {
+                        {backtestHistory.map(backtest => <TableRow key={backtest.id} className="hover:bg-zinc-50/50 cursor-pointer transition-colors" onClick={() => {
                       supabase.from('strategies').select('id').eq('name', backtest.strategyName).single().then(({
                         data,
                         error
@@ -443,27 +444,36 @@ const Backtest = () => {
                         }
                       });
                     }}>
-                            <TableCell className="font-medium">{backtest.strategyName}</TableCell>
+                            <TableCell className="font-medium text-zinc-900">{backtest.strategyName}</TableCell>
+                            <TableCell className="text-sm text-zinc-600">
+                              {format(new Date(backtest.startDate), "MMM dd")} - {format(new Date(backtest.endDate), "MMM dd, yyyy")}
+                            </TableCell>
+                            <TableCell className="text-sm text-zinc-600">${backtest.initialCapital.toLocaleString()}</TableCell>
                             <TableCell>
-                              <div className="text-sm text-foreground">
-                                <div>{format(new Date(backtest.startDate), "MMM dd, yyyy")}</div>
-                                <div>to {format(new Date(backtest.endDate), "MMM dd, yyyy")}</div>
+                              <div className="flex items-center gap-1">
+                                {backtest.totalReturnPercentage >= 0 ? (
+                                  <TrendingUp className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <TrendingDown className="h-3 w-3 text-red-600" />
+                                )}
+                                <span className={cn("font-medium text-sm", 
+                                  backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600"
+                                )}>
+                                  {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
+                                </span>
                               </div>
                             </TableCell>
-                            <TableCell>${backtest.initialCapital.toLocaleString()}</TableCell>
+                            <TableCell className="text-sm text-zinc-600">{backtest.winRate.toFixed(0)}%</TableCell>
+                            <TableCell className="text-sm text-zinc-600">{backtest.totalTrades}</TableCell>
+                            <TableCell className="text-sm text-zinc-500">{format(new Date(backtest.createdAt), "MMM dd")}</TableCell>
                             <TableCell>
-                              <span className={cn("font-medium", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
-                                {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(2)}%
-                              </span>
-                            </TableCell>
-                            <TableCell>{backtest.sharpeRatio.toFixed(2)}</TableCell>
-                            <TableCell className="text-red-600">-{backtest.maxDrawdown.toFixed(2)}%</TableCell>
-                            <TableCell>{backtest.winRate.toFixed(1)}%</TableCell>
-                            <TableCell>{backtest.totalTrades}</TableCell>
-                            <TableCell>{format(new Date(backtest.createdAt), "MMM dd, yyyy")}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm" onClick={e => handleViewDetails(backtest, e)} className="p-2">
-                                <Eye className="h-4 w-4" />
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={e => handleViewDetails(backtest, e)} 
+                                className="p-2 h-8 w-8 hover:bg-zinc-100"
+                              >
+                                <Eye className="h-4 w-4 text-zinc-500" />
                               </Button>
                             </TableCell>
                           </TableRow>)}

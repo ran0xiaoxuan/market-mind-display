@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
@@ -37,6 +37,8 @@ interface BacktestHistoryItem {
 
 const Backtest = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  
   const [strategy, setStrategy] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -156,6 +158,11 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
+
+  const handleBacktestRowClick = (strategyId: string) => {
+    navigate(`/strategy/${strategyId}`);
+  };
+
   const runBacktestHandler = async () => {
     if (!strategy) {
       showToast({
@@ -426,7 +433,27 @@ const Backtest = () => {
                       </TableHeader>
                       <TableBody>
                         {backtestHistory.map(backtest => (
-                          <TableRow key={backtest.id} className="hover:bg-muted/50">
+                          <TableRow 
+                            key={backtest.id} 
+                            className="hover:bg-muted/50 cursor-pointer"
+                            onClick={() => {
+                              // Extract strategy ID from the backtest data
+                              // We need to fetch this from the strategies table since it's not directly available
+                              supabase
+                                .from('strategies')
+                                .select('id')
+                                .eq('name', backtest.strategyName)
+                                .single()
+                                .then(({ data, error }) => {
+                                  if (data && !error) {
+                                    handleBacktestRowClick(data.id);
+                                  } else {
+                                    console.error('Could not find strategy ID:', error);
+                                    toast.error('Could not navigate to strategy details');
+                                  }
+                                });
+                            }}
+                          >
                             <TableCell className="font-medium">{backtest.strategyName}</TableCell>
                             <TableCell>
                               <div className="text-sm">

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon, History } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -49,68 +49,69 @@ const Backtest = () => {
   const [runningBacktest, setRunningBacktest] = useState<boolean>(false);
   const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const {
     toast: showToast
   } = useToast();
 
-  // Fetch real backtest history data from database
-  useEffect(() => {
-    const fetchBacktestHistory = async () => {
-      try {
-        setLoadingHistory(true);
-        const { data: backtests, error } = await supabase
-          .from('backtests')
-          .select(`
-            id,
-            start_date,
-            end_date,
-            initial_capital,
-            total_return,
-            total_return_percentage,
-            sharpe_ratio,
-            max_drawdown,
-            win_rate,
-            total_trades,
-            created_at,
-            strategies!inner(name)
-          `)
-          .order('created_at', { ascending: false });
+  // Memoized function to fetch backtest history
+  const fetchBacktestHistory = useCallback(async () => {
+    try {
+      setLoadingHistory(true);
+      setHistoryError(null);
+      
+      const { data: backtests, error } = await supabase
+        .from('backtests')
+        .select(`
+          id,
+          start_date,
+          end_date,
+          initial_capital,
+          total_return,
+          total_return_percentage,
+          sharpe_ratio,
+          max_drawdown,
+          win_rate,
+          total_trades,
+          created_at,
+          strategies!inner(name)
+        `)
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching backtest history:', error);
-          return;
-        }
-
-        const formattedHistory: BacktestHistoryItem[] = backtests.map(backtest => ({
-          id: backtest.id,
-          strategyName: backtest.strategies.name,
-          startDate: backtest.start_date,
-          endDate: backtest.end_date,
-          initialCapital: backtest.initial_capital,
-          totalReturn: backtest.total_return || 0,
-          totalReturnPercentage: backtest.total_return_percentage || 0,
-          sharpeRatio: backtest.sharpe_ratio || 0,
-          maxDrawdown: backtest.max_drawdown || 0,
-          winRate: backtest.win_rate || 0,
-          totalTrades: backtest.total_trades || 0,
-          createdAt: backtest.created_at
-        }));
-
-        setBacktestHistory(formattedHistory);
-      } catch (error) {
+      if (error) {
         console.error('Error fetching backtest history:', error);
-        showToast({
-          title: "Error loading backtest history",
-          description: "Failed to load backtest history data",
-          variant: "destructive"
-        });
-      } finally {
-        setLoadingHistory(false);
+        setHistoryError('Failed to load backtest history');
+        return;
       }
-    };
 
+      const formattedHistory: BacktestHistoryItem[] = backtests?.map(backtest => ({
+        id: backtest.id,
+        strategyName: backtest.strategies.name,
+        startDate: backtest.start_date,
+        endDate: backtest.end_date,
+        initialCapital: backtest.initial_capital,
+        totalReturn: backtest.total_return || 0,
+        totalReturnPercentage: backtest.total_return_percentage || 0,
+        sharpeRatio: backtest.sharpe_ratio || 0,
+        maxDrawdown: backtest.max_drawdown || 0,
+        winRate: backtest.win_rate || 0,
+        totalTrades: backtest.total_trades || 0,
+        createdAt: backtest.created_at
+      })) || [];
+
+      setBacktestHistory(formattedHistory);
+    } catch (error) {
+      console.error('Error fetching backtest history:', error);
+      setHistoryError('Failed to load backtest history');
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, []);
+
+  // Fetch backtest history only once on component mount
+  useEffect(() => {
     fetchBacktestHistory();
-  }, [showToast]);
+  }, [fetchBacktestHistory]);
 
   // Fetch strategies from database
   useEffect(() => {
@@ -131,7 +132,7 @@ const Backtest = () => {
       }
     };
     fetchStrategies();
-  }, []);
+  }, [showToast]);
 
   // Parse URL search parameters to get strategy ID if present
   useEffect(() => {
@@ -186,41 +187,7 @@ const Backtest = () => {
       });
       
       // Refresh backtest history after successful completion
-      const { data: backtests, error } = await supabase
-        .from('backtests')
-        .select(`
-          id,
-          start_date,
-          end_date,
-          initial_capital,
-          total_return,
-          total_return_percentage,
-          sharpe_ratio,
-          max_drawdown,
-          win_rate,
-          total_trades,
-          created_at,
-          strategies!inner(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (!error && backtests) {
-        const formattedHistory: BacktestHistoryItem[] = backtests.map(backtest => ({
-          id: backtest.id,
-          strategyName: backtest.strategies.name,
-          startDate: backtest.start_date,
-          endDate: backtest.end_date,
-          initialCapital: backtest.initial_capital,
-          totalReturn: backtest.total_return || 0,
-          totalReturnPercentage: backtest.total_return_percentage || 0,
-          sharpeRatio: backtest.sharpe_ratio || 0,
-          maxDrawdown: backtest.max_drawdown || 0,
-          winRate: backtest.win_rate || 0,
-          totalTrades: backtest.total_trades || 0,
-          createdAt: backtest.created_at
-        }));
-        setBacktestHistory(formattedHistory);
-      }
+      await fetchBacktestHistory();
     } catch (error: any) {
       console.error("Backtest error:", error);
       toast.error("Backtest failed", {
@@ -433,6 +400,13 @@ const Backtest = () => {
                 {loadingHistory ? (
                   <div className="flex justify-center py-8">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" />
+                  </div>
+                ) : historyError ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <History className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground text-lg mb-2">Error loading backtest history</p>
+                    <p className="text-sm text-muted-foreground mb-4">{historyError}</p>
+                    <Button onClick={fetchBacktestHistory} variant="outline">Try Again</Button>
                   </div>
                 ) : backtestHistory.length > 0 ? <div className="rounded-md border">
                     <Table>

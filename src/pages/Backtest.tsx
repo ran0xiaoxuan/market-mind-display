@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon, History } from "lucide-react";
@@ -20,7 +19,6 @@ import { toast } from "sonner";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runBacktest, BacktestResult } from "@/services/backtestService";
 import { supabase } from "@/integrations/supabase/client";
-
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -35,7 +33,6 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
-
 const Backtest = () => {
   const location = useLocation();
   const [strategy, setStrategy] = useState<string>("");
@@ -59,10 +56,10 @@ const Backtest = () => {
     try {
       setLoadingHistory(true);
       setHistoryError(null);
-      
-      const { data: backtests, error } = await supabase
-        .from('backtests')
-        .select(`
+      const {
+        data: backtests,
+        error
+      } = await supabase.from('backtests').select(`
           id,
           start_date,
           end_date,
@@ -75,15 +72,14 @@ const Backtest = () => {
           total_trades,
           created_at,
           strategies!inner(name)
-        `)
-        .order('created_at', { ascending: false });
-
+        `).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error fetching backtest history:', error);
         setHistoryError('Failed to load backtest history');
         return;
       }
-
       const formattedHistory: BacktestHistoryItem[] = backtests?.map(backtest => ({
         id: backtest.id,
         strategyName: backtest.strategies.name,
@@ -98,7 +94,6 @@ const Backtest = () => {
         totalTrades: backtest.total_trades || 0,
         createdAt: backtest.created_at
       })) || [];
-
       setBacktestHistory(formattedHistory);
     } catch (error) {
       console.error('Error fetching backtest history:', error);
@@ -151,7 +146,6 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
-
   const runBacktestHandler = async () => {
     if (!strategy) {
       showToast({
@@ -185,7 +179,7 @@ const Backtest = () => {
       toast.success("Backtest completed", {
         description: `Generated ${result.totalTrades} trades with ${result.totalReturnPercentage.toFixed(2)}% return`
       });
-      
+
       // Refresh backtest history after successful completion
       await fetchBacktestHistory();
     } catch (error: any) {
@@ -197,7 +191,6 @@ const Backtest = () => {
       setRunningBacktest(false);
     }
   };
-
   const formatMetrics = () => {
     if (!backtestResults) return null;
     return {
@@ -238,9 +231,7 @@ const Backtest = () => {
       }]
     };
   };
-
   const metrics = formatMetrics();
-
   return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
@@ -393,22 +384,18 @@ const Backtest = () => {
             <Card className="shadow-sm border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-6">
-                  <History className="h-5 w-5 text-muted-foreground" />
+                  
                   <h2 className="text-xl font-bold">Backtest History</h2>
                 </div>
                 
-                {loadingHistory ? (
-                  <div className="flex justify-center py-8">
+                {loadingHistory ? <div className="flex justify-center py-8">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" />
-                  </div>
-                ) : historyError ? (
-                  <div className="flex flex-col items-center justify-center py-12">
+                  </div> : historyError ? <div className="flex flex-col items-center justify-center py-12">
                     <History className="h-12 w-12 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground text-lg mb-2">Error loading backtest history</p>
                     <p className="text-sm text-muted-foreground mb-4">{historyError}</p>
                     <Button onClick={fetchBacktestHistory} variant="outline">Try Again</Button>
-                  </div>
-                ) : backtestHistory.length > 0 ? <div className="rounded-md border">
+                  </div> : backtestHistory.length > 0 ? <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>

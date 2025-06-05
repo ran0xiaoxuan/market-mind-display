@@ -20,6 +20,27 @@ export interface Strategy {
   sourceStrategyId?: string;
 }
 
+export interface ServiceError {
+  message: string;
+  type: 'connection_error' | 'api_key_error' | 'timeout_error' | 'rate_limit_error' | 'validation_error' | 'parsing_error' | 'unknown_error';
+  retryable: boolean;
+  details?: string[];
+}
+
+export interface GeneratedStrategy {
+  name: string;
+  description: string;
+  targetAsset: string;
+  targetAssetName: string;
+  timeframe: string;
+  stopLoss?: string;
+  takeProfit?: string;
+  singleBuyVolume?: string;
+  maxBuyVolume?: string;
+  entryRules: any[];
+  exitRules: any[];
+}
+
 export const getStrategies = async (): Promise<Strategy[]> => {
   console.log('Fetching strategies...');
   
@@ -276,4 +297,83 @@ export const deleteStrategy = async (id: string): Promise<void> => {
     console.error('Error deleting strategy:', error);
     throw error;
   }
+};
+
+export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: { 
+        test: true,
+        assetType: 'stocks',
+        selectedAsset: 'AAPL',
+        strategyDescription: 'health check'
+      }
+    });
+
+    if (error) {
+      return { healthy: false, error: error.message };
+    }
+
+    return { healthy: true, details: data };
+  } catch (error) {
+    return { healthy: false, error: 'Health check failed' };
+  }
+};
+
+export const generateStrategy = async (
+  assetType: string,
+  selectedAsset: string,
+  strategyDescription: string
+): Promise<GeneratedStrategy> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: {
+        assetType,
+        selectedAsset,
+        strategyDescription
+      }
+    });
+
+    if (error) {
+      const serviceError: ServiceError = {
+        message: error.message || 'Failed to generate strategy',
+        type: 'api_key_error',
+        retryable: true
+      };
+      throw serviceError;
+    }
+
+    return data as GeneratedStrategy;
+  } catch (error: any) {
+    if (error.type) {
+      throw error;
+    }
+
+    const serviceError: ServiceError = {
+      message: error.message || 'Unknown error occurred',
+      type: 'unknown_error',
+      retryable: false
+    };
+    throw serviceError;
+  }
+};
+
+export const generateFallbackStrategy = (
+  assetType: string,
+  selectedAsset: string,
+  strategyDescription: string
+): GeneratedStrategy => {
+  return {
+    name: `${selectedAsset} Template Strategy`,
+    description: `Template strategy for ${selectedAsset} based on: ${strategyDescription}`,
+    targetAsset: selectedAsset,
+    targetAssetName: selectedAsset,
+    timeframe: '1d',
+    stopLoss: '5%',
+    takeProfit: '10%',
+    singleBuyVolume: '100',
+    maxBuyVolume: '1000',
+    entryRules: [],
+    exitRules: []
+  };
 };

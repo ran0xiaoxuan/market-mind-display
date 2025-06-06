@@ -148,8 +148,8 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-12">
-              <div className="space-y-6 md:col-span-2 lg:col-span-5">
+            <div className="grid gap-6 mt-6 lg:grid-cols-8">
+              <div className="space-y-6 lg:col-span-5">
                 <Card>
                   <div className="p-6">
                     <div className="h-6 bg-gray-200 rounded mb-4 animate-pulse"></div>
@@ -161,7 +161,7 @@ const Dashboard = () => {
                   </div>
                 </Card>
               </div>
-              <div className="md:col-span-1 lg:col-span-7">
+              <div className="lg:col-span-3">
                 <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
               </div>
             </div>
@@ -200,8 +200,8 @@ const Dashboard = () => {
             </div>
           )}
 
-          <div className="grid gap-6 mt-6 md:grid-cols-2">
-            <div className="space-y-6">
+          <div className="grid gap-6 mt-6 lg:grid-cols-8">
+            <div className="space-y-6 lg:col-span-5">
               <Card>
                 <div className="p-6">
                   <h2 className="text-xl font-bold">Trade History</h2>
@@ -218,7 +218,7 @@ const Dashboard = () => {
                 </div>
               </Card>
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <StrategyList />
             </div>
           </div>

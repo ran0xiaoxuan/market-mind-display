@@ -5,6 +5,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
 import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
+import { RecentActivities } from "@/components/RecentActivities";
 import { useState, useEffect } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
@@ -147,7 +148,7 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-8">
+            <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-12">
               <div className="space-y-6 md:col-span-2 lg:col-span-5">
                 <Card>
                   <div className="p-6">
@@ -160,7 +161,10 @@ const Dashboard = () => {
                   </div>
                 </Card>
               </div>
-              <div className="md:col-span-1 lg:col-span-3">
+              <div className="md:col-span-1 lg:col-span-4">
+                <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="md:col-span-3 lg:col-span-3">
                 <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
               </div>
             </div>
@@ -199,7 +203,7 @@ const Dashboard = () => {
             </div>
           )}
 
-          <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-8">
+          <div className="grid gap-6 mt-6 md:grid-cols-3 lg:grid-cols-12">
             <div className="space-y-6 md:col-span-2 lg:col-span-5">
               <Card>
                 <div className="p-6">
@@ -217,8 +221,11 @@ const Dashboard = () => {
                 </div>
               </Card>
             </div>
-            <div className="md:col-span-1 lg:col-span-3">
+            <div className="md:col-span-1 lg:col-span-4">
               <StrategyList />
+            </div>
+            <div className="md:col-span-3 lg:col-span-3">
+              <RecentActivities />
             </div>
           </div>
         </Container>

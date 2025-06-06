@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -63,57 +64,8 @@ const formatTimeAgo = (date: Date) => {
 };
 
 export const RecentActivities = () => {
-  // Mock data for demonstration - in a real app, this would come from an API
-  const recentActivities: Activity[] = [
-    {
-      id: '1',
-      type: 'generate',
-      title: 'Generated new strategy',
-      description: 'Created "Bitcoin Momentum Strategy" using AI',
-      timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-      strategyName: 'Bitcoin Momentum Strategy'
-    },
-    {
-      id: '2',
-      type: 'backtest',
-      title: 'Completed backtest',
-      description: 'Ran backtest for "ETH Scalping Strategy"',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      strategyName: 'ETH Scalping Strategy'
-    },
-    {
-      id: '3',
-      type: 'enable',
-      title: 'Enabled strategy',
-      description: 'Activated "NASDAQ Trend Following"',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-      strategyName: 'NASDAQ Trend Following'
-    },
-    {
-      id: '4',
-      type: 'edit',
-      title: 'Updated strategy',
-      description: 'Modified risk parameters for "Gold Hedge Strategy"',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-      strategyName: 'Gold Hedge Strategy'
-    },
-    {
-      id: '5',
-      type: 'disable',
-      title: 'Disabled strategy',
-      description: 'Paused "Oil Futures Strategy" due to market conditions',
-      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      strategyName: 'Oil Futures Strategy'
-    },
-    {
-      id: '6',
-      type: 'generate',
-      title: 'Generated new strategy',
-      description: 'Created "S&P 500 Mean Reversion" using AI',
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      strategyName: 'S&P 500 Mean Reversion'
-    }
-  ];
+  // No hardcoded data - will be populated with real activities when implemented
+  const recentActivities: Activity[] = [];
 
   return (
     <Card>
@@ -124,43 +76,52 @@ export const RecentActivities = () => {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-80">
-          <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={activity.id} className="relative">
-                {/* Timeline line */}
-                {index < recentActivities.length - 1 && (
-                  <div className="absolute left-4 top-8 h-8 w-px bg-border" />
-                )}
-                
-                {/* Activity item */}
-                <div className="flex gap-3">
-                  {/* Icon */}
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 border-border">
-                    {getActivityIcon(activity.type)}
-                  </div>
+          {recentActivities.length > 0 ? (
+            <div className="space-y-4">
+              {recentActivities.map((activity, index) => (
+                <div key={activity.id} className="relative">
+                  {/* Timeline line */}
+                  {index < recentActivities.length - 1 && (
+                    <div className="absolute left-4 top-8 h-8 w-px bg-border" />
+                  )}
                   
-                  {/* Content */}
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <div className="flex items-center gap-2">
-                        {getActivityBadge(activity.type)}
-                        <span className="text-xs text-muted-foreground">
-                          {formatTimeAgo(activity.timestamp)}
-                        </span>
-                      </div>
+                  {/* Activity item */}
+                  <div className="flex gap-3">
+                    {/* Icon */}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 border-border">
+                      {getActivityIcon(activity.type)}
                     </div>
-                    <p className="text-sm text-muted-foreground">{activity.description}</p>
-                    {activity.strategyName && (
-                      <p className="text-xs text-primary font-medium">
-                        Strategy: {activity.strategyName}
-                      </p>
-                    )}
+                    
+                    {/* Content */}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{activity.title}</p>
+                        <div className="flex items-center gap-2">
+                          {getActivityBadge(activity.type)}
+                          <span className="text-xs text-muted-foreground">
+                            {formatTimeAgo(activity.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{activity.description}</p>
+                      {activity.strategyName && (
+                        <p className="text-xs text-primary font-medium">
+                          Strategy: {activity.strategyName}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-muted-foreground text-sm">No recent activities</p>
+                <p className="text-muted-foreground text-xs mt-1">Activities will appear here as you use the app</p>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </ScrollArea>
       </CardContent>
     </Card>

@@ -1,11 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Zap, Edit, Play, Pause, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getRecentActivities, Activity } from "@/services/activityService";
-
 const getActivityIcon = (type: Activity['type']) => {
   switch (type) {
     case 'generate':
@@ -22,7 +20,6 @@ const getActivityIcon = (type: Activity['type']) => {
       return <Clock className="h-4 w-4 text-gray-500" />;
   }
 };
-
 const getActivityBadge = (type: Activity['type']) => {
   switch (type) {
     case 'generate':
@@ -39,27 +36,20 @@ const getActivityBadge = (type: Activity['type']) => {
       return <Badge variant="secondary">Activity</Badge>;
   }
 };
-
 const formatTimeAgo = (date: Date) => {
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-  
   if (diffInMinutes < 1) return 'Just now';
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}h ago`;
-  
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  
   return date.toLocaleDateString();
 };
-
 export const RecentActivities = () => {
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchActivities = async () => {
       try {
@@ -72,73 +62,7 @@ export const RecentActivities = () => {
         setLoading(false);
       }
     };
-
     fetchActivities();
   }, []);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          Recent Activities
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-80">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm">Loading activities...</p>
-              </div>
-            </div>
-          ) : recentActivities.length > 0 ? (
-            <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={activity.id} className="relative">
-                  {/* Timeline line */}
-                  {index < recentActivities.length - 1 && (
-                    <div className="absolute left-4 top-8 h-8 w-px bg-border" />
-                  )}
-                  
-                  {/* Activity item */}
-                  <div className="flex gap-3">
-                    {/* Icon */}
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 border-border">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">{activity.title}</p>
-                        <div className="flex items-center gap-2">
-                          {getActivityBadge(activity.type)}
-                          <span className="text-xs text-muted-foreground">
-                            {formatTimeAgo(activity.timestamp)}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{activity.description}</p>
-                      {activity.strategyName && (
-                        <p className="text-xs text-primary font-medium">
-                          Strategy: {activity.strategyName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm">No recent activities</p>
-                <p className="text-muted-foreground text-xs mt-1">Activities will appear here as you use the app</p>
-              </div>
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
+  return;
 };

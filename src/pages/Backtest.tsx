@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, PlayIcon, History, Eye, TrendingUp, TrendingDown } from "lucide-react";
+import { CalendarIcon, PlayIcon, History } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -18,10 +17,12 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { StrategySelect } from "@/components/backtest/StrategySelect";
 import { runOptimizedBacktest, BacktestResult, clearBacktestCaches } from "@/services/optimizedBacktestService";
-import { supabase } from "@/integrations/supabase/client";
 import { BacktestDetailsModal } from "@/components/backtest/BacktestDetailsModal";
 import { BacktestProgressIndicator } from "@/components/backtest/BacktestProgressIndicator";
 import { useBacktestProgress } from "@/hooks/useBacktestProgress";
+import { useBacktestHistory } from "@/hooks/useBacktestHistory";
+import { BacktestHistoryTable } from "@/components/backtest/BacktestHistoryTable";
+
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -36,6 +37,7 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
+
 const Backtest = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,9 +49,6 @@ const Backtest = () => {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
-  const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
   const [selectedBacktest, setSelectedBacktest] = useState<BacktestHistoryItem | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -62,9 +61,19 @@ const Backtest = () => {
     completeProgress,
     resetProgress
   } = useBacktestProgress();
+
+  // Use the optimized backtest history hook
   const {
-    toast: showToast
-  } = useToast();
+    backtestHistory,
+    isLoading: loadingHistory,
+    error: historyError,
+    hasMore,
+    loadMoreHistory,
+    refreshHistory,
+    addBacktestToHistory
+  } = useBacktestHistory();
+
+  const { toast: showToast } = useToast();
 
   // Memoized function to fetch backtest history
   const fetchBacktestHistory = useCallback(async () => {
@@ -164,6 +173,7 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
+
   const handleBacktestRowClick = (strategyId: string) => {
     navigate(`/strategy/${strategyId}`);
   };
@@ -197,6 +207,7 @@ const Backtest = () => {
         endDate: endDate.toISOString().split('T')[0],
         initialCapital: parseFloat(initialCapital)
       }, updateProgress);
+      
       setBacktestResults(result);
       setHasResults(true);
       completeProgress();
@@ -205,7 +216,7 @@ const Backtest = () => {
       });
 
       // Refresh backtest history after successful completion
-      await fetchBacktestHistory();
+      await refreshHistory();
     } catch (error: any) {
       console.error("Optimized backtest error:", error);
       resetProgress();
@@ -230,15 +241,18 @@ const Backtest = () => {
       description: "Backtest caches have been cleared for optimal performance"
     });
   };
+
   const handleViewDetails = (backtest: BacktestHistoryItem, event: React.MouseEvent) => {
     event.stopPropagation();
     setSelectedBacktest(backtest);
     setIsDetailsModalOpen(true);
   };
+
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false);
     setSelectedBacktest(null);
   };
+
   const formatMetrics = () => {
     if (!backtestResults) return null;
     return {
@@ -279,8 +293,11 @@ const Backtest = () => {
       }]
     };
   };
+
   const metrics = formatMetrics();
-  return <div className="min-h-screen flex flex-col bg-background">
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
         <Container className="py-6">
@@ -365,7 +382,8 @@ const Backtest = () => {
                     {hasResults ? "View the performance of your strategy using optimized algorithms and real market data." : "Run an optimized backtest to see results here."}
                   </p>
 
-                  {hasResults && metrics ? <div>
+                  {hasResults && metrics ? (
+                    <div>
                       <Tabs defaultValue="summary" className="mb-6">
                         <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -376,23 +394,27 @@ const Backtest = () => {
                             <div>
                               <h3 className="font-medium mb-3">Performance Metrics</h3>
                               <div className="space-y-2">
-                                {metrics.performanceMetrics.map((metric, index) => <div key={index} className="flex justify-between items-center">
+                                {metrics.performanceMetrics.map((metric, index) => (
+                                  <div key={index} className="flex justify-between items-center">
                                     <span className="text-sm text-muted-foreground">{metric.name}</span>
                                     <span className={cn("text-sm font-medium", metric.green ? "text-green-600" : metric.value.startsWith("+") ? "text-green-600" : metric.value.startsWith("-") ? "text-red-600" : "")}>
                                       {metric.value}
                                     </span>
-                                  </div>)}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                             <div>
                               <h3 className="font-medium mb-3">Trade Statistics</h3>
                               <div className="space-y-2">
-                                {metrics.tradeStatistics.map((stat, index) => <div key={index} className="flex justify-between items-center">
+                                {metrics.tradeStatistics.map((stat, index) => (
+                                  <div key={index} className="flex justify-between items-center">
                                     <span className="text-sm text-muted-foreground">{stat.name}</span>
                                     <span className={cn("text-sm font-medium", stat.green ? "text-green-600" : stat.value.startsWith("+") ? "text-green-600" : stat.value.startsWith("-") ? "text-red-600" : "")}>
                                       {stat.value}
                                     </span>
-                                  </div>)}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           </div>
@@ -410,7 +432,8 @@ const Backtest = () => {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {backtestResults?.trades.slice(0, 10).map((trade, index) => <TableRow key={index}>
+                                {backtestResults?.trades.slice(0, 10).map((trade, index) => (
+                                  <TableRow key={index}>
                                     <TableCell>{new Date(trade.date).toLocaleDateString()}</TableCell>
                                     <TableCell>{trade.type}</TableCell>
                                     <TableCell>${trade.price.toFixed(2)}</TableCell>
@@ -418,91 +441,48 @@ const Backtest = () => {
                                     <TableCell className={cn("text-right", trade.profit ? trade.profit > 0 ? "text-green-600" : "text-red-600" : "")}>
                                       {trade.profit ? `$${trade.profit.toFixed(2)}` : "-"}
                                     </TableCell>
-                                  </TableRow>)}
+                                  </TableRow>
+                                ))}
                               </TableBody>
                             </Table>
                           </div>
                         </TabsContent>
                       </Tabs>
-                    </div> : <div className="flex flex-col items-center justify-center h-64">
-                      {runningBacktest ? <div className="flex flex-col items-center">
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64">
+                      {runningBacktest ? (
+                        <div className="flex flex-col items-center">
                           <div className="h-8 w-8 mb-4 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" /> 
                           <p className="text-muted-foreground">Processing your optimized backtest...</p>
                           {progress && <p className="text-sm text-gray-500 mt-2">{progress.message}</p>}
-                        </div> : <p className="text-muted-foreground">No backtest results to display. Click "Run Optimized Backtest" to start.</p>}
-                    </div>}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No backtest results to display. Click "Run Optimized Backtest" to start.</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Backtest History Section */}
+            {/* Optimized Backtest History Section */}
             <Card className="shadow-sm border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-6">
                   <h2 className="text-xl font-bold">Backtest History</h2>
                 </div>
                 
-                {loadingHistory ? <div className="flex justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" />
-                  </div> : historyError ? <div className="flex flex-col items-center justify-center py-12">
-                    <History className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground text-lg mb-2">Error loading backtest history</p>
-                    <p className="text-sm text-muted-foreground mb-4">{historyError}</p>
-                    <Button onClick={fetchBacktestHistory} variant="outline">Try Again</Button>
-                  </div> : backtestHistory.length > 0 ? <div className="rounded-lg border border-zinc-200 overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-zinc-50/50">
-                          <TableHead className="font-semibold text-zinc-700">Strategy</TableHead>
-                          <TableHead className="font-semibold text-zinc-700">Period</TableHead>
-                          <TableHead className="font-semibold text-zinc-700">Capital</TableHead>
-                          <TableHead className="font-semibold text-zinc-700">Return</TableHead>
-                          <TableHead className="font-semibold text-zinc-700">Win Rate</TableHead>
-                          <TableHead className="font-semibold text-zinc-700">Trades</TableHead>
-                          <TableHead className="font-semibold text-zinc-700">Date</TableHead>
-                          <TableHead className="font-semibold text-zinc-700 w-16"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {backtestHistory.map(backtest => <TableRow key={backtest.id} className="hover:bg-zinc-50/50 cursor-pointer transition-colors" onClick={() => {
-                      supabase.from('strategies').select('id').eq('name', backtest.strategyName).single().then(({
-                        data,
-                        error
-                      }) => {
-                        if (data && !error) {
-                          handleBacktestRowClick(data.id);
-                        } else {
-                          console.error('Could not find strategy ID:', error);
-                          toast.error('Could not navigate to strategy details');
-                        }
-                      });
-                    }}>
-                            <TableCell className="font-medium text-zinc-900">{backtest.strategyName}</TableCell>
-                            <TableCell className="text-sm text-zinc-600">
-                              {format(new Date(backtest.startDate), "MMM dd")} - {format(new Date(backtest.endDate), "MMM dd, yyyy")}
-                            </TableCell>
-                            <TableCell className="text-sm text-zinc-600">${backtest.initialCapital.toLocaleString()}</TableCell>
-                            <TableCell>
-                              <span className={cn("font-medium text-sm", backtest.totalReturnPercentage >= 0 ? "text-green-600" : "text-red-600")}>
-                                {backtest.totalReturnPercentage >= 0 ? '+' : ''}{backtest.totalReturnPercentage.toFixed(1)}%
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-sm text-zinc-600">{backtest.winRate.toFixed(0)}%</TableCell>
-                            <TableCell className="text-sm text-zinc-600">{backtest.totalTrades}</TableCell>
-                            <TableCell className="text-sm text-zinc-500">{format(new Date(backtest.createdAt), "MMM dd")}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm" onClick={e => handleViewDetails(backtest, e)} className="p-2 h-8 w-8 hover:bg-zinc-100">
-                                <Eye className="h-4 w-4 text-zinc-500" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>)}
-                      </TableBody>
-                    </Table>
-                  </div> : <div className="flex flex-col items-center justify-center py-12">
-                    <History className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground text-lg mb-2">No backtest history yet</p>
-                    <p className="text-sm text-muted-foreground">Run your first optimized backtest to see results here</p>
-                  </div>}
+                <BacktestHistoryTable
+                  backtestHistory={backtestHistory}
+                  isLoading={loadingHistory}
+                  error={historyError}
+                  hasMore={hasMore}
+                  onLoadMore={loadMoreHistory}
+                  onRefresh={refreshHistory}
+                  onViewDetails={handleViewDetails}
+                  onRowClick={handleBacktestRowClick}
+                />
               </CardContent>
             </Card>
           </div>
@@ -510,6 +490,8 @@ const Backtest = () => {
       </main>
 
       <BacktestDetailsModal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} backtest={selectedBacktest} />
-    </div>;
+    </div>
+  );
 };
+
 export default Backtest;

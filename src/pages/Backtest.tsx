@@ -22,7 +22,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { BacktestDetailsModal } from "@/components/backtest/BacktestDetailsModal";
 import { BacktestProgressIndicator } from "@/components/backtest/BacktestProgressIndicator";
 import { useBacktestProgress } from "@/hooks/useBacktestProgress";
-
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -37,7 +36,6 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
-
 const Backtest = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,7 +52,7 @@ const Backtest = () => {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [selectedBacktest, setSelectedBacktest] = useState<BacktestHistoryItem | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  
+
   // Use the progress tracking hook
   const {
     progress,
@@ -64,7 +62,6 @@ const Backtest = () => {
     completeProgress,
     resetProgress
   } = useBacktestProgress();
-
   const {
     toast: showToast
   } = useToast();
@@ -167,7 +164,6 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
-
   const handleBacktestRowClick = (strategyId: string) => {
     navigate(`/strategy/${strategyId}`);
   };
@@ -190,26 +186,20 @@ const Backtest = () => {
       });
       return;
     }
-
     try {
       startProgress();
-      
       toast.success("Optimized backtest started", {
         description: "Using enhanced algorithms for faster processing..."
       });
-
       const result = await runOptimizedBacktest({
         strategyId: strategy,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
         initialCapital: parseFloat(initialCapital)
       }, updateProgress);
-
       setBacktestResults(result);
       setHasResults(true);
-      
       completeProgress();
-      
       toast.success("Backtest completed successfully", {
         description: `Generated ${result.totalTrades} trades with ${result.totalReturnPercentage.toFixed(2)}% return`
       });
@@ -240,7 +230,6 @@ const Backtest = () => {
       description: "Backtest caches have been cleared for optimal performance"
     });
   };
-
   const handleViewDetails = (backtest: BacktestHistoryItem, event: React.MouseEvent) => {
     event.stopPropagation();
     setSelectedBacktest(backtest);
@@ -291,31 +280,20 @@ const Backtest = () => {
     };
   };
   const metrics = formatMetrics();
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
         <Container className="py-6">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Optimized Backtest</h1>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleClearCaches}
-              disabled={runningBacktest}
-            >
+            <h1 className="text-3xl font-bold">Backtest</h1>
+            <Button variant="outline" size="sm" onClick={handleClearCaches} disabled={runningBacktest}>
               Clear Cache
             </Button>
           </div>
 
           <div className="space-y-6">
             {/* Progress Indicator */}
-            <BacktestProgressIndicator 
-              progress={progress}
-              isRunning={runningBacktest}
-              onCancel={cancelBacktest}
-            />
+            <BacktestProgressIndicator progress={progress} isRunning={runningBacktest} onCancel={cancelBacktest} />
 
             {/* Main Backtest Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -368,16 +346,12 @@ const Backtest = () => {
                     </div>
 
                     <Button onClick={runBacktestHandler} className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" disabled={runningBacktest}>
-                      {runningBacktest ? (
-                        <>
+                      {runningBacktest ? <>
                           <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent" /> 
                           Running Optimized Backtest...
-                        </>
-                      ) : (
-                        <>
+                        </> : <>
                           <PlayIcon className="h-4 w-4 mr-2" /> Run Optimized Backtest
-                        </>
-                      )}
+                        </>}
                     </Button>
                   </div>
                 </CardContent>
@@ -454,9 +428,7 @@ const Backtest = () => {
                       {runningBacktest ? <div className="flex flex-col items-center">
                           <div className="h-8 w-8 mb-4 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" /> 
                           <p className="text-muted-foreground">Processing your optimized backtest...</p>
-                          {progress && (
-                            <p className="text-sm text-gray-500 mt-2">{progress.message}</p>
-                          )}
+                          {progress && <p className="text-sm text-gray-500 mt-2">{progress.message}</p>}
                         </div> : <p className="text-muted-foreground">No backtest results to display. Click "Run Optimized Backtest" to start.</p>}
                     </div>}
                 </CardContent>
@@ -538,8 +510,6 @@ const Backtest = () => {
       </main>
 
       <BacktestDetailsModal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} backtest={selectedBacktest} />
-    </div>
-  );
+    </div>;
 };
-
 export default Backtest;

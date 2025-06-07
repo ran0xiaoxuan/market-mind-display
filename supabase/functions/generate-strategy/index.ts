@@ -20,8 +20,11 @@ serve(async (req) => {
   try {
     console.log('Processing strategy generation request...');
     
-    const requestBody = await req.json().catch(() => ({}));
-    console.log('Request body received:', Object.keys(requestBody));
+    const requestBody = await req.json().catch((e) => {
+      console.error('Failed to parse request body:', e);
+      return {};
+    });
+    console.log('Request body received:', requestBody);
     
     const { assetType, selectedAsset, strategyDescription, healthCheck } = requestBody;
     
@@ -29,7 +32,11 @@ serve(async (req) => {
     if (healthCheck) {
       console.log('Health check requested');
       return new Response(
-        JSON.stringify({ healthy: true, status: 'AI service is operational', timestamp: new Date().toISOString() }),
+        JSON.stringify({ 
+          healthy: true, 
+          status: 'AI service is operational', 
+          timestamp: new Date().toISOString() 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -51,8 +58,10 @@ serve(async (req) => {
     }
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    console.log('OpenAI API key status:', openaiApiKey ? 'present' : 'missing');
+    
     if (!openaiApiKey) {
-      console.log('OpenAI API key not configured');
+      console.error('OpenAI API key not configured');
       return new Response(
         JSON.stringify({
           message: 'AI service is not properly configured. Please contact support.',
@@ -166,11 +175,8 @@ IMPORTANT RULES:
 
 Return ONLY the JSON object.`;
 
-    console.log('Making request to OpenAI...');
+    console.log('Making request to OpenAI API...');
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -193,10 +199,9 @@ Return ONLY the JSON object.`;
           temperature: 0.7,
           max_tokens: 2000,
         }),
-        signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
+      console.log('OpenAI API response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -204,7 +209,7 @@ Return ONLY the JSON object.`;
         
         return new Response(
           JSON.stringify({
-            message: `OpenAI API error: ${response.status}`,
+            message: `OpenAI API error: ${response.status} - ${response.statusText}`,
             type: 'api_error',
             retryable: true
           }),
@@ -216,11 +221,11 @@ Return ONLY the JSON object.`;
       }
 
       const data = await response.json();
-      console.log('OpenAI response received');
+      console.log('OpenAI response received successfully');
       
-      const content = data.choices[0]?.message?.content;
+      const content = data.choices?.[0]?.message?.content;
       if (!content) {
-        console.error('No content in OpenAI response');
+        console.error('No content in OpenAI response:', data);
         return new Response(
           JSON.stringify({
             message: 'No response from AI service',
@@ -239,9 +244,10 @@ Return ONLY the JSON object.`;
       try {
         const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         strategy = JSON.parse(cleanContent);
-        console.log('Strategy parsed successfully');
+        console.log('Strategy parsed successfully:', strategy.name);
       } catch (parseError) {
         console.error('Failed to parse OpenAI response:', parseError);
+        console.error('Raw content:', content);
         return new Response(
           JSON.stringify({
             message: 'Invalid response format from AI service',
@@ -257,7 +263,7 @@ Return ONLY the JSON object.`;
 
       // Basic validation
       if (!strategy.name || !strategy.entryRules || !strategy.exitRules) {
-        console.error('Invalid strategy structure');
+        console.error('Invalid strategy structure:', strategy);
         return new Response(
           JSON.stringify({
             message: 'Generated strategy has invalid structure',
@@ -278,26 +284,11 @@ Return ONLY the JSON object.`;
       )
 
     } catch (fetchError) {
-      clearTimeout(timeoutId);
       console.error('Fetch error:', fetchError);
-      
-      if (fetchError.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({
-            message: 'Request timed out. Please try again.',
-            type: 'timeout_error',
-            retryable: true
-          }),
-          { 
-            status: 408,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
-      }
       
       return new Response(
         JSON.stringify({
-          message: 'Network error occurred',
+          message: 'Network error occurred while contacting AI service',
           type: 'connection_error',
           retryable: true
         }),

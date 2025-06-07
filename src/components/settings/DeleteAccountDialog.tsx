@@ -59,36 +59,58 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
 
       console.log('Calling delete-user-account function...');
 
-      // Call the Edge Function to delete the user account
-      const { data, error } = await supabase.functions.invoke('delete-user-account', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      });
+      // Call the Edge Function to delete the user account with retry logic
+      let lastError = null;
+      let success = false;
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`Attempt ${attempt} to delete account`);
+          
+          const { data, error } = await supabase.functions.invoke('delete-user-account', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          });
 
-      console.log('Function response:', { data, error });
+          console.log(`Attempt ${attempt} response:`, { data, error });
 
-      if (error) {
-        console.error('Error calling delete-user-account function:', error);
-        
-        // Handle different types of errors
-        if (error.message?.includes('Failed to fetch')) {
-          throw new Error('Network error. Please check your connection and try again.');
-        } else if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
-          throw new Error('Authentication failed. Please log in again.');
-        } else {
-          throw new Error(error.message || 'Failed to delete account');
+          if (error) {
+            lastError = error;
+            
+            // If it's a network error, wait and retry
+            if (error.message?.includes('Failed to fetch') || error.message?.includes('Failed to send a request')) {
+              console.log(`Network error on attempt ${attempt}, retrying...`);
+              if (attempt < 3) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                continue;
+              }
+            } else {
+              // Non-network error, don't retry
+              throw error;
+            }
+          } else {
+            // Success
+            success = true;
+            break;
+          }
+        } catch (attemptError) {
+          console.error(`Error on attempt ${attempt}:`, attemptError);
+          lastError = attemptError;
+          
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          }
         }
       }
 
-      // Check if the response indicates an error
-      if (data?.error) {
-        throw new Error(data.error);
+      if (!success) {
+        throw lastError || new Error('All deletion attempts failed');
       }
 
-      console.log('Account deletion response:', data);
+      console.log('Account deletion successful');
 
       toast({
         title: "Account deleted successfully",
@@ -109,10 +131,18 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
     } catch (error: any) {
       console.error('Error deleting account:', error);
       
-      let errorMessage = "An unexpected error occurred. Please try again or contact support.";
+      let errorMessage = "Failed to delete account. Please try again or contact support.";
       
       if (error.message) {
-        errorMessage = error.message;
+        if (error.message.includes('Failed to fetch') || error.message.includes('Failed to send a request')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+          errorMessage = "Session expired. Please log in again and try.";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Request timed out. Please try again.";
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       toast({

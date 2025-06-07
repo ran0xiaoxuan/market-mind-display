@@ -7,13 +7,16 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  console.log('Delete user account function called with method:', req.method);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('Delete user account function called');
+    console.log('Starting account deletion process');
 
     // Create a Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
@@ -29,6 +32,8 @@ Deno.serve(async (req) => {
 
     // Get the authorization header from the request
     const authHeader = req.headers.get('Authorization')
+    console.log('Authorization header present:', !!authHeader);
+    
     if (!authHeader) {
       console.error('Missing authorization header');
       return new Response(
@@ -42,6 +47,8 @@ Deno.serve(async (req) => {
 
     // Verify the user's JWT token to get their user ID
     const jwt = authHeader.replace('Bearer ', '')
+    console.log('Verifying JWT token...');
+    
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt)
     
     if (authError || !user) {
@@ -57,42 +64,9 @@ Deno.serve(async (req) => {
 
     console.log('Starting account deletion for user:', user.id)
 
-    // Use the delete_strategy_cascade function for strategies to handle complex deletions
-    console.log('Fetching user strategies...');
-    const { data: userStrategies, error: strategiesError } = await supabaseAdmin
-      .from('strategies')
-      .select('id')
-      .eq('user_id', user.id);
-
-    if (strategiesError) {
-      console.error('Error fetching user strategies:', strategiesError);
-    } else if (userStrategies && userStrategies.length > 0) {
-      console.log(`Found ${userStrategies.length} strategies to delete`);
-      
-      // Delete each strategy using the cascade function
-      for (const strategy of userStrategies) {
-        try {
-          console.log(`Deleting strategy ${strategy.id}...`);
-          const { error: cascadeError } = await supabaseAdmin.rpc('delete_strategy_cascade', {
-            strategy_uuid: strategy.id
-          });
-          
-          if (cascadeError) {
-            console.error(`Error deleting strategy ${strategy.id}:`, cascadeError);
-            // Continue with other strategies even if one fails
-          } else {
-            console.log(`Strategy ${strategy.id} deleted successfully`);
-          }
-        } catch (error) {
-          console.error(`Exception deleting strategy ${strategy.id}:`, error);
-          // Continue with other strategies
-        }
-      }
-    }
-
-    // Clean up any remaining data that might not have been handled by the cascade function
+    // Delete user data in the correct order to avoid foreign key violations
     
-    // Delete notification logs
+    // 1. Delete notification logs first
     console.log('Deleting notification logs...');
     const { error: notificationLogsError } = await supabaseAdmin
       .from('notification_logs')
@@ -105,7 +79,7 @@ Deno.serve(async (req) => {
       console.log('Notification logs deleted successfully');
     }
 
-    // Delete notification settings
+    // 2. Delete notification settings
     console.log('Deleting notification settings...');
     const { error: notificationSettingsError } = await supabaseAdmin
       .from('notification_settings')
@@ -118,8 +92,43 @@ Deno.serve(async (req) => {
       console.log('Notification settings deleted successfully');
     }
 
-    // Delete trading signals
-    console.log('Deleting trading signals...');
+    // 3. Get user strategies first
+    console.log('Fetching user strategies...');
+    const { data: userStrategies, error: strategiesError } = await supabaseAdmin
+      .from('strategies')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (strategiesError) {
+      console.error('Error fetching user strategies:', strategiesError);
+    } else {
+      console.log(`Found ${userStrategies?.length || 0} strategies to delete`);
+      
+      // Delete each strategy using the cascade function
+      if (userStrategies && userStrategies.length > 0) {
+        for (const strategy of userStrategies) {
+          try {
+            console.log(`Deleting strategy ${strategy.id}...`);
+            const { error: cascadeError } = await supabaseAdmin.rpc('delete_strategy_cascade', {
+              strategy_uuid: strategy.id
+            });
+            
+            if (cascadeError) {
+              console.error(`Error deleting strategy ${strategy.id}:`, cascadeError);
+              // Continue with other strategies even if one fails
+            } else {
+              console.log(`Strategy ${strategy.id} deleted successfully`);
+            }
+          } catch (error) {
+            console.error(`Exception deleting strategy ${strategy.id}:`, error);
+            // Continue with other strategies
+          }
+        }
+      }
+    }
+
+    // 4. Delete trading signals (in case some weren't caught by strategy deletion)
+    console.log('Deleting remaining trading signals...');
     const { error: tradingSignalsError } = await supabaseAdmin
       .from('trading_signals')
       .delete()
@@ -131,7 +140,7 @@ Deno.serve(async (req) => {
       console.log('Trading signals deleted successfully');
     }
 
-    // Delete user roles
+    // 5. Delete user roles
     console.log('Deleting user roles...');
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
@@ -144,7 +153,7 @@ Deno.serve(async (req) => {
       console.log('User roles deleted successfully');
     }
 
-    // Delete subscriber data
+    // 6. Delete subscriber data
     console.log('Deleting subscriber data...');
     const { error: subscribersError } = await supabaseAdmin
       .from('subscribers')
@@ -157,7 +166,7 @@ Deno.serve(async (req) => {
       console.log('Subscriber data deleted successfully');
     }
 
-    // Delete profile
+    // 7. Delete profile
     console.log('Deleting profile...');
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -170,7 +179,7 @@ Deno.serve(async (req) => {
       console.log('Profile deleted successfully');
     }
 
-    // Finally, delete the auth user account
+    // 8. Finally, delete the auth user account
     console.log('Deleting auth user...');
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
     

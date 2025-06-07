@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && currentSession) {        
         console.log('User signed in successfully, current path:', location.pathname);
         
-        // Only redirect to dashboard if user is on auth pages
-        const authPages = ['/login', '/signup', '/forgot-password', '/auth/confirm'];
+        // Only redirect to dashboard if user is on auth pages or auth callback
+        const authPages = ['/login', '/signup', '/forgot-password', '/auth/confirm', '/auth/callback'];
         if (authPages.includes(location.pathname)) {
           const redirectDelay = 500;
           
@@ -229,7 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

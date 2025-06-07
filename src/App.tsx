@@ -17,6 +17,7 @@ import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import Confirm from "@/pages/auth/Confirm";
+import AuthCallback from "@/pages/auth/AuthCallback";
 import Backtest from "@/pages/Backtest";
 import StrategyPreview from "@/pages/StrategyPreview";
 import Recommendations from "@/pages/Recommendations";
@@ -41,6 +42,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/confirm" element={<Confirm />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/strategies" element={<ProtectedRoute><Strategies /></ProtectedRoute>} />
           <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
@@ -89,7 +90,7 @@ export default function Signup() {
       if (!isValidCaptcha) {
         setNotification({
           type: 'error',
-          message: 'The email has been signed up already.'
+          message: 'Security verification failed. Please try again.'
         });
         setTurnstileToken(null);
         return;
@@ -103,19 +104,19 @@ export default function Signup() {
       if (error) {
         console.log('Signup error:', error);
         
-        // Check for duplicate email error specifically
+        // Handle specific error cases
         if (error.message?.includes("User already registered") || 
             error.message?.includes("already registered") ||
             error.message?.includes("already exists") ||
             error.message?.includes("duplicate")) {
           setNotification({
             type: 'error',
-            message: 'The email has been signed up already.'
+            message: 'An account with this email already exists. Please try logging in instead.'
           });
         } else if (error.message?.includes("Password should be at least")) {
           setNotification({
             type: 'error',
-            message: 'Password must be at least 8 characters long and contain a mix of letters and numbers.'
+            message: 'Password must be at least 8 characters long.'
           });
         } else if (error.message?.includes("Invalid email")) {
           setNotification({
@@ -133,11 +134,10 @@ export default function Signup() {
             message: 'Too many signup attempts. Please wait a few minutes before trying again.'
           });
         } else {
-          // For any other error, default to the duplicate email message
-          // This covers cases where the error message format might be different
+          // Show the actual error message for other cases
           setNotification({
             type: 'error',
-            message: 'The email has been signed up already.'
+            message: error.message || 'An error occurred during signup. Please try again.'
           });
         }
       } else {
@@ -150,7 +150,7 @@ export default function Signup() {
       console.error('Signup exception:', error);
       setNotification({
         type: 'error',
-        message: 'The email has been signed up already.'
+        message: 'An unexpected error occurred. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
@@ -187,7 +187,7 @@ export default function Signup() {
     setTurnstileToken(null);
     setNotification({
       type: 'error',
-      message: 'The email has been signed up already.'
+      message: 'Security verification failed. Please try again.'
     });
   };
 

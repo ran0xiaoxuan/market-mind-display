@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, PlayIcon, History } from "lucide-react";
@@ -74,66 +75,6 @@ const Backtest = () => {
   } = useBacktestHistory();
 
   const { toast: showToast } = useToast();
-
-  // Memoized function to fetch backtest history
-  const fetchBacktestHistory = useCallback(async () => {
-    try {
-      setLoadingHistory(true);
-      setHistoryError(null);
-      console.log('Fetching backtest history...');
-      const {
-        data: backtests,
-        error
-      } = await supabase.from('backtests').select(`
-          id,
-          start_date,
-          end_date,
-          initial_capital,
-          total_return,
-          total_return_percentage,
-          sharpe_ratio,
-          max_drawdown,
-          win_rate,
-          total_trades,
-          created_at,
-          strategies!inner(name)
-        `).order('created_at', {
-        ascending: false
-      });
-      if (error) {
-        console.error('Error fetching backtest history:', error);
-        setHistoryError('Failed to load backtest history');
-        return;
-      }
-      console.log('Raw backtest data:', backtests);
-      const formattedHistory: BacktestHistoryItem[] = backtests?.map(backtest => ({
-        id: backtest.id,
-        strategyName: backtest.strategies.name,
-        startDate: backtest.start_date,
-        endDate: backtest.end_date,
-        initialCapital: backtest.initial_capital || 0,
-        totalReturn: backtest.total_return || 0,
-        totalReturnPercentage: backtest.total_return_percentage || 0,
-        sharpeRatio: backtest.sharpe_ratio || 0,
-        maxDrawdown: backtest.max_drawdown || 0,
-        winRate: backtest.win_rate || 0,
-        totalTrades: backtest.total_trades || 0,
-        createdAt: backtest.created_at
-      })) || [];
-      console.log('Formatted backtest history:', formattedHistory);
-      setBacktestHistory(formattedHistory);
-    } catch (error) {
-      console.error('Error in fetchBacktestHistory:', error);
-      setHistoryError('Failed to load backtest history');
-    } finally {
-      setLoadingHistory(false);
-    }
-  }, []);
-
-  // Fetch backtest history only once on component mount
-  useEffect(() => {
-    fetchBacktestHistory();
-  }, [fetchBacktestHistory]);
 
   // Fetch strategies from database
   useEffect(() => {

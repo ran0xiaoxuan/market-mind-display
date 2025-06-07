@@ -19,13 +19,21 @@ export default function Signup() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<{type: 'error' | 'success', message: string} | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   
   const {
     signUp,
     signInWithGoogle,
     user,
-    verifyTurnstile
+    verifyTurnstile,
+    validatePassword
   } = useAuth();
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    const validation = validatePassword(value);
+    setPasswordErrors(validation.errors);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,13 +60,17 @@ export default function Signup() {
       });
       return;
     }
-    if (password.length < 8) {
+    
+    // Enhanced password validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
       setNotification({
         type: 'error',
-        message: 'Password must be at least 8 characters long'
+        message: passwordValidation.errors[0] // Show first error
       });
       return;
     }
+    
     if (!confirmPassword) {
       setNotification({
         type: 'error',
@@ -256,14 +268,36 @@ export default function Signup() {
                   Password *
                 </label>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required disabled={isSubmitting} placeholder="Create a password" />
+                  <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => handlePasswordChange(e.target.value)} required disabled={isSubmitting} placeholder="Create a password" />
                   <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)} disabled={isSubmitting}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 8 characters long
-                </p>
+                <div className="text-xs space-y-1">
+                  <p className="text-muted-foreground">Password requirements:</p>
+                  <ul className="space-y-1">
+                    <li className={`flex items-center ${password.length >= 8 ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="mr-1">{password.length >= 8 ? '✓' : '✗'}</span>
+                      At least 8 characters
+                    </li>
+                    <li className={`flex items-center ${/[A-Z]/.test(password) ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="mr-1">{/[A-Z]/.test(password) ? '✓' : '✗'}</span>
+                      One uppercase letter
+                    </li>
+                    <li className={`flex items-center ${/[a-z]/.test(password) ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="mr-1">{/[a-z]/.test(password) ? '✓' : '✗'}</span>
+                      One lowercase letter
+                    </li>
+                    <li className={`flex items-center ${/\d/.test(password) ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="mr-1">{/\d/.test(password) ? '✓' : '✗'}</span>
+                      One number
+                    </li>
+                    <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(password) ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="mr-1">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(password) ? '✓' : '✗'}</span>
+                      One special character
+                    </li>
+                  </ul>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -280,7 +314,7 @@ export default function Signup() {
 
               <Turnstile onVerify={handleTurnstileVerify} onError={handleTurnstileError} onExpire={handleTurnstileExpire} className="flex justify-center" />
               
-              <Button type="submit" className="w-full" disabled={isSubmitting || !turnstileToken}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || !turnstileToken || passwordErrors.length > 0}>
                 {isSubmitting ? <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating account...

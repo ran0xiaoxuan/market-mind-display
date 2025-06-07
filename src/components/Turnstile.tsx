@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,15 +38,14 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     }
   }, []);
 
-  // Check if current domain should bypass CAPTCHA
+  // Enhanced environment detection - only bypass in actual development
   const shouldBypassCaptcha = () => {
     const hostname = window.location.hostname;
-    return (
-      isInIframe || 
-      hostname.includes('lovableproject.com') || 
-      hostname.includes('localhost') ||
-      hostname.includes('market-mind-display.lovable.app')
-    );
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLovablePreview = hostname.includes('lovableproject.com');
+    
+    // Only bypass in iframe AND (localhost OR lovable preview)
+    return isInIframe && (isLocalhost || isLovablePreview);
   };
 
   useEffect(() => {
@@ -63,7 +61,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         
         // Check if we should bypass CAPTCHA for this domain
         if (shouldBypassCaptcha()) {
-          console.log('Domain requires CAPTCHA bypass, simulating success');
+          console.log('Development environment detected, simulating success');
           setIsLoadingKey(false);
           setTimeout(() => {
             onVerify('dev-domain-bypass-token');
@@ -149,24 +147,24 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         console.error('Failed to get Turnstile site key:', error);
         setNetworkError(true);
         
-        // Fallback to bypass for unsupported domains
-        if (shouldBypassCaptcha()) {
-          console.log('Bypassing CAPTCHA for unsupported domain');
-          setTimeout(() => {
-            onVerify('dev-bypass-token');
-          }, 1000);
+        // In production, don't bypass - require proper verification
+        if (!shouldBypassCaptcha()) {
+          setHasError(true);
+          if (onError) onError();
           return;
         }
         
-        console.log('Using test site key as fallback');
-        setSiteKey('0x4AAAAAABeotV9KL7X5-YJB');
+        console.log('Development bypass enabled');
+        setTimeout(() => {
+          onVerify('dev-bypass-token');
+        }, 1000);
       } finally {
         setIsLoadingKey(false);
       }
     };
 
     getSiteKey();
-  }, [isInIframe, onVerify]);
+  }, [isInIframe, onVerify, onError]);
 
   useEffect(() => {
     if (!siteKey || isLoadingKey || widgetId || !ref.current) return;
@@ -322,14 +320,8 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
     return (
       <div className={className}>
         <div className="h-16 bg-red-100 rounded flex items-center justify-center flex-col space-y-2">
-          <span className="text-sm text-red-600">Security check unavailable</span>
-          <span className="text-xs text-red-500 text-center px-2">Unable to connect to verification service</span>
-          <button 
-            onClick={handleRetry}
-            className="text-xs text-blue-600 hover:underline"
-          >
-            Reload page
-          </button>
+          <span className="text-sm text-red-600">Security verification required</span>
+          <span className="text-xs text-red-500 text-center px-2">Please enable security verification to continue</span>
         </div>
       </div>
     );

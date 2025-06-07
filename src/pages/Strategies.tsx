@@ -10,7 +10,7 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
-type SortOption = 'name' | 'created' | 'updated' | 'total_return';
+type SortOption = 'name' | 'created' | 'updated';
 type SortDirection = 'asc' | 'desc';
 
 const Strategies = () => {
@@ -56,13 +56,6 @@ const Strategies = () => {
         break;
       case 'updated':
         comparison = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
-        break;
-      case 'total_return':
-        // For now, we'll use a placeholder return value since totalReturn isn't in the Strategy type
-        // This can be updated when the Strategy type includes totalReturn or performance data
-        const aReturn = Math.random() * 100; // Placeholder
-        const bReturn = Math.random() * 100; // Placeholder
-        comparison = aReturn - bReturn;
         break;
       default:
         comparison = 0;
@@ -116,7 +109,6 @@ const Strategies = () => {
                     <SelectItem value="updated">Last Updated</SelectItem>
                     <SelectItem value="created">Date Created</SelectItem>
                     <SelectItem value="name">Name (A-Z)</SelectItem>
-                    <SelectItem value="total_return">Total Return</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

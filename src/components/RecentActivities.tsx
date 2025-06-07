@@ -1,8 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Zap, Edit, Play, Pause, BarChart3 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getRecentActivities, Activity } from "@/services/activityService";
 
 interface Activity {
   id: string;
@@ -64,8 +65,24 @@ const formatTimeAgo = (date: Date) => {
 };
 
 export const RecentActivities = () => {
-  // No hardcoded data - will be populated with real activities when implemented
-  const recentActivities: Activity[] = [];
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoading(true);
+        const activities = await getRecentActivities(10);
+        setRecentActivities(activities);
+      } catch (error) {
+        console.error('Error fetching recent activities:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   return (
     <Card>
@@ -76,7 +93,13 @@ export const RecentActivities = () => {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-80">
-          {recentActivities.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-muted-foreground text-sm">Loading activities...</p>
+              </div>
+            </div>
+          ) : recentActivities.length > 0 ? (
             <div className="space-y-4">
               {recentActivities.map((activity, index) => (
                 <div key={activity.id} className="relative">

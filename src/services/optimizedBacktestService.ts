@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BacktestParameters {
@@ -79,6 +78,31 @@ export const runOptimizedBacktest = async (
 
     console.log('Strategy loaded from cache or database:', strategy.name);
 
+    updateProgress('validating', 15, 'Validating backtest parameters...');
+
+    // Validate that backtest doesn't start before strategy creation
+    const strategyCreatedAt = new Date(strategy.created_at);
+    const backtestStartDate = new Date(parameters.startDate);
+    const backtestEndDate = new Date(parameters.endDate);
+    
+    // Ensure backtest start date is not before strategy creation
+    const validatedStartDate = backtestStartDate < strategyCreatedAt 
+      ? strategyCreatedAt.toISOString()
+      : parameters.startDate;
+    
+    if (backtestStartDate < strategyCreatedAt) {
+      console.warn(`Adjusted backtest start date from ${parameters.startDate} to ${validatedStartDate} to respect strategy creation date`);
+      updateProgress('validating', 18, 'Adjusted start date to respect strategy creation...');
+    }
+
+    // Ensure we have at least 7 days for meaningful backtest
+    const adjustedStartDate = new Date(validatedStartDate);
+    const daysBetween = Math.floor((backtestEndDate.getTime() - adjustedStartDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysBetween < 7) {
+      throw new Error('Backtest period must be at least 7 days after strategy creation date');
+    }
+
     updateProgress('parsing', 20, 'Parsing risk management settings...');
 
     // Parse risk management settings efficiently
@@ -87,13 +111,13 @@ export const runOptimizedBacktest = async (
 
     updateProgress('creating', 30, 'Creating backtest record...');
 
-    // Create backtest record
+    // Create backtest record with validated dates
     const { data: backtest, error: backtestError } = await supabase
       .from('backtests')
       .insert({
         strategy_id: parameters.strategyId,
         user_id: strategy.user_id,
-        start_date: parameters.startDate,
+        start_date: validatedStartDate,
         end_date: parameters.endDate,
         initial_capital: parameters.initialCapital
       })
@@ -104,13 +128,14 @@ export const runOptimizedBacktest = async (
 
     updateProgress('generating', 40, 'Generating optimized trades...');
 
-    // Generate trades using optimized algorithm
+    // Generate trades using optimized algorithm with validated dates
     const trades = await generateOptimizedTrades(
-      parameters.startDate, 
-      parameters.endDate, 
+      validatedStartDate,
+      parameters.endDate,
       strategy.target_asset || 'AAPL',
       stopLossPercent,
       takeProfitPercent,
+      strategyCreatedAt,
       (progress) => updateProgress('generating', 40 + (progress * 0.3), `Generating trades: ${Math.round(progress)}%`)
     );
 
@@ -195,16 +220,17 @@ export const runOptimizedBacktest = async (
   }
 };
 
-// Optimized trade generation with better algorithms
+// Optimized trade generation with better algorithms and temporal validation
 const generateOptimizedTrades = async (
   startDate: string, 
   endDate: string, 
   asset: string,
   stopLossPercent: number | null,
   takeProfitPercent: number | null,
+  strategyCreatedAt: Date,
   onProgress?: (progress: number) => void
 ): Promise<BacktestTrade[]> => {
-  console.log('Generating optimized trades for:', { startDate, endDate, asset });
+  console.log('Generating optimized trades for:', { startDate, endDate, asset, strategyCreatedAt });
   
   const cacheKey = `${asset}_${startDate}_${endDate}`;
   
@@ -219,10 +245,14 @@ const generateOptimizedTrades = async (
   const trades: BacktestTrade[] = [];
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const daysBetween = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Ensure start date is not before strategy creation
+  const effectiveStart = start < strategyCreatedAt ? strategyCreatedAt : start;
+  
+  const daysBetween = Math.floor((end.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24));
   
   if (daysBetween <= 7) {
-    console.log('Date range too short for meaningful backtest');
+    console.log('Date range too short for meaningful backtest after adjusting for strategy creation date');
     return trades;
   }
   
@@ -242,10 +272,16 @@ const generateOptimizedTrades = async (
   for (let i = 0; i < tradeIntervals.length; i++) {
     onProgress?.(((i + 1) / tradeIntervals.length) * 100);
     
-    const currentDate = new Date(start);
+    const currentDate = new Date(effectiveStart);
     currentDate.setDate(currentDate.getDate() + tradeIntervals[i]);
     
     if (currentDate > end) break;
+    
+    // Ensure trade date is not before strategy creation
+    if (currentDate < strategyCreatedAt) {
+      console.warn(`Skipping trade generation for ${currentDate.toISOString()} as it predates strategy creation`);
+      continue;
+    }
     
     currentPriceIndex = Math.min(currentPriceIndex + 1, priceArray.length - 1);
     const currentPrice = priceArray[currentPriceIndex];

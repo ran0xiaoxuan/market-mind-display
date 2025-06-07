@@ -67,25 +67,51 @@ const StrategyDetail = () => {
         setExitRules(rulesData.exitRules);
       }
       
-      // Fetch real backtest trades for this strategy
+      // Fetch real backtest trades for this strategy with temporal validation
       const { data: backtests, error: backtestError } = await supabase
         .from("backtests")
-        .select("id")
+        .select("id, start_date, end_date")
         .eq("strategy_id", id)
         .order("created_at", { ascending: false })
         .limit(1);
       
       if (!backtestError && backtests && backtests.length > 0) {
+        const latestBacktest = backtests[0];
+        const strategyCreatedAt = new Date(strategyData.createdAt);
+        const backtestStartDate = new Date(latestBacktest.start_date);
+        
+        // Validate that backtest doesn't start before strategy creation
+        if (backtestStartDate < strategyCreatedAt) {
+          console.warn(`Backtest start date (${backtestStartDate.toISOString()}) is before strategy creation date (${strategyCreatedAt.toISOString()}). This indicates problematic data.`);
+          toast.error("Data inconsistency detected", {
+            description: "Trade history contains data from before the strategy was created. This will be cleaned up."
+          });
+        }
+        
         const { data: tradesData, error: tradesError } = await supabase
           .from("backtest_trades")
           .select("*")
-          .eq("backtest_id", backtests[0].id)
+          .eq("backtest_id", latestBacktest.id)
           .order("date", { ascending: false })
           .limit(20);
         
         if (!tradesError && tradesData) {
+          // Filter out trades that occur before strategy creation
+          const validTrades = tradesData.filter(trade => {
+            const tradeDate = new Date(trade.date);
+            const isValid = tradeDate >= strategyCreatedAt;
+            if (!isValid) {
+              console.warn(`Filtering out trade ${trade.id} with date ${tradeDate.toISOString()} as it predates strategy creation`);
+            }
+            return isValid;
+          });
+          
+          if (validTrades.length !== tradesData.length) {
+            console.log(`Filtered out ${tradesData.length - validTrades.length} trades that predated strategy creation`);
+          }
+          
           // Get current prices for open positions
-          const uniqueAssets = [...new Set(tradesData.map(trade => strategyData.targetAsset).filter(Boolean))];
+          const uniqueAssets = [...new Set(validTrades.map(trade => strategyData.targetAsset).filter(Boolean))];
           const currentPrices = new Map();
           
           for (const asset of uniqueAssets) {
@@ -100,7 +126,7 @@ const StrategyDetail = () => {
           }
 
           // Format trade data for display - risk management is already applied during backtesting
-          const formattedTrades = tradesData.map(trade => {
+          const formattedTrades = validTrades.map(trade => {
             const currentPrice = currentPrices.get(strategyData.targetAsset);
             let calculatedProfit = trade.profit;
             let calculatedProfitPercentage = trade.profit_percentage;

@@ -205,31 +205,66 @@ export const getRiskManagementForStrategy = async (strategyId: string) => {
 };
 
 export const generateStrategy = async (assetType: string, selectedAsset: string, description: string): Promise<GeneratedStrategy> => {
+  console.log('=== Starting strategy generation ===');
+  console.log('Input parameters:', { assetType, selectedAsset, descriptionLength: description.length });
+
   try {
-    console.log('Calling generate-strategy edge function with:', {
+    // Pre-flight validation
+    if (!assetType || !selectedAsset || !description) {
+      throw {
+        message: "Missing required parameters",
+        type: "validation_error",
+        retryable: false,
+        details: ["All fields (asset type, asset, and description) are required"]
+      } as ServiceError;
+    }
+
+    if (description.length < 10) {
+      throw {
+        message: "Strategy description too short",
+        type: "validation_error", 
+        retryable: false,
+        details: ["Description must be at least 10 characters long"]
+      } as ServiceError;
+    }
+
+    console.log('Calling generate-strategy edge function...');
+    
+    const requestPayload = {
       assetType,
       selectedAsset,
       strategyDescription: description
-    });
+    };
+    
+    console.log('Request payload prepared:', requestPayload);
 
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: {
-        assetType,
-        selectedAsset,
-        strategyDescription: description
-      }
+      body: requestPayload
     });
 
+    console.log('Edge function response received');
+    console.log('Error:', error);
+    console.log('Data type:', typeof data);
+    console.log('Data preview:', data ? JSON.stringify(data).substring(0, 200) + '...' : 'null');
+
     if (error) {
-      console.error('Edge function error:', error);
+      console.error('Edge function error details:', {
+        message: error.message,
+        context: error.context,
+        details: error.details
+      });
       
-      // Handle different types of errors
+      // Handle different types of errors from edge function
       if (error.message?.includes('Failed to fetch')) {
         throw {
           message: "Unable to connect to AI service. The service may be temporarily unavailable.",
           type: "connection_error",
           retryable: true,
-          details: ["Check your internet connection", "The AI service may be restarting", "Try again in a few moments"]
+          details: [
+            "Check your internet connection", 
+            "The AI service may be restarting", 
+            "Try again in a few moments"
+          ]
         } as ServiceError;
       }
       
@@ -238,8 +273,26 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
           message: "Request timed out. Please try with a simpler strategy description.",
           type: "timeout_error",
           retryable: true,
-          details: ["Try reducing the complexity of your strategy description", "Use fewer technical indicators", "Break down complex requirements"]
+          details: [
+            "Try reducing the complexity of your strategy description", 
+            "Use fewer technical indicators", 
+            "Break down complex requirements"
+          ]
         } as ServiceError;
+      }
+
+      if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+        throw {
+          message: "Service is currently busy. Please wait a moment and try again.",
+          type: "rate_limit_error",
+          retryable: true,
+          details: ["Too many requests", "Wait 30-60 seconds before retrying"]
+        } as ServiceError;
+      }
+
+      // Check if error response contains structured error data
+      if (typeof error === 'object' && error.type && error.message) {
+        throw error as ServiceError;
       }
 
       // Generic error handling
@@ -247,26 +300,54 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
         message: error.message || "AI service is currently unavailable",
         type: "api_error",
         retryable: true,
-        details: ["The AI service may be temporarily down", "Try using the template strategy option", "Contact support if the issue persists"]
+        details: [
+          "The AI service may be temporarily down", 
+          "Try using the template strategy option", 
+          "Contact support if the issue persists"
+        ]
       } as ServiceError;
     }
 
     if (!data) {
+      console.error('No data received from edge function');
       throw {
         message: "No response received from AI service",
         type: "api_error",
         retryable: true,
-        details: ["The AI service returned an empty response", "Try again with a different strategy description"]
+        details: [
+          "The AI service returned an empty response", 
+          "Try again with a different strategy description"
+        ]
       } as ServiceError;
     }
 
-    console.log('Strategy generated successfully:', data);
-    return data;
+    // Validate response structure
+    if (typeof data !== 'object' || !data.name || !data.entryRules || !data.exitRules) {
+      console.error('Invalid strategy structure received:', data);
+      throw {
+        message: "Invalid response format from AI service",
+        type: "parsing_error",
+        retryable: true,
+        details: [
+          "The AI service returned malformed data",
+          "Try simplifying your strategy description",
+          "Contact support if the issue persists"
+        ]
+      } as ServiceError;
+    }
+
+    console.log('Strategy generated successfully:', { 
+      name: data.name,
+      entryRulesCount: data.entryRules?.length || 0,
+      exitRulesCount: data.exitRules?.length || 0
+    });
+    
+    return data as GeneratedStrategy;
   } catch (error: any) {
     console.error('Error in generateStrategy:', error);
     
     // If it's already a ServiceError, re-throw it
-    if (error.type) {
+    if (error.type && error.message) {
       throw error;
     }
     
@@ -276,7 +357,11 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
         message: "Network connection failed. Please check your internet connection.",
         type: "connection_error",
         retryable: true,
-        details: ["Check your internet connection", "Try refreshing the page", "The service may be temporarily unavailable"]
+        details: [
+          "Check your internet connection", 
+          "Try refreshing the page", 
+          "The service may be temporarily unavailable"
+        ]
       } as ServiceError;
     }
     
@@ -285,7 +370,11 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
       message: "An unexpected error occurred while generating the strategy",
       type: "unknown_error",
       retryable: true,
-      details: ["Try again in a few moments", "Use the template strategy option", "Contact support if the issue persists"]
+      details: [
+        "Try again in a few moments", 
+        "Use the template strategy option", 
+        "Contact support if the issue persists"
+      ]
     } as ServiceError;
   }
 };
@@ -414,14 +503,18 @@ export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy
 
 export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
+    console.log('Checking AI service health...');
+    
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: { healthCheck: true }
     });
 
     if (error) {
+      console.error('Health check failed:', error);
       return { healthy: false, error: error.message };
     }
 
+    console.log('Health check successful:', data);
     return { healthy: true, details: data };
   } catch (error) {
     console.error("Health check failed:", error);

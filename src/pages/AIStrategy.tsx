@@ -3,16 +3,18 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
-import { useNavigate, useBeforeUnload } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { generateStrategy, GeneratedStrategy, checkAIServiceHealth, ServiceError } from "@/services/strategyService";
 import { toast } from "sonner";
-import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw, Wifi, WifiOff } from "lucide-react";
+import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw, Wifi, WifiOff, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Navbar } from "@/components/Navbar";
+import { useActivityLogger } from "@/hooks/useActivityLogger";
 
 const AIStrategy = () => {
   const { user } = useAuth();
+  const { logActivity } = useActivityLogger();
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [strategyDescription, setStrategyDescription] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -20,6 +22,7 @@ const AIStrategy = () => {
   const [retryCount, setRetryCount] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [serviceHealth, setServiceHealth] = useState<{ healthy: boolean; details?: any; error?: string } | null>(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState<boolean>(false);
   const navigate = useNavigate();
 
   // Monitor network connectivity
@@ -28,6 +31,7 @@ const AIStrategy = () => {
       setIsOnline(true);
       setError(null);
       console.log("Network connection restored");
+      toast.success("Internet connection restored");
     };
     
     const handleOffline = () => {
@@ -38,6 +42,7 @@ const AIStrategy = () => {
         retryable: true
       });
       console.log("Network connection lost");
+      toast.error("Internet connection lost");
     };
 
     window.addEventListener('online', handleOnline);
@@ -49,25 +54,46 @@ const AIStrategy = () => {
     };
   }, []);
 
-  // Check AI service health on component mount
+  // Check AI service health on component mount and periodically
   useEffect(() => {
     const checkHealth = async () => {
+      if (!isOnline) return;
+      
+      setIsCheckingHealth(true);
       try {
+        console.log("Performing AI service health check...");
         const health = await checkAIServiceHealth();
         setServiceHealth(health);
-        console.log("AI service health check:", health);
+        console.log("AI service health check result:", health);
+        
+        if (!health.healthy) {
+          setError({
+            message: "AI service is currently unavailable",
+            type: "service_unavailable",
+            retryable: true,
+            details: ["Service health check failed", "Try again in a few moments"]
+          });
+        }
       } catch (error) {
         console.error("Health check failed:", error);
         setServiceHealth({ healthy: false, error: "Health check failed" });
+      } finally {
+        setIsCheckingHealth(false);
       }
     };
 
     checkHealth();
-  }, []);
+    
+    // Check health every 30 seconds
+    const healthCheckInterval = setInterval(checkHealth, 30000);
+    
+    return () => clearInterval(healthCheckInterval);
+  }, [isOnline]);
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
     setError(null);
+    console.log("Asset selected:", symbol);
   };
 
   const handleStrategyDescriptionChange = (value: string) => {
@@ -76,6 +102,9 @@ const AIStrategy = () => {
   };
 
   const handleGenerateStrategy = async () => {
+    console.log("=== Strategy generation initiated ===");
+    console.log("Generation attempt:", retryCount + 1);
+    
     // Pre-flight checks
     if (!isOnline) {
       toast.error("No internet connection. Please check your network and try again.");
@@ -86,7 +115,8 @@ const AIStrategy = () => {
       toast.error("Please select an asset for your trading strategy");
       return;
     }
-    if (!strategyDescription) {
+    
+    if (!strategyDescription.trim()) {
       toast.error("Please provide a description of your trading strategy");
       return;
     }
@@ -96,20 +126,34 @@ const AIStrategy = () => {
       return;
     }
 
+    // Check service health before attempting generation
+    if (serviceHealth && !serviceHealth.healthy) {
+      toast.error("AI service is currently unavailable. Please try again later.");
+      return;
+    }
+
     // Clear previous errors and set loading state
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log("Generating strategy with enhanced error handling:", {
+      console.log("Generating strategy with parameters:", {
         assetType: 'stocks',
         selectedAsset,
-        strategyDescription: strategyDescription.substring(0, 100) + "...",
+        strategyDescriptionLength: strategyDescription.length,
         retryAttempt: retryCount,
         timestamp: new Date().toISOString()
       });
       
+      // Log activity
+      await logActivity(
+        'generate',
+        'AI Strategy Generation Started',
+        `Generating strategy for ${selectedAsset}: ${strategyDescription.substring(0, 50)}...`
+      );
+      
       const strategy = await generateStrategy('stocks', selectedAsset, strategyDescription);
+      
       console.log("Strategy generated successfully:", { 
         name: strategy.name,
         timestamp: new Date().toISOString()
@@ -118,16 +162,32 @@ const AIStrategy = () => {
       setRetryCount(0); // Reset retry count on success
       setError(null);
 
+      // Log successful generation
+      await logActivity(
+        'generate',
+        'AI Strategy Generated Successfully',
+        `Generated "${strategy.name}" for ${selectedAsset}`,
+        strategy.name
+      );
+
       toast.success("AI has successfully generated a trading strategy based on your description");
       
       // Navigate to the new preview page with the generated strategy
       navigate('/strategy-preview', { 
         state: { generatedStrategy: strategy }
       });
+      
     } catch (serviceError: any) {
       console.error("Strategy generation failed:", serviceError);
       setError(serviceError);
       setRetryCount(prev => prev + 1);
+
+      // Log failed generation
+      await logActivity(
+        'generate',
+        'AI Strategy Generation Failed',
+        `Failed to generate strategy for ${selectedAsset}: ${serviceError.message}`
+      );
 
       // Show appropriate toast message based on error type
       const errorMessages = {
@@ -137,44 +197,67 @@ const AIStrategy = () => {
         rate_limit_error: "Service is busy. Please wait a moment and try again.",
         validation_error: serviceError.message || "Please check your input and try again.",
         parsing_error: "AI response processing failed. Please try again.",
+        service_unavailable: "AI service is temporarily unavailable. Please try again later.",
         unknown_error: "An unexpected error occurred. Please try again."
       };
 
       const message = errorMessages[serviceError.type] || errorMessages.unknown_error;
       toast.error(message);
 
-      // Auto-retry for certain error types
+      // Auto-retry for certain error types (but limit retries)
       if (serviceError.retryable && retryCount < 1) {
         console.log("Auto-retrying due to retryable error...");
         setTimeout(() => {
           handleGenerateStrategy();
-        }, 2000);
+        }, 3000);
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRetryGeneration = () => {
+  const handleRetryGeneration = async () => {
     if (retryCount >= 2) {
       toast.warning("Try using fewer requirements or simpler language for better results");
     }
+    
+    // Force a health check before retry
+    setIsCheckingHealth(true);
+    try {
+      const health = await checkAIServiceHealth();
+      setServiceHealth(health);
+      
+      if (!health.healthy) {
+        toast.error("AI service is still unavailable. Please wait a moment.");
+        return;
+      }
+    } catch (error) {
+      console.error("Health check failed during retry:", error);
+    } finally {
+      setIsCheckingHealth(false);
+    }
+    
     handleGenerateStrategy();
   };
 
-  const handleUseFallbackData = () => {
-    import("@/services/strategyService").then(({
-      generateFallbackStrategy
-    }) => {
-      const fallbackStrategy = generateFallbackStrategy("stocks", selectedAsset, strategyDescription);
-      
-      // Navigate to preview page with fallback strategy
-      navigate('/strategy-preview', { 
-        state: { generatedStrategy: fallbackStrategy }
-      });
-      
-      toast.success("A template strategy has been created based on your asset selection");
+  const handleUseFallbackData = async () => {
+    const { generateFallbackStrategy } = await import("@/services/strategyService");
+    const fallbackStrategy = generateFallbackStrategy("stocks", selectedAsset, strategyDescription);
+    
+    // Log fallback usage
+    await logActivity(
+      'generate',
+      'Template Strategy Created',
+      `Created template strategy for ${selectedAsset}`,
+      fallbackStrategy.name
+    );
+    
+    // Navigate to preview page with fallback strategy
+    navigate('/strategy-preview', { 
+      state: { generatedStrategy: fallbackStrategy }
     });
+    
+    toast.success("A template strategy has been created based on your asset selection");
   };
 
   const openSupabaseDocs = () => {
@@ -187,6 +270,7 @@ const AIStrategy = () => {
   const isTimeoutError = error?.type === "timeout_error";
   const isRateLimitError = error?.type === "rate_limit_error";
   const isValidationError = error?.type === "validation_error";
+  const isServiceUnavailable = error?.type === "service_unavailable";
 
   return (
     <div className="min-h-screen bg-background">
@@ -208,12 +292,33 @@ const AIStrategy = () => {
           <p className="text-muted-foreground">
             Select your stock and describe your ideal trading strategy in detail
           </p>
-          {serviceHealth?.healthy && (
-            <div className="flex items-center mt-2 text-green-600 text-sm">
-              <Wifi className="h-3 w-3 mr-1" />
-              AI service is online and ready
-            </div>
-          )}
+          
+          {/* Service Status */}
+          <div className="flex items-center mt-2 gap-4">
+            {isCheckingHealth ? (
+              <div className="flex items-center text-blue-600 text-sm">
+                <Activity className="h-3 w-3 mr-1 animate-spin" />
+                Checking service status...
+              </div>
+            ) : serviceHealth?.healthy ? (
+              <div className="flex items-center text-green-600 text-sm">
+                <Wifi className="h-3 w-3 mr-1" />
+                AI service is online and ready
+              </div>
+            ) : (
+              <div className="flex items-center text-red-600 text-sm">
+                <WifiOff className="h-3 w-3 mr-1" />
+                AI service is offline
+              </div>
+            )}
+            
+            {isOnline && (
+              <div className="flex items-center text-green-600 text-sm">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Internet connected
+              </div>
+            )}
+          </div>
         </div>
 
         <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
@@ -228,7 +333,8 @@ const AIStrategy = () => {
                isAPIKeyError ? "Configuration Error" : 
                isTimeoutError ? "Request Timeout" :
                isRateLimitError ? "Service Busy" :
-               isValidationError ? "Input Validation Error" : "AI Service Error"}
+               isValidationError ? "Input Validation Error" :
+               isServiceUnavailable ? "Service Unavailable" : "AI Service Error"}
             </AlertTitle>
             <AlertDescription>
               <div className="mt-2">
@@ -244,7 +350,12 @@ const AIStrategy = () => {
 
                 <div className="flex flex-col sm:flex-row gap-2">
                   {error.retryable && (
-                    <Button variant="outline" size="sm" onClick={handleRetryGeneration}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRetryGeneration}
+                      disabled={isCheckingHealth}
+                    >
                       <RefreshCcw className="w-3 h-3 mr-1" />
                       {retryCount > 0 ? `Retry (${retryCount + 1})` : "Retry"}
                     </Button>
@@ -276,7 +387,7 @@ const AIStrategy = () => {
           <Button 
             className="w-full" 
             onClick={handleGenerateStrategy} 
-            disabled={isLoading || !strategyDescription || !selectedAsset || !isOnline}
+            disabled={isLoading || !strategyDescription || !selectedAsset || !isOnline || isCheckingHealth}
           >
             {isLoading ? (
               <>

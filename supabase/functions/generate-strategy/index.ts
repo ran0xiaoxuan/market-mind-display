@@ -11,6 +11,7 @@ serve(async (req) => {
   console.log('=== Generate Strategy Function Started ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
@@ -20,35 +21,100 @@ serve(async (req) => {
   try {
     console.log('Processing strategy generation request...');
     
-    const requestBody = await req.json().catch((e) => {
-      console.error('Failed to parse request body:', e);
-      return {};
-    });
-    console.log('Request body received:', requestBody);
+    // Enhanced request body parsing with detailed error handling
+    let requestBody;
+    try {
+      const rawBody = await req.text();
+      console.log('Raw request body length:', rawBody.length);
+      console.log('Raw request body preview:', rawBody.substring(0, 200));
+      
+      if (!rawBody.trim()) {
+        console.error('Empty request body received');
+        return new Response(
+          JSON.stringify({
+            message: 'Request body is empty',
+            type: 'validation_error',
+            retryable: false
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      requestBody = JSON.parse(rawBody);
+      console.log('Request body parsed successfully:', {
+        hasAssetType: !!requestBody.assetType,
+        hasSelectedAsset: !!requestBody.selectedAsset,
+        hasStrategyDescription: !!requestBody.strategyDescription,
+        hasHealthCheck: !!requestBody.healthCheck,
+        descriptionLength: requestBody.strategyDescription?.length || 0
+      });
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({
+          message: 'Invalid JSON in request body',
+          type: 'validation_error',
+          retryable: false
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     const { assetType, selectedAsset, strategyDescription, healthCheck } = requestBody;
     
     // Health check endpoint
     if (healthCheck) {
       console.log('Health check requested');
+      const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+      
       return new Response(
         JSON.stringify({ 
           healthy: true, 
           status: 'AI service is operational', 
-          timestamp: new Date().toISOString() 
+          timestamp: new Date().toISOString(),
+          openaiConfigured: !!openaiApiKey,
+          environment: 'production'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Validate required parameters
-    if (!assetType || !selectedAsset || !strategyDescription) {
-      console.log('Missing required parameters:', { assetType, selectedAsset, strategyDescription });
+    // Enhanced parameter validation
+    const missingParams = [];
+    if (!assetType) missingParams.push('assetType');
+    if (!selectedAsset) missingParams.push('selectedAsset');
+    if (!strategyDescription) missingParams.push('strategyDescription');
+    
+    if (missingParams.length > 0) {
+      console.log('Missing required parameters:', missingParams);
       return new Response(
         JSON.stringify({
-          message: 'Missing required parameters: assetType, selectedAsset, and strategyDescription are required',
+          message: `Missing required parameters: ${missingParams.join(', ')}`,
           type: 'validation_error',
-          retryable: false
+          retryable: false,
+          details: [`Required fields: ${missingParams.join(', ')}`]
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    if (strategyDescription.length < 10) {
+      console.log('Strategy description too short:', strategyDescription.length);
+      return new Response(
+        JSON.stringify({
+          message: 'Strategy description must be at least 10 characters long',
+          type: 'validation_error',
+          retryable: false,
+          details: ['Please provide a more detailed strategy description']
         }),
         { 
           status: 400,
@@ -59,6 +125,7 @@ serve(async (req) => {
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     console.log('OpenAI API key status:', openaiApiKey ? 'present' : 'missing');
+    console.log('OpenAI API key length:', openaiApiKey ? openaiApiKey.length : 0);
     
     if (!openaiApiKey) {
       console.error('OpenAI API key not configured');
@@ -66,7 +133,8 @@ serve(async (req) => {
         JSON.stringify({
           message: 'AI service is not properly configured. Please contact support.',
           type: 'api_key_error',
-          retryable: false
+          retryable: false,
+          details: ['OpenAI API key is missing from server configuration']
         }),
         { 
           status: 500,
@@ -176,8 +244,19 @@ IMPORTANT RULES:
 Return ONLY the JSON object.`;
 
     console.log('Making request to OpenAI API...');
+    console.log('Request details:', {
+      model: 'gpt-4o-mini',
+      promptLength: prompt.length,
+      timestamp: new Date().toISOString()
+    });
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('Request timeout triggered (45 seconds)');
+        controller.abort();
+      }, 45000); // 45 second timeout
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -199,19 +278,59 @@ Return ONLY the JSON object.`;
           temperature: 0.7,
           max_tokens: 2000,
         }),
+        signal: controller.signal
       });
 
-      console.log('OpenAI API response status:', response.status);
+      clearTimeout(timeoutId);
+      console.log('OpenAI API response received');
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        console.error('OpenAI API error:', response.status, errorText);
+        console.error('OpenAI API error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 500)
+        });
+        
+        // Handle specific API errors
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({
+              message: 'AI service is currently busy. Please wait a moment and try again.',
+              type: 'rate_limit_error',
+              retryable: true,
+              details: ['Service is experiencing high demand', 'Wait 30-60 seconds before retrying']
+            }),
+            { 
+              status: 429,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        }
+
+        if (response.status === 401) {
+          return new Response(
+            JSON.stringify({
+              message: 'AI service authentication failed. Please contact support.',
+              type: 'api_key_error',
+              retryable: false,
+              details: ['Invalid or expired API key']
+            }),
+            { 
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        }
         
         return new Response(
           JSON.stringify({
             message: `OpenAI API error: ${response.status} - ${response.statusText}`,
             type: 'api_error',
-            retryable: true
+            retryable: true,
+            details: [`API returned status ${response.status}`, 'Try again in a few moments']
           }),
           { 
             status: 500,
@@ -221,16 +340,25 @@ Return ONLY the JSON object.`;
       }
 
       const data = await response.json();
-      console.log('OpenAI response received successfully');
+      console.log('OpenAI response data structure:', {
+        hasChoices: !!data.choices,
+        choicesLength: data.choices?.length || 0,
+        hasUsage: !!data.usage,
+        model: data.model
+      });
       
       const content = data.choices?.[0]?.message?.content;
       if (!content) {
-        console.error('No content in OpenAI response:', data);
+        console.error('No content in OpenAI response:', {
+          dataKeys: Object.keys(data),
+          choices: data.choices
+        });
         return new Response(
           JSON.stringify({
             message: 'No response from AI service',
             type: 'api_error',
-            retryable: true
+            retryable: true,
+            details: ['AI service returned empty response', 'Try again with different strategy description']
           }),
           { 
             status: 500,
@@ -238,21 +366,34 @@ Return ONLY the JSON object.`;
           }
         )
       }
+
+      console.log('OpenAI content received:', {
+        contentLength: content.length,
+        contentPreview: content.substring(0, 100) + '...'
+      });
 
       // Parse the JSON response
       let strategy;
       try {
         const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        console.log('Cleaned content length:', cleanContent.length);
+        
         strategy = JSON.parse(cleanContent);
-        console.log('Strategy parsed successfully:', strategy.name);
+        console.log('Strategy parsed successfully:', {
+          name: strategy.name,
+          hasEntryRules: !!strategy.entryRules,
+          hasExitRules: !!strategy.exitRules,
+          hasRiskManagement: !!strategy.riskManagement
+        });
       } catch (parseError) {
         console.error('Failed to parse OpenAI response:', parseError);
-        console.error('Raw content:', content);
+        console.error('Raw content sample:', content.substring(0, 500));
         return new Response(
           JSON.stringify({
             message: 'Invalid response format from AI service',
             type: 'parsing_error',
-            retryable: true
+            retryable: true,
+            details: ['AI service returned malformed JSON', 'Try simplifying your strategy description']
           }),
           { 
             status: 500,
@@ -261,14 +402,22 @@ Return ONLY the JSON object.`;
         )
       }
 
-      // Basic validation
-      if (!strategy.name || !strategy.entryRules || !strategy.exitRules) {
-        console.error('Invalid strategy structure:', strategy);
+      // Enhanced validation
+      const validationErrors = [];
+      if (!strategy.name) validationErrors.push('Missing strategy name');
+      if (!strategy.entryRules || !Array.isArray(strategy.entryRules)) validationErrors.push('Missing or invalid entry rules');
+      if (!strategy.exitRules || !Array.isArray(strategy.exitRules)) validationErrors.push('Missing or invalid exit rules');
+      if (!strategy.riskManagement) validationErrors.push('Missing risk management');
+      
+      if (validationErrors.length > 0) {
+        console.error('Strategy validation failed:', validationErrors);
+        console.error('Strategy structure:', Object.keys(strategy));
         return new Response(
           JSON.stringify({
             message: 'Generated strategy has invalid structure',
             type: 'validation_error',
-            retryable: true
+            retryable: true,
+            details: validationErrors
           }),
           { 
             status: 500,
@@ -277,20 +426,46 @@ Return ONLY the JSON object.`;
         )
       }
 
-      console.log('Strategy generation completed successfully');
+      console.log('Strategy generation completed successfully:', {
+        name: strategy.name,
+        entryRulesCount: strategy.entryRules.length,
+        exitRulesCount: strategy.exitRules.length,
+        timestamp: new Date().toISOString()
+      });
+      
       return new Response(
         JSON.stringify(strategy),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
 
     } catch (fetchError) {
-      console.error('Fetch error:', fetchError);
+      console.error('Fetch error details:', {
+        name: fetchError.name,
+        message: fetchError.message,
+        stack: fetchError.stack
+      });
+      
+      if (fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({
+            message: 'Request timed out. Please try with a simpler strategy description.',
+            type: 'timeout_error',
+            retryable: true,
+            details: ['Request exceeded 45 second limit', 'Try reducing complexity of strategy description']
+          }),
+          { 
+            status: 408,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
       
       return new Response(
         JSON.stringify({
           message: 'Network error occurred while contacting AI service',
           type: 'connection_error',
-          retryable: true
+          retryable: true,
+          details: ['Unable to reach OpenAI API', 'Check service status and try again']
         }),
         { 
           status: 500,
@@ -300,13 +475,18 @@ Return ONLY the JSON object.`;
     }
 
   } catch (error) {
-    console.error('Error in generate-strategy function:', error);
+    console.error('Unexpected error in generate-strategy function:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     
     return new Response(
       JSON.stringify({
         message: 'An unexpected error occurred',
         type: 'unknown_error',
-        retryable: true
+        retryable: true,
+        details: ['Internal server error', 'Please try again or contact support']
       }),
       { 
         status: 500,

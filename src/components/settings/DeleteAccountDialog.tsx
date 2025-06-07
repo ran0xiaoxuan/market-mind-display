@@ -36,15 +36,24 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication error",
+        description: "No user session found. Please log in again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsDeleting(true);
     
     try {
-      console.log('Starting account deletion for user:', user?.id);
+      console.log('Starting account deletion for user:', user.id);
       
       // Get the current session to send the JWT token
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('No active session found');
       }
 
@@ -63,7 +72,20 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
 
       if (error) {
         console.error('Error calling delete-user-account function:', error);
-        throw new Error(error.message || 'Failed to delete account');
+        
+        // Handle different types of errors
+        if (error.message?.includes('Failed to fetch')) {
+          throw new Error('Network error. Please check your connection and try again.');
+        } else if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else {
+          throw new Error(error.message || 'Failed to delete account');
+        }
+      }
+
+      // Check if the response indicates an error
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       console.log('Account deletion response:', data);
@@ -79,14 +101,23 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       // Clear the confirmation text
       setConfirmationText("");
       
-      // Sign out the user
-      await signOut();
+      // Add a small delay before signing out to ensure the toast is shown
+      setTimeout(async () => {
+        await signOut();
+      }, 1000);
       
     } catch (error: any) {
       console.error('Error deleting account:', error);
+      
+      let errorMessage = "An unexpected error occurred. Please try again or contact support.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Delete failed",
-        description: error.message || "An unexpected error occurred. Please try again or contact support.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -109,6 +140,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
               <li>Backtest history and results</li>
               <li>Profile information</li>
               <li>Account settings</li>
+              <li>Notification preferences</li>
             </ul>
             <p className="text-sm text-muted-foreground">
               Note: You will be automatically signed out after deletion.
@@ -123,12 +155,16 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
                 onChange={(e) => setConfirmationText(e.target.value)}
                 placeholder="Type DELETE here"
                 className="mt-1"
+                disabled={isDeleting}
               />
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setConfirmationText("")}>
+          <AlertDialogCancel 
+            onClick={() => setConfirmationText("")}
+            disabled={isDeleting}
+          >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction

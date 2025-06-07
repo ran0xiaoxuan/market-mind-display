@@ -29,7 +29,7 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
 
   // Calculate transaction amount as sum of (Price * Volume) for each trade
   let displayValue = value;
-  if (title === "Transaction Amount" && trades && Array.isArray(trades)) {
+  if (title === "Transaction Amount of Signals" && trades && Array.isArray(trades)) {
     console.log(`MetricCard: Calculating transaction amount for ${trades.length} trades`);
     const transactionAmount = trades.reduce((total, trade) => {
       // Remove dollar sign and parse the price correctly
@@ -43,9 +43,9 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
     }, 0);
     console.log(`MetricCard: Final transaction amount = ${transactionAmount}`);
     displayValue = `$${transactionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  } else if (title === "Transaction Amount" && typeof value === "number") {
+  } else if (title === "Transaction Amount of Signals" && typeof value === "number") {
     displayValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  } else if (title === "Transaction Amount" && typeof value === "string" && !value.startsWith("$")) {
+  } else if (title === "Transaction Amount of Signals" && typeof value === "string" && !value.startsWith("$")) {
     displayValue = `$${value}`;
   }
 

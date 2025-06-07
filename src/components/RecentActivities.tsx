@@ -1,9 +1,11 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Zap, Edit, Play, Pause, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getRecentActivities, Activity } from "@/services/activityService";
+
 const getActivityIcon = (type: Activity['type']) => {
   switch (type) {
     case 'generate':
@@ -20,6 +22,7 @@ const getActivityIcon = (type: Activity['type']) => {
       return <Clock className="h-4 w-4 text-gray-500" />;
   }
 };
+
 const getActivityBadge = (type: Activity['type']) => {
   switch (type) {
     case 'generate':
@@ -36,6 +39,7 @@ const getActivityBadge = (type: Activity['type']) => {
       return <Badge variant="secondary">Activity</Badge>;
   }
 };
+
 const formatTimeAgo = (date: Date) => {
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
@@ -47,9 +51,11 @@ const formatTimeAgo = (date: Date) => {
   if (diffInDays < 7) return `${diffInDays}d ago`;
   return date.toLocaleDateString();
 };
+
 export const RecentActivities = () => {
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchActivities = async () => {
       try {
@@ -62,7 +68,69 @@ export const RecentActivities = () => {
         setLoading(false);
       }
     };
+
     fetchActivities();
   }, []);
-  return;
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activities</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent Activities</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {recentActivities.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">No recent activities</p>
+        ) : (
+          <ScrollArea className="h-80">
+            <div className="space-y-4">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {getActivityBadge(activity.type)}
+                      <span className="text-xs text-muted-foreground">
+                        {formatTimeAgo(new Date(activity.timestamp))}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground">{activity.description}</p>
+                    {activity.strategyName && (
+                      <p className="text-xs text-muted-foreground">
+                        Strategy: {activity.strategyName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </CardContent>
+    </Card>
+  );
 };

@@ -196,7 +196,7 @@ const Dashboard = () => {
               <MetricCard title="Total Strategies" value={metrics.strategiesCount} change={metrics.strategiesChange} />
               <MetricCard title="Active Strategies" value={metrics.activeStrategies} change={metrics.activeChange} />
               <MetricCard title="Signal Amount" value={metrics.signalAmount} change={metrics.signalChange} />
-              <MetricCard title="Transaction Amount" value={metrics.transactionAmount} change={metrics.transactionChange} trades={tradeHistory} />
+              <MetricCard title="Transaction Amount of Signals" value={metrics.transactionAmount} change={metrics.transactionChange} trades={tradeHistory} />
             </div>
           )}
 

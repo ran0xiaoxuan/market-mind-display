@@ -205,201 +205,140 @@ export const getRiskManagementForStrategy = async (strategyId: string) => {
 };
 
 export const generateStrategy = async (assetType: string, selectedAsset: string, description: string): Promise<GeneratedStrategy> => {
-  console.log('=== Starting strategy generation ===');
-  console.log('Input parameters:', { assetType, selectedAsset, descriptionLength: description.length });
+  console.log('=== Starting AI strategy generation ===');
+  console.log('Parameters:', { assetType, selectedAsset, descriptionLength: description.length });
+
+  // Enhanced validation
+  if (!assetType || !selectedAsset || !description) {
+    throw {
+      message: "Missing required parameters",
+      type: "validation_error",
+      retryable: false,
+      details: ["All fields are required"]
+    } as ServiceError;
+  }
+
+  if (description.length < 10) {
+    throw {
+      message: "Strategy description too short",
+      type: "validation_error", 
+      retryable: false,
+      details: ["Description must be at least 10 characters"]
+    } as ServiceError;
+  }
+
+  const requestPayload = {
+    assetType,
+    selectedAsset,
+    strategyDescription: description
+  };
+
+  console.log('Sending request to edge function...');
 
   try {
-    // Pre-flight validation
-    if (!assetType || !selectedAsset || !description) {
-      throw {
-        message: "Missing required parameters",
-        type: "validation_error",
-        retryable: false,
-        details: ["All fields (asset type, asset, and description) are required"]
-      } as ServiceError;
-    }
-
-    if (description.length < 10) {
-      throw {
-        message: "Strategy description too short",
-        type: "validation_error", 
-        retryable: false,
-        details: ["Description must be at least 10 characters long"]
-      } as ServiceError;
-    }
-
-    console.log('Calling generate-strategy edge function...');
-    
-    const requestPayload = {
-      assetType,
-      selectedAsset,
-      strategyDescription: description
-    };
-    
-    console.log('Request payload prepared:', requestPayload);
-
-    // Use a timeout wrapper for the edge function call
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 60000); // 60 second timeout
-    });
-
-    const requestPromise = supabase.functions.invoke('generate-strategy', {
-      body: requestPayload,
+    // Use direct fetch to edge function as fallback
+    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/generate-strategy`, {
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabase.supabaseKey}`,
+        'apikey': supabase.supabaseKey,
+      },
+      body: JSON.stringify(requestPayload),
     });
 
-    const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
+    console.log('Direct fetch response status:', response.status);
 
-    console.log('Edge function response received');
-    console.log('Error:', error);
-    console.log('Data type:', typeof data);
-    console.log('Data preview:', data ? JSON.stringify(data).substring(0, 200) + '...' : 'null');
-
-    if (error) {
-      console.error('Edge function error details:', {
-        message: error.message,
-        context: error.context,
-        details: error.details
-      });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Direct fetch error:', errorText);
       
-      // Handle different types of errors from edge function
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
+      if (response.status === 404) {
         throw {
-          message: "Unable to connect to AI service. The service may be temporarily unavailable.",
-          type: "connection_error",
+          message: "AI service endpoint not found",
+          type: "service_unavailable",
           retryable: true,
-          details: [
-            "Check your internet connection", 
-            "The AI service may be restarting", 
-            "Try again in a few moments"
-          ]
-        } as ServiceError;
-      }
-      
-      if (error.message?.includes('timeout')) {
-        throw {
-          message: "Request timed out. Please try with a simpler strategy description.",
-          type: "timeout_error",
-          retryable: true,
-          details: [
-            "Try reducing the complexity of your strategy description", 
-            "Use fewer technical indicators", 
-            "Break down complex requirements"
-          ]
+          details: ["The AI service may be deploying", "Try again in a moment"]
         } as ServiceError;
       }
 
-      if (error.message?.includes('rate limit') || error.message?.includes('429')) {
-        throw {
-          message: "Service is currently busy. Please wait a moment and try again.",
-          type: "rate_limit_error",
-          retryable: true,
-          details: ["Too many requests", "Wait 30-60 seconds before retrying"]
-        } as ServiceError;
-      }
-
-      // Check if error response contains structured error data
-      if (typeof error === 'object' && error.type && error.message) {
-        throw error as ServiceError;
-      }
-
-      // Generic error handling
       throw {
-        message: error.message || "AI service is currently unavailable",
+        message: `AI service error: ${response.status}`,
         type: "service_unavailable",
         retryable: true,
-        details: [
-          "The AI service may be temporarily down", 
-          "Try using the template strategy option", 
-          "Contact support if the issue persists"
-        ]
+        details: ["Service temporarily unavailable"]
       } as ServiceError;
     }
 
-    if (!data) {
-      console.error('No data received from edge function');
-      throw {
-        message: "No response received from AI service",
-        type: "service_unavailable",
-        retryable: true,
-        details: [
-          "The AI service returned an empty response", 
-          "Try again with a different strategy description"
-        ]
-      } as ServiceError;
-    }
-
+    const data = await response.json();
+    console.log('Strategy generated successfully via direct fetch');
+    
     // Validate response structure
-    if (typeof data !== 'object' || !data.name || !data.entryRules || !data.exitRules) {
-      console.error('Invalid strategy structure received:', data);
+    if (!data || !data.name || !data.entryRules || !data.exitRules) {
       throw {
-        message: "Invalid response format from AI service",
+        message: "Invalid response from AI service",
         type: "parsing_error",
         retryable: true,
-        details: [
-          "The AI service returned malformed data",
-          "Try simplifying your strategy description",
-          "Contact support if the issue persists"
-        ]
+        details: ["AI service returned incomplete data"]
       } as ServiceError;
     }
 
-    console.log('Strategy generated successfully:', { 
-      name: data.name,
-      entryRulesCount: data.entryRules?.length || 0,
-      exitRulesCount: data.exitRules?.length || 0
-    });
-    
     return data as GeneratedStrategy;
-  } catch (error: any) {
-    console.error('Error in generateStrategy:', error);
-    
-    // If it's already a ServiceError, re-throw it
-    if (error.type && error.message) {
-      throw error;
-    }
-    
-    // Handle network errors
-    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      throw {
-        message: "Network connection failed. Please check your internet connection.",
-        type: "connection_error",
-        retryable: true,
-        details: [
-          "Check your internet connection", 
-          "Try refreshing the page", 
-          "The service may be temporarily unavailable"
-        ]
-      } as ServiceError;
-    }
 
-    // Handle timeout errors
-    if (error.message === 'Request timeout') {
+  } catch (fetchError: any) {
+    console.error('Direct fetch failed, trying Supabase client...');
+    
+    // Fallback to Supabase client method
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-strategy', {
+        body: requestPayload,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (error) {
+        console.error('Supabase client error:', error);
+        throw {
+          message: "AI service unavailable",
+          type: "connection_error",
+          retryable: true,
+          details: ["Unable to connect to AI service", "Check your connection"]
+        } as ServiceError;
+      }
+
+      if (!data) {
+        throw {
+          message: "No response from AI service",
+          type: "service_unavailable",
+          retryable: true,
+          details: ["Service returned empty response"]
+        } as ServiceError;
+      }
+
+      console.log('Strategy generated successfully via Supabase client');
+      return data as GeneratedStrategy;
+
+    } catch (supabaseError: any) {
+      console.error('Both methods failed:', supabaseError);
+      
+      // Handle specific error types
+      if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+        throw {
+          message: "Network connection failed",
+          type: "connection_error",
+          retryable: true,
+          details: ["Check your internet connection", "Service may be temporarily down"]
+        } as ServiceError;
+      }
+
       throw {
-        message: "Request timed out. Please try again.",
-        type: "timeout_error",
+        message: "AI service is temporarily unavailable",
+        type: "service_unavailable",
         retryable: true,
-        details: [
-          "The request took too long to complete", 
-          "Try again with a simpler description", 
-          "Check your internet connection"
-        ]
+        details: ["Try the template strategy option", "Service will be restored shortly"]
       } as ServiceError;
     }
-    
-    // Generic fallback
-    throw {
-      message: "AI service is temporarily unavailable",
-      type: "service_unavailable",
-      retryable: true,
-      details: [
-        "Try again in a few moments", 
-        "Use the template strategy option", 
-        "Contact support if the issue persists"
-      ]
-    } as ServiceError;
   }
 };
 
@@ -527,66 +466,65 @@ export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy
 
 export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
-    console.log('Performing comprehensive AI service health check...');
+    console.log('Checking AI service health...');
     
-    // First, try a simple edge function invocation
-    const healthCheckPromise = supabase.functions.invoke('generate-strategy', {
-      body: { healthCheck: true },
+    // Try direct fetch first
+    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/generate-strategy`, {
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabase.supabaseKey}`,
+        'apikey': supabase.supabaseKey,
+      },
+      body: JSON.stringify({ healthCheck: true }),
     });
 
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Health check timeout')), 10000); // 10 second timeout
-    });
-
-    const { data, error } = await Promise.race([healthCheckPromise, timeoutPromise]) as any;
-
-    if (error) {
-      console.error('Health check failed:', error);
-      
-      // If it's a fetch error, the service is likely down
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
-        return { 
-          healthy: false, 
-          error: "Edge function is not accessible - service may be offline",
-          details: { errorType: 'connection_error', timestamp: new Date().toISOString() }
-        };
-      }
-      
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Health check successful via direct fetch');
       return { 
-        healthy: false, 
-        error: error.message,
-        details: { errorType: 'unknown_error', timestamp: new Date().toISOString() }
+        healthy: true, 
+        details: { 
+          ...data, 
+          method: 'direct_fetch',
+          timestamp: new Date().toISOString() 
+        } 
       };
     }
 
-    console.log('Health check successful:', data);
+    console.log('Direct fetch failed, trying Supabase client...');
+    
+    // Fallback to Supabase client
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: { healthCheck: true },
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!error && data) {
+      console.log('Health check successful via Supabase client');
+      return { 
+        healthy: true, 
+        details: { 
+          ...data, 
+          method: 'supabase_client',
+          timestamp: new Date().toISOString() 
+        } 
+      };
+    }
+
+    console.error('Both health check methods failed');
     return { 
-      healthy: true, 
-      details: { 
-        ...data, 
-        timestamp: new Date().toISOString(),
-        status: 'operational' 
-      } 
+      healthy: false, 
+      error: "Service is offline - unable to connect via any method",
+      details: { timestamp: new Date().toISOString() }
     };
+
   } catch (error: any) {
     console.error("Health check failed:", error);
-    
-    if (error.message === 'Health check timeout') {
-      return { 
-        healthy: false, 
-        error: "Health check timed out - service may be slow or unresponsive",
-        details: { errorType: 'timeout_error', timestamp: new Date().toISOString() }
-      };
-    }
-    
     return { 
       healthy: false, 
       error: "Health check failed: " + error.message,
-      details: { errorType: 'health_check_error', timestamp: new Date().toISOString() }
+      details: { timestamp: new Date().toISOString() }
     };
   }
 };

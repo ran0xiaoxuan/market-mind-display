@@ -11,7 +11,7 @@ serve(async (req) => {
   console.log('=== Generate Strategy Function Started ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  console.log('Timestamp:', new Date().toISOString());
 
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
@@ -68,19 +68,41 @@ serve(async (req) => {
     
     const { assetType, selectedAsset, strategyDescription, healthCheck } = requestBody;
     
-    // Health check endpoint
+    // Enhanced health check endpoint
     if (healthCheck) {
-      console.log('Health check requested');
+      console.log('Health check requested - performing comprehensive check');
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
       
+      // Test OpenAI connectivity
+      let openaiHealthy = false;
+      try {
+        if (openaiApiKey) {
+          const testResponse = await fetch('https://api.openai.com/v1/models', {
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+            },
+          });
+          openaiHealthy = testResponse.ok;
+          console.log('OpenAI API test result:', testResponse.status);
+        }
+      } catch (error) {
+        console.log('OpenAI API test failed:', error.message);
+      }
+      
+      const healthStatus = {
+        healthy: true,
+        status: 'AI service is operational',
+        timestamp: new Date().toISOString(),
+        openaiConfigured: !!openaiApiKey,
+        openaiHealthy: openaiHealthy,
+        environment: 'production',
+        version: '2.0.0'
+      };
+      
+      console.log('Health check completed:', healthStatus);
+      
       return new Response(
-        JSON.stringify({ 
-          healthy: true, 
-          status: 'AI service is operational', 
-          timestamp: new Date().toISOString(),
-          openaiConfigured: !!openaiApiKey,
-          environment: 'production'
-        }),
+        JSON.stringify(healthStatus),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -125,7 +147,6 @@ serve(async (req) => {
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     console.log('OpenAI API key status:', openaiApiKey ? 'present' : 'missing');
-    console.log('OpenAI API key length:', openaiApiKey ? openaiApiKey.length : 0);
     
     if (!openaiApiKey) {
       console.error('OpenAI API key not configured');
@@ -253,9 +274,9 @@ Return ONLY the JSON object.`;
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log('Request timeout triggered (45 seconds)');
+        console.log('Request timeout triggered (50 seconds)');
         controller.abort();
-      }, 45000); // 45 second timeout
+      }, 50000); // 50 second timeout
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -284,7 +305,6 @@ Return ONLY the JSON object.`;
       clearTimeout(timeoutId);
       console.log('OpenAI API response received');
       console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -451,7 +471,7 @@ Return ONLY the JSON object.`;
             message: 'Request timed out. Please try with a simpler strategy description.',
             type: 'timeout_error',
             retryable: true,
-            details: ['Request exceeded 45 second limit', 'Try reducing complexity of strategy description']
+            details: ['Request exceeded 50 second limit', 'Try reducing complexity of strategy description']
           }),
           { 
             status: 408,
@@ -478,7 +498,8 @@ Return ONLY the JSON object.`;
     console.error('Unexpected error in generate-strategy function:', {
       name: error.name,
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     });
     
     return new Response(

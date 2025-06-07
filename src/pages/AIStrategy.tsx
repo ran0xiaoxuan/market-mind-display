@@ -23,6 +23,7 @@ const AIStrategy = () => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [serviceHealth, setServiceHealth] = useState<{ healthy: boolean; details?: any; error?: string } | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState<boolean>(false);
+  const [lastHealthCheck, setLastHealthCheck] = useState<Date | null>(null);
   const navigate = useNavigate();
 
   // Monitor network connectivity
@@ -32,6 +33,8 @@ const AIStrategy = () => {
       setError(null);
       console.log("Network connection restored");
       toast.success("Internet connection restored");
+      // Trigger health check when coming back online
+      checkHealth();
     };
     
     const handleOffline = () => {
@@ -54,41 +57,49 @@ const AIStrategy = () => {
     };
   }, []);
 
+  // Enhanced health check function
+  const checkHealth = async () => {
+    if (!isOnline) return;
+    
+    setIsCheckingHealth(true);
+    try {
+      console.log("Performing comprehensive AI service health check...");
+      const health = await checkAIServiceHealth();
+      setServiceHealth(health);
+      setLastHealthCheck(new Date());
+      console.log("AI service health check result:", health);
+      
+      if (!health.healthy) {
+        setError({
+          message: "AI service is currently unavailable",
+          type: "service_unavailable",
+          retryable: true,
+          details: [health.error || "Service health check failed", "Try again in a few moments"]
+        });
+      } else {
+        // Clear error if service is healthy
+        setError(null);
+      }
+    } catch (error) {
+      console.error("Health check failed:", error);
+      setServiceHealth({ healthy: false, error: "Health check failed" });
+      setLastHealthCheck(new Date());
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
+
   // Check AI service health on component mount and periodically
   useEffect(() => {
-    const checkHealth = async () => {
-      if (!isOnline) return;
-      
-      setIsCheckingHealth(true);
-      try {
-        console.log("Performing AI service health check...");
-        const health = await checkAIServiceHealth();
-        setServiceHealth(health);
-        console.log("AI service health check result:", health);
-        
-        if (!health.healthy) {
-          setError({
-            message: "AI service is currently unavailable",
-            type: "service_unavailable",
-            retryable: true,
-            details: ["Service health check failed", "Try again in a few moments"]
-          });
-        }
-      } catch (error) {
-        console.error("Health check failed:", error);
-        setServiceHealth({ healthy: false, error: "Health check failed" });
-      } finally {
-        setIsCheckingHealth(false);
-      }
-    };
-
     checkHealth();
     
-    // Check health every 30 seconds
-    const healthCheckInterval = setInterval(checkHealth, 30000);
+    // Check health every 30 seconds, but more frequently if service is down
+    const healthCheckInterval = setInterval(() => {
+      checkHealth();
+    }, serviceHealth?.healthy ? 30000 : 10000); // 30s if healthy, 10s if not
     
     return () => clearInterval(healthCheckInterval);
-  }, [isOnline]);
+  }, [isOnline, serviceHealth?.healthy]);
 
   const handleAssetSelect = (symbol: string) => {
     setSelectedAsset(symbol);
@@ -222,19 +233,11 @@ const AIStrategy = () => {
     }
     
     // Force a health check before retry
-    setIsCheckingHealth(true);
-    try {
-      const health = await checkAIServiceHealth();
-      setServiceHealth(health);
-      
-      if (!health.healthy) {
-        toast.error("AI service is still unavailable. Please wait a moment.");
-        return;
-      }
-    } catch (error) {
-      console.error("Health check failed during retry:", error);
-    } finally {
-      setIsCheckingHealth(false);
+    await checkHealth();
+    
+    if (serviceHealth && !serviceHealth.healthy) {
+      toast.error("AI service is still unavailable. Please wait a moment.");
+      return;
     }
     
     handleGenerateStrategy();
@@ -293,8 +296,8 @@ const AIStrategy = () => {
             Select your stock and describe your ideal trading strategy in detail
           </p>
           
-          {/* Service Status */}
-          <div className="flex items-center mt-2 gap-4">
+          {/* Enhanced Service Status */}
+          <div className="flex items-center mt-2 gap-4 flex-wrap">
             {isCheckingHealth ? (
               <div className="flex items-center text-blue-600 text-sm">
                 <Activity className="h-3 w-3 mr-1 animate-spin" />
@@ -304,11 +307,23 @@ const AIStrategy = () => {
               <div className="flex items-center text-green-600 text-sm">
                 <Wifi className="h-3 w-3 mr-1" />
                 AI service is online and ready
+                {serviceHealth.details?.openaiHealthy && (
+                  <span className="ml-2 text-xs bg-green-100 px-2 py-1 rounded">OpenAI Connected</span>
+                )}
               </div>
             ) : (
               <div className="flex items-center text-red-600 text-sm">
                 <WifiOff className="h-3 w-3 mr-1" />
                 AI service is offline
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={checkHealth}
+                  className="ml-2 h-6 px-2 text-xs"
+                >
+                  <RefreshCcw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
               </div>
             )}
             
@@ -316,6 +331,12 @@ const AIStrategy = () => {
               <div className="flex items-center text-green-600 text-sm">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Internet connected
+              </div>
+            )}
+
+            {lastHealthCheck && (
+              <div className="text-xs text-muted-foreground">
+                Last checked: {lastHealthCheck.toLocaleTimeString()}
               </div>
             )}
           </div>
@@ -387,7 +408,7 @@ const AIStrategy = () => {
           <Button 
             className="w-full" 
             onClick={handleGenerateStrategy} 
-            disabled={isLoading || !strategyDescription || !selectedAsset || !isOnline || isCheckingHealth}
+            disabled={isLoading || !strategyDescription || !selectedAsset || !isOnline || isCheckingHealth || (serviceHealth && !serviceHealth.healthy)}
           >
             {isLoading ? (
               <>

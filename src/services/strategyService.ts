@@ -238,9 +238,19 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
     
     console.log('Request payload prepared:', requestPayload);
 
-    const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: requestPayload
+    // Use a timeout wrapper for the edge function call
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 60000); // 60 second timeout
     });
+
+    const requestPromise = supabase.functions.invoke('generate-strategy', {
+      body: requestPayload,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
 
     console.log('Edge function response received');
     console.log('Error:', error);
@@ -255,7 +265,7 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
       });
       
       // Handle different types of errors from edge function
-      if (error.message?.includes('Failed to fetch')) {
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
         throw {
           message: "Unable to connect to AI service. The service may be temporarily unavailable.",
           type: "connection_error",
@@ -298,7 +308,7 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
       // Generic error handling
       throw {
         message: error.message || "AI service is currently unavailable",
-        type: "api_error",
+        type: "service_unavailable",
         retryable: true,
         details: [
           "The AI service may be temporarily down", 
@@ -312,7 +322,7 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
       console.error('No data received from edge function');
       throw {
         message: "No response received from AI service",
-        type: "api_error",
+        type: "service_unavailable",
         retryable: true,
         details: [
           "The AI service returned an empty response", 
@@ -364,11 +374,25 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
         ]
       } as ServiceError;
     }
+
+    // Handle timeout errors
+    if (error.message === 'Request timeout') {
+      throw {
+        message: "Request timed out. Please try again.",
+        type: "timeout_error",
+        retryable: true,
+        details: [
+          "The request took too long to complete", 
+          "Try again with a simpler description", 
+          "Check your internet connection"
+        ]
+      } as ServiceError;
+    }
     
     // Generic fallback
     throw {
-      message: "An unexpected error occurred while generating the strategy",
-      type: "unknown_error",
+      message: "AI service is temporarily unavailable",
+      type: "service_unavailable",
       retryable: true,
       details: [
         "Try again in a few moments", 
@@ -503,22 +527,67 @@ export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy
 
 export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
-    console.log('Checking AI service health...');
+    console.log('Performing comprehensive AI service health check...');
     
-    const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: { healthCheck: true }
+    // First, try a simple edge function invocation
+    const healthCheckPromise = supabase.functions.invoke('generate-strategy', {
+      body: { healthCheck: true },
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
+
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Health check timeout')), 10000); // 10 second timeout
+    });
+
+    const { data, error } = await Promise.race([healthCheckPromise, timeoutPromise]) as any;
 
     if (error) {
       console.error('Health check failed:', error);
-      return { healthy: false, error: error.message };
+      
+      // If it's a fetch error, the service is likely down
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
+        return { 
+          healthy: false, 
+          error: "Edge function is not accessible - service may be offline",
+          details: { errorType: 'connection_error', timestamp: new Date().toISOString() }
+        };
+      }
+      
+      return { 
+        healthy: false, 
+        error: error.message,
+        details: { errorType: 'unknown_error', timestamp: new Date().toISOString() }
+      };
     }
 
     console.log('Health check successful:', data);
-    return { healthy: true, details: data };
-  } catch (error) {
+    return { 
+      healthy: true, 
+      details: { 
+        ...data, 
+        timestamp: new Date().toISOString(),
+        status: 'operational' 
+      } 
+    };
+  } catch (error: any) {
     console.error("Health check failed:", error);
-    return { healthy: false, error: "Health check failed" };
+    
+    if (error.message === 'Health check timeout') {
+      return { 
+        healthy: false, 
+        error: "Health check timed out - service may be slow or unresponsive",
+        details: { errorType: 'timeout_error', timestamp: new Date().toISOString() }
+      };
+    }
+    
+    return { 
+      healthy: false, 
+      error: "Health check failed: " + error.message,
+      details: { errorType: 'health_check_error', timestamp: new Date().toISOString() }
+    };
   }
 };
 

@@ -8,27 +8,65 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('=== Generate Strategy Function Started ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { assetType, selectedAsset, strategyDescription } = await req.json()
+    console.log('Processing strategy generation request...');
+    
+    const requestBody = await req.json().catch(() => ({}));
+    console.log('Request body received:', Object.keys(requestBody));
+    
+    const { assetType, selectedAsset, strategyDescription, healthCheck } = requestBody;
     
     // Health check endpoint
-    if (req.body && JSON.stringify(req.body).includes('healthCheck')) {
+    if (healthCheck) {
+      console.log('Health check requested');
       return new Response(
-        JSON.stringify({ healthy: true, status: 'AI service is operational' }),
+        JSON.stringify({ healthy: true, status: 'AI service is operational', timestamp: new Date().toISOString() }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate required parameters
+    if (!assetType || !selectedAsset || !strategyDescription) {
+      console.log('Missing required parameters:', { assetType, selectedAsset, strategyDescription });
+      return new Response(
+        JSON.stringify({
+          message: 'Missing required parameters: assetType, selectedAsset, and strategyDescription are required',
+          type: 'validation_error',
+          retryable: false
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       )
     }
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured')
+      console.log('OpenAI API key not configured');
+      return new Response(
+        JSON.stringify({
+          message: 'AI service is not properly configured. Please contact support.',
+          type: 'api_key_error',
+          retryable: false
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
-    // Define valid indicators that actually exist in our system
+    // Define valid indicators
     const validIndicators = [
       "SMA", "EMA", "WMA", "DEMA", "TEMA", "TRIMA", "KAMA", "VWMA",
       "RSI", "Stochastic", "StochRSI", "CCI", "Williams %R", "Ultimate Oscillator", 
@@ -41,27 +79,19 @@ serve(async (req) => {
 
     const prompt = `You are an expert trading strategy generator. Create a detailed trading strategy based on the user's description.
 
-CRITICAL CONSTRAINT: You MUST ONLY use indicators from this exact list of valid indicators:
+CRITICAL CONSTRAINT: You MUST ONLY use indicators from this exact list:
 ${validIndicators.join(", ")}
-
-DO NOT use any indicators not in this list. Examples of FORBIDDEN indicators include:
-- Earnings Surprise
-- Earnings Date 
-- Revenue Growth
-- P/E Ratio
-- Any fundamental analysis indicators
-- Any custom or non-standard technical indicators
 
 Asset Type: ${assetType}
 Selected Asset: ${selectedAsset}
 Strategy Description: ${strategyDescription}
 
-Generate a comprehensive trading strategy with the following structure. Pay special attention to OR groups and required conditions:
+Generate a comprehensive trading strategy with this exact JSON structure:
 
 {
   "name": "Strategy Name",
   "description": "Detailed strategy description",
-  "timeframe": "Daily/Hourly/4H etc",
+  "timeframe": "Daily",
   "targetAsset": "${selectedAsset}",
   "entryRules": [
     {
@@ -72,12 +102,12 @@ Generate a comprehensive trading strategy with the following structure. Pay spec
           "id": 1,
           "left": {
             "type": "INDICATOR",
-            "indicator": "RSI", // MUST be from the valid indicators list
+            "indicator": "RSI",
             "parameters": {"period": "14"},
             "value": "",
             "valueType": "number"
           },
-          "condition": "CROSSES_ABOVE",
+          "condition": "GREATER_THAN",
           "right": {
             "type": "VALUE",
             "indicator": "",
@@ -85,52 +115,7 @@ Generate a comprehensive trading strategy with the following structure. Pay spec
             "value": "30",
             "valueType": "number"
           },
-          "explanation": "RSI crosses above 30 indicating bullish momentum"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "logic": "OR",
-      "requiredConditions": 1, // MUST be less than the number of inequalities in this OR group
-      "inequalities": [
-        {
-          "id": 1,
-          "left": {
-            "type": "INDICATOR",
-            "indicator": "MACD", // MUST be from the valid indicators list
-            "parameters": {"fast": "12", "slow": "26", "signal": "9"},
-            "value": "",
-            "valueType": "number"
-          },
-          "condition": "CROSSES_ABOVE",
-          "right": {
-            "type": "VALUE",
-            "indicator": "",
-            "parameters": {},
-            "value": "0",
-            "valueType": "number"
-          },
-          "explanation": "MACD crosses above zero line"
-        },
-        {
-          "id": 2,
-          "left": {
-            "type": "INDICATOR",
-            "indicator": "Volume", // MUST be from the valid indicators list
-            "parameters": {"period": "20"},
-            "value": "",
-            "valueType": "number"
-          },
-          "condition": "GREATER_THAN",
-          "right": {
-            "type": "INDICATOR",
-            "indicator": "SMA",
-            "parameters": {"period": "20"},
-            "value": "",
-            "valueType": "number"
-          },
-          "explanation": "Volume is above 20-day average"
+          "explanation": "RSI above 30 indicates potential bullish momentum"
         }
       ]
     }
@@ -139,18 +124,18 @@ Generate a comprehensive trading strategy with the following structure. Pay spec
     {
       "id": 1,
       "logic": "OR",
-      "requiredConditions": 1, // MUST be less than the number of inequalities in this OR group
+      "requiredConditions": 1,
       "inequalities": [
         {
           "id": 1,
           "left": {
-            "type": "INDICATOR", 
-            "indicator": "RSI", // MUST be from the valid indicators list
+            "type": "INDICATOR",
+            "indicator": "RSI",
             "parameters": {"period": "14"},
             "value": "",
             "valueType": "number"
           },
-          "condition": "CROSSES_BELOW",
+          "condition": "LESS_THAN",
           "right": {
             "type": "VALUE",
             "indicator": "",
@@ -158,140 +143,182 @@ Generate a comprehensive trading strategy with the following structure. Pay spec
             "value": "70",
             "valueType": "number"
           },
-          "explanation": "RSI crosses below 70 indicating potential reversal"
+          "explanation": "RSI below 70 indicates potential exit signal"
         }
       ]
     }
   ],
   "riskManagement": {
     "stopLoss": "5",
-    "takeProfit": "10", 
+    "takeProfit": "10",
     "singleBuyVolume": "1000",
     "maxBuyVolume": "5000"
   }
 }
 
-Valid condition types: CROSSES_ABOVE, CROSSES_BELOW, GREATER_THAN, LESS_THAN, EQUAL, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL
+Valid conditions: GREATER_THAN, LESS_THAN, EQUAL, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, CROSSES_ABOVE, CROSSES_BELOW
 
 IMPORTANT RULES:
-1. ONLY use indicators from the provided valid indicators list
-2. For left side of conditions, use type "INDICATOR" or "PRICE" 
-3. For right side, use "INDICATOR", "PRICE", or "VALUE"
-4. Include proper parameters for each indicator (period, etc.)
-5. Provide clear explanations for each condition
-6. Create realistic and practical trading rules
-7. Ensure entry and exit rules make logical sense together
-8. FOR OR GROUPS: The "requiredConditions" field MUST be less than the total number of inequalities in that group
-9. FOR AND GROUPS: Do not include a "requiredConditions" field (all conditions must be met)
-10. If an OR group has 2 conditions, requiredConditions should be 1. If it has 3 conditions, requiredConditions should be 1 or 2, etc.
+1. ONLY use indicators from the provided list
+2. For OR groups: requiredConditions must be less than total inequalities
+3. For AND groups: do not include requiredConditions field
+4. Return ONLY valid JSON, no additional text
 
-Return ONLY the JSON object, no additional text.`
+Return ONLY the JSON object.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a professional trading strategy generator. Always respond with valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
-    })
+    console.log('Making request to OpenAI...');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('OpenAI API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
-    }
-
-    const data = await response.json()
-    const content = data.choices[0]?.message?.content
-
-    if (!content) {
-      throw new Error('No content received from OpenAI')
-    }
-
-    // Parse the JSON response
-    let strategy
     try {
-      // Clean up the response if it has markdown formatting
-      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      strategy = JSON.parse(cleanContent)
-    } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', content)
-      throw new Error('Invalid JSON response from AI service')
-    }
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional trading strategy generator. Always respond with valid JSON only.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+        signal: controller.signal
+      });
 
-    // Validate that only valid indicators are used
-    const validateIndicators = (rules) => {
-      for (const ruleGroup of rules) {
-        for (const inequality of ruleGroup.inequalities) {
-          if (inequality.left.type === 'INDICATOR' && !validIndicators.includes(inequality.left.indicator)) {
-            throw new Error(`Invalid indicator used: ${inequality.left.indicator}. Must use only valid indicators.`)
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('OpenAI API error:', response.status, errorText);
+        
+        return new Response(
+          JSON.stringify({
+            message: `OpenAI API error: ${response.status}`,
+            type: 'api_error',
+            retryable: true
+          }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
-          if (inequality.right.type === 'INDICATOR' && !validIndicators.includes(inequality.right.indicator)) {
-            throw new Error(`Invalid indicator used: ${inequality.right.indicator}. Must use only valid indicators.`)
-          }
-        }
+        )
       }
-    }
 
-    // Validate OR group required conditions
-    const validateOrGroupRequiredConditions = (rules) => {
-      for (const ruleGroup of rules) {
-        if (ruleGroup.logic === 'OR' && ruleGroup.requiredConditions) {
-          const totalConditions = ruleGroup.inequalities.length
-          if (ruleGroup.requiredConditions >= totalConditions) {
-            throw new Error(`Invalid OR group: requiredConditions (${ruleGroup.requiredConditions}) must be less than total conditions (${totalConditions})`)
+      const data = await response.json();
+      console.log('OpenAI response received');
+      
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        console.error('No content in OpenAI response');
+        return new Response(
+          JSON.stringify({
+            message: 'No response from AI service',
+            type: 'api_error',
+            retryable: true
+          }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
-        }
+        )
       }
+
+      // Parse the JSON response
+      let strategy;
+      try {
+        const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        strategy = JSON.parse(cleanContent);
+        console.log('Strategy parsed successfully');
+      } catch (parseError) {
+        console.error('Failed to parse OpenAI response:', parseError);
+        return new Response(
+          JSON.stringify({
+            message: 'Invalid response format from AI service',
+            type: 'parsing_error',
+            retryable: true
+          }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      // Basic validation
+      if (!strategy.name || !strategy.entryRules || !strategy.exitRules) {
+        console.error('Invalid strategy structure');
+        return new Response(
+          JSON.stringify({
+            message: 'Generated strategy has invalid structure',
+            type: 'validation_error',
+            retryable: true
+          }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      console.log('Strategy generation completed successfully');
+      return new Response(
+        JSON.stringify(strategy),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('Fetch error:', fetchError);
+      
+      if (fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({
+            message: 'Request timed out. Please try again.',
+            type: 'timeout_error',
+            retryable: true
+          }),
+          { 
+            status: 408,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+      
+      return new Response(
+        JSON.stringify({
+          message: 'Network error occurred',
+          type: 'connection_error',
+          retryable: true
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
-
-    // Validate entry and exit rules
-    validateIndicators(strategy.entryRules || [])
-    validateIndicators(strategy.exitRules || [])
-    validateOrGroupRequiredConditions(strategy.entryRules || [])
-    validateOrGroupRequiredConditions(strategy.exitRules || [])
-
-    return new Response(
-      JSON.stringify(strategy),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
 
   } catch (error) {
-    console.error('Error in generate-strategy function:', error)
+    console.error('Error in generate-strategy function:', error);
     
-    // Return structured error response
-    const errorResponse = {
-      message: error.message || 'Strategy generation failed',
-      type: error.message?.includes('API key') ? 'api_key_error' : 
-            error.message?.includes('Invalid indicator') ? 'validation_error' :
-            error.message?.includes('Invalid OR group') ? 'validation_error' :
-            error.message?.includes('JSON') ? 'parsing_error' : 'unknown_error',
-      retryable: !error.message?.includes('API key'),
-      details: error.message?.includes('Invalid indicator') ? 
-        ['Please check that all indicators are from the supported list'] : 
-        error.message?.includes('Invalid OR group') ? 
-        ['Please check that OR group required conditions are valid'] : undefined
-    }
-
     return new Response(
-      JSON.stringify(errorResponse),
+      JSON.stringify({
+        message: 'An unexpected error occurred',
+        type: 'unknown_error',
+        retryable: true
+      }),
       { 
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )

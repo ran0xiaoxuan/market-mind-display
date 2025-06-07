@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 
@@ -206,24 +205,89 @@ export const getRiskManagementForStrategy = async (strategyId: string) => {
 };
 
 export const generateStrategy = async (assetType: string, selectedAsset: string, description: string): Promise<GeneratedStrategy> => {
-  const { data, error } = await supabase.functions.invoke('generate-strategy', {
-    body: {
+  try {
+    console.log('Calling generate-strategy edge function with:', {
       assetType,
       selectedAsset,
-      strategyDescription: description // Fix: send as strategyDescription instead of description
-    }
-  });
+      strategyDescription: description
+    });
 
-  if (error) {
-    console.error("Error generating strategy:", error);
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: {
+        assetType,
+        selectedAsset,
+        strategyDescription: description
+      }
+    });
+
+    if (error) {
+      console.error('Edge function error:', error);
+      
+      // Handle different types of errors
+      if (error.message?.includes('Failed to fetch')) {
+        throw {
+          message: "Unable to connect to AI service. The service may be temporarily unavailable.",
+          type: "connection_error",
+          retryable: true,
+          details: ["Check your internet connection", "The AI service may be restarting", "Try again in a few moments"]
+        } as ServiceError;
+      }
+      
+      if (error.message?.includes('timeout')) {
+        throw {
+          message: "Request timed out. Please try with a simpler strategy description.",
+          type: "timeout_error",
+          retryable: true,
+          details: ["Try reducing the complexity of your strategy description", "Use fewer technical indicators", "Break down complex requirements"]
+        } as ServiceError;
+      }
+
+      // Generic error handling
+      throw {
+        message: error.message || "AI service is currently unavailable",
+        type: "api_error",
+        retryable: true,
+        details: ["The AI service may be temporarily down", "Try using the template strategy option", "Contact support if the issue persists"]
+      } as ServiceError;
+    }
+
+    if (!data) {
+      throw {
+        message: "No response received from AI service",
+        type: "api_error",
+        retryable: true,
+        details: ["The AI service returned an empty response", "Try again with a different strategy description"]
+      } as ServiceError;
+    }
+
+    console.log('Strategy generated successfully:', data);
+    return data;
+  } catch (error: any) {
+    console.error('Error in generateStrategy:', error);
+    
+    // If it's already a ServiceError, re-throw it
+    if (error.type) {
+      throw error;
+    }
+    
+    // Handle network errors
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw {
+        message: "Network connection failed. Please check your internet connection.",
+        type: "connection_error",
+        retryable: true,
+        details: ["Check your internet connection", "Try refreshing the page", "The service may be temporarily unavailable"]
+      } as ServiceError;
+    }
+    
+    // Generic fallback
     throw {
-      message: error.message || "Failed to generate strategy",
-      type: "api_error",
-      retryable: true
+      message: "An unexpected error occurred while generating the strategy",
+      type: "unknown_error",
+      retryable: true,
+      details: ["Try again in a few moments", "Use the template strategy option", "Contact support if the issue persists"]
     } as ServiceError;
   }
-
-  return data;
 };
 
 export const saveGeneratedStrategy = async (generatedStrategy: GeneratedStrategy): Promise<string> => {

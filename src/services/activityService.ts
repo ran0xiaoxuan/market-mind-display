@@ -24,6 +24,18 @@ export const recordActivity = async (
       return;
     }
 
+    // For now, just log to console since user_activities table doesn't exist yet
+    console.log('Activity would be recorded:', {
+      user_id: userData.user.id,
+      activity_type: type,
+      title,
+      description,
+      strategy_name: strategyName,
+      created_at: new Date().toISOString()
+    });
+
+    // TODO: Implement when user_activities table is created
+    /*
     const { data, error } = await supabase
       .from('user_activities')
       .insert({
@@ -42,6 +54,7 @@ export const recordActivity = async (
 
     console.log('Activity recorded successfully:', data);
     return data;
+    */
   } catch (error) {
     console.error('Error in recordActivity:', error);
   }
@@ -55,6 +68,12 @@ export const getRecentActivities = async (limit: number = 10): Promise<Activity[
       return [];
     }
 
+    // For now, return empty array since user_activities table doesn't exist yet
+    console.log('Would fetch activities for user:', userData.user.id);
+    return [];
+
+    // TODO: Implement when user_activities table is created
+    /*
     const { data, error } = await supabase
       .from('user_activities')
       .select('*')
@@ -76,6 +95,7 @@ export const getRecentActivities = async (limit: number = 10): Promise<Activity[
       strategyName: activity.strategy_name,
       userId: activity.user_id
     }));
+    */
   } catch (error) {
     console.error('Error in getRecentActivities:', error);
     return [];

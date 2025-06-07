@@ -1,18 +1,10 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Zap, Edit, Play, Pause, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getRecentActivities, Activity } from "@/services/activityService";
-
-interface Activity {
-  id: string;
-  type: 'generate' | 'edit' | 'enable' | 'disable' | 'backtest';
-  title: string;
-  description: string;
-  timestamp: Date;
-  strategyName?: string;
-}
 
 const getActivityIcon = (type: Activity['type']) => {
   switch (type) {

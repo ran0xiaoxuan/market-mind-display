@@ -127,20 +127,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Delete trading signals (in case some weren't caught by strategy deletion)
-    console.log('Deleting remaining trading signals...');
-    const { error: tradingSignalsError } = await supabaseAdmin
-      .from('trading_signals')
-      .delete()
-      .in('strategy_id', userStrategies?.map(s => s.id) || []);
-
-    if (tradingSignalsError) {
-      console.error('Error deleting trading signals:', tradingSignalsError);
-    } else {
-      console.log('Trading signals deleted successfully');
-    }
-
-    // 5. Delete user roles
+    // 4. Delete user roles
     console.log('Deleting user roles...');
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
@@ -153,7 +140,7 @@ Deno.serve(async (req) => {
       console.log('User roles deleted successfully');
     }
 
-    // 6. Delete subscriber data
+    // 5. Delete subscriber data
     console.log('Deleting subscriber data...');
     const { error: subscribersError } = await supabaseAdmin
       .from('subscribers')
@@ -166,7 +153,7 @@ Deno.serve(async (req) => {
       console.log('Subscriber data deleted successfully');
     }
 
-    // 7. Delete profile
+    // 6. Delete profile
     console.log('Deleting profile...');
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -179,7 +166,7 @@ Deno.serve(async (req) => {
       console.log('Profile deleted successfully');
     }
 
-    // 8. Finally, delete the auth user account
+    // 7. Finally, delete the auth user account
     console.log('Deleting auth user...');
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
     

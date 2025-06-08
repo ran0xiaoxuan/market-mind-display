@@ -59,55 +59,19 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
 
       console.log('Calling delete-user-account function...');
 
-      // Call the Edge Function to delete the user account with retry logic
-      let lastError = null;
-      let success = false;
-      
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          console.log(`Attempt ${attempt} to delete account`);
-          
-          const { data, error } = await supabase.functions.invoke('delete-user-account', {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-          });
+      // Call the Edge Function to delete the user account
+      const { data, error } = await supabase.functions.invoke('delete-user-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
 
-          console.log(`Attempt ${attempt} response:`, { data, error });
+      console.log('Delete account response:', { data, error });
 
-          if (error) {
-            lastError = error;
-            
-            // If it's a network error, wait and retry
-            if (error.message?.includes('Failed to fetch') || error.message?.includes('Failed to send a request')) {
-              console.log(`Network error on attempt ${attempt}, retrying...`);
-              if (attempt < 3) {
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-                continue;
-              }
-            } else {
-              // Non-network error, don't retry
-              throw error;
-            }
-          } else {
-            // Success
-            success = true;
-            break;
-          }
-        } catch (attemptError) {
-          console.error(`Error on attempt ${attempt}:`, attemptError);
-          lastError = attemptError;
-          
-          if (attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-          }
-        }
-      }
-
-      if (!success) {
-        throw lastError || new Error('All deletion attempts failed');
+      if (error) {
+        throw error;
       }
 
       console.log('Account deletion successful');
@@ -123,10 +87,8 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       // Clear the confirmation text
       setConfirmationText("");
       
-      // Add a small delay before signing out to ensure the toast is shown
-      setTimeout(async () => {
-        await signOut();
-      }, 1000);
+      // Sign out and redirect to login
+      await signOut();
       
     } catch (error: any) {
       console.error('Error deleting account:', error);

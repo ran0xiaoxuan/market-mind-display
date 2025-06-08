@@ -251,7 +251,7 @@ export function TradingSettings() {
                   <li>Start a chat with your bot (search for its username)</li>
                   <li>Send any message to your bot</li>
                   <li>Visit: <code className="bg-slate-200 px-1 rounded">https://api.telegram.org/bot&lt;YOUR_BOT_TOKEN&gt;/getUpdates</code></li>
-                  <li>Look for <code className="bg-slate-200 px-1 rounded">"chat":{"id":123456789}</code> in the response</li>
+                  <li>Look for <code className="bg-slate-200 px-1 rounded">"chat":{`{"id":123456789}`}</code> in the response</li>
                 </ol>
               </div>
               
@@ -804,7 +804,19 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      {isPro}
+      {isPro && (
+        <div>
+          <h2 className="text-xl font-medium mb-2">Notification Preferences</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Customize which types of trading signals you want to receive
+          </p>
+          <Card>
+            <CardContent className="p-6">
+              {renderSignalNotificationTypes()}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

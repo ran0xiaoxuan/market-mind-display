@@ -134,6 +134,7 @@ export function TradingSettings() {
       toast.error("Failed to copy to clipboard");
     }
   };
+
   const DiscordHelpSection = () => (
     <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
       <CollapsibleTrigger asChild>
@@ -189,6 +190,7 @@ export function TradingSettings() {
       </CollapsibleContent>
     </Collapsible>
   );
+
   const TelegramHelpSection = () => (
     <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
       <CollapsibleTrigger asChild>
@@ -250,12 +252,12 @@ export function TradingSettings() {
                     https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
                   </li>
                   <li>Visit the URL in your browser</li>
-                  <li>Look for <code className="bg-blue-200 px-1 rounded">"chat":{"{"}{"id":123456789{"}"}</code> in the response</li>
+                  <li>Look for <code className="bg-blue-200 px-1 rounded">"chat":{'{'}"id":123456789{'}'}</code> in the response</li>
                   <li>The number after "id": is your chat ID</li>
                 </ol>
                 
                 <div className="bg-red-50 border border-red-200 rounded p-2">
-                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{"{"}{"ok": true, "result": []{"}"}}</code></p>
+                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{'{' }"ok": true, "result": []{' }'}</code></p>
                   <p className="text-red-700 text-xs">This means you haven't sent a message to your bot yet. Go back to step 1!</p>
                 </div>
               </div>

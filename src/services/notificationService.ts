@@ -66,12 +66,42 @@ export const saveNotificationSettings = async (settings: Partial<NotificationSet
 };
 
 export const verifyDiscordWebhook = async (webhookUrl: string) => {
-  const { data, error } = await supabase.functions.invoke('verify-discord-webhook', {
-    body: { webhookUrl }
-  });
+  try {
+    console.log('Starting Discord webhook verification for:', webhookUrl);
+    
+    // Basic client-side validation
+    if (!webhookUrl.trim()) {
+      throw new Error('Please enter a Discord webhook URL');
+    }
+    
+    if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+      throw new Error('Invalid Discord webhook URL format. URL should start with: https://discord.com/api/webhooks/');
+    }
 
-  if (error) throw error;
-  return data;
+    const { data, error } = await supabase.functions.invoke('verify-discord-webhook', {
+      body: { webhookUrl: webhookUrl.trim() }
+    });
+
+    console.log('Discord verification response:', { data, error });
+
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(error.message || 'Failed to verify Discord webhook');
+    }
+
+    if (data && data.error) {
+      throw new Error(data.error);
+    }
+
+    if (!data || !data.verified) {
+      throw new Error('Discord webhook verification failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Discord webhook verification error:', error);
+    throw error;
+  }
 };
 
 export const verifyTelegramBot = async (botToken: string, chatId: string) => {

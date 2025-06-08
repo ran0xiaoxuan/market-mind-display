@@ -17,6 +17,17 @@ serve(async (req) => {
 
     console.log('Verifying Discord webhook:', webhookUrl)
 
+    // Validate webhook URL format
+    if (!webhookUrl || typeof webhookUrl !== 'string') {
+      throw new Error('Invalid webhook URL provided')
+    }
+
+    // Check if URL is a valid Discord webhook URL
+    const discordWebhookRegex = /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/
+    if (!discordWebhookRegex.test(webhookUrl)) {
+      throw new Error('Invalid Discord webhook URL format. URL should be: https://discord.com/api/webhooks/ID/TOKEN')
+    }
+
     // Test the webhook with a simple message
     const testMessage = {
       embeds: [{
@@ -30,6 +41,8 @@ serve(async (req) => {
       }]
     }
 
+    console.log('Sending test message to Discord webhook...')
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -38,8 +51,25 @@ serve(async (req) => {
       body: JSON.stringify(testMessage)
     })
 
+    console.log('Discord API response status:', response.status)
+    
     if (!response.ok) {
-      throw new Error(`Webhook verification failed: ${response.status}`)
+      const errorText = await response.text()
+      console.error('Discord API error response:', errorText)
+      
+      let errorMessage = 'Discord webhook verification failed'
+      
+      if (response.status === 404) {
+        errorMessage = 'Discord webhook not found. Please check the URL is correct.'
+      } else if (response.status === 401 || response.status === 403) {
+        errorMessage = 'Discord webhook unauthorized. Please check the webhook URL and permissions.'
+      } else if (response.status === 429) {
+        errorMessage = 'Rate limited by Discord. Please try again later.'
+      } else {
+        errorMessage = `Discord API error (${response.status}): ${errorText}`
+      }
+      
+      throw new Error(errorMessage)
     }
 
     console.log('Discord webhook verified successfully')
@@ -58,10 +88,18 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error verifying Discord webhook:', error)
+    
+    let errorMessage = error.message || 'Unknown error occurred'
+    
+    // Handle JSON parsing errors
+    if (error.name === 'SyntaxError') {
+      errorMessage = 'Invalid request format'
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message,
+        error: errorMessage,
         verified: false
       }),
       { 

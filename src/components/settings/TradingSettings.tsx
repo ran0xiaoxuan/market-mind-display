@@ -195,12 +195,12 @@ export function TradingSettings() {
                     https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
                   </li>
                   <li>Visit the URL in your browser</li>
-                  <li>Look for <code className="bg-blue-200 px-1 rounded">"chat":{'{'}{"id":123456789{'}'}</code> in the response</li>
+                  <li>Look for <code className="bg-blue-200 px-1 rounded">"chat":{"id":123456789}</code> in the response</li>
                   <li>The number after "id": is your chat ID</li>
                 </ol>
                 
                 <div className="bg-red-50 border border-red-200 rounded p-2">
-                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{"{"}"ok": true, "result": []{'}'}{"}"}</code></p>
+                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{"ok": true, "result": []}</code></p>
                   <p className="text-red-700 text-xs">This means you haven't sent a message to your bot yet. Go back to step 1!</p>
                 </div>
               </div>
@@ -262,7 +262,8 @@ export function TradingSettings() {
   // Render content based on Pro status
   const renderNotificationSettings = () => {
     if (!isPro) {
-      return <>
+      return (
+        <>
           <div className="flex items-center gap-3 mb-4">
             <Lock className="h-5 w-5 text-amber-500" />
             <div>
@@ -286,13 +287,17 @@ export function TradingSettings() {
                       <p className="text-sm text-muted-foreground">Receive trading signals via email</p>
                     </div>
                   </div>
-                  <FormField control={form.control} name="email_enabled" render={({
-                  field
-                }) => <FormItem>
+                  <FormField 
+                    control={form.control} 
+                    name="email_enabled" 
+                    render={({ field }) => (
+                      <FormItem>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
-                      </FormItem>} />
+                      </FormItem>
+                    )} 
+                  />
                 </div>
                 
                 {/* Discord Integration */}
@@ -305,18 +310,25 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
                       </div>
                     </div>
-                    <FormField control={form.control} name="discord_enabled" render={({
-                    field
-                  }) => <FormItem>
+                    <FormField 
+                      control={form.control} 
+                      name="discord_enabled" 
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
-                        </FormItem>} />
+                        </FormItem>
+                      )} 
+                    />
                   </div>
                   
-                  {form.watch("discord_enabled") && <FormField control={form.control} name="discord_webhook_url" render={({
-                  field
-                }) => <FormItem>
+                  {form.watch("discord_enabled") && (
+                    <FormField 
+                      control={form.control} 
+                      name="discord_webhook_url" 
+                      render={({ field }) => (
+                        <FormItem>
                           <FormLabel>Discord Webhook URL</FormLabel>
                           <FormControl>
                             <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
@@ -324,7 +336,10 @@ export function TradingSettings() {
                           <FormDescription>
                             Create a webhook in your Discord server settings and paste the URL here
                           </FormDescription>
-                        </FormItem>} />}
+                        </FormItem>
+                      )} 
+                    />
+                  )}
                 </div>
                 
                 {/* Telegram Integration */}
@@ -337,19 +352,26 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
                       </div>
                     </div>
-                    <FormField control={form.control} name="telegram_enabled" render={({
-                    field
-                  }) => <FormItem>
+                    <FormField 
+                      control={form.control} 
+                      name="telegram_enabled" 
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
-                        </FormItem>} />
+                        </FormItem>
+                      )} 
+                    />
                   </div>
                   
-                  {form.watch("telegram_enabled") && <div className="space-y-4">
-                      <FormField control={form.control} name="telegram_bot_token" render={({
-                    field
-                  }) => <FormItem>
+                  {form.watch("telegram_enabled") && (
+                    <div className="space-y-4">
+                      <FormField 
+                        control={form.control} 
+                        name="telegram_bot_token" 
+                        render={({ field }) => (
+                          <FormItem>
                             <FormLabel>Telegram Bot Token</FormLabel>
                             <FormControl>
                               <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
@@ -357,11 +379,15 @@ export function TradingSettings() {
                             <FormDescription>
                               Create a bot with @BotFather and paste the token here
                             </FormDescription>
-                          </FormItem>} />
+                          </FormItem>
+                        )} 
+                      />
                       
-                      <FormField control={form.control} name="telegram_chat_id" render={({
-                    field
-                  }) => <FormItem>
+                      <FormField 
+                        control={form.control} 
+                        name="telegram_chat_id" 
+                        render={({ field }) => (
+                          <FormItem>
                             <FormLabel>Telegram Chat ID</FormLabel>
                             <FormControl>
                               <Input placeholder="-100123456789" {...field} />
@@ -369,15 +395,21 @@ export function TradingSettings() {
                             <FormDescription>
                               The ID of the chat where signals should be sent
                             </FormDescription>
-                          </FormItem>} />
-                    </div>}
+                          </FormItem>
+                        )} 
+                      />
+                    </div>
+                  )}
                 </div>
               </form>
             </Form>
           </div>
-        </>;
+        </>
+      );
     }
-    return <Form {...form}>
+
+    return (
+      <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           {/* Email Notifications */}
           <div className="flex items-center justify-between">
@@ -388,13 +420,17 @@ export function TradingSettings() {
                 <p className="text-sm text-muted-foreground">Receive trading signals via email</p>
               </div>
             </div>
-            <FormField control={form.control} name="email_enabled" render={({
-            field
-          }) => <FormItem>
+            <FormField 
+              control={form.control} 
+              name="email_enabled" 
+              render={({ field }) => (
+                <FormItem>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
-                </FormItem>} />
+                </FormItem>
+              )} 
+            />
           </div>
           
           {/* Discord Integration */}
@@ -407,21 +443,28 @@ export function TradingSettings() {
                   <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
                 </div>
               </div>
-              <FormField control={form.control} name="discord_enabled" render={({
-              field
-            }) => <FormItem>
+              <FormField 
+                control={form.control} 
+                name="discord_enabled" 
+                render={({ field }) => (
+                  <FormItem>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
-                  </FormItem>} />
+                  </FormItem>
+                )} 
+              />
             </div>
             
-            {form.watch("discord_enabled") && <div className="space-y-2 rounded-md bg-slate-50 p-4 border border-slate-200">
+            {form.watch("discord_enabled") && (
+              <div className="space-y-2 rounded-md bg-slate-50 p-4 border border-slate-200">
                 <DiscordHelpSection />
                 
-                <FormField control={form.control} name="discord_webhook_url" render={({
-              field
-            }) => <FormItem>
+                <FormField 
+                  control={form.control} 
+                  name="discord_webhook_url" 
+                  render={({ field }) => (
+                    <FormItem>
                       <FormLabel>Discord Webhook URL</FormLabel>
                       <FormControl>
                         <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
@@ -429,8 +472,11 @@ export function TradingSettings() {
                       <FormDescription>
                         Paste your Discord webhook URL here to receive trading signals
                       </FormDescription>
-                    </FormItem>} />
-              </div>}
+                    </FormItem>
+                  )} 
+                />
+              </div>
+            )}
           </div>
           
           {/* Telegram Integration */}
@@ -443,22 +489,29 @@ export function TradingSettings() {
                   <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
                 </div>
               </div>
-              <FormField control={form.control} name="telegram_enabled" render={({
-              field
-            }) => <FormItem>
+              <FormField 
+                control={form.control} 
+                name="telegram_enabled" 
+                render={({ field }) => (
+                  <FormItem>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
-                  </FormItem>} />
+                  </FormItem>
+                )} 
+              />
             </div>
             
-            {form.watch("telegram_enabled") && <div className="space-y-4 rounded-md bg-slate-50 p-4 border border-slate-200">
+            {form.watch("telegram_enabled") && (
+              <div className="space-y-4 rounded-md bg-slate-50 p-4 border border-slate-200">
                 <TelegramHelpSection />
                 
                 <div className="space-y-4">
-                  <FormField control={form.control} name="telegram_bot_token" render={({
-                field
-              }) => <FormItem>
+                  <FormField 
+                    control={form.control} 
+                    name="telegram_bot_token" 
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Telegram Bot Token</FormLabel>
                         <FormControl>
                           <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
@@ -466,11 +519,15 @@ export function TradingSettings() {
                         <FormDescription>
                           Get this from @BotFather when creating your bot
                         </FormDescription>
-                      </FormItem>} />
+                      </FormItem>
+                    )} 
+                  />
                   
-                  <FormField control={form.control} name="telegram_chat_id" render={({
-                field
-              }) => <FormItem>
+                  <FormField 
+                    control={form.control} 
+                    name="telegram_chat_id" 
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Telegram Chat ID</FormLabel>
                         <FormControl>
                           <Input placeholder="-100123456789 or 123456789" {...field} />
@@ -478,9 +535,12 @@ export function TradingSettings() {
                         <FormDescription>
                           The chat or group where signals will be sent
                         </FormDescription>
-                      </FormItem>} />
+                      </FormItem>
+                    )} 
+                  />
                 </div>
-              </div>}
+              </div>
+            )}
           </div>
           
           {/* Save Button */}
@@ -490,13 +550,15 @@ export function TradingSettings() {
             </Button>
           </div>
         </form>
-      </Form>;
+      </Form>
+    );
   };
 
   // Signal notification types section
   const renderSignalNotificationTypes = () => {
     if (!isPro) {
-      return <>
+      return (
+        <>
           <div className="flex items-center gap-3 mb-4">
             <Lock className="h-5 w-5 text-amber-500" />
             <div>
@@ -543,13 +605,18 @@ export function TradingSettings() {
               </div>
             </div>
           </div>
-        </>;
+        </>
+      );
     }
-    return <Form {...form}>
+
+    return (
+      <Form {...form}>
         <div className="space-y-4">
-          <FormField control={form.control} name="entry_signals" render={({
-          field
-        }) => <div className="flex items-center justify-between">
+          <FormField 
+            control={form.control} 
+            name="entry_signals" 
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Entry Signals</p>
                   <p className="text-sm text-muted-foreground">Notify when a new trade opportunity is detected</p>
@@ -559,11 +626,15 @@ export function TradingSettings() {
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
-              </div>} />
+              </div>
+            )} 
+          />
           
-          <FormField control={form.control} name="exit_signals" render={({
-          field
-        }) => <div className="flex items-center justify-between">
+          <FormField 
+            control={form.control} 
+            name="exit_signals" 
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Exit Signals</p>
                   <p className="text-sm text-muted-foreground">Notify when a position should be closed</p>
@@ -573,11 +644,15 @@ export function TradingSettings() {
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
-              </div>} />
+              </div>
+            )} 
+          />
           
-          <FormField control={form.control} name="stop_loss_alerts" render={({
-          field
-        }) => <div className="flex items-center justify-between">
+          <FormField 
+            control={form.control} 
+            name="stop_loss_alerts" 
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Stop Loss Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when stop loss is triggered</p>
@@ -587,11 +662,15 @@ export function TradingSettings() {
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
-              </div>} />
+              </div>
+            )} 
+          />
           
-          <FormField control={form.control} name="take_profit_alerts" render={({
-          field
-        }) => <div className="flex items-center justify-between">
+          <FormField 
+            control={form.control} 
+            name="take_profit_alerts" 
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Take Profit Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
@@ -601,10 +680,14 @@ export function TradingSettings() {
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
-              </div>} />
+              </div>
+            )} 
+          />
         </div>
-      </Form>;
+      </Form>
+    );
   };
+
   return (
     <div className="space-y-12">
       <div>

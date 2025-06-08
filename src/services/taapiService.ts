@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { IndicatorParameters } from "@/types/backtest";
 
@@ -109,6 +108,27 @@ export const getIndicatorData = async (
     return data;
   } catch (error) {
     console.error(`Error fetching ${indicator} indicator data:`, error);
+    return null;
+  }
+};
+
+// New function to get TAAPI indicator data with simplified parameters
+export const getTaapiIndicator = async (
+  indicator: string,
+  symbol: string,
+  interval: string = '1d',
+  parameters: any = {}
+): Promise<TaapiIndicatorResponse | null> => {
+  try {
+    const taapiParams: TaapiIndicatorParams = {
+      symbol: symbol,
+      interval: interval,
+      ...mapParametersToTaapi(indicator, parameters)
+    };
+    
+    return await getIndicatorData(indicator, taapiParams);
+  } catch (error) {
+    console.error(`Error fetching ${indicator} for ${symbol}:`, error);
     return null;
   }
 };

@@ -11,6 +11,7 @@ import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTabl
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 import { calculatePortfolioMetrics, getRealTradeHistory } from "@/services/marketDataService";
 import { getStrategies } from "@/services/strategyService";
+import { cleanupInvalidSignals, getCleanTradingSignals } from "@/services/signalCleanupService";
 import { toast } from "sonner";
 
 type TimeRange = "7d" | "30d" | "all";
@@ -39,7 +40,10 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      // Fetch strategies, portfolio metrics and trade history in parallel
+      // First clean up invalid signals
+      await cleanupInvalidSignals();
+      
+      // Fetch strategies, portfolio metrics and clean trade history in parallel
       const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([
         getStrategies(),
         calculatePortfolioMetrics(timeRange),

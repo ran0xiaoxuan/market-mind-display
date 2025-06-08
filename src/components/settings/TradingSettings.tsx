@@ -537,17 +537,7 @@ export function TradingSettings() {
                 field
               }) => <FormItem>
                         <FormLabel>Telegram Chat ID</FormLabel>
-                        <div className="flex space-x-2">
-                          <FormControl className="flex-1">
-                            <Input placeholder="-100123456789 or 123456789" {...field} disabled={isTelegramVerified} />
-                          </FormControl>
-                          {isTelegramVerified ? <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectTelegram}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button> : <Button type="button" onClick={verifyTelegramBotHandler} disabled={isLoading || !field.value || !form.getValues("telegram_bot_token")} className="whitespace-nowrap bg-sky-500 hover:bg-sky-600">
-                              <LinkIcon className="mr-2 h-4 w-4" />
-                              Verify
-                            </Button>}
-                        </div>
+                        
                         <div className="flex items-center mt-1">
                           {isTelegramVerified && <div className="flex items-center text-sm text-green-600">
                               <Check className="mr-1 h-4 w-4" />

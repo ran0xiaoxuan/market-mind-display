@@ -224,49 +224,52 @@ export function TradingSettings() {
 
           {/* Chat ID Section */}
           <div className="border-t pt-4">
-            <h4 className="font-medium text-sky-800 mb-2">Getting Chat ID (EASIEST METHOD):</h4>
+            <h4 className="font-medium text-sky-800 mb-2">Getting Chat ID:</h4>
             
             <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
-              <h5 className="font-medium text-green-800 mb-2">✅ Recommended: Use @get_id_bot</h5>
+              <h5 className="font-medium text-green-800 mb-2">✅ EASIEST METHOD: Use @get_id_bot</h5>
               <ol className="list-decimal list-inside space-y-1 text-green-700 text-sm">
                 <li>Search for <strong>@get_id_bot</strong> in Telegram</li>
-                <li>Start a chat and send any message</li>
+                <li>Start a chat and send any message (like "hello")</li>
                 <li>The bot will immediately reply with your chat ID</li>
-                <li>Copy the number it provides</li>
+                <li>Copy the number it provides (e.g., 123456789)</li>
               </ol>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <h5 className="font-medium text-slate-700 mb-2">Alternative: Manual API Method</h5>
-                <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
-                  <li><strong>IMPORTANT:</strong> First, search for your bot in Telegram and send it a message (like "hello")</li>
-                  <li>Replace YOUR_BOT_TOKEN in this URL with your actual bot token:</li>
-                  <li className="ml-4">
-                    <code className="bg-slate-200 px-1 rounded text-xs break-all">
-                      https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
-                    </code>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <h5 className="font-medium text-blue-800 mb-2">Alternative: Manual API Method</h5>
+              <div className="space-y-3 text-blue-700 text-sm">
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                  <p className="font-medium text-yellow-800">⚠️ IMPORTANT: Send a message to your bot first!</p>
+                  <p className="text-yellow-700 text-xs mt-1">Search for your bot in Telegram and send it any message (like "hello"). Without this step, the API will return empty results.</p>
+                </div>
+                
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>After messaging your bot, replace YOUR_BOT_TOKEN in this URL:</li>
+                  <li className="ml-4 font-mono text-xs bg-blue-100 p-2 rounded break-all">
+                    https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
                   </li>
                   <li>Visit the URL in your browser</li>
-                  <li>Look for <code className="bg-slate-200 px-1 rounded">"chat":{"id":123456789}</code> in the response</li>
+                  <li>Look for <code className="bg-blue-200 px-1 rounded">"chat":{"{"}{"id":123456789{"}"}</code> in the response</li>
                   <li>The number after "id": is your chat ID</li>
                 </ol>
                 
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                  <strong>Note:</strong> If you see an empty result like <code>{"result": []}</code>, it means you haven't sent a message to your bot yet. Send a message first, then refresh the URL.
+                <div className="bg-red-50 border border-red-200 rounded p-2">
+                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{"{"}{"ok": true, "result": []{"}"}}</code></p>
+                  <p className="text-red-700 text-xs">This means you haven't sent a message to your bot yet. Go back to step 1!</p>
                 </div>
               </div>
-              
-              <div>
-                <h5 className="font-medium text-slate-700 mb-2">For Group Chats:</h5>
-                <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
-                  <li>Add your bot to the group</li>
-                  <li>Make your bot an admin (required for sending messages)</li>
-                  <li>Send a message in the group mentioning your bot (e.g., "@yourbotname hello")</li>
-                  <li>Use the same API URL method above</li>
-                  <li>Group IDs are usually negative numbers (e.g., -100123456789)</li>
-                </ol>
-              </div>
+            </div>
+            
+            <div className="mt-4">
+              <h5 className="font-medium text-slate-800 mb-2">For Group Chats:</h5>
+              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
+                <li>Add your bot to the group</li>
+                <li>Make your bot an admin (required for sending messages)</li>
+                <li>Send a message in the group mentioning your bot (e.g., "@yourbotname hello")</li>
+                <li>Use the same API URL method above</li>
+                <li>Group IDs are usually negative numbers (e.g., -100123456789)</li>
+              </ol>
             </div>
             
             <div className="mt-3">

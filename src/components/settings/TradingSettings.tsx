@@ -11,16 +11,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
+
 export function TradingSettings() {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const isPro = user?.user_metadata?.is_pro === true;
   const [isLoading, setIsLoading] = useState(false);
   const [isDiscordVerified, setIsDiscordVerified] = useState(false);
   const [isTelegramVerified, setIsTelegramVerified] = useState(false);
   const [showDiscordHelp, setShowDiscordHelp] = useState(false);
   const [showTelegramHelp, setShowTelegramHelp] = useState(false);
+
   const form = useForm<NotificationSettings>({
     defaultValues: {
       email_enabled: false,
@@ -134,7 +134,8 @@ export function TradingSettings() {
       toast.error("Failed to copy to clipboard");
     }
   };
-  const DiscordHelpSection = () => <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
+  const DiscordHelpSection = () => (
+    <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
           <span>How to find Discord Webhook URL</span>
@@ -186,8 +187,10 @@ export function TradingSettings() {
           </div>
         </div>
       </CollapsibleContent>
-    </Collapsible>;
-  const TelegramHelpSection = () => <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
+    </Collapsible>
+  );
+  const TelegramHelpSection = () => (
+    <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
           <span>How to find Telegram Bot Token & Chat ID</span>
@@ -201,7 +204,7 @@ export function TradingSettings() {
             <h4 className="font-medium text-sky-800 mb-2">Getting Bot Token:</h4>
             <ol className="list-decimal list-inside space-y-2 text-slate-700">
               <li>Open Telegram and search for <strong>@BotFather</strong></li>
-              <li>Start a chat with BotFather</li>
+              <li>Start a chat with BotFather by clicking "Start"</li>
               <li>Send the command: <code className="bg-slate-200 px-1 rounded">/newbot</code></li>
               <li>Follow the prompts to choose a name for your bot</li>
               <li>Choose a username ending in "bot" (e.g., "mytradingbot")</li>
@@ -221,36 +224,47 @@ export function TradingSettings() {
 
           {/* Chat ID Section */}
           <div className="border-t pt-4">
-            <h4 className="font-medium text-sky-800 mb-2">Getting Chat ID:</h4>
+            <h4 className="font-medium text-sky-800 mb-2">Getting Chat ID (EASIEST METHOD):</h4>
+            
+            <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
+              <h5 className="font-medium text-green-800 mb-2">✅ Recommended: Use @get_id_bot</h5>
+              <ol className="list-decimal list-inside space-y-1 text-green-700 text-sm">
+                <li>Search for <strong>@get_id_bot</strong> in Telegram</li>
+                <li>Start a chat and send any message</li>
+                <li>The bot will immediately reply with your chat ID</li>
+                <li>Copy the number it provides</li>
+              </ol>
+            </div>
             
             <div className="space-y-4">
               <div>
-                <h5 className="font-medium text-slate-700 mb-2">Method 1: Personal Chat</h5>
+                <h5 className="font-medium text-slate-700 mb-2">Alternative: Manual API Method</h5>
                 <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
-                  <li>Start a chat with your bot (search for its username)</li>
-                  <li>Send any message to your bot</li>
-                  <li>Visit: <code className="bg-slate-200 px-1 rounded">https://api.telegram.org/bot&lt;YOUR_BOT_TOKEN&gt;/getUpdates</code></li>
-                  <li>Look for <code className="bg-slate-200 px-1 rounded">"chat":{`{"id":123456789}`}</code> in the response</li>
+                  <li><strong>IMPORTANT:</strong> First, search for your bot in Telegram and send it a message (like "hello")</li>
+                  <li>Replace YOUR_BOT_TOKEN in this URL with your actual bot token:</li>
+                  <li className="ml-4">
+                    <code className="bg-slate-200 px-1 rounded text-xs break-all">
+                      https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
+                    </code>
+                  </li>
+                  <li>Visit the URL in your browser</li>
+                  <li>Look for <code className="bg-slate-200 px-1 rounded">"chat":{"id":123456789}</code> in the response</li>
+                  <li>The number after "id": is your chat ID</li>
                 </ol>
+                
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                  <strong>Note:</strong> If you see an empty result like <code>{"result": []}</code>, it means you haven't sent a message to your bot yet. Send a message first, then refresh the URL.
+                </div>
               </div>
               
               <div>
-                <h5 className="font-medium text-slate-700 mb-2">Method 2: Group Chat</h5>
+                <h5 className="font-medium text-slate-700 mb-2">For Group Chats:</h5>
                 <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
                   <li>Add your bot to the group</li>
-                  <li>Send a message mentioning the bot</li>
-                  <li>Use the same API URL as above</li>
-                  <li>Group IDs are usually negative (e.g., -100123456789)</li>
-                </ol>
-              </div>
-              
-              <div>
-                <h5 className="font-medium text-slate-700 mb-2">Method 3: Helper Bot (Easiest)</h5>
-                <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
-                  <li>Search for <strong>@get_id_bot</strong> in Telegram</li>
-                  <li>Send it a message (for personal chat ID)</li>
-                  <li>Or add it to your group (for group chat ID)</li>
-                  <li>It will reply with the chat ID</li>
+                  <li>Make your bot an admin (required for sending messages)</li>
+                  <li>Send a message in the group mentioning your bot (e.g., "@yourbotname hello")</li>
+                  <li>Use the same API URL method above</li>
+                  <li>Group IDs are usually negative numbers (e.g., -100123456789)</li>
                 </ol>
               </div>
             </div>
@@ -278,8 +292,8 @@ export function TradingSettings() {
             <h5 className="font-medium text-slate-800 mb-1">Important Notes:</h5>
             <ul className="list-disc list-inside space-y-1 text-slate-600 text-xs">
               <li>Keep your bot token secure - don't share it publicly</li>
-              <li>Make sure to start a chat with your bot before trying to send messages</li>
-              <li>For groups, ensure your bot has permission to send messages</li>
+              <li>You MUST send a message to your bot before using the API method</li>
+              <li>For groups, make sure your bot has permission to send messages</li>
               <li>Personal chat IDs are positive numbers, group IDs are negative</li>
             </ul>
           </div>
@@ -294,7 +308,8 @@ export function TradingSettings() {
           </div>
         </div>
       </CollapsibleContent>
-    </Collapsible>;
+    </Collapsible>
+  );
 
   // Render content based on Pro status
   const renderNotificationSettings = () => {
@@ -670,7 +685,8 @@ export function TradingSettings() {
         </div>
       </Form>;
   };
-  return <div className="space-y-12">
+  return (
+    <div className="space-y-12">
       <div>
         <h2 className="text-xl font-medium mb-2">Trading Signal Notifications</h2>
         <p className="text-sm text-muted-foreground mb-6">
@@ -688,6 +704,17 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      {isPro}
-    </div>;
+      {isPro && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Signal Types</CardTitle>
+            <CardDescription>Choose which types of trading signals you want to receive</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {renderSignalNotificationTypes()}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }

@@ -471,24 +471,7 @@ export function AccountSettings() {
         </div>
       </div>
       
-      <div>
-        <h2 className="text-xl font-medium text-destructive">Danger Zone</h2>
-        <p className="text-sm text-muted-foreground mb-4">Irreversible account actions</p>
-        
-        <Card className="border-destructive">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="font-medium">Delete Account</div>
-                <div className="text-sm text-muted-foreground">Permanently delete your account and all your data</div>
-              </div>
-              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-                Delete Account
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      
       
       <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>;

@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
+
 export function TradingSettings() {
   const {
     user
@@ -54,6 +55,7 @@ export function TradingSettings() {
       loadSettings();
     }
   }, [isPro, form]);
+
   const handleSubmit = async (values: NotificationSettings) => {
     if (!isPro) {
       toast.error("This feature is only available for Pro users");
@@ -70,28 +72,7 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-  const verifyDiscordWebhookHandler = async () => {
-    const webhook = form.getValues("discord_webhook_url");
-    if (!webhook) {
-      toast.error("Please enter a Discord webhook URL");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const result = await verifyDiscordWebhook(webhook);
-      if (result.verified) {
-        setIsDiscordVerified(true);
-        toast.success("Discord webhook verified successfully");
-      } else {
-        toast.error("Discord webhook verification failed");
-      }
-    } catch (error) {
-      console.error('Discord verification error:', error);
-      toast.error("Failed to verify Discord webhook");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
   const verifyTelegramBotHandler = async () => {
     const botToken = form.getValues("telegram_bot_token");
     const chatId = form.getValues("telegram_chat_id");
@@ -115,17 +96,20 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
+
   const disconnectDiscord = () => {
     form.setValue("discord_webhook_url", "");
     setIsDiscordVerified(false);
     toast.success("Discord webhook disconnected");
   };
+
   const disconnectTelegram = () => {
     form.setValue("telegram_bot_token", "");
     form.setValue("telegram_chat_id", "");
     setIsTelegramVerified(false);
     toast.success("Telegram bot disconnected");
   };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -134,6 +118,7 @@ export function TradingSettings() {
       toast.error("Failed to copy to clipboard");
     }
   };
+
   const DiscordHelpSection = () => <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
@@ -187,6 +172,7 @@ export function TradingSettings() {
         </div>
       </CollapsibleContent>
     </Collapsible>;
+
   const TelegramHelpSection = () => <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
@@ -478,11 +464,8 @@ export function TradingSettings() {
                         <FormControl className="flex-1">
                           <Input placeholder="https://discord.com/api/webhooks/..." {...field} disabled={isDiscordVerified} />
                         </FormControl>
-                        {isDiscordVerified ? <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectDiscord}>
+                        {isDiscordVerified && <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectDiscord}>
                             <Trash2 className="h-4 w-4" />
-                          </Button> : <Button type="button" onClick={verifyDiscordWebhookHandler} disabled={isLoading || !field.value} className="whitespace-nowrap bg-indigo-500 hover:bg-indigo-600">
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            Verify
                           </Button>}
                       </div>
                       <div className="flex items-center mt-1">

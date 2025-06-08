@@ -184,23 +184,34 @@ const getIndicatorValue = async (indicator: string, asset: string, parameters: a
     // Get indicator data from TAAPI
     const indicatorData = await getTaapiIndicator(taapiIndicator, asset, '1d', parameters);
     
-    if (!indicatorData || !indicatorData.value) {
+    if (!indicatorData) {
       console.error('Failed to get indicator data for:', indicator);
       return null;
     }
 
-    // Handle different indicator return types
+    // Handle different indicator return types based on the TAAPI response structure
     if (typeof indicatorData.value === 'number') {
       return indicatorData.value;
-    } else if (typeof indicatorData.value === 'object') {
-      // For indicators that return objects (like MACD), return the main value
-      if (taapiIndicator === 'macd') {
-        return indicatorData.value.macd || indicatorData.value.histogram || null;
-      } else if (taapiIndicator === 'bbands') {
-        return indicatorData.value.middle || null;
-      } else if (taapiIndicator === 'stoch') {
-        return indicatorData.value.stoch_k || null;
-      }
+    } 
+    
+    // Handle MACD indicator which has multiple values
+    if (taapiIndicator === 'macd') {
+      return indicatorData.valueMACD || indicatorData.valueHistogram || null;
+    } 
+    
+    // Handle Bollinger Bands which has multiple bands
+    if (taapiIndicator === 'bbands') {
+      return indicatorData.valueMiddleBand || null;
+    } 
+    
+    // Handle Stochastic which has K and D lines
+    if (taapiIndicator === 'stoch') {
+      return indicatorData.valueK || null;
+    }
+
+    // If it's an array, take the first value
+    if (Array.isArray(indicatorData.value) && indicatorData.value.length > 0) {
+      return indicatorData.value[0];
     }
 
     return null;

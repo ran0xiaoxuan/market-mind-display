@@ -19,7 +19,9 @@ import { DeleteAccountDialog } from "./DeleteAccountDialog";
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
 export function AccountSettings() {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL);
@@ -39,35 +41,35 @@ export function AccountSettings() {
   // Load user profile and subscription status
   useEffect(() => {
     const loadUserProfile = async () => {
-      console.log('Loading user profile...', { userId: user?.id, userEmail: user?.email });
-      
+      console.log('Loading user profile...', {
+        userId: user?.id,
+        userEmail: user?.email
+      });
       if (!user) {
         console.log('No user found, setting loading to false');
         setIsLoadingProfile(false);
         return;
       }
-
       try {
         // Check if profile exists, if not create one
         console.log('Fetching profile for user:', user.id);
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .single();
-
-        console.log('Profile fetch result:', { profile, error });
-
+        const {
+          data: profile,
+          error
+        } = await supabase.from('profiles').select('subscription_tier').eq('id', user.id).single();
+        console.log('Profile fetch result:', {
+          profile,
+          error
+        });
         if (error && error.code === 'PGRST116') {
           // Profile doesn't exist, create one
           console.log('Profile does not exist, creating new profile');
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              subscription_tier: 'free'
-            });
-
+          const {
+            error: insertError
+          } = await supabase.from('profiles').insert({
+            id: user.id,
+            subscription_tier: 'free'
+          });
           if (insertError) {
             console.error('Error creating profile:', insertError);
           } else {
@@ -79,9 +81,12 @@ export function AccountSettings() {
           setIsPro(false);
         } else {
           const isProUser = profile?.subscription_tier === 'pro';
-          console.log('Profile loaded successfully:', { subscription_tier: profile?.subscription_tier, isProUser });
+          console.log('Profile loaded successfully:', {
+            subscription_tier: profile?.subscription_tier,
+            isProUser
+          });
           setIsPro(isProUser);
-          
+
           // If user is Pro, ensure the status is properly updated in the database
           if (isProUser) {
             await syncProStatusToDatabase();
@@ -95,23 +100,19 @@ export function AccountSettings() {
         setIsLoadingProfile(false);
       }
     };
-
     loadUserProfile();
   }, [user]);
 
   // Sync Pro status to database when user is in Pro mode
   const syncProStatusToDatabase = async () => {
     if (!user) return;
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          subscription_tier: 'pro',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        subscription_tier: 'pro',
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
       if (error) {
         console.error('Error syncing Pro status to database:', error);
       } else {
@@ -121,7 +122,6 @@ export function AccountSettings() {
       console.error('Error syncing Pro status:', error);
     }
   };
-
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(""); // Clear any previous errors
@@ -146,7 +146,6 @@ export function AccountSettings() {
       await uploadAvatar(file);
     }
   };
-
   const uploadAvatar = async (file: File) => {
     setIsUpdating(true);
     try {
@@ -198,7 +197,6 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const handleResetAvatar = async () => {
     setIsUpdating(true);
     try {
@@ -226,28 +224,25 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const handleSaveProfile = async () => {
     if (!user) return;
-    
     setIsUpdating(true);
     try {
       // Check if email has changed
       const emailChanged = email !== user.email;
-      
+
       // Update email if changed
       if (emailChanged) {
         console.log('Updating email from', user.email, 'to', email);
-        
-        const { error: emailError } = await supabase.auth.updateUser({
+        const {
+          error: emailError
+        } = await supabase.auth.updateUser({
           email: email
         });
-        
         if (emailError) {
           console.error('Email update error:', emailError);
           throw emailError;
         }
-        
         toast({
           title: "Email update initiated",
           description: "Please check both your old and new email addresses for confirmation links to complete the email change."
@@ -269,10 +264,9 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const handleUpdatePassword = async () => {
     if (!user) return;
-    
+
     // Validate inputs
     if (!currentPassword) {
       toast({
@@ -282,7 +276,6 @@ export function AccountSettings() {
       });
       return;
     }
-    
     if (!newPassword) {
       toast({
         title: "New password required",
@@ -291,7 +284,6 @@ export function AccountSettings() {
       });
       return;
     }
-    
     if (newPassword.length < 8) {
       toast({
         title: "Password too short",
@@ -300,7 +292,6 @@ export function AccountSettings() {
       });
       return;
     }
-    
     if (newPassword !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -309,26 +300,26 @@ export function AccountSettings() {
       });
       return;
     }
-    
     setIsUpdating(true);
     try {
       // First verify the current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const {
+        error: signInError
+      } = await supabase.auth.signInWithPassword({
         email: user.email!,
         password: currentPassword
       });
-      
       if (signInError) {
         throw new Error("Current password is incorrect");
       }
-      
+
       // If current password is correct, update to new password
-      const { error: updateError } = await supabase.auth.updateUser({
+      const {
+        error: updateError
+      } = await supabase.auth.updateUser({
         password: newPassword
       });
-      
       if (updateError) throw updateError;
-      
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully."
@@ -349,30 +340,25 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   const toggleSubscriptionStatus = async () => {
     setIsUpdating(true);
     try {
       const newTier = isPro ? 'free' : 'pro';
-      
+
       // Update the profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          subscription_tier: newTier,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user?.id);
-      
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        subscription_tier: newTier,
+        updated_at: new Date().toISOString()
+      }).eq('id', user?.id);
       if (error) throw error;
-      
       setIsPro(!isPro);
-      
+
       // If switching to Pro, sync the status to ensure it's properly recorded
       if (newTier === 'pro') {
         await syncProStatusToDatabase();
       }
-      
       toast({
         title: `Subscription status updated`,
         description: `You are now on the ${newTier} plan.`
@@ -384,7 +370,6 @@ export function AccountSettings() {
         // Refresh the page after the status change
         window.location.reload();
       }, 500);
-      
     } catch (error) {
       console.error("Error updating subscription status:", error);
       toast({
@@ -396,19 +381,15 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
-
   if (isLoadingProfile) {
-    return (
-      <div className="space-y-12">
+    return <div className="space-y-12">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
           <div className="h-32 bg-gray-200 rounded"></div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -419,21 +400,15 @@ export function AccountSettings() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Badge 
-                  variant={isPro ? "pro" : "free"} 
-                  className={isPro ? "text-xs px-3 py-1" : "text-xs px-2 py-0.5"}
-                >
+                <Badge variant={isPro ? "pro" : "free"} className={isPro ? "text-xs px-3 py-1" : "text-xs px-2 py-0.5"}>
                   {isPro ? 'Pro' : 'Free'}
                 </Badge>
               </div>
-              {!isPro && (
-                <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>
-              )}
+              {!isPro && <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>}
             </div>
             
             {/* Show Pro Plan Feature card only for Free users */}
-            {!isPro && (
-              <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">
+            {!isPro && <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">
                 <div className="flex items-start gap-3">
                   <Bell className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                   <div>
@@ -446,12 +421,10 @@ export function AccountSettings() {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              </div>}
             
             {/* Developer testing toggle - only visible in development */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+            {process.env.NODE_ENV === 'development' && <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-sm">Developer Mode</h3>
@@ -459,51 +432,16 @@ export function AccountSettings() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs">{isPro ? 'Pro' : 'Free'}</span>
-                    <Switch 
-                      checked={isPro} 
-                      onCheckedChange={toggleSubscriptionStatus}
-                      disabled={isUpdating}
-                    />
+                    <Switch checked={isPro} onCheckedChange={toggleSubscriptionStatus} disabled={isUpdating} />
                   </div>
                 </div>
-              </div>
-            )}
+              </div>}
           </CardContent>
         </Card>
       </div>
       
       {/* Profile */}
-      <div>
-        <h2 className="text-xl font-medium">Profile</h2>
-        <p className="text-sm text-muted-foreground mb-4">Update your personal information</p>
-        
-        <div className="grid gap-4">
-          <div>
-            <label htmlFor="email" className="block text-sm mb-2">Email</label>
-            <Input 
-              id="email" 
-              type="email" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Changing your email will require confirmation from both old and new email addresses
-            </p>
-          </div>
-          
-          <div>
-            <Button 
-              variant="default" 
-              className="bg-black text-white mt-2" 
-              onClick={handleSaveProfile} 
-              disabled={isUpdating || !email || email === user?.email}
-            >
-              {isUpdating ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        </div>
-      </div>
+      
       
       <div>
         <h2 className="text-xl font-medium">Password</h2>
@@ -512,44 +450,21 @@ export function AccountSettings() {
         <div className="grid gap-4">
           <div>
             <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
-            <Input 
-              id="current-password" 
-              type="password" 
-              value={currentPassword} 
-              onChange={e => setCurrentPassword(e.target.value)}
-              placeholder="Enter your current password"
-            />
+            <Input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Enter your current password" />
           </div>
           
           <div>
             <label htmlFor="new-password" className="block text-sm mb-2">New Password</label>
-            <Input 
-              id="new-password" 
-              type="password" 
-              value={newPassword} 
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder="Enter your new password (min 8 characters)"
-            />
+            <Input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter your new password (min 8 characters)" />
           </div>
           
           <div>
             <label htmlFor="confirm-password" className="block text-sm mb-2">Confirm New Password</label>
-            <Input 
-              id="confirm-password" 
-              type="password" 
-              value={confirmPassword} 
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your new password"
-            />
+            <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your new password" />
           </div>
           
           <div>
-            <Button 
-              variant="default" 
-              className="bg-black text-white mt-2" 
-              onClick={handleUpdatePassword} 
-              disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}
-            >
+            <Button variant="default" className="bg-black text-white mt-2" onClick={handleUpdatePassword} disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}>
               {isUpdating ? "Updating..." : "Update Password"}
             </Button>
           </div>
@@ -567,10 +482,7 @@ export function AccountSettings() {
                 <div className="font-medium">Delete Account</div>
                 <div className="text-sm text-muted-foreground">Permanently delete your account and all your data</div>
               </div>
-              <Button 
-                variant="destructive" 
-                onClick={() => setShowDeleteDialog(true)}
-              >
+              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
                 Delete Account
               </Button>
             </div>
@@ -578,9 +490,6 @@ export function AccountSettings() {
         </Card>
       </div>
       
-      <DeleteAccountDialog 
-        open={showDeleteDialog} 
-        onOpenChange={setShowDeleteDialog} 
-      />
+      <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>;
 }

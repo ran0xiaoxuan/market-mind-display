@@ -11,16 +11,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
-
 export function TradingSettings() {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const isPro = user?.user_metadata?.is_pro === true;
   const [isLoading, setIsLoading] = useState(false);
   const [isDiscordVerified, setIsDiscordVerified] = useState(false);
   const [isTelegramVerified, setIsTelegramVerified] = useState(false);
   const [showDiscordHelp, setShowDiscordHelp] = useState(false);
   const [showTelegramHelp, setShowTelegramHelp] = useState(false);
-
   const form = useForm<NotificationSettings>({
     defaultValues: {
       email_enabled: false,
@@ -134,9 +134,7 @@ export function TradingSettings() {
       toast.error("Failed to copy to clipboard");
     }
   };
-
-  const DiscordHelpSection = () => (
-    <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
+  const DiscordHelpSection = () => <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
           <span>How to find Discord Webhook URL</span>
@@ -188,11 +186,8 @@ export function TradingSettings() {
           </div>
         </div>
       </CollapsibleContent>
-    </Collapsible>
-  );
-
-  const TelegramHelpSection = () => (
-    <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
+    </Collapsible>;
+  const TelegramHelpSection = () => <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
           <span>How to find Telegram Bot Token & Chat ID</span>
@@ -257,7 +252,7 @@ export function TradingSettings() {
                 </ol>
                 
                 <div className="bg-red-50 border border-red-200 rounded p-2">
-                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{'{' }"ok": true, "result": []{' }'}</code></p>
+                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{'{'}"ok": true, "result": []{' }'}</code></p>
                   <p className="text-red-700 text-xs">This means you haven't sent a message to your bot yet. Go back to step 1!</p>
                 </div>
               </div>
@@ -313,8 +308,7 @@ export function TradingSettings() {
           </div>
         </div>
       </CollapsibleContent>
-    </Collapsible>
-  );
+    </Collapsible>;
 
   // Render content based on Pro status
   const renderNotificationSettings = () => {
@@ -690,8 +684,7 @@ export function TradingSettings() {
         </div>
       </Form>;
   };
-  return (
-    <div className="space-y-12">
+  return <div className="space-y-12">
       <div>
         <h2 className="text-xl font-medium mb-2">Trading Signal Notifications</h2>
         <p className="text-sm text-muted-foreground mb-6">
@@ -709,17 +702,6 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      {isPro && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Signal Types</CardTitle>
-            <CardDescription>Choose which types of trading signals you want to receive</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {renderSignalNotificationTypes()}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+      {isPro}
+    </div>;
 }

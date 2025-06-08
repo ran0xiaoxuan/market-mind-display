@@ -11,16 +11,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
-
 export function TradingSettings() {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const isPro = user?.user_metadata?.is_pro === true;
   const [isLoading, setIsLoading] = useState(false);
   const [isDiscordVerified, setIsDiscordVerified] = useState(false);
   const [isTelegramVerified, setIsTelegramVerified] = useState(false);
   const [showDiscordHelp, setShowDiscordHelp] = useState(false);
   const [showTelegramHelp, setShowTelegramHelp] = useState(false);
-  
   const form = useForm<NotificationSettings>({
     defaultValues: {
       email_enabled: false,
@@ -54,7 +54,6 @@ export function TradingSettings() {
       loadSettings();
     }
   }, [isPro, form]);
-  
   const handleSubmit = async (values: NotificationSettings) => {
     if (!isPro) {
       toast.error("This feature is only available for Pro users");
@@ -71,7 +70,6 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-  
   const verifyDiscordWebhookHandler = async () => {
     const webhook = form.getValues("discord_webhook_url");
     if (!webhook) {
@@ -94,7 +92,6 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-  
   const verifyTelegramBotHandler = async () => {
     const botToken = form.getValues("telegram_bot_token");
     const chatId = form.getValues("telegram_chat_id");
@@ -118,20 +115,17 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-  
   const disconnectDiscord = () => {
     form.setValue("discord_webhook_url", "");
     setIsDiscordVerified(false);
     toast.success("Discord webhook disconnected");
   };
-  
   const disconnectTelegram = () => {
     form.setValue("telegram_bot_token", "");
     form.setValue("telegram_chat_id", "");
     setIsTelegramVerified(false);
     toast.success("Telegram bot disconnected");
   };
-  
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -140,9 +134,7 @@ export function TradingSettings() {
       toast.error("Failed to copy to clipboard");
     }
   };
-  
-  const DiscordHelpSection = () => (
-    <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
+  const DiscordHelpSection = () => <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
           <span>How to find Discord Webhook URL</span>
@@ -169,12 +161,7 @@ export function TradingSettings() {
             <h5 className="font-medium text-slate-800 mb-1">Example URL format:</h5>
             <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
               <span>https://discord.com/api/webhooks/123456789/abcdef...</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard("https://discord.com/api/webhooks/123456789/abcdef...")}
-                className="h-6 w-6 p-0"
-              >
+              <Button variant="ghost" size="sm" onClick={() => copyToClipboard("https://discord.com/api/webhooks/123456789/abcdef...")} className="h-6 w-6 p-0">
                 <Copy className="h-3 w-3" />
               </Button>
             </div>
@@ -199,11 +186,8 @@ export function TradingSettings() {
           </div>
         </div>
       </CollapsibleContent>
-    </Collapsible>
-  );
-  
-  const TelegramHelpSection = () => (
-    <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
+    </Collapsible>;
+  const TelegramHelpSection = () => <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
           <span>How to find Telegram Bot Token & Chat ID</span>
@@ -228,12 +212,7 @@ export function TradingSettings() {
               <h5 className="font-medium text-slate-800 mb-1">Example Token format:</h5>
               <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
                 <span>123456789:ABCdefGhIjkLmnOpqrStUvWxYz</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard("123456789:ABCdefGhIjkLmnOpqrStUvWxYz")}
-                  className="h-6 w-6 p-0"
-                >
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard("123456789:ABCdefGhIjkLmnOpqrStUvWxYz")} className="h-6 w-6 p-0">
                   <Copy className="h-3 w-3" />
                 </Button>
               </div>
@@ -281,23 +260,13 @@ export function TradingSettings() {
               <div className="space-y-1">
                 <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
                   <span>Personal: 123456789</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard("123456789")}
-                    className="h-6 w-6 p-0"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard("123456789")} className="h-6 w-6 p-0">
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
                 <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
                   <span>Group: -100123456789</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard("-100123456789")}
-                    className="h-6 w-6 p-0"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard("-100123456789")} className="h-6 w-6 p-0">
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
@@ -325,14 +294,12 @@ export function TradingSettings() {
           </div>
         </div>
       </CollapsibleContent>
-    </Collapsible>
-  );
-  
+    </Collapsible>;
+
   // Render content based on Pro status
   const renderNotificationSettings = () => {
     if (!isPro) {
-      return (
-        <>
+      return <>
           <div className="flex items-center gap-3 mb-4">
             <Lock className="h-5 w-5 text-amber-500" />
             <div>
@@ -445,11 +412,9 @@ export function TradingSettings() {
               </form>
             </Form>
           </div>
-        </>
-      );
+        </>;
     }
-    return (
-      <Form {...form}>
+    return <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           {/* Email Notifications */}
           <div className="flex items-center justify-between">
@@ -460,17 +425,13 @@ export function TradingSettings() {
                 <p className="text-sm text-muted-foreground">Receive trading signals via email</p>
               </div>
             </div>
-            <FormField
-              control={form.control}
-              name="email_enabled"
-              render={({ field }) => (
-                <FormItem>
+            <FormField control={form.control} name="email_enabled" render={({
+            field
+          }) => <FormItem>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
-                </FormItem>
-              )}
-            />
+                </FormItem>} />
           </div>
           
           {/* Discord Integration */}
@@ -483,75 +444,44 @@ export function TradingSettings() {
                   <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
                 </div>
               </div>
-              <FormField
-                control={form.control}
-                name="discord_enabled"
-                render={({ field }) => (
-                  <FormItem>
+              <FormField control={form.control} name="discord_enabled" render={({
+              field
+            }) => <FormItem>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
-                  </FormItem>
-                )}
-              />
+                  </FormItem>} />
             </div>
             
-            {form.watch("discord_enabled") && (
-              <div className="space-y-2 rounded-md bg-slate-50 p-4 border border-slate-200">
+            {form.watch("discord_enabled") && <div className="space-y-2 rounded-md bg-slate-50 p-4 border border-slate-200">
                 <DiscordHelpSection />
                 
-                <FormField
-                  control={form.control}
-                  name="discord_webhook_url"
-                  render={({ field }) => (
-                    <FormItem>
+                <FormField control={form.control} name="discord_webhook_url" render={({
+              field
+            }) => <FormItem>
                       <FormLabel>Discord Webhook URL</FormLabel>
                       <div className="flex space-x-2">
                         <FormControl className="flex-1">
-                          <Input
-                            placeholder="https://discord.com/api/webhooks/..."
-                            {...field}
-                            disabled={isDiscordVerified}
-                          />
+                          <Input placeholder="https://discord.com/api/webhooks/..." {...field} disabled={isDiscordVerified} />
                         </FormControl>
-                        {isDiscordVerified ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={disconnectDiscord}
-                          >
+                        {isDiscordVerified ? <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectDiscord}>
                             <Trash2 className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            onClick={verifyDiscordWebhookHandler}
-                            disabled={isLoading || !field.value}
-                            className="whitespace-nowrap bg-indigo-500 hover:bg-indigo-600"
-                          >
+                          </Button> : <Button type="button" onClick={verifyDiscordWebhookHandler} disabled={isLoading || !field.value} className="whitespace-nowrap bg-indigo-500 hover:bg-indigo-600">
                             <LinkIcon className="mr-2 h-4 w-4" />
                             Verify
-                          </Button>
-                        )}
+                          </Button>}
                       </div>
                       <div className="flex items-center mt-1">
-                        {isDiscordVerified && (
-                          <div className="flex items-center text-sm text-green-600">
+                        {isDiscordVerified && <div className="flex items-center text-sm text-green-600">
                             <Check className="mr-1 h-4 w-4" />
                             Webhook verified
-                          </div>
-                        )}
+                          </div>}
                       </div>
                       <FormDescription>
                         Paste your Discord webhook URL here to receive trading signals
                       </FormDescription>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+                    </FormItem>} />
+              </div>}
           </div>
           
           {/* Telegram Integration */}
@@ -564,97 +494,58 @@ export function TradingSettings() {
                   <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
                 </div>
               </div>
-              <FormField
-                control={form.control}
-                name="telegram_enabled"
-                render={({ field }) => (
-                  <FormItem>
+              <FormField control={form.control} name="telegram_enabled" render={({
+              field
+            }) => <FormItem>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
-                  </FormItem>
-                )}
-              />
+                  </FormItem>} />
             </div>
             
-            {form.watch("telegram_enabled") && (
-              <div className="space-y-4 rounded-md bg-slate-50 p-4 border border-slate-200">
+            {form.watch("telegram_enabled") && <div className="space-y-4 rounded-md bg-slate-50 p-4 border border-slate-200">
                 <TelegramHelpSection />
                 
                 <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="telegram_bot_token"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="telegram_bot_token" render={({
+                field
+              }) => <FormItem>
                         <FormLabel>Telegram Bot Token</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ"
-                            {...field}
-                            disabled={isTelegramVerified}
-                          />
+                          <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} disabled={isTelegramVerified} />
                         </FormControl>
                         <FormDescription>
                           Get this from @BotFather when creating your bot
                         </FormDescription>
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                   
-                  <FormField
-                    control={form.control}
-                    name="telegram_chat_id"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="telegram_chat_id" render={({
+                field
+              }) => <FormItem>
                         <FormLabel>Telegram Chat ID</FormLabel>
                         <div className="flex space-x-2">
                           <FormControl className="flex-1">
-                            <Input
-                              placeholder="-100123456789 or 123456789"
-                              {...field}
-                              disabled={isTelegramVerified}
-                            />
+                            <Input placeholder="-100123456789 or 123456789" {...field} disabled={isTelegramVerified} />
                           </FormControl>
-                          {isTelegramVerified ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={disconnectTelegram}
-                            >
+                          {isTelegramVerified ? <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectTelegram}>
                               <Trash2 className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              onClick={verifyTelegramBotHandler}
-                              disabled={isLoading || !field.value || !form.getValues("telegram_bot_token")}
-                              className="whitespace-nowrap bg-sky-500 hover:bg-sky-600"
-                            >
+                            </Button> : <Button type="button" onClick={verifyTelegramBotHandler} disabled={isLoading || !field.value || !form.getValues("telegram_bot_token")} className="whitespace-nowrap bg-sky-500 hover:bg-sky-600">
                               <LinkIcon className="mr-2 h-4 w-4" />
                               Verify
-                            </Button>
-                          )}
+                            </Button>}
                         </div>
                         <div className="flex items-center mt-1">
-                          {isTelegramVerified && (
-                            <div className="flex items-center text-sm text-green-600">
+                          {isTelegramVerified && <div className="flex items-center text-sm text-green-600">
                               <Check className="mr-1 h-4 w-4" />
                               Bot verified
-                            </div>
-                          )}
+                            </div>}
                         </div>
                         <FormDescription>
                           The chat or group where signals will be sent
                         </FormDescription>
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
           
           {/* Save Button */}
@@ -664,15 +555,13 @@ export function TradingSettings() {
             </Button>
           </div>
         </form>
-      </Form>
-    );
+      </Form>;
   };
-  
+
   // Signal notification types section
   const renderSignalNotificationTypes = () => {
     if (!isPro) {
-      return (
-        <>
+      return <>
           <div className="flex items-center gap-3 mb-4">
             <Lock className="h-5 w-5 text-amber-500" />
             <div>
@@ -719,11 +608,9 @@ export function TradingSettings() {
               </div>
             </div>
           </div>
-        </>
-      );
+        </>;
     }
-    return (
-      <Form {...form}>
+    return <Form {...form}>
         <div className="space-y-4">
           <FormField control={form.control} name="entry_signals" render={({
           field
@@ -781,12 +668,9 @@ export function TradingSettings() {
                 </FormItem>
               </div>} />
         </div>
-      </Form>
-    );
+      </Form>;
   };
-  
-  return (
-    <div className="space-y-12">
+  return <div className="space-y-12">
       <div>
         <h2 className="text-xl font-medium mb-2">Trading Signal Notifications</h2>
         <p className="text-sm text-muted-foreground mb-6">
@@ -804,19 +688,6 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      {isPro && (
-        <div>
-          <h2 className="text-xl font-medium mb-2">Notification Preferences</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Customize which types of trading signals you want to receive
-          </p>
-          <Card>
-            <CardContent className="p-6">
-              {renderSignalNotificationTypes()}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
+      {isPro}
+    </div>;
 }

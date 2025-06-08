@@ -18,8 +18,7 @@ export default function ForgotPassword() {
   const {
     resetPassword,
     user,
-    verifyTurnstile,
-    checkUserExists
+    verifyTurnstile
   } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,17 +61,7 @@ export default function ForgotPassword() {
         return;
       }
       
-      // Check if user exists before attempting to send reset email
-      const userExists = await checkUserExists(email);
-      
-      if (!userExists) {
-        setNotification({
-          type: 'error',
-          message: 'No account found with this email address. Please check your email or sign up for a new account.'
-        });
-        return;
-      }
-      
+      // Send password reset email directly
       const { error } = await resetPassword(email);
       
       if (error) {
@@ -82,6 +71,11 @@ export default function ForgotPassword() {
           setNotification({
             type: 'error',
             message: 'Too many reset requests. Please wait a few minutes before trying again.'
+          });
+        } else if (error.message?.includes("User not found") || error.message?.includes("For security purposes")) {
+          setNotification({
+            type: 'error',
+            message: 'If an account with this email exists, you will receive a password reset link.'
           });
         } else {
           setNotification({
@@ -93,7 +87,7 @@ export default function ForgotPassword() {
         setSubmitted(true);
         setNotification({
           type: 'success',
-          message: 'The reset link has been sent successfully.'
+          message: 'If an account with this email exists, you will receive a password reset link.'
         });
       }
     } catch (error: any) {

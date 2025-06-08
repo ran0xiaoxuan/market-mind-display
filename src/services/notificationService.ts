@@ -78,6 +78,8 @@ export const verifyDiscordWebhook = async (webhookUrl: string) => {
       throw new Error('Invalid Discord webhook URL format. URL should start with: https://discord.com/api/webhooks/');
     }
 
+    console.log('Calling verify-discord-webhook function...');
+
     const { data, error } = await supabase.functions.invoke('verify-discord-webhook', {
       body: { webhookUrl: webhookUrl.trim() }
     });
@@ -86,7 +88,15 @@ export const verifyDiscordWebhook = async (webhookUrl: string) => {
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw new Error(error.message || 'Failed to verify Discord webhook');
+      
+      // Handle specific error types
+      if (error.message?.includes('Failed to send a request')) {
+        throw new Error('Unable to connect to verification service. Please try again.');
+      } else if (error.message?.includes('Failed to fetch')) {
+        throw new Error('Network error occurred. Please check your connection and try again.');
+      } else {
+        throw new Error(error.message || 'Failed to verify Discord webhook');
+      }
     }
 
     if (data && data.error) {
@@ -97,6 +107,7 @@ export const verifyDiscordWebhook = async (webhookUrl: string) => {
       throw new Error('Discord webhook verification failed');
     }
 
+    console.log('Discord webhook verified successfully');
     return data;
   } catch (error) {
     console.error('Discord webhook verification error:', error);

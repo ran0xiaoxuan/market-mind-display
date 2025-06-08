@@ -7,24 +7,42 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('=== Discord Webhook Verification Function Started ===')
+  console.log('Request method:', req.method)
+  console.log('Request URL:', req.url)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request')
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { webhookUrl } = await req.json()
+    console.log('Processing webhook verification request...')
+    
+    let requestBody;
+    try {
+      requestBody = await req.json()
+      console.log('Request body parsed:', requestBody)
+    } catch (jsonError) {
+      console.error('Failed to parse JSON:', jsonError)
+      throw new Error('Invalid JSON in request body')
+    }
+
+    const { webhookUrl } = requestBody
 
     console.log('Verifying Discord webhook:', webhookUrl)
 
     // Validate webhook URL format
     if (!webhookUrl || typeof webhookUrl !== 'string') {
+      console.error('Invalid webhook URL provided:', webhookUrl)
       throw new Error('Invalid webhook URL provided')
     }
 
     // Check if URL is a valid Discord webhook URL
     const discordWebhookRegex = /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/
     if (!discordWebhookRegex.test(webhookUrl)) {
+      console.error('Invalid Discord webhook URL format:', webhookUrl)
       throw new Error('Invalid Discord webhook URL format. URL should be: https://discord.com/api/webhooks/ID/TOKEN')
     }
 

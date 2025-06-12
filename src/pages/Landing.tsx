@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -99,64 +98,107 @@ const Landing = () => {
         </Container>
       </nav>
 
-      {/* Hero Section */}
-      <section className="py-20 md:py-32 relative">
-        {/* Background Elements */}
+      {/* Enhanced Hero Section */}
+      <section className="py-20 md:py-32 relative overflow-hidden">
+        {/* Animated Background Elements */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10"></div>
+        
+        {/* Floating Animation Elements */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
         
+        {/* Additional Floating Elements */}
+        <div className="absolute top-1/4 right-1/4 w-4 h-4 bg-primary/20 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-1/3 left-1/3 w-3 h-3 bg-primary/30 rounded-full animate-ping" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-primary/25 rounded-full animate-ping" style={{ animationDelay: '5s' }}></div>
+        
+        {/* Geometric Shapes */}
+        <div className="absolute top-16 right-16 w-8 h-8 border border-primary/20 rotate-45 animate-spin" style={{ animationDuration: '20s' }}></div>
+        <div className="absolute bottom-32 left-20 w-6 h-6 border border-primary/15 rotate-12 animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }}></div>
+        
         <Container className="relative z-10">
           <div className="text-center space-y-8">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium animate-fade-in mb-6">
-                <Sparkles className="h-4 w-4" />
-                Powered by Advanced AI
+            <div className="space-y-6">
+              {/* Enhanced Badge with Animation */}
+              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium animate-fade-in mb-6 hover:scale-105 transition-all duration-300 hover:bg-primary/15 cursor-pointer">
+                <Sparkles className="h-4 w-4 animate-pulse" />
+                <span className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+                  Powered by Advanced AI
+                </span>
               </div>
               
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight animate-fade-in" style={{ animationDelay: '200ms' }}>
-                Build Winning Trading
-                <span className="block text-primary bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-fade-in" style={{ animationDelay: '400ms' }}>
+              {/* Enhanced Main Heading with Staggered Animation */}
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+                <span className="block animate-fade-in hover:scale-105 transition-transform duration-500" style={{ animationDelay: '200ms' }}>
+                  Build Winning Trading
+                </span>
+                <span className="block text-primary bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500" style={{ animationDelay: '400ms' }}>
                   Strategies with AI
                 </span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto animate-fade-in" style={{ animationDelay: '600ms' }}>
+              
+              {/* Enhanced Description with Typewriter Effect Simulation */}
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto animate-fade-in hover:text-foreground/80 transition-colors duration-300" style={{ animationDelay: '600ms' }}>
                 Create, backtest, and optimize trading strategies using advanced AI algorithms. 
-                Turn market data into profitable trading decisions with StratAlge.
+                <br className="hidden md:block" />
+                <span className="animate-fade-in inline-block" style={{ animationDelay: '800ms' }}>
+                  Turn market data into profitable trading decisions with StratAlge.
+                </span>
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '800ms' }}>
+            {/* Enhanced CTA Buttons with Ripple Effect */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '1000ms' }}>
               <Link to="/signup">
-                <Button size="lg" className="px-8 hover:scale-105 transition-all duration-300 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl group">
-                  Start Building Strategies
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                <Button size="lg" className="px-8 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-2xl group relative overflow-hidden">
+                  <span className="relative z-10 flex items-center">
+                    Start Building Strategies
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-300" />
+                  </span>
+                  {/* Ripple Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
                 </Button>
               </Link>
               <Link to="/login">
-                <Button variant="outline" size="lg" className="px-8 hover:scale-105 transition-all duration-300 hover:bg-primary/5 hover:border-primary/30">
-                  View Demo
+                <Button variant="outline" size="lg" className="px-8 hover:scale-110 transition-all duration-300 hover:bg-primary/5 hover:border-primary/30 hover:shadow-lg group">
+                  <span className="group-hover:animate-pulse">View Demo</span>
                 </Button>
               </Link>
             </div>
 
-            {/* Stats */}
+            {/* Enhanced Stats with Hover Animations */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-16">
               {stats.map((stat, index) => (
                 <div 
                   key={index} 
-                  className="text-center group cursor-pointer animate-fade-in hover:scale-105 transition-all duration-300"
-                  style={{ animationDelay: `${1000 + index * 100}ms` }}
+                  className="text-center group cursor-pointer animate-fade-in hover:scale-110 transition-all duration-500 hover:bg-primary/5 rounded-lg p-4 hover:shadow-lg"
+                  style={{ animationDelay: `${1200 + index * 150}ms` }}
                 >
-                  <div className="flex items-center justify-center mb-2">
-                    <stat.icon className="h-6 w-6 text-primary group-hover:scale-110 transition-transform duration-200" />
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-all duration-300 group-hover:rotate-12">
+                      <stat.icon className="h-6 w-6 text-primary group-hover:scale-125 transition-transform duration-300" />
+                    </div>
                   </div>
-                  <div className="text-3xl md:text-4xl font-bold text-primary group-hover:text-primary/80 transition-colors duration-200">
+                  <div className="text-3xl md:text-4xl font-bold text-primary group-hover:text-primary/80 transition-colors duration-300 group-hover:animate-pulse">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="text-sm text-muted-foreground group-hover:text-foreground transition-colors duration-300">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
+            </div>
+
+            {/* Enhanced Floating Action Hint */}
+            <div className="pt-8 animate-fade-in" style={{ animationDelay: '1800ms' }}>
+              <div className="flex justify-center">
+                <div className="animate-bounce cursor-pointer hover:scale-110 transition-transform duration-300">
+                  <ArrowRight className="h-6 w-6 text-primary/60 rotate-90" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2 animate-pulse">
+                Scroll to explore features
+              </p>
             </div>
           </div>
         </Container>

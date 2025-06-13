@@ -76,9 +76,7 @@ const Landing = () => {
             animationDelay: '200ms'
           }}>
               <Link to="/login">
-                <Button variant="ghost" className="text-gray-700 hover:text-blue-600 hover:bg-blue-50">
-                  Sign In
-                </Button>
+                
               </Link>
               <Link to="/signup">
                 <Button className="hover:scale-105 transition-transform duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg">
@@ -279,7 +277,7 @@ const Landing = () => {
                   <div className={`w-16 h-16 bg-gradient-to-br ${item.color} text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                     {item.step}
                   </div>
-                  {index < 2 && <div className="hidden md:block absolute top-8 left-16 w-full h-0.5 bg-gradient-to-r from-blue-200 to-transparent"></div>}
+                  {index < 2}
                 </div>
                 <h3 className="text-xl font-semibold group-hover:text-blue-600 transition-colors duration-200 text-gray-900">
                   {item.title}
@@ -398,9 +396,7 @@ const Landing = () => {
                 </Button>
               </Link>
               <Link to="/login">
-                <Button variant="outline" size="lg" className="px-8 hover:scale-105 transition-all duration-300 border-white text-white hover:bg-white/10">
-                  Sign In
-                </Button>
+                
               </Link>
             </div>
           </div>

@@ -111,14 +111,7 @@ const Landing = () => {
           <div className="text-center space-y-8">
             <div className="space-y-6">
               {/* Enhanced Badge with Animation */}
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium animate-fade-in mb-6 hover:scale-105 transition-all duration-300 hover:bg-primary/15 cursor-pointer">
-                <Sparkles className="h-4 w-4 animate-pulse" />
-                <span className="animate-fade-in" style={{
-                animationDelay: '100ms'
-              }}>
-                  Powered by Advanced AI
-                </span>
-              </div>
+              
               
               {/* Enhanced Main Heading with Staggered Animation */}
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
@@ -211,10 +204,7 @@ const Landing = () => {
         
         <Container className="relative z-10">
           <div className="text-center mb-16 animate-fade-in">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <Zap className="h-4 w-4" />
-              Powerful Features
-            </div>
+            
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Everything You Need to Trade Successfully
             </h2>

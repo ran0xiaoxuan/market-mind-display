@@ -1,11 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
-
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -44,16 +42,7 @@ const Landing = () => {
     delay: "500ms",
     gradient: "from-pink-500 to-rose-500"
   }];
-  
-  const benefits = [
-    "Create unlimited trading strategies", 
-    "Backtest with historical market data", 
-    "AI-powered strategy optimization", 
-    "Real-time performance monitoring", 
-    "Risk management tools", 
-    "Multi-asset trading support"
-  ];
-  
+  const benefits = ["Create unlimited trading strategies", "Backtest with historical market data", "AI-powered strategy optimization", "Real-time performance monitoring", "Risk management tools", "Multi-asset trading support"];
   const stats = [{
     label: "Active Strategies",
     value: "10,000+",
@@ -75,9 +64,7 @@ const Landing = () => {
     icon: Users,
     color: "text-purple-600"
   }];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
         <Container>
@@ -85,7 +72,9 @@ const Landing = () => {
             <div className="animate-fade-in">
               <Logo size="md" />
             </div>
-            <div className="flex items-center gap-4 animate-fade-in" style={{animationDelay: '200ms'}}>
+            <div className="flex items-center gap-4 animate-fade-in" style={{
+            animationDelay: '200ms'
+          }}>
               <Link to="/login">
                 <Button variant="ghost" className="text-gray-700 hover:text-blue-600 hover:bg-blue-50">
                   Sign In
@@ -108,46 +97,63 @@ const Landing = () => {
         
         {/* Floating Animation Elements */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse" style={{
+        animationDelay: '2s'
+      }}></div>
         
         {/* Additional Floating Elements */}
-        <div className="absolute top-1/4 right-1/4 w-4 h-4 bg-blue-400/60 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
-        <div className="absolute bottom-1/3 left-1/3 w-3 h-3 bg-green-400/60 rounded-full animate-ping" style={{animationDelay: '3s'}}></div>
-        <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-purple-400/60 rounded-full animate-ping" style={{animationDelay: '5s'}}></div>
+        <div className="absolute top-1/4 right-1/4 w-4 h-4 bg-blue-400/60 rounded-full animate-ping" style={{
+        animationDelay: '1s'
+      }}></div>
+        <div className="absolute bottom-1/3 left-1/3 w-3 h-3 bg-green-400/60 rounded-full animate-ping" style={{
+        animationDelay: '3s'
+      }}></div>
+        <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-purple-400/60 rounded-full animate-ping" style={{
+        animationDelay: '5s'
+      }}></div>
         
         <Container className="relative z-10">
           <div className="text-center space-y-8">
             <div className="space-y-6">
               {/* Enhanced Badge with Animation */}
-              <div className="animate-fade-in" style={{animationDelay: '100ms'}}>
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 text-sm font-medium border border-blue-200/50">
-                  <Sparkles className="h-4 w-4" />
-                  AI-Powered Trading Platform
-                </span>
+              <div className="animate-fade-in" style={{
+              animationDelay: '100ms'
+            }}>
+                
               </div>
               
               {/* Enhanced Main Heading with Staggered Animation */}
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-                <span className="block animate-fade-in hover:scale-105 transition-transform duration-500 text-gray-900" style={{animationDelay: '200ms'}}>
+                <span className="block animate-fade-in hover:scale-105 transition-transform duration-500 text-gray-900" style={{
+                animationDelay: '200ms'
+              }}>
                   Build Winning Trading
                 </span>
-                <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500" style={{animationDelay: '400ms'}}>
+                <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500" style={{
+                animationDelay: '400ms'
+              }}>
                   Strategies with AI
                 </span>
               </h1>
               
               {/* Enhanced Description */}
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300" style={{animationDelay: '600ms'}}>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300" style={{
+              animationDelay: '600ms'
+            }}>
                 Create, backtest, and optimize trading strategies using advanced AI algorithms. 
                 <br className="hidden md:block" />
-                <span className="animate-fade-in inline-block" style={{animationDelay: '800ms'}}>
+                <span className="animate-fade-in inline-block" style={{
+                animationDelay: '800ms'
+              }}>
                   Turn market data into profitable trading decisions with StratAlge.
                 </span>
               </p>
             </div>
             
             {/* Enhanced CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{animationDelay: '1000ms'}}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{
+            animationDelay: '1000ms'
+          }}>
               <Link to="/signup">
                 <Button size="lg" className="px-8 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl group relative overflow-hidden">
                   <span className="relative z-10 flex items-center">
@@ -166,8 +172,9 @@ const Landing = () => {
 
             {/* Enhanced Stats with Bright Colors */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-16">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center group cursor-pointer animate-fade-in hover:scale-110 transition-all duration-500 hover:bg-white/60 rounded-lg p-4 hover:shadow-lg" style={{animationDelay: `${1200 + index * 150}ms`}}>
+              {stats.map((stat, index) => <div key={index} className="text-center group cursor-pointer animate-fade-in hover:scale-110 transition-all duration-500 hover:bg-white/60 rounded-lg p-4 hover:shadow-lg" style={{
+              animationDelay: `${1200 + index * 150}ms`
+            }}>
                   <div className="flex items-center justify-center mb-3">
                     <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 group-hover:from-blue-200 group-hover:to-cyan-200 transition-all duration-300 group-hover:rotate-12">
                       <stat.icon className={`h-6 w-6 ${stat.color} group-hover:scale-125 transition-transform duration-300`} />
@@ -179,12 +186,13 @@ const Landing = () => {
                   <div className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors duration-300">
                     {stat.label}
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
 
             {/* Enhanced Floating Action Hint */}
-            <div className="pt-8 animate-fade-in" style={{animationDelay: '1800ms'}}>
+            <div className="pt-8 animate-fade-in" style={{
+            animationDelay: '1800ms'
+          }}>
               <div className="flex justify-center">
                 <div className="animate-bounce cursor-pointer hover:scale-110 transition-transform duration-300">
                   <ArrowRight className="h-6 w-6 text-blue-400 rotate-90" />
@@ -204,10 +212,7 @@ const Landing = () => {
         
         <Container className="relative z-10">
           <div className="text-center mb-16 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-medium mb-4">
-              <Zap className="h-4 w-4" />
-              Powerful Features
-            </div>
+            
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
               Everything You Need to Trade Successfully
             </h2>
@@ -218,8 +223,9 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-fade-in hover:scale-105 bg-white/80 backdrop-blur" style={{animationDelay: feature.delay}}>
+            {features.map((feature, index) => <Card key={index} className="border-0 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-fade-in hover:scale-105 bg-white/80 backdrop-blur" style={{
+            animationDelay: feature.delay
+          }}>
                 <CardHeader>
                   <div className={`mb-4 p-3 rounded-lg bg-gradient-to-r ${feature.gradient} w-fit group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className="h-8 w-8 text-white" />
@@ -233,8 +239,7 @@ const Landing = () => {
                     {feature.description}
                   </CardDescription>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </Container>
       </section>
@@ -252,19 +257,29 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { step: 1, title: "Create Your Strategy", description: "Use our AI-powered tools or build custom strategies with technical indicators and trading rules.", color: "from-blue-500 to-cyan-500" },
-              { step: 2, title: "Backtest & Optimize", description: "Test your strategies against historical data and optimize parameters for better performance.", color: "from-green-500 to-emerald-500" },
-              { step: 3, title: "Deploy & Monitor", description: "Monitor your strategies' performance in real-time and make data-driven adjustments.", color: "from-purple-500 to-violet-500" }
-            ].map((item, index) => (
-              <div key={item.step} className="text-center space-y-4 group animate-fade-in hover:scale-105 transition-all duration-300" style={{animationDelay: `${index * 200}ms`}}>
+            {[{
+            step: 1,
+            title: "Create Your Strategy",
+            description: "Use our AI-powered tools or build custom strategies with technical indicators and trading rules.",
+            color: "from-blue-500 to-cyan-500"
+          }, {
+            step: 2,
+            title: "Backtest & Optimize",
+            description: "Test your strategies against historical data and optimize parameters for better performance.",
+            color: "from-green-500 to-emerald-500"
+          }, {
+            step: 3,
+            title: "Deploy & Monitor",
+            description: "Monitor your strategies' performance in real-time and make data-driven adjustments.",
+            color: "from-purple-500 to-violet-500"
+          }].map((item, index) => <div key={item.step} className="text-center space-y-4 group animate-fade-in hover:scale-105 transition-all duration-300" style={{
+            animationDelay: `${index * 200}ms`
+          }}>
                 <div className="relative">
                   <div className={`w-16 h-16 bg-gradient-to-br ${item.color} text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                     {item.step}
                   </div>
-                  {index < 2 && (
-                    <div className="hidden md:block absolute top-8 left-16 w-full h-0.5 bg-gradient-to-r from-blue-200 to-transparent"></div>
-                  )}
+                  {index < 2 && <div className="hidden md:block absolute top-8 left-16 w-full h-0.5 bg-gradient-to-r from-blue-200 to-transparent"></div>}
                 </div>
                 <h3 className="text-xl font-semibold group-hover:text-blue-600 transition-colors duration-200 text-gray-900">
                   {item.title}
@@ -272,8 +287,7 @@ const Landing = () => {
                 <p className="text-gray-600">
                   {item.description}
                 </p>
-              </div>
-            ))}
+              </div>)}
           </div>
         </Container>
       </section>
@@ -294,15 +308,17 @@ const Landing = () => {
               </p>
               
               <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3 group animate-fade-in hover:translate-x-2 transition-all duration-300" style={{animationDelay: `${index * 100}ms`}}>
+                {benefits.map((benefit, index) => <div key={index} className="flex items-center gap-3 group animate-fade-in hover:translate-x-2 transition-all duration-300" style={{
+                animationDelay: `${index * 100}ms`
+              }}>
                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
                     <span className="text-base group-hover:text-blue-600 transition-colors duration-200 text-gray-700">{benefit}</span>
-                  </div>
-                ))}
+                  </div>)}
               </div>
 
-              <div className="mt-8 animate-fade-in" style={{animationDelay: '600ms'}}>
+              <div className="mt-8 animate-fade-in" style={{
+              animationDelay: '600ms'
+            }}>
                 <Link to="/signup">
                   <Button size="lg" className="px-8 hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl group">
                     Start Free Trial
@@ -312,11 +328,15 @@ const Landing = () => {
               </div>
             </div>
 
-            <div className="relative animate-fade-in" style={{animationDelay: '200ms'}}>
+            <div className="relative animate-fade-in" style={{
+            animationDelay: '200ms'
+          }}>
               <div className="absolute inset-0 bg-gradient-to-br from-blue-200/40 via-transparent to-cyan-200/30 rounded-2xl blur-xl"></div>
               <Card className="p-8 shadow-xl relative z-10 hover:shadow-2xl transition-all duration-500 hover:scale-105 bg-white/90 backdrop-blur">
                 <div className="space-y-6">
-                  <div className="flex items-center gap-4 animate-fade-in" style={{animationDelay: '400ms'}}>
+                  <div className="flex items-center gap-4 animate-fade-in" style={{
+                  animationDelay: '400ms'
+                }}>
                     <div className="p-2 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100">
                       <TrendingUp className="h-8 w-8 text-green-600" />
                     </div>
@@ -328,17 +348,24 @@ const Landing = () => {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    {[
-                      { label: "Sharpe Ratio", value: "1.85" },
-                      { label: "Max Drawdown", value: "-4.1%" },
-                      { label: "Win Rate", value: "68%" },
-                      { label: "Total Trades", value: "156" }
-                    ].map((metric, index) => (
-                      <div key={metric.label} className="animate-fade-in hover:scale-105 transition-all duration-200 p-2 rounded-lg hover:bg-blue-50/50" style={{animationDelay: `${600 + index * 100}ms`}}>
+                    {[{
+                    label: "Sharpe Ratio",
+                    value: "1.85"
+                  }, {
+                    label: "Max Drawdown",
+                    value: "-4.1%"
+                  }, {
+                    label: "Win Rate",
+                    value: "68%"
+                  }, {
+                    label: "Total Trades",
+                    value: "156"
+                  }].map((metric, index) => <div key={metric.label} className="animate-fade-in hover:scale-105 transition-all duration-200 p-2 rounded-lg hover:bg-blue-50/50" style={{
+                    animationDelay: `${600 + index * 100}ms`
+                  }}>
                         <div className="text-gray-500">{metric.label}</div>
                         <div className="font-semibold text-lg text-gray-900">{metric.value}</div>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
               </Card>
@@ -361,7 +388,9 @@ const Landing = () => {
               their trading strategies with AI-powered tools.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{animationDelay: '200ms'}}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{
+            animationDelay: '200ms'
+          }}>
               <Link to="/signup">
                 <Button size="lg" className="px-8 hover:scale-105 transition-all duration-300 bg-white text-blue-600 hover:bg-gray-100 shadow-lg hover:shadow-xl group">
                   Get Started Free
@@ -391,33 +420,36 @@ const Landing = () => {
               </p>
             </div>
             
-            {[
-              { title: "Product", links: ["Strategies", "Backtesting", "AI Tools", "Analytics"] },
-              { title: "Company", links: ["About", "Contact", "Support", "Privacy"] },
-              { title: "Resources", links: ["Documentation", "Tutorials", "Blog", "Community"] }
-            ].map((section, index) => (
-              <div key={section.title} className="animate-fade-in" style={{animationDelay: `${index * 100}ms`}}>
+            {[{
+            title: "Product",
+            links: ["Strategies", "Backtesting", "AI Tools", "Analytics"]
+          }, {
+            title: "Company",
+            links: ["About", "Contact", "Support", "Privacy"]
+          }, {
+            title: "Resources",
+            links: ["Documentation", "Tutorials", "Blog", "Community"]
+          }].map((section, index) => <div key={section.title} className="animate-fade-in" style={{
+            animationDelay: `${index * 100}ms`
+          }}>
                 <h4 className="font-semibold mb-4 text-gray-900">{section.title}</h4>
                 <div className="space-y-2 text-sm">
-                  {section.links.map(link => (
-                    <div key={link}>
+                  {section.links.map(link => <div key={link}>
                       <Link to="/signup" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 hover:translate-x-1 inline-block">
                         {link}
                       </Link>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
           
-          <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600 animate-fade-in" style={{animationDelay: '400ms'}}>
+          <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600 animate-fade-in" style={{
+          animationDelay: '400ms'
+        }}>
             © 2024 StratAlge. All rights reserved.
           </div>
         </Container>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;

@@ -115,14 +115,14 @@ const Landing = () => {
               
               {/* Enhanced Main Heading with Staggered Animation */}
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-                <span style={{
+                <span className="block animate-fade-in hover:scale-105 transition-transform duration-500" style={{
                 animationDelay: '200ms'
-              }} className="block animate-fade-in hover:scale-105 transition-transform duration-500 py-[5px]">
+              }}>
                   Build Winning Trading
                 </span>
-                <span style={{
+                <span className="block text-primary bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500" style={{
                 animationDelay: '400ms'
-              }} className="block text-primary bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500 py-[5px]">
+              }}>
                   Strategies with AI
                 </span>
               </h1>

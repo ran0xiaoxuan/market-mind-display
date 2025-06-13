@@ -102,10 +102,7 @@ const Landing = () => {
         
         {/* Geometric Shapes */}
         
-        <div className="absolute bottom-32 left-20 w-6 h-6 border border-primary/15 rotate-12 animate-spin" style={{
-        animationDuration: '15s',
-        animationDirection: 'reverse'
-      }}></div>
+        
         
         <Container className="relative z-10">
           <div className="text-center space-y-8">

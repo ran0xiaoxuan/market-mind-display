@@ -1,3 +1,4 @@
+
 import { Container } from "@/components/ui/container";
 import BackToLandingNavbar from "@/components/BackToLandingNavbar";
 
@@ -6,43 +7,105 @@ const PrivacyPolicy = () => (
     <BackToLandingNavbar />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden py-16">
       <Container>
-        <div className="bg-white/80 shadow-lg rounded-xl p-8 md:p-16 max-w-3xl mx-auto">
+        <div className="bg-white/80 shadow-lg rounded-xl p-8 md:p-16 max-w-4xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 text-center">
             Privacy Policy
           </h1>
           <p className="text-gray-700 mb-8 text-center">
             Last updated: June 14, 2025
           </p>
-          <section className="mb-6">
-            <h2 className="text-lg font-bold mb-2 text-blue-700">1. Introduction</h2>
-            <p className="text-gray-700">
-              Thank you for choosing StratAlge. This policy describes how we collect, use, and protect your data when you use our services.
+          
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 text-blue-700">Introduction</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              Welcome to StratAIge, an AI trading strategy generator created to help you create effective and efficient trading strategies only in seconds. At StratAIge, we value your privacy and are committed to protecting your personal information. This Privacy Policy outlines how we collect, use, store, and share your information when you use our services.
             </p>
           </section>
-          <section className="mb-6">
-            <h2 className="text-lg font-bold mb-2 text-blue-700">2. Data Collection</h2>
-            <ul className="list-disc pl-6 text-gray-700 space-y-1">
-              <li>We collect information you provide (account details, preferences, feedback).</li>
-              <li>We store strategy data, trading performance, and analytics you generate using our platform.</li>
-            </ul>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 text-blue-700">Information Collection and Use</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              We collect various types of information to provide and improve our services. The types of data we collect include:
+            </p>
+            <div className="space-y-4 ml-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Account Information:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  When you create an account with us, we collect your email address, username, and any other information you provide during registration.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Usage Details:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  We collect information about how you use our platform, including the strategies you create, backtesting data, and performance metrics.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Device Information:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  We may collect information about the device you use to access our services, including IP address, browser type, and operating system.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Cookies:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  We use cookies and similar technologies to enhance your experience and collect information about how you use our website.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Payment and Billing Information:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  If you make purchases through our platform, we collect payment information necessary to process your transactions.
+                </p>
+              </div>
+            </div>
           </section>
-          <section className="mb-6">
-            <h2 className="text-lg font-bold mb-2 text-blue-700">3. Use of Data</h2>
-            <ul className="list-disc pl-6 text-gray-700 space-y-1">
-              <li>To operate, maintain, and improve our services.</li>
-              <li>For analytics, platform improvements, and relevant communication.</li>
-            </ul>
-          </section>
-          <section className="mb-6">
-            <h2 className="text-lg font-bold mb-2 text-blue-700">4. Security</h2>
-            <p className="text-gray-700">
-              We use industry-standard security to protect your data. However, no platform can guarantee absolute safety.
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 text-blue-700">Data Storage and Security</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              We take the security of your personal information seriously. We implement a variety of security measures to protect your data from unauthorized access, use, or disclosure. Your information is stored on secure servers, and we use encryption and other technologies to safeguard your data.
+            </p>
+            <p className="text-gray-700 leading-relaxed">
+              However, please be aware that no method of transmission over the Internet or method of electronic storage is 100% secure. While we strive to protect your personal information, we cannot guarantee its absolute security.
             </p>
           </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 text-blue-700">Information Sharing and Disclosure</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              We do not sell, trade, or otherwise transfer your personal information to outside parties without your consent, except in the following circumstances:
+            </p>
+            <div className="space-y-4 ml-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Service Providers:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  We may share your information with third-party service providers who assist us in operating our website, conducting our business, or servicing you, as long as those parties agree to keep this information confidential.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Legal Compliance:</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  We may disclose your information if required to do so by law or in response to valid requests by public authorities.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 text-blue-700">Changes to This Policy</h2>
+            <p className="text-gray-700 leading-relaxed">
+              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.
+            </p>
+          </section>
+
           <section>
-            <h2 className="text-lg font-bold mb-2 text-blue-700">5. Contact</h2>
-            <p className="text-gray-700">
-              Questions? Contact us at <a href="mailto:support@stratalge.com" className="text-blue-600 hover:underline">support@stratalge.com</a>.
+            <h2 className="text-2xl font-bold mb-4 text-blue-700">Contact Us</h2>
+            <p className="text-gray-700 leading-relaxed">
+              If you have any questions about this privacy policy, please contact us:
+            </p>
+            <p className="text-gray-700 mt-2">
+              Email: <a href="mailto:help@strataige.cc" className="text-blue-600 hover:underline">help@strataige.cc</a>
             </p>
           </section>
         </div>

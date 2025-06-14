@@ -1,6 +1,6 @@
 
 import { Toaster } from "@/components/ui/toaster";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
@@ -33,97 +33,95 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <div className="min-h-screen bg-background font-sans antialiased">
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/index" element={<Index />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/confirm" element={<Confirm />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/ai-test" element={<AITest />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/strategies"
-                element={
-                  <ProtectedRoute>
-                    <Strategies />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/strategies/:id"
-                element={
-                  <ProtectedRoute>
-                    <StrategyDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/strategies/:id/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditStrategy />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/backtest"
-                element={
-                  <ProtectedRoute>
-                    <Backtest />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recommendations"
-                element={
-                  <ProtectedRoute>
-                    <Recommendations />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ai-strategy"
-                element={
-                  <ProtectedRoute>
-                    <AIStrategy />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/strategy-preview"
-                element={
-                  <ProtectedRoute>
-                    <StrategyPreview />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <Toaster />
-          </div>
-        </Router>
+        <div className="min-h-screen bg-background font-sans antialiased">
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/index" element={<Index />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/confirm" element={<Confirm />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/ai-test" element={<AITest />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/strategies"
+              element={
+                <ProtectedRoute>
+                  <Strategies />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/strategies/:id"
+              element={
+                <ProtectedRoute>
+                  <StrategyDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/strategies/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditStrategy />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/backtest"
+              element={
+                <ProtectedRoute>
+                  <Backtest />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recommendations"
+              element={
+                <ProtectedRoute>
+                  <Recommendations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ai-strategy"
+              element={
+                <ProtectedRoute>
+                  <AIStrategy />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/strategy-preview"
+              element={
+                <ProtectedRoute>
+                  <StrategyPreview />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </div>
       </AuthProvider>
     </QueryClientProvider>
   );

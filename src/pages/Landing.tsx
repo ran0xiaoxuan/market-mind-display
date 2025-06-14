@@ -463,7 +463,7 @@ const Landing = () => {
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600 animate-fade-in" style={{
             animationDelay: '400ms'
           }}>
-            © 2024 StratAlge. All rights reserved.
+            © 2025 StratAlge. All rights reserved.
           </div>
         </Container>
       </footer>

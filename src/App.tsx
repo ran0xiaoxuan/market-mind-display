@@ -23,7 +23,7 @@ import TermsOfService from "./pages/TermsOfService";
 import Pricing from "./pages/Pricing";
 import AITest from "./pages/AITest";
 import { AuthProvider } from "./contexts/AuthContext";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
 

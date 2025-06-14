@@ -72,24 +72,24 @@ const Landing = () => {
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
         <Container>
           <div className="flex h-16 items-center justify-between">
-            <div className="animate-fade-in">
+            <div className="flex items-center gap-8 animate-fade-in">
               <Logo size="md" />
-            </div>
-            <div className="hidden md:flex items-center gap-8 animate-fade-in" style={{
-            animationDelay: '150ms'
-          }}>
-              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                Features
-              </a>
-              <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                How It Works
-              </a>
-              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                Pricing
-              </a>
-              <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                FAQ
-              </a>
+              <div className="hidden md:flex items-center gap-8" style={{
+                animationDelay: '150ms'
+              }}>
+                <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+                  Features
+                </a>
+                <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+                  How It Works
+                </a>
+                <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+                  Pricing
+                </a>
+                <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+                  FAQ
+                </a>
+              </div>
             </div>
             <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'

@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -13,7 +14,9 @@ export default function BackToLandingNavbar() {
           animationDelay: '200ms'
         }}>
             <Link to="/pricing">
-              
+              <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
+                Pricing
+              </Button>
             </Link>
             <Link to="/login">
               <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -7,6 +8,7 @@ import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCir
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
+import { PricingSection } from "@/components/PricingSection";
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -78,6 +80,11 @@ const Landing = () => {
             <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
           }}>
+              <Link to="/pricing">
+                <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
+                  Pricing
+                </Button>
+              </Link>
               <Link to="/login">
                 <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
                   Log In
@@ -491,6 +498,8 @@ const Landing = () => {
           </div>
         </Container>
       </section>
+
+      <PricingSection />
 
       {/* CTA Section */}
       <CtaSection />

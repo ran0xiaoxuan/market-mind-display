@@ -72,24 +72,8 @@ const Landing = () => {
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
         <Container>
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-8 animate-fade-in">
+            <div className="animate-fade-in">
               <Logo size="md" />
-              <div className="hidden md:flex items-center gap-8" style={{
-                animationDelay: '150ms'
-              }}>
-                <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                  Features
-                </a>
-                <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                  How It Works
-                </a>
-                <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                  Pricing
-                </a>
-                <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
-                  FAQ
-                </a>
-              </div>
             </div>
             <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
@@ -235,7 +219,7 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
+      <section className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/20 to-transparent"></div>
         
         <Container className="relative z-10">
@@ -273,7 +257,7 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-white">
+      <section className="py-20 bg-white">
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
@@ -316,106 +300,6 @@ const Landing = () => {
                   {item.description}
                 </p>
               </div>)}
-          </div>
-        </Container>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gradient-to-br from-blue-50 to-cyan-50 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-blue-200/30 via-cyan-200/20 to-purple-200/30 rounded-full blur-3xl"></div>
-        
-        <Container className="relative z-10">
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Start free and scale as you grow. No hidden fees, no surprises.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Free Plan */}
-            <Card className="relative hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in bg-white/90 backdrop-blur">
-              <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl font-bold text-gray-900">
-                  Free
-                </CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">$0</span>
-                  <span className="text-gray-500">/forever</span>
-                </div>
-                <CardDescription className="mt-4 text-base">
-                  Perfect for getting started with basic trading strategies
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  {["3 strategies per month", "Basic backtesting", "Community support", "Standard indicators"].map((feature, idx) => <div key={idx} className="flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
-                    </div>)}
-                </div>
-
-                <div className="pt-6">
-                  <Link to="/signup">
-                    <Button className="w-full hover:scale-105 transition-all duration-300 bg-gray-900 hover:bg-gray-800 text-white" size="lg">
-                      Get Started Free
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card className="relative border-blue-500 border-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in bg-white/90 backdrop-blur" style={{
-            animationDelay: '100ms'
-          }}>
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-                  Most Popular
-                </span>
-              </div>
-              
-              <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl font-bold text-gray-900">
-                  Pro
-                </CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">$29</span>
-                  <span className="text-gray-500">/month</span>
-                </div>
-                <CardDescription className="mt-4 text-base">
-                  Everything you need to build professional trading strategies
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  {["Unlimited strategies", "Advanced backtesting", "AI-powered optimization", "Real-time market data", "Premium indicators", "Priority support"].map((feature, idx) => <div key={idx} className="flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
-                    </div>)}
-                </div>
-
-                <div className="pt-6">
-                  <Link to="/signup">
-                    <Button className="w-full hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg" size="lg">
-                      Start Pro Trial
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-12 text-center animate-fade-in" style={{
-          animationDelay: '200ms'
-        }}>
-            <Link to="/pricing">
-              
-            </Link>
           </div>
         </Container>
       </section>
@@ -559,7 +443,7 @@ const Landing = () => {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 bg-white">
+      <section className="py-20 bg-white">
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">

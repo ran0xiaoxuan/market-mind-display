@@ -55,7 +55,7 @@ const PricingPage = () => (
             Start with a generous free plan and upgrade as your trading scales.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch animate-fade-in" style={{ animationDelay: '200ms' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch animate-fade-in max-w-4xl mx-auto" style={{ animationDelay: '200ms' }}>
           {pricingPlans.map((plan, index) => (
             <Card key={plan.name} className={`flex flex-col transition-all duration-300 hover:shadow-2xl ${plan.isFeatured ? 'border-blue-600 shadow-xl scale-105' : 'shadow-lg'}`} style={{ animationDelay: `${200 + index * 100}ms` }}>
               <CardHeader>

@@ -352,17 +352,10 @@ const Landing = () => {
 
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  {[
-                    "3 strategies per month",
-                    "Basic backtesting",
-                    "Community support",
-                    "Standard indicators"
-                  ].map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
+                  {["3 strategies per month", "Basic backtesting", "Community support", "Standard indicators"].map((feature, idx) => <div key={idx} className="flex items-center gap-3">
                       <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                       <span className="text-gray-700">{feature}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
 
                 <div className="pt-6">
@@ -376,7 +369,9 @@ const Landing = () => {
             </Card>
 
             {/* Pro Plan */}
-            <Card className="relative border-blue-500 border-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in bg-white/90 backdrop-blur" style={{ animationDelay: '100ms' }}>
+            <Card className="relative border-blue-500 border-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in bg-white/90 backdrop-blur" style={{
+            animationDelay: '100ms'
+          }}>
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <span className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-full text-sm font-medium">
                   Most Popular
@@ -398,19 +393,10 @@ const Landing = () => {
 
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  {[
-                    "Unlimited strategies",
-                    "Advanced backtesting",
-                    "AI-powered optimization",
-                    "Real-time market data",
-                    "Premium indicators",
-                    "Priority support"
-                  ].map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
+                  {["Unlimited strategies", "Advanced backtesting", "AI-powered optimization", "Real-time market data", "Premium indicators", "Priority support"].map((feature, idx) => <div key={idx} className="flex items-center gap-3">
                       <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                       <span className="text-gray-700">{feature}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
 
                 <div className="pt-6">
@@ -424,11 +410,11 @@ const Landing = () => {
             </Card>
           </div>
 
-          <div className="mt-12 text-center animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <div className="mt-12 text-center animate-fade-in" style={{
+          animationDelay: '200ms'
+        }}>
             <Link to="/pricing">
-              <Button variant="outline" size="lg" className="hover:scale-105 transition-transform duration-200">
-                View All Plans & Features
-              </Button>
+              
             </Link>
           </div>
         </Container>

@@ -415,11 +415,33 @@ const Landing = () => {
               </p>
               {/* Social Media Links */}
               <div className="flex space-x-4 pt-2">
-                <a href="https://x.com/StratAIge_cc" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-6 h-6 text-primary hover:text-blue-500 transition-colors" fill="currentColor"><path d="M19.727 14.727 29.5 4h-2.182l-8.307 9.091L12.054 4H4.191l10.205 15.091L4.191 28h2.182l8.693-9.532L19.945 28h7.863l-9.823-13.273zm-3.079 3.386-.308-.446L6.092 5.486h4.983l6.049 8.772.308.446 9.447 13.712h-4.983l-6.049-8.773z"/></svg>
+                <a
+                  href="https://x.com/StratAIge_cc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="X (Twitter)"
+                  className="transition-transform hover:scale-110"
+                >
+                  <img
+                    src="/lovable-uploads/aac26b68-b933-46e7-a9c0-ff7c76f65f4f.png"
+                    alt="X logo"
+                    className="w-6 h-6 object-contain rounded"
+                    style={{ background: "#fff" }}
+                  />
                 </a>
-                <a href="https://discord.gg/hjyC8bSrxT" target="_blank" rel="noopener noreferrer" aria-label="Discord">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-6 h-6 text-primary hover:text-indigo-600 transition-colors" fill="currentColor"><path d="M26.354 6.095A25.496 25.496 0 0 0 20.663 4l-.512 1.013a23.981 23.981 0 0 0-8.37 0L11.27 4A25.48 25.48 0 0 0 5.646 6.096c-4.07 6.298-5.176 12.386-4.616 18.428A26.119 26.119 0 0 0 13.07 28c.44-.532.833-1.071 1.196-1.631-3.118-.892-5.536-2.032-8.023-3.604.599-.498 1.176-.991 1.727-1.484 2.694 1.659 5.205 2.837 7.92 3.649 2.715-.812 5.226-1.99 7.92-3.648a33.669 33.669 0 0 0 1.728 1.483c-2.485 1.572-4.904 2.712-8.022 3.604.363.56.757 1.099 1.196 1.63a26.118 26.118 0 0 0 12.04-3.477c.56-6.041-.546-12.129-4.616-18.428zm-3.079 3.386-.308-.446L6.092 5.486h4.983l6.049 8.772.308.446 9.447 13.712h-4.983l-6.049-8.773z"/></svg>
+                <a
+                  href="https://discord.gg/hjyC8bSrxT"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Discord"
+                  className="transition-transform hover:scale-110"
+                >
+                  <img
+                    src="/lovable-uploads/8708168b-5adf-4599-9513-99c7e4c7bcc8.png"
+                    alt="Discord logo"
+                    className="w-6 h-6 object-contain rounded"
+                    style={{ background: "#fff" }}
+                  />
                 </a>
               </div>
             </div>

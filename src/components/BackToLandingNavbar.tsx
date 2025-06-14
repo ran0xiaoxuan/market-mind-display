@@ -21,7 +21,7 @@ export default function BackToLandingNavbar() {
               <Logo size="md" />
             </Link>
             {/* Nav links beside logo */}
-            <nav className="flex gap-3 ml-2">
+            <nav className="flex gap-6 ml-2">
               <Link to={getSectionLink(location.pathname, "features")}
                 className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150"
               >

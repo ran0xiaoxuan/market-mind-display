@@ -12,6 +12,22 @@ export default function BackToLandingNavbar() {
           <Link to="/" className="animate-fade-in">
             <Logo size="md" />
           </Link>
+          <div className="hidden md:flex items-center gap-8 animate-fade-in" style={{
+            animationDelay: '150ms'
+          }}>
+            <Link to="/#features" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+              Features
+            </Link>
+            <Link to="/#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+              How It Works
+            </Link>
+            <Link to="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+              Pricing
+            </Link>
+            <Link to="/#faq" className="text-gray-600 hover:text-gray-900 transition-colors duration-200 hover:scale-105 transform">
+              FAQ
+            </Link>
+          </div>
           <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
           }}>

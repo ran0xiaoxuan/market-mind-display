@@ -115,6 +115,29 @@ const Landing = () => {
         
         <Container className="relative z-10">
           <div className="text-center space-y-8">
+            {/* Product Hunt Badge */}
+            <div className="flex justify-center mb-2 animate-fade-in" style={{ animationDelay: '90ms' }}>
+              <a
+                href="https://www.producthunt.com/posts/strataige?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-strataige"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="StratAIge on Product Hunt"
+                className="inline-block"
+              >
+                <img
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=XXXXX&theme=light"
+                  alt="StratAIge on Product Hunt"
+                  style={{
+                    width: "250px",
+                    maxWidth: "100%",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px 0 rgba(0,0,0,.09)"
+                  }}
+                  width="250"
+                  height="54"
+                />
+              </a>
+            </div>
             <div className="space-y-6">
               {/* Enhanced Badge with Animation */}
               <div className="animate-fade-in" style={{

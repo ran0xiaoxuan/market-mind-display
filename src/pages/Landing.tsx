@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -81,9 +80,7 @@ const Landing = () => {
             animationDelay: '200ms'
           }}>
               <Link to="/pricing">
-                <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
-                  Pricing
-                </Button>
+                
               </Link>
               <Link to="/login">
                 <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">

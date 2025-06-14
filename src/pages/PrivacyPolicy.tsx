@@ -1,5 +1,3 @@
-
-
 import { Container } from "@/components/ui/container";
 import BackToLandingNavbar from "@/components/BackToLandingNavbar";
 import { CtaSection } from "@/components/CtaSection";

@@ -72,12 +72,22 @@ const Landing = () => {
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
         <Container>
           <div className="flex h-16 items-center justify-between">
-            <div className="animate-fade-in">
-              <Logo size="md" />
+            {/* Left: logo and nav links */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 animate-fade-in">
+                <Logo size="md" />
+              </div>
+              <nav className="flex gap-3 ml-2">
+                <a href="#features" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">Features</a>
+                <a href="#how-it-works" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">How It Works</a>
+                <a href="/pricing" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">Pricing</a>
+                <a href="#faq" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">FAQ</a>
+              </nav>
             </div>
+            {/* Right: Auth actions */}
             <div className="flex items-center gap-4 animate-fade-in" style={{
-            animationDelay: '200ms'
-          }}>
+              animationDelay: '200ms'
+            }}>
               <Link to="/login">
                 <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
                   Log In
@@ -219,7 +229,7 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
+      <section id="features" className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/20 to-transparent"></div>
         
         <Container className="relative z-10">
@@ -257,7 +267,7 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-white">
+      <section id="how-it-works" className="py-20 bg-white">
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
@@ -300,6 +310,57 @@ const Landing = () => {
                   {item.description}
                 </p>
               </div>)}
+          </div>
+        </Container>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 bg-gradient-to-r from-blue-100/40 via-white to-cyan-100/40 relative">
+        <Container>
+          <div className="max-w-3xl mx-auto text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-gray-900">Pricing</h2>
+            <p className="text-lg text-gray-600 mb-4">
+              Simple, transparent plans for any level of trader.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-gray-200 hover:scale-105 transition-transform duration-300">
+              <h3 className="text-xl font-bold mb-2">Free</h3>
+              <div className="text-3xl font-extrabold mb-4">$0 <span className="text-base font-normal text-gray-500">/mo</span></div>
+              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left text-sm">
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>1 strategy</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Basic backtesting</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Core analytics</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Email support</li>
+              </ul>
+              <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100">Get Started</Button>
+            </div>
+            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-blue-600 ring-2 ring-blue-200 relative hover:scale-105 transition-transform duration-300">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full font-semibold shadow text-xs">
+                Most Popular
+              </div>
+              <h3 className="text-xl font-bold mb-2">Pro</h3>
+              <div className="text-3xl font-extrabold mb-4">$19 <span className="text-base font-normal text-gray-500">/mo</span></div>
+              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left text-sm">
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Unlimited strategies</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Advanced backtesting</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Premium analytics</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Strategy recommendations</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Priority support</li>
+              </ul>
+              <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700">Start Free Trial</Button>
+            </div>
+            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-gray-200 hover:scale-105 transition-transform duration-300">
+              <h3 className="text-xl font-bold mb-2">Enterprise</h3>
+              <div className="text-3xl font-extrabold mb-4">Custom</div>
+              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left text-sm">
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>White-glove onboarding</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Team collaboration</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>On-premise deployment</li>
+                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Dedicated support</li>
+              </ul>
+              <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100">Contact Us</Button>
+            </div>
           </div>
         </Container>
       </section>

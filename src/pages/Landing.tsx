@@ -406,7 +406,6 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t bg-gray-50 py-12 relative">
         <div className="absolute inset-0 bg-gradient-to-t from-blue-50/30 to-transparent"></div>
-        
         <Container className="relative z-10">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="space-y-4 animate-fade-in">
@@ -414,34 +413,31 @@ const Landing = () => {
               <p className="text-sm text-gray-600">
                 Build winning trading strategies with AI-powered tools and advanced backtesting.
               </p>
+              {/* Social Media Links */}
+              <div className="flex space-x-4 pt-2">
+                <a href="https://x.com/StratAIge_cc" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-6 h-6 text-primary hover:text-blue-500 transition-colors" fill="currentColor"><path d="M19.727 14.727 29.5 4h-2.182l-8.307 9.091L12.054 4H4.191l10.205 15.091L4.191 28h2.182l8.693-9.532L19.945 28h7.863l-9.823-13.273zm-3.079 3.386-.308-.446L6.092 5.486h4.983l6.049 8.772.308.446 9.447 13.712h-4.983l-6.049-8.773z"/></svg>
+                </a>
+                <a href="https://discord.gg/hjyC8bSrxT" target="_blank" rel="noopener noreferrer" aria-label="Discord">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-6 h-6 text-primary hover:text-indigo-600 transition-colors" fill="currentColor"><path d="M26.354 6.095A25.496 25.496 0 0 0 20.663 4l-.512 1.013a23.981 23.981 0 0 0-8.37 0L11.27 4A25.48 25.48 0 0 0 5.646 6.096c-4.07 6.298-5.176 12.386-4.616 18.428A26.119 26.119 0 0 0 13.07 28c.44-.532.833-1.071 1.196-1.631-3.118-.892-5.536-2.032-8.023-3.604.599-.498 1.176-.991 1.727-1.484 2.694 1.659 5.205 2.837 7.92 3.649 2.715-.812 5.226-1.99 7.92-3.648a33.669 33.669 0 0 0 1.728 1.483c-2.485 1.572-4.904 2.712-8.022 3.604.363.56.757 1.099 1.196 1.63a26.118 26.118 0 0 0 12.04-3.477c.56-6.041-.546-12.129-4.616-18.428zm-3.079 3.386-.308-.446L6.092 5.486h4.983l6.049 8.772.308.446 9.447 13.712h-4.983l-6.049-8.773z"/></svg>
+                </a>
+              </div>
             </div>
-            
-            {[{
-            title: "Product",
-            links: ["Strategies", "Backtesting", "AI Tools", "Analytics"]
-          }, {
-            title: "Company",
-            links: ["About", "Contact", "Support", "Privacy"]
-          }, {
-            title: "Resources",
-            links: ["Documentation", "Tutorials", "Blog", "Community"]
-          }].map((section, index) => <div key={section.title} className="animate-fade-in" style={{
-            animationDelay: `${index * 100}ms`
-          }}>
-                <h4 className="font-semibold mb-4 text-gray-900">{section.title}</h4>
-                <div className="space-y-2 text-sm">
-                  {section.links.map(link => <div key={link}>
-                      <Link to="/signup" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 hover:translate-x-1 inline-block">
-                        {link}
-                      </Link>
-                    </div>)}
-                </div>
-              </div>)}
+            <div className="animate-fade-in col-span-3 flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 sm:gap-8">
+              {/* Footer Main Links */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                <a href="/privacy-policy" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 text-sm font-medium">
+                  Privacy Policy
+                </a>
+                <a href="/terms-of-service" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 text-sm font-medium">
+                  Terms of Service
+                </a>
+              </div>
+            </div>
           </div>
-          
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600 animate-fade-in" style={{
-          animationDelay: '400ms'
-        }}>
+            animationDelay: '400ms'
+          }}>
             © 2024 StratAlge. All rights reserved.
           </div>
         </Container>

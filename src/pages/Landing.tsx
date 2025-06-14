@@ -73,15 +73,26 @@ const Landing = () => {
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
         <Container>
           <div className="flex h-16 items-center justify-between">
-            <div className="animate-fade-in">
+            <div className="flex items-center gap-8 animate-fade-in">
               <Logo size="md" />
+              <div className="hidden md:flex items-center gap-6">
+                <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  Features
+                </a>
+                <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  How It Works
+                </a>
+                <Link to="/pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  Pricing
+                </Link>
+                <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  FAQ
+                </a>
+              </div>
             </div>
             <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
           }}>
-              <Link to="/pricing">
-                
-              </Link>
               <Link to="/login">
                 <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
                   Log In
@@ -223,7 +234,7 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
+      <section id="features" className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/20 to-transparent"></div>
         
         <Container className="relative z-10">
@@ -261,7 +272,7 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-white">
+      <section id="how-it-works" className="py-20 bg-white">
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
@@ -447,7 +458,7 @@ const Landing = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white">
+      <section id="faq" className="py-20 bg-white">
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">

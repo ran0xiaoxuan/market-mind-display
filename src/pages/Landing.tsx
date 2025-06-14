@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -383,6 +384,108 @@ const Landing = () => {
                 </div>
               </Card>
             </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-100/40 to-cyan-100/40 relative">
+        <Container>
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              What Our Users Say
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Don’t just take our word for it – here’s what our users think about StratAlge.
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-3">
+            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in">
+              <img src="/lovable-uploads/photo-1581091226825-a6a2a5aee158" alt="Elena testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-blue-400" />
+              <div className="font-semibold text-gray-900 mb-2">Elena K.</div>
+              <div className="text-gray-600 text-center mb-2">“StratAlge helped me generate working strategies that match my risk level. Love the backtesting!”</div>
+              <div className="flex gap-1 mt-2">
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{ animationDelay: "100ms" }}>
+              <img src="/lovable-uploads/photo-1519389950473-47ba0277781c" alt="Analytical Team testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-green-400" />
+              <div className="font-semibold text-gray-900 mb-2">Gautam S.</div>
+              <div className="text-gray-600 text-center mb-2">“The analytics tools make it easy to compare strategies and see what really works in the market.”</div>
+              <div className="flex gap-1 mt-2">
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{ animationDelay: "200ms" }}>
+              <img src="/lovable-uploads/photo-1649972904349-6e44c42644a7" alt="Amanda testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-cyan-400" />
+              <div className="font-semibold text-gray-900 mb-2">Amanda T.</div>
+              <div className="text-gray-600 text-center mb-2">“I’m new to trading. StratAlge gave me the confidence to test ideas before risking my money.”</div>
+              <div className="flex gap-1 mt-2">
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+                <span className="text-yellow-400">&#9733;</span>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-white">
+        <Container>
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Still have questions? We’re here to help.
+            </p>
+          </div>
+          <div className="max-w-2xl mx-auto">
+            <Accordion type="single" collapsible className="space-y-4">
+              <AccordionItem value="faq-1">
+                <AccordionTrigger>
+                  What is StratAlge?
+                </AccordionTrigger>
+                <AccordionContent>
+                  StratAlge is an AI-powered platform that helps you build, test, and optimize trading strategies with advanced analytics and risk management tools.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-2">
+                <AccordionTrigger>
+                  Can I use StratAlge if I’m a beginner?
+                </AccordionTrigger>
+                <AccordionContent>
+                  Absolutely! StratAlge is user-friendly and designed for both beginners and advanced traders.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-3">
+                <AccordionTrigger>
+                  Which assets can I trade or backtest?
+                </AccordionTrigger>
+                <AccordionContent>
+                  You can create strategies for stocks, ETFs, and many other supported asset types.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-4">
+                <AccordionTrigger>
+                  Is my data secure on StratAlge?
+                </AccordionTrigger>
+                <AccordionContent>
+                  Yes, we use state-of-the-art security practices to protect your information and trading data.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </Container>
       </section>

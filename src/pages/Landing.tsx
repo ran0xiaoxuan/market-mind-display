@@ -118,17 +118,18 @@ const Landing = () => {
             {/* Product Hunt Badge */}
             <div className="flex justify-center mb-2 animate-fade-in" style={{ animationDelay: '90ms' }}>
               <a
-                href="https://www.producthunt.com/posts/strataige?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-strataige"
+                href="https://www.producthunt.com/products/strataige?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-strataige"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="StratAIge on Product Hunt"
                 className="inline-block"
               >
                 <img
-                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=XXXXX&theme=light"
-                  alt="StratAIge on Product Hunt"
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=978493&theme=light&t=1749918260746"
+                  alt="StratAIge - Financial tool; Trading assistant | Product Hunt"
                   style={{
                     width: "250px",
+                    height: "54px",
                     maxWidth: "100%",
                     borderRadius: "8px",
                     boxShadow: "0 2px 8px 0 rgba(0,0,0,.09)"

@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
+
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -76,7 +77,9 @@ const Landing = () => {
             animationDelay: '200ms'
           }}>
               <Link to="/login">
-                
+                <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
+                  Log In
+                </Button>
               </Link>
               <Link to="/signup">
                 <Button className="hover:scale-105 transition-transform duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg">
@@ -466,4 +469,5 @@ const Landing = () => {
       </footer>
     </div>;
 };
+
 export default Landing;

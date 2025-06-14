@@ -15,6 +15,11 @@ export default function BackToLandingNavbar() {
           <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
           }}>
+            <Link to="/login">
+              <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
+                Log In
+              </Button>
+            </Link>
             <Link to="/signup">
               <Button className="hover:scale-105 transition-transform duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg">
                 Get Started

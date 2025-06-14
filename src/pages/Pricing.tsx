@@ -1,4 +1,3 @@
-
 import { Container } from "@/components/ui/container";
 import BackToLandingNavbar from "@/components/BackToLandingNavbar";
 import { CtaSection } from "@/components/CtaSection";
@@ -30,18 +29,6 @@ const plans = [
     ],
     cta: "Start Free Trial",
     popular: true
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    features: [
-      "White-glove onboarding",
-      "Team collaboration",
-      "On-premise deployment",
-      "Dedicated support"
-    ],
-    cta: "Contact Us",
-    popular: false
   }
 ];
 

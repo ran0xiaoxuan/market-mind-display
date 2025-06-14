@@ -1,563 +1,337 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
+import {
+  Briefcase,
+  Code,
+  FileCode,
+  GaugeCircle,
+  Keyboard,
+  LayoutPanelLeft,
+  LineChart,
+  LucideIcon,
+  Rocket,
+  Settings,
+  TrendingUp,
+  Twitter,
+  Youtube,
+} from "lucide-react";
 import { Link } from "react-router-dom";
-import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import BackToLandingNavbar from "@/components/BackToLandingNavbar";
 import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
-const Landing = () => {
-  const features = [{
-    icon: Brain,
-    title: "AI-Powered Strategy Creation",
-    description: "Generate sophisticated trading strategies using advanced AI algorithms and market analysis.",
-    delay: "0ms",
-    gradient: "from-blue-500 to-cyan-500"
-  }, {
-    icon: PlayIcon,
-    title: "Advanced Backtesting",
-    description: "Test your strategies with real market data and optimize performance with detailed analytics.",
-    delay: "100ms",
-    gradient: "from-green-500 to-emerald-500"
-  }, {
-    icon: BarChart3,
-    title: "Performance Analytics",
-    description: "Track returns, Sharpe ratios, drawdowns, and other key metrics to optimize your trading.",
-    delay: "200ms",
-    gradient: "from-purple-500 to-violet-500"
-  }, {
-    icon: Shield,
-    title: "Risk Management",
-    description: "Built-in risk controls and position sizing to protect your capital and maximize returns.",
-    delay: "300ms",
-    gradient: "from-orange-500 to-red-500"
-  }, {
-    icon: Target,
-    title: "Multi-Asset Support",
-    description: "Trade stocks, ETFs, and other assets with strategies tailored to each market.",
-    delay: "400ms",
-    gradient: "from-teal-500 to-blue-500"
-  }, {
-    icon: Users,
-    title: "Strategy Recommendations",
-    description: "Get personalized strategy suggestions based on market conditions and your preferences.",
-    delay: "500ms",
-    gradient: "from-pink-500 to-rose-500"
-  }];
-  const benefits = ["Create unlimited trading strategies", "Backtest with historical market data", "AI-powered strategy optimization", "Real-time performance monitoring", "Risk management tools", "Multi-asset trading support"];
-  const stats = [{
-    label: "Active Strategies",
-    value: "10,000+",
-    icon: Target,
-    color: "text-blue-600"
-  }, {
-    label: "Backtests Run",
-    value: "50K+",
-    icon: PlayIcon,
-    color: "text-green-600"
-  }, {
-    label: "Average Return",
-    value: "+12.5%",
-    icon: TrendingUp,
-    color: "text-emerald-600"
-  }, {
-    label: "Users",
-    value: "5,000+",
-    icon: Users,
-    color: "text-purple-600"
-  }];
-  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
-      {/* Navigation */}
-      <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
-        <Container>
-          <div className="flex h-16 items-center justify-between">
-            {/* Left: logo and nav links */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 animate-fade-in">
-                <Logo size="md" />
-              </div>
-              <nav className="flex gap-3 ml-2">
-                <a href="#features" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">Features</a>
-                <a href="#how-it-works" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">How It Works</a>
-                <a href="/pricing" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">Pricing</a>
-                <a href="#faq" className="text-gray-700 hover:text-blue-700 font-medium transition-colors duration-150">FAQ</a>
-              </nav>
-            </div>
-            {/* Right: Auth actions */}
-            <div className="flex items-center gap-4 animate-fade-in" style={{
-              animationDelay: '200ms'
-            }}>
-              <Link to="/login">
-                <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
-                  Log In
-                </Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="hover:scale-105 transition-transform duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </nav>
+import { Logo } from "@/components/Logo";
 
-      {/* Enhanced Hero Section */}
-      <section className="py-20 md:py-32 relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-transparent to-cyan-100/50"></div>
-        
-        {/* Floating Animation Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse" style={{
-        animationDelay: '2s'
-      }}></div>
-        
-        {/* Additional Floating Elements */}
-        <div className="absolute top-1/4 right-1/4 w-4 h-4 bg-blue-400/60 rounded-full animate-ping" style={{
-        animationDelay: '1s'
-      }}></div>
-        <div className="absolute bottom-1/3 left-1/3 w-3 h-3 bg-green-400/60 rounded-full animate-ping" style={{
-        animationDelay: '3s'
-      }}></div>
-        <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-purple-400/60 rounded-full animate-ping" style={{
-        animationDelay: '5s'
-      }}></div>
-        
-        <Container className="relative z-10">
-          <div className="text-center space-y-8">
-            {/* Product Hunt Badge */}
-            <div className="flex justify-center mb-2 animate-fade-in" style={{
-            animationDelay: '90ms'
-          }}>
-              <a href="https://www.producthunt.com/products/strataige?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-strataige" target="_blank" rel="noopener noreferrer" aria-label="StratAIge on Product Hunt" className="inline-block">
-                <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=978493&theme=light&t=1749919594963" alt="StratAIge - Financial tool;Trading assistant | Product Hunt" style={{
-                width: "250px",
-                height: "54px"
-              }} width="250" height="54" />
-              </a>
-            </div>
-            <div className="space-y-6">
-              {/* Enhanced Badge with Animation */}
-              <div className="animate-fade-in" style={{
-              animationDelay: '100ms'
-            }}>
-                
-              </div>
-              
-              {/* Enhanced Main Heading with Staggered Animation */}
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-                <span className="block animate-fade-in hover:scale-105 transition-transform duration-500 text-gray-900" style={{
-                animationDelay: '200ms'
-              }}>
-                  Build Winning Trading
-                </span>
-                <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500" style={{
-                animationDelay: '400ms'
-              }}>
-                  Strategies with AI
-                </span>
+const Feature = ({
+  title,
+  description,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}) => {
+  return (
+    <div className="flex gap-4 animate-fade-in">
+      <div className="rounded-lg bg-blue-100 p-3">
+        <Icon className="h-6 w-6 text-blue-600" />
+      </div>
+      <div>
+        <h3 className="font-semibold text-lg">{title}</h3>
+        <p className="text-gray-600">{description}</p>
+      </div>
+    </div>
+  );
+};
+
+const HowItWorksItem = ({
+  title,
+  description,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}) => {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="rounded-full bg-blue-100 p-4 mb-4">
+        <Icon className="h-8 w-8 text-blue-600" />
+      </div>
+      <h3 className="font-semibold text-xl mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
+};
+
+export default function Index() {
+  return (
+    <div>
+      <BackToLandingNavbar />
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden">
+        <Container className="py-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {/* Left side: Text Content */}
+            <div className="animate-fade-in">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Unlock the Power of AI for Algorithmic Trading
               </h1>
-              
-              {/* Enhanced Description */}
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300" style={{
-              animationDelay: '600ms'
-            }}>
-                Create, backtest, and optimize trading strategies using advanced AI algorithms. 
-                <br className="hidden md:block" />
-                <span className="animate-fade-in inline-block" style={{
-                animationDelay: '800ms'
-              }}>
-                  Turn market data into profitable trading decisions with StratAlge.
-                </span>
+              <p className="text-lg text-gray-600 mb-8">
+                Generate, backtest, and optimize trading strategies with
+                AI-powered tools. Start building your automated trading system
+                today.
               </p>
-            </div>
-            
-            {/* Enhanced CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{
-            animationDelay: '1000ms'
-          }}>
-              <Link to="/signup">
-                <Button size="lg" className="px-8 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl group relative overflow-hidden">
-                  <span className="relative z-10 flex items-center">
-                    Start Building Strategies
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-300" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
-                </Button>
-              </Link>
-              <Link to="/login">
-                
-              </Link>
-            </div>
-
-            {/* Enhanced Stats with Bright Colors */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-16">
-              {stats.map((stat, index) => <div key={index} className="text-center group cursor-pointer animate-fade-in hover:scale-110 transition-all duration-500 hover:bg-white/60 rounded-lg p-4 hover:shadow-lg" style={{
-              animationDelay: `${1200 + index * 150}ms`
-            }}>
-                  <div className="flex items-center justify-center mb-3">
-                    <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 group-hover:from-blue-200 group-hover:to-cyan-200 transition-all duration-300 group-hover:rotate-12">
-                      <stat.icon className={`h-6 w-6 ${stat.color} group-hover:scale-125 transition-transform duration-300`} />
-                    </div>
-                  </div>
-                  <div className={`text-3xl md:text-4xl font-bold ${stat.color} group-hover:animate-pulse`}>
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors duration-300">
-                    {stat.label}
-                  </div>
-                </div>)}
-            </div>
-
-            {/* Enhanced Floating Action Hint */}
-            <div className="pt-8 animate-fade-in" style={{
-            animationDelay: '1800ms'
-          }}>
-              <div className="flex justify-center">
-                <div className="animate-bounce cursor-pointer hover:scale-110 transition-transform duration-300">
-                  <ArrowRight className="h-6 w-6 text-blue-400 rotate-90" />
-                </div>
+              <div className="flex gap-4">
+                <Link to="/signup">
+                  <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md">
+                    Get Started Free
+                  </Button>
+                </Link>
+                <Link to="/ai-strategy">
+                  <Button variant="outline">
+                    Generate AI Strategy
+                  </Button>
+                </Link>
               </div>
-              <p className="text-sm text-gray-500 mt-2 animate-pulse">
-                Scroll to explore features
-              </p>
+            </div>
+
+            {/* Right side: Image */}
+            <div className="hidden md:block animate-fade-in">
+              <img
+                src="/hero-image.png"
+                alt="AI Trading Platform"
+                className="rounded-2xl shadow-lg"
+              />
             </div>
           </div>
         </Container>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gradient-to-r from-gray-50 to-blue-50/30 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/20 to-transparent"></div>
-        
-        <Container className="relative z-10">
-          <div className="text-center mb-16 animate-fade-in">
-            
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              Everything You Need to Trade Successfully
+      <section id="features" className="py-16">
+        <Container>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-4 animate-fade-in">
+              Key Features
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From AI-powered strategy creation to advanced backtesting, 
-              we provide all the tools you need to build profitable trading strategies.
+            <p className="text-gray-600 max-w-2xl mx-auto animate-fade-in">
+              Explore the powerful features that make our AI trading strategy
+              generator the best choice for traders of all levels.
             </p>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => <Card key={index} className="border-0 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-fade-in hover:scale-105 bg-white/80 backdrop-blur" style={{
-            animationDelay: feature.delay
-          }}>
-                <CardHeader>
-                  <div className={`mb-4 p-3 rounded-lg bg-gradient-to-r ${feature.gradient} w-fit group-hover:scale-110 transition-transform duration-300`}>
-                    <feature.icon className="h-8 w-8 text-white" />
-                  </div>
-                  <CardTitle className="text-xl group-hover:text-blue-600 transition-colors duration-200">
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base text-gray-600">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Feature
+              title="AI Strategy Generation"
+              description="Generate custom trading strategies based on your preferences and risk tolerance."
+              icon={Code}
+            />
+            <Feature
+              title="Advanced Backtesting"
+              description="Test your strategies with historical data to evaluate performance and optimize parameters."
+              icon={LineChart}
+            />
+            <Feature
+              title="Real-time Analytics"
+              description="Monitor your strategies in real-time with comprehensive analytics and performance metrics."
+              icon={TrendingUp}
+            />
+            <Feature
+              title="Customization Options"
+              description="Tailor your strategies with a wide range of technical indicators, filters, and risk management tools."
+              icon={Settings}
+            />
+            <Feature
+              title="Automated Trading"
+              description="Automatically execute your strategies with our integrated trading platform."
+              icon={LayoutPanelLeft}
+            />
+            <Feature
+              title="Strategy Marketplace"
+              description="Discover, share, and monetize successful trading strategies with our community."
+              icon={Briefcase}
+            />
           </div>
         </Container>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-white">
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-16 bg-gray-50">
         <Container>
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              How StratAlge Works
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-4 animate-fade-in">
+              How It Works
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Three simple steps to start building profitable trading strategies
+            <p className="text-gray-600 max-w-2xl mx-auto animate-fade-in">
+              Learn how to create, test, and deploy AI-powered trading
+              strategies in just a few simple steps.
             </p>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[{
-            step: 1,
-            title: "Create Your Strategy",
-            description: "Use our AI-powered tools or build custom strategies with technical indicators and trading rules.",
-            color: "from-blue-500 to-cyan-500"
-          }, {
-            step: 2,
-            title: "Backtest & Optimize",
-            description: "Test your strategies against historical data and optimize parameters for better performance.",
-            color: "from-green-500 to-emerald-500"
-          }, {
-            step: 3,
-            title: "Deploy & Monitor",
-            description: "Monitor your strategies' performance in real-time and make data-driven adjustments.",
-            color: "from-purple-500 to-violet-500"
-          }].map((item, index) => <div key={item.step} className="text-center space-y-4 group animate-fade-in hover:scale-105 transition-all duration-300" style={{
-            animationDelay: `${index * 200}ms`
-          }}>
-                <div className="relative">
-                  <div className={`w-16 h-16 bg-gradient-to-br ${item.color} text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    {item.step}
-                  </div>
-                  {index < 2}
-                </div>
-                <h3 className="text-xl font-semibold group-hover:text-blue-600 transition-colors duration-200 text-gray-900">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600">
-                  {item.description}
-                </p>
-              </div>)}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <HowItWorksItem
+              title="Generate Strategy"
+              description="Use our AI-powered generator to create a custom trading strategy based on your criteria."
+              icon={FileCode}
+            />
+            <HowItWorksItem
+              title="Backtest & Optimize"
+              description="Test your strategy with historical data and optimize parameters for maximum performance."
+              icon={GaugeCircle}
+            />
+            <HowItWorksItem
+              title="Automate Trading"
+              description="Connect your strategy to your brokerage account and automate your trading."
+              icon={Rocket}
+            />
           </div>
         </Container>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gradient-to-r from-blue-100/40 via-white to-cyan-100/40 relative">
+      <section id="pricing" className="py-16">
         <Container>
-          <div className="max-w-3xl mx-auto text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-gray-900">Pricing</h2>
-            <p className="text-lg text-gray-600 mb-4">
-              Simple, transparent plans for any level of trader.
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-4 animate-fade-in">
+              Pricing
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto animate-fade-in">
+              Choose the plan that fits your trading needs. Simple,
+              transparent, and no hidden fees.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-gray-200 hover:scale-105 transition-transform duration-300">
-              <h3 className="text-xl font-bold mb-2">Free</h3>
-              <div className="text-3xl font-extrabold mb-4">$0 <span className="text-base font-normal text-gray-500">/mo</span></div>
-              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left text-sm">
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>1 strategy</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Basic backtesting</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Core analytics</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Email support</li>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Card */}
+            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-gray-200">
+              <h2 className="text-xl font-bold mb-2">Free</h2>
+              <div className="text-3xl font-extrabold mb-4">
+                $0
+                <span className="text-base font-normal text-gray-500">/mo</span>
+              </div>
+              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left">
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Create 1
+                  trading strategy
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Basic
+                  backtesting
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Access to
+                  core analytics
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Email
+                  support
+                </li>
               </ul>
-              <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100">Get Started</Button>
+              <Link to="/signup" className="block">
+                <button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg py-2 font-semibold transition">
+                  Get Started
+                </button>
+              </Link>
             </div>
-            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-blue-600 ring-2 ring-blue-200 relative hover:scale-105 transition-transform duration-300">
+
+            {/* Pro Card */}
+            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-blue-600 ring-2 ring-blue-200 relative z-10">
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full font-semibold shadow text-xs">
                 Most Popular
               </div>
-              <h3 className="text-xl font-bold mb-2">Pro</h3>
-              <div className="text-3xl font-extrabold mb-4">$19 <span className="text-base font-normal text-gray-500">/mo</span></div>
-              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left text-sm">
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Unlimited strategies</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Advanced backtesting</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Premium analytics</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Strategy recommendations</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Priority support</li>
+              <h2 className="text-xl font-bold mb-2">Pro</h2>
+              <div className="text-3xl font-extrabold mb-4">
+                $19
+                <span className="text-base font-normal text-gray-500">/mo</span>
+              </div>
+              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left">
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Unlimited
+                  strategies
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Advanced
+                  backtesting
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Premium
+                  analytics
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Strategy
+                  recommendations
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-500 font-bold">✓</span> Priority
+                  email support
+                </li>
               </ul>
-              <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700">Start Free Trial</Button>
-            </div>
-            <div className="bg-white/90 rounded-2xl p-8 flex flex-col shadow-lg border border-gray-200 hover:scale-105 transition-transform duration-300">
-              <h3 className="text-xl font-bold mb-2">Enterprise</h3>
-              <div className="text-3xl font-extrabold mb-4">Custom</div>
-              <ul className="text-gray-700 mb-6 flex-1 space-y-2 text-left text-sm">
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>White-glove onboarding</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Team collaboration</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>On-premise deployment</li>
-                <li className="flex items-center gap-2"><span className="text-green-500 font-bold">✓</span>Dedicated support</li>
-              </ul>
-              <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100">Contact Us</Button>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-50 to-cyan-50 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-blue-200/30 via-cyan-200/20 to-purple-200/30 rounded-full blur-3xl"></div>
-        
-        <Container className="relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="animate-fade-in">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-                Why Choose StratAlge?
-              </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Join thousands of traders who are already using StratAlge to build 
-                and optimize their trading strategies with cutting-edge AI technology.
-              </p>
-              
-              <div className="space-y-4">
-                {benefits.map((benefit, index) => <div key={index} className="flex items-center gap-3 group animate-fade-in hover:translate-x-2 transition-all duration-300" style={{
-                animationDelay: `${index * 100}ms`
-              }}>
-                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-                    <span className="text-base group-hover:text-blue-600 transition-colors duration-200 text-gray-700">{benefit}</span>
-                  </div>)}
-              </div>
-
-              <div className="mt-8 animate-fade-in" style={{
-              animationDelay: '600ms'
-            }}>
-                <Link to="/signup">
-                  <Button size="lg" className="px-8 hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl group">
-                    Start Free Trial
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <div className="relative animate-fade-in" style={{
-            animationDelay: '200ms'
-          }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-200/40 via-transparent to-cyan-200/30 rounded-2xl blur-xl"></div>
-              <Card className="p-8 shadow-xl relative z-10 hover:shadow-2xl transition-all duration-500 hover:scale-105 bg-white/90 backdrop-blur">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4 animate-fade-in" style={{
-                  animationDelay: '400ms'
-                }}>
-                    <div className="p-2 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100">
-                      <TrendingUp className="h-8 w-8 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">RSI Strategy</div>
-                      <div className="text-sm text-gray-500">Active • AAPL</div>
-                    </div>
-                    <div className="ml-auto text-green-600 font-semibold text-xl animate-pulse">+12.5%</div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {[{
-                    label: "Sharpe Ratio",
-                    value: "1.85"
-                  }, {
-                    label: "Max Drawdown",
-                    value: "-4.1%"
-                  }, {
-                    label: "Win Rate",
-                    value: "68%"
-                  }, {
-                    label: "Total Trades",
-                    value: "156"
-                  }].map((metric, index) => <div key={metric.label} className="animate-fade-in hover:scale-105 transition-all duration-200 p-2 rounded-lg hover:bg-blue-50/50" style={{
-                    animationDelay: `${600 + index * 100}ms`
-                  }}>
-                        <div className="text-gray-500">{metric.label}</div>
-                        <div className="font-semibold text-lg text-gray-900">{metric.value}</div>
-                      </div>)}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-100/40 to-cyan-100/40 relative">
-        <Container>
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              What Our Users Say
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Don’t just take our word for it – here’s what our users think about StratAlge.
-            </p>
-          </div>
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in">
-              <img src="/lovable-uploads/b0c24627-b719-457c-bdd7-e5a78effba37.png" alt="Thomas Brown testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-blue-400" />
-              <div className="font-semibold text-gray-900 mb-2">Thomas Brown</div>
-              <div className="text-gray-600 text-center mb-2">“StratAlge helped me generate working strategies that match my risk level. Love the backtesting!”</div>
-              <div className="flex gap-1 mt-2">
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{
-            animationDelay: "100ms"
-          }}>
-              <img src="/lovable-uploads/efffc395-e026-4d17-a2bd-bc05cf2b3235.png" alt="Daniel Kim testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-green-400" />
-              <div className="font-semibold text-gray-900 mb-2">Daniel Kim</div>
-              <div className="text-gray-600 text-center mb-2">“The analytics tools make it easy to compare strategies and see what really works in the market.”</div>
-              <div className="flex gap-1 mt-2">
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{
-            animationDelay: "200ms"
-          }}>
-              <img src="/lovable-uploads/e1ba2654-83c2-4e67-b3b6-822ae2901951.png" alt="Maria Rodriguez testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-cyan-400" />
-              <div className="font-semibold text-gray-900 mb-2">Maria Rodriguez</div>
-              <div className="text-gray-600 text-center mb-2">“I’m new to trading. StratAlge gave me the confidence to test ideas before risking my money.”</div>
-              <div className="flex gap-1 mt-2">
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-                <span className="text-yellow-400">&#9733;</span>
-              </div>
+              <Link to="/signup" className="block">
+                <button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 rounded-lg py-2 font-semibold transition">
+                  Start Free Trial
+                </button>
+              </Link>
             </div>
           </div>
         </Container>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white">
+      <section id="faq" className="py-16 bg-gray-50">
         <Container>
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+          <div className="text-center mb-12 animate-fade-in">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Still have questions? We’re here to help.
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Find answers to common questions about our AI trading strategy
+              generator.
             </p>
           </div>
-          <div className="max-w-2xl mx-auto">
-            <Accordion type="single" collapsible className="space-y-4">
-              <AccordionItem value="faq-1">
-                <AccordionTrigger>
-                  What is StratAlge?
-                </AccordionTrigger>
-                <AccordionContent>
-                  StratAlge is an AI-powered platform that helps you build, test, and optimize trading strategies with advanced analytics and risk management tools.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-2">
-                <AccordionTrigger>
-                  Can I use StratAlge if I’m a beginner?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Absolutely! StratAlge is user-friendly and designed for both beginners and advanced traders.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-3">
-                <AccordionTrigger>
-                  Which assets can I trade or backtest?
-                </AccordionTrigger>
-                <AccordionContent>
-                  You can create strategies for stocks, ETFs, and many other supported asset types.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-4">
-                <AccordionTrigger>
-                  Is my data secure on StratAlge?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Yes, we use state-of-the-art security practices to protect your information and trading data.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
+            <div>
+              <h3 className="font-semibold text-lg mb-2">
+                How does the AI strategy generator work?
+              </h3>
+              <p className="text-gray-600">
+                Our AI strategy generator uses machine learning algorithms to
+                analyze historical data and identify profitable trading
+                strategies based on your specified criteria.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-2">
+                Can I customize the generated strategies?
+              </h3>
+              <p className="text-gray-600">
+                Yes, you can fully customize the generated strategies with a
+                wide range of technical indicators, filters, and risk
+                management tools.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-2">
+                How accurate are the backtesting results?
+              </h3>
+              <p className="text-gray-600">
+                Our backtesting engine uses high-quality historical data and
+                advanced simulation techniques to provide accurate and reliable
+                results.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-2">
+                Is automated trading supported?
+              </h3>
+              <p className="text-gray-600">
+                Yes, you can automatically execute your strategies with our
+                integrated trading platform, which supports multiple brokerage
+                accounts.
+              </p>
+            </div>
           </div>
         </Container>
       </section>
 
-      {/* CTA Section */}
       <CtaSection />
-
-      {/* Footer */}
       <Footer />
-    </div>;
-};
-export default Landing;
+    </div>
+  );
+}

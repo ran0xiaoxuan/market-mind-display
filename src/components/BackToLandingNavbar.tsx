@@ -9,22 +9,12 @@ export default function BackToLandingNavbar() {
     <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
       <Container>
         <div className="flex h-16 items-center justify-between">
-          <div className="animate-fade-in">
+          <Link to="/" className="animate-fade-in">
             <Logo size="md" />
-          </div>
+          </Link>
           <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
           }}>
-            <Link to="/">
-              <Button variant="outline" className="hover:scale-105 transition-transform duration-200">
-                Back to Home
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
-                Log In
-              </Button>
-            </Link>
             <Link to="/signup">
               <Button className="hover:scale-105 transition-transform duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg">
                 Get Started

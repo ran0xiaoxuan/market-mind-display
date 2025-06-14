@@ -1,11 +1,14 @@
 
+
 import { Container } from "@/components/ui/container";
 import BackToLandingNavbar from "@/components/BackToLandingNavbar";
+import { CtaSection } from "@/components/CtaSection";
+import { Footer } from "@/components/Footer";
 
 const PrivacyPolicy = () => (
   <div>
     <BackToLandingNavbar />
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden py-16">
+    <div className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden py-16">
       <Container>
         <div className="bg-white/80 shadow-lg rounded-xl p-8 md:p-16 max-w-4xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 text-center">
@@ -111,6 +114,8 @@ const PrivacyPolicy = () => (
         </div>
       </Container>
     </div>
+    <CtaSection />
+    <Footer />
   </div>
 );
 

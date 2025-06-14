@@ -5,6 +5,8 @@ import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { CtaSection } from "@/components/CtaSection";
+import { Footer } from "@/components/Footer";
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -491,79 +493,10 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 relative bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-cyan-600/90"></div>
-        
-        <Container className="relative z-10">
-          <div className="text-center space-y-8 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              Ready to Start Building Winning Strategies?
-            </h2>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Join thousands of traders using StratAlge to create, test, and optimize 
-              their trading strategies with AI-powered tools.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{
-            animationDelay: '200ms'
-          }}>
-              <Link to="/signup">
-                <Button size="lg" className="px-8 hover:scale-105 transition-all duration-300 bg-white text-blue-600 hover:bg-gray-100 shadow-lg hover:shadow-xl group">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-                </Button>
-              </Link>
-              <Link to="/login">
-                
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </section>
+      <CtaSection />
 
       {/* Footer */}
-      <footer className="border-t bg-gray-50 py-12 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-50/30 to-transparent"></div>
-        <Container className="relative z-10">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="space-y-4 animate-fade-in">
-              <Logo size="md" />
-              <p className="text-sm text-gray-600">
-                Build winning trading strategies with AI-powered tools and advanced backtesting.
-              </p>
-              {/* Social Media Links */}
-              <div className="flex space-x-4 pt-2">
-                <a href="https://x.com/StratAIge_cc" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)" className="transition-transform hover:scale-110">
-                  <img src="/lovable-uploads/aac26b68-b933-46e7-a9c0-ff7c76f65f4f.png" alt="X logo" className="w-6 h-6 object-contain rounded" style={{
-                  background: "#fff"
-                }} />
-                </a>
-                <a href="https://discord.gg/hjyC8bSrxT" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="transition-transform hover:scale-110">
-                  <img src="/lovable-uploads/8708168b-5adf-4599-9513-99c7e4c7bcc8.png" alt="Discord logo" className="w-6 h-6 object-contain rounded" style={{
-                  background: "#fff"
-                }} />
-                </a>
-              </div>
-            </div>
-            <div className="animate-fade-in col-span-3 flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 sm:gap-8">
-              {/* Footer Main Links */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
-                <a href="/privacy-policy" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 text-sm font-medium">
-                  Privacy Policy
-                </a>
-                <a href="/terms-of-service" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 text-sm font-medium">
-                  Terms of Service
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600 animate-fade-in" style={{
-          animationDelay: '400ms'
-        }}>
-            © 2025 StratAlge. All rights reserved.
-          </div>
-        </Container>
-      </footer>
+      <Footer />
     </div>;
 };
 export default Landing;

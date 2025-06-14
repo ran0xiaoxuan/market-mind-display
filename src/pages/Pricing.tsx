@@ -10,17 +10,17 @@ import { Link } from "react-router-dom";
 
 const pricingPlans = [
   {
-    name: "Starter",
-    price: "$9",
+    name: "Free",
+    price: "$0",
     priceDescription: "/month",
-    description: "For individuals and small teams.",
+    description: "Access StratAIge's core features at no cost.",
     features: [
       "AI-powered strategy generation",
       "Backtesting on historical data",
-      "Limited to 10 strategies",
+      "Up to 3 saved strategies",
       "Basic support",
     ],
-    buttonText: "Get Started",
+    buttonText: "Get Started Free",
     buttonLink: "/signup",
     isFeatured: false,
   },
@@ -30,7 +30,7 @@ const pricingPlans = [
     priceDescription: "/month",
     description: "For professional traders and businesses.",
     features: [
-      "Everything in Starter, plus:",
+      "Everything in Free, plus:",
       "Unlimited strategies",
       "Advanced backtesting options",
       "Real-time market data",

@@ -15,6 +15,11 @@ export default function BackToLandingNavbar() {
           <div className="flex items-center gap-4 animate-fade-in" style={{
             animationDelay: '200ms'
           }}>
+            <Link to="/pricing">
+              <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
+                Pricing
+              </Button>
+            </Link>
             <Link to="/login">
               <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
                 Log In

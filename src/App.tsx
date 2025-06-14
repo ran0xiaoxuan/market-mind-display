@@ -1,3 +1,4 @@
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
@@ -23,6 +24,7 @@ import Recommendations from "@/pages/Recommendations";
 import AITest from "@/pages/AITest";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import PricingPage from "./pages/Pricing";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +60,7 @@ function App() {
           <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

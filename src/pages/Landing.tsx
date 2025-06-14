@@ -180,9 +180,7 @@ const Landing = () => {
                 </Button>
               </Link>
               <Link to="/login">
-                <Button variant="outline" size="lg" className="px-8 hover:scale-110 transition-all duration-300 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-lg group">
-                  
-                </Button>
+                
               </Link>
             </div>
 
@@ -414,7 +412,9 @@ const Landing = () => {
                 <span className="text-yellow-400">&#9733;</span>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{ animationDelay: "100ms" }}>
+            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{
+            animationDelay: "100ms"
+          }}>
               <img src="/lovable-uploads/efffc395-e026-4d17-a2bd-bc05cf2b3235.png" alt="Daniel Kim testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-green-400" />
               <div className="font-semibold text-gray-900 mb-2">Daniel Kim</div>
               <div className="text-gray-600 text-center mb-2">“The analytics tools make it easy to compare strategies and see what really works in the market.”</div>
@@ -426,7 +426,9 @@ const Landing = () => {
                 <span className="text-yellow-400">&#9733;</span>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{ animationDelay: "200ms" }}>
+            <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in" style={{
+            animationDelay: "200ms"
+          }}>
               <img src="/lovable-uploads/e1ba2654-83c2-4e67-b3b6-822ae2901951.png" alt="Maria Rodriguez testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-cyan-400" />
               <div className="font-semibold text-gray-900 mb-2">Maria Rodriguez</div>
               <div className="text-gray-600 text-center mb-2">“I’m new to trading. StratAlge gave me the confidence to test ideas before risking my money.”</div>

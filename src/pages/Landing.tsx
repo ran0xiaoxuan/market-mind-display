@@ -4,7 +4,6 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
-
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -116,27 +115,16 @@ const Landing = () => {
         <Container className="relative z-10">
           <div className="text-center space-y-8">
             {/* Product Hunt Badge */}
-            <div className="flex justify-center mb-2 animate-fade-in" style={{ animationDelay: '90ms' }}>
-              <a
-                href="https://www.producthunt.com/products/strataige?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-strataige"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="StratAIge on Product Hunt"
-                className="inline-block"
-              >
-                <img
-                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=978493&theme=light&t=1749918260746"
-                  alt="StratAIge - Financial tool; Trading assistant | Product Hunt"
-                  style={{
-                    width: "250px",
-                    height: "54px",
-                    maxWidth: "100%",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px 0 rgba(0,0,0,.09)"
-                  }}
-                  width="250"
-                  height="54"
-                />
+            <div className="flex justify-center mb-2 animate-fade-in" style={{
+            animationDelay: '90ms'
+          }}>
+              <a href="https://www.producthunt.com/posts/strataige?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-strataige" target="_blank" rel="noopener noreferrer" aria-label="StratAIge on Product Hunt" className="inline-block">
+                <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=XXXXX&theme=light" alt="StratAIge on Product Hunt" style={{
+                width: "250px",
+                maxWidth: "100%",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px 0 rgba(0,0,0,.09)"
+              }} width="250" height="54" />
               </a>
             </div>
             <div className="space-y-6">
@@ -190,7 +178,7 @@ const Landing = () => {
               </Link>
               <Link to="/login">
                 <Button variant="outline" size="lg" className="px-8 hover:scale-110 transition-all duration-300 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-lg group">
-                  <span className="group-hover:animate-pulse">View Demo</span>
+                  
                 </Button>
               </Link>
             </div>
@@ -442,33 +430,15 @@ const Landing = () => {
               </p>
               {/* Social Media Links */}
               <div className="flex space-x-4 pt-2">
-                <a
-                  href="https://x.com/StratAIge_cc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="X (Twitter)"
-                  className="transition-transform hover:scale-110"
-                >
-                  <img
-                    src="/lovable-uploads/aac26b68-b933-46e7-a9c0-ff7c76f65f4f.png"
-                    alt="X logo"
-                    className="w-6 h-6 object-contain rounded"
-                    style={{ background: "#fff" }}
-                  />
+                <a href="https://x.com/StratAIge_cc" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)" className="transition-transform hover:scale-110">
+                  <img src="/lovable-uploads/aac26b68-b933-46e7-a9c0-ff7c76f65f4f.png" alt="X logo" className="w-6 h-6 object-contain rounded" style={{
+                  background: "#fff"
+                }} />
                 </a>
-                <a
-                  href="https://discord.gg/hjyC8bSrxT"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Discord"
-                  className="transition-transform hover:scale-110"
-                >
-                  <img
-                    src="/lovable-uploads/8708168b-5adf-4599-9513-99c7e4c7bcc8.png"
-                    alt="Discord logo"
-                    className="w-6 h-6 object-contain rounded"
-                    style={{ background: "#fff" }}
-                  />
+                <a href="https://discord.gg/hjyC8bSrxT" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="transition-transform hover:scale-110">
+                  <img src="/lovable-uploads/8708168b-5adf-4599-9513-99c7e4c7bcc8.png" alt="Discord logo" className="w-6 h-6 object-contain rounded" style={{
+                  background: "#fff"
+                }} />
                 </a>
               </div>
             </div>
@@ -485,13 +455,12 @@ const Landing = () => {
             </div>
           </div>
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600 animate-fade-in" style={{
-            animationDelay: '400ms'
-          }}>
+          animationDelay: '400ms'
+        }}>
             © 2025 StratAlge. All rights reserved.
           </div>
         </Container>
       </footer>
     </div>;
 };
-
 export default Landing;

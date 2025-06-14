@@ -1,14 +1,38 @@
 
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
+import { Logo } from "@/components/Logo";
 
 export default function BackToLandingNavbar() {
   return (
-    <nav className="bg-gradient-to-r from-blue-100 to-cyan-100 px-4 py-2 flex items-center shadow-md sticky top-0 z-20">
-      <Link to="/" className="flex items-center gap-2 text-blue-700 font-medium hover:text-cyan-700 transition-colors">
-        <ArrowLeft className="h-5 w-5" />
-        <span>Back to Home</span>
-      </Link>
+    <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
+      <Container>
+        <div className="flex h-16 items-center justify-between">
+          <div className="animate-fade-in">
+            <Logo size="md" />
+          </div>
+          <div className="flex items-center gap-4 animate-fade-in" style={{
+            animationDelay: '200ms'
+          }}>
+            <Link to="/">
+              <Button variant="outline" className="hover:scale-105 transition-transform duration-200">
+                Back to Home
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button variant="ghost" className="hover:scale-105 transition-transform duration-200">
+                Log In
+              </Button>
+            </Link>
+            <Link to="/signup">
+              <Button className="hover:scale-105 transition-transform duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg">
+                Get Started
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </Container>
     </nav>
   );
 }

@@ -63,6 +63,22 @@ const Landing = () => {
     icon: Zap,
     color: "text-yellow-600"
   }];
+  const faqs = [{
+    question: "How do I open a StratAIge account?",
+    answer: "Click the 'Sign Up' button and create an account. You can create a StratAIge account via Google or Email."
+  }, {
+    question: "Where will my assets be held?",
+    answer: "StratAIge does not need you to deposit your principal, you can still hold your assets in brokers/exchanges."
+  }, {
+    question: "How does StratAIge work?",
+    answer: "StratAIge platform can manage several trading strategies. When the strategies are activated and send trading signals, you can receive these signals via Email, Telegram, Discord, or the app itself."
+  }, {
+    question: "What are the paid features of StratAIge?",
+    answer: "As a free user of StratAIge, you can only receive trading signals on the app, while pro users can receive live trading signals via Email/Telegram/Discord."
+  }, {
+    question: "How can I contact customer support for help?",
+    answer: "If you have any questions or need assistance, don't hesitate to reach out to help@strataige.cc."
+  }];
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
@@ -455,38 +471,14 @@ const Landing = () => {
           </div>
           <div className="max-w-2xl mx-auto">
             <Accordion type="single" collapsible className="space-y-4">
-              <AccordionItem value="faq-1">
-                <AccordionTrigger>
-                  What is StratAlge?
-                </AccordionTrigger>
-                <AccordionContent>
-                  StratAlge is an AI-powered platform that helps you build, test, and optimize trading strategies with advanced analytics and risk management tools.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-2">
-                <AccordionTrigger>
-                  Can I use StratAlge if I’m a beginner?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Absolutely! StratAlge is user-friendly and designed for both beginners and advanced traders.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-3">
-                <AccordionTrigger>
-                  Which assets can I trade or backtest?
-                </AccordionTrigger>
-                <AccordionContent>
-                  You can create strategies for stocks, ETFs, and many other supported asset types.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-4">
-                <AccordionTrigger>
-                  Is my data secure on StratAlge?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Yes, we use state-of-the-art security practices to protect your information and trading data.
-                </AccordionContent>
-              </AccordionItem>
+              {faqs.map((faq, index) => <AccordionItem value={`faq-${index + 1}`} key={faq.question}>
+                  <AccordionTrigger>
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>)}
             </Accordion>
           </div>
         </Container>

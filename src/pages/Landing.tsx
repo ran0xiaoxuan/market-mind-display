@@ -42,7 +42,7 @@ const Landing = () => {
   }, {
     icon: Users,
     title: "Strategy Recommendations",
-    description: "Get personalized strategy suggestions based on market conditions and your preferences.",
+    description: "Get strategy suggestions based on market conditions.",
     delay: "500ms",
     gradient: "from-pink-500 to-rose-500"
   }];

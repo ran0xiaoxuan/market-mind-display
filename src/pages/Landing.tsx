@@ -58,15 +58,10 @@ const Landing = () => {
     icon: PlayIcon,
     color: "text-green-600"
   }, {
-    label: "Average Return",
-    value: "+12.5%",
-    icon: TrendingUp,
-    color: "text-emerald-600"
-  }, {
-    label: "Users",
-    value: "5,000+",
-    icon: Users,
-    color: "text-purple-600"
+    label: "Signals Sent",
+    value: "1M+",
+    icon: Zap,
+    color: "text-yellow-600"
   }];
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
@@ -191,7 +186,7 @@ const Landing = () => {
             </div>
 
             {/* Enhanced Stats with Bright Colors */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-16">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-16">
               {stats.map((stat, index) => <div key={index} className="text-center group cursor-pointer animate-fade-in hover:scale-110 transition-all duration-500 hover:bg-white/60 rounded-lg p-4 hover:shadow-lg" style={{
               animationDelay: `${1200 + index * 150}ms`
             }}>

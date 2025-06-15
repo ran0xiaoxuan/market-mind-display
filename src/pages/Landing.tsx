@@ -379,7 +379,7 @@ const Landing = () => {
                     animationDelay: `${600 + index * 100}ms`
                   }}>
                         <div className="text-gray-500">{metric.label}</div>
-                        <div className="font-semibold text-lg text-gray-900">{metric.value}</div>
+                        <div className={`font-semibold text-lg ${metric.value.startsWith('-') ? 'text-red-600' : 'text-gray-900'}`}>{metric.value}</div>
                       </div>)}
                   </div>
                 </div>

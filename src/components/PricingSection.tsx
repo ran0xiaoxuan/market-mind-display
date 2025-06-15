@@ -79,7 +79,11 @@ export const PricingSection = ({ isPage = false }: PricingSectionProps) => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button asChild className="w-full hover:scale-105 transition-transform duration-200">
+                <Button asChild className={`w-full hover:scale-105 transition-transform duration-200 ${
+                  plan.isFeatured 
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg' 
+                    : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-600 hover:text-white'
+                }`}>
                     <Link to={plan.buttonLink}>{plan.buttonText}</Link>
                 </Button>
               </CardFooter>

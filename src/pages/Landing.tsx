@@ -36,7 +36,7 @@ const Landing = () => {
   }, {
     icon: Target,
     title: "Multi-Asset Support",
-    description: "Trade stocks, ETFs, and other assets with strategies tailored to each market.",
+    description: "Trade stocks, ETFs, and other assets with strategies tailored to market.",
     delay: "400ms",
     gradient: "from-teal-500 to-blue-500"
   }, {

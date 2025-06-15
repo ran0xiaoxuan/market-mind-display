@@ -30,7 +30,7 @@ const Landing = () => {
   }, {
     icon: Shield,
     title: "Risk Management",
-    description: "Built-in risk controls and position sizing to protect your capital and maximize returns.",
+    description: "Built-in risk controls and position sizing to protect your capital.",
     delay: "300ms",
     gradient: "from-orange-500 to-red-500"
   }, {

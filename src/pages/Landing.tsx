@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -8,6 +9,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
 import { PricingSection } from "@/components/PricingSection";
+
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -79,6 +81,42 @@ const Landing = () => {
     question: "How can I contact customer support for help?",
     answer: "If you have any questions or need assistance, don't hesitate to reach out to help@strataige.cc."
   }];
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault();
+    const section = document.getElementById(targetId);
+    if (!section) return;
+
+    const targetPosition = section.getBoundingClientRect().top + window.pageYOffset;
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    const duration = 1000; // Slower scroll: 1000ms
+    let startTime: number | null = null;
+
+    const easeInOutQuad = (t: number, b: number, c: number, d: number) => {
+      t /= d / 2;
+      if (t < 1) return (c / 2) * t * t + b;
+      t--;
+      return (-c / 2) * (t * (t - 2) - 1) + b;
+    };
+
+    const animateScroll = (currentTime: number) => {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const nextPosition = easeInOutQuad(timeElapsed, startPosition, distance, duration);
+
+      window.scrollTo(0, nextPosition);
+
+      if (timeElapsed < duration) {
+        requestAnimationFrame(animateScroll);
+      } else {
+        window.scrollTo(0, targetPosition);
+      }
+    };
+
+    requestAnimationFrame(animateScroll);
+  };
+
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
@@ -90,26 +128,14 @@ const Landing = () => {
                 <a
                   href="#features"
                   className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                  onClick={e => {
-                    e.preventDefault();
-                    const section = document.getElementById('features');
-                    if (section) {
-                      section.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={e => handleNavClick(e, 'features')}
                 >
                   Features
                 </a>
                 <a
                   href="#how-it-works"
                   className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                  onClick={e => {
-                    e.preventDefault();
-                    const section = document.getElementById('how-it-works');
-                    if (section) {
-                      section.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={e => handleNavClick(e, 'how-it-works')}
                 >
                   How It Works
                 </a>
@@ -122,13 +148,7 @@ const Landing = () => {
                 <a
                   href="#faq"
                   className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                  onClick={e => {
-                    e.preventDefault();
-                    const section = document.getElementById('faq');
-                    if (section) {
-                      section.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={e => handleNavClick(e, 'faq')}
                 >
                   FAQ
                 </a>

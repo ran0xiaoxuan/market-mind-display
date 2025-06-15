@@ -87,16 +87,49 @@ const Landing = () => {
             <div className="flex items-center gap-8 animate-fade-in">
               <Logo size="md" />
               <div className="hidden md:flex items-center gap-6">
-                <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                <a
+                  href="#features"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  onClick={e => {
+                    e.preventDefault();
+                    const section = document.getElementById('features');
+                    if (section) {
+                      section.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Features
                 </a>
-                <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                <a
+                  href="#how-it-works"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  onClick={e => {
+                    e.preventDefault();
+                    const section = document.getElementById('how-it-works');
+                    if (section) {
+                      section.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   How It Works
                 </a>
-                <Link to="/pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                <Link
+                  to="/pricing"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                >
                   Pricing
                 </Link>
-                <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                <a
+                  href="#faq"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  onClick={e => {
+                    e.preventDefault();
+                    const section = document.getElementById('faq');
+                    if (section) {
+                      section.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   FAQ
                 </a>
               </div>

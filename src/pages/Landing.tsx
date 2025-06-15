@@ -317,10 +317,7 @@ const Landing = () => {
               <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
                 Why Choose StratAlge?
               </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Join thousands of traders who are already using StratAlge to build 
-                and optimize their trading strategies with cutting-edge AI technology.
-              </p>
+              <p className="text-lg text-gray-600 mb-8">Join us using StratAlge to build and optimize trading strategies with cutting-edge AI technology.</p>
               
               <div className="space-y-4">
                 {benefits.map((benefit, index) => <div key={index} className="flex items-center gap-3 group animate-fade-in hover:translate-x-2 transition-all duration-300" style={{

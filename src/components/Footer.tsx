@@ -9,7 +9,7 @@ export const Footer = () => {
           <div className="space-y-4 animate-fade-in">
             <Logo size="md" />
             <p className="text-sm text-gray-600">
-              Build, Optimize, and monitor with{" "}
+              Build, optimize, and monitor with{" "}
               <span className="text-blue-600">StratAIge</span>.
             </p>
             {/* Social Media Links */}

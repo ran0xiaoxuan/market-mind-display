@@ -144,21 +144,14 @@ const Landing = () => {
               </a>
             </div>
             <div className="space-y-6">
-              {/* Enhanced Badge with Animation */}
-              <div className="animate-fade-in" style={{
-              animationDelay: '100ms'
-            }}>
-                
-              </div>
-              
               {/* Enhanced Main Heading with Staggered Animation */}
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-                <span className="block animate-fade-in hover:scale-105 transition-transform duration-500 text-gray-900" style={{
+              <h1 className="text-4xl md:text-6xl font-bold leading-tight group">
+                <span className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900" style={{
                 animationDelay: '200ms'
               }}>
                   Build Winning Trading
                 </span>
-                <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in hover:scale-105 transition-all duration-500" style={{
+                <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500" style={{
                 animationDelay: '400ms'
               }}>
                   Strategies with AI

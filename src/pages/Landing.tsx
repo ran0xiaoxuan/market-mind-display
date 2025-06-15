@@ -401,7 +401,7 @@ const Landing = () => {
             <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in">
               <img src="/lovable-uploads/b0c24627-b719-457c-bdd7-e5a78effba37.png" alt="Thomas Brown testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-blue-400" />
               <div className="font-semibold text-gray-900 mb-2">Thomas Brown</div>
-              <div className="text-gray-600 text-center mb-2">“StratAlge helped me generate working strategies that match my risk level. Love the backtesting!”</div>
+              <div className="text-gray-600 text-center mb-2">“As someone without a coding background, StratAIge’s no-code platform has been a game-changer. I can easily turn my trading ideas into strategies without any technical hurdles. It’s incredibly user-friendly!”</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -415,7 +415,7 @@ const Landing = () => {
           }}>
               <img src="/lovable-uploads/efffc395-e026-4d17-a2bd-bc05cf2b3235.png" alt="Daniel Kim testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-green-400" />
               <div className="font-semibold text-gray-900 mb-2">Daniel Kim</div>
-              <div className="text-gray-600 text-center mb-2">“The analytics tools make it easy to compare strategies and see what really works in the market.”</div>
+              <div className="text-gray-600 text-center mb-2">“Running a business leaves me little time for trading. StratAIge’s efficiency is remarkable—it executes strategies quickly and lets me manage trading alongside my daily tasks without stress.”</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -429,7 +429,7 @@ const Landing = () => {
           }}>
               <img src="/lovable-uploads/e1ba2654-83c2-4e67-b3b6-822ae2901951.png" alt="Maria Rodriguez testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-cyan-400" />
               <div className="font-semibold text-gray-900 mb-2">Maria Rodriguez</div>
-              <div className="text-gray-600 text-center mb-2">“I’m new to trading. StratAlge gave me the confidence to test ideas before risking my money.”</div>
+              <div className="text-gray-600 text-center mb-2">“The backtesting tools in StratAIge are top-notch. They provide detailed, accurate performance insights that boost my confidence in every strategy. It’s a rigorous yet efficient way to refine my trading.”</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>

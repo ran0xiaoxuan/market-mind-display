@@ -65,7 +65,7 @@ const Landing = () => {
   }];
   const faqs = [{
     question: "How do I open a StratAIge account?",
-    answer: "Click the 'Sign Up' button and create an account. You can create a StratAIge account via Google or Email."
+    answer: "Click the 'Get Started' button and create an account. You can create a StratAIge account via Google or Email."
   }, {
     question: "Where will my assets be held?",
     answer: "StratAIge does not need you to deposit your principal, you can still hold your assets in brokers/exchanges."

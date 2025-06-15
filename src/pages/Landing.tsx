@@ -146,22 +146,22 @@ const Landing = () => {
             <div className="space-y-6">
               {/* Enhanced Main Heading with Staggered Animation */}
               <h1 className="text-4xl md:text-6xl font-bold leading-tight group">
-                <span className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900" style={{
+                <span style={{
                 animationDelay: '200ms'
-              }}>
+              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">
                   Build Winning Trading
                 </span>
-                <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500" style={{
+                <span style={{
                 animationDelay: '400ms'
-              }}>
+              }} className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500 my-0 py-[10px]">
                   Strategies with AI
                 </span>
               </h1>
               
               {/* Enhanced Description */}
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300" style={{
+              <p style={{
               animationDelay: '600ms'
-            }}>
+            }} className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300 my-[20px]">
                 Create, backtest, and optimize trading strategies using advanced AI algorithms. 
                 <br className="hidden md:block" />
                 <span className="animate-fade-in inline-block" style={{

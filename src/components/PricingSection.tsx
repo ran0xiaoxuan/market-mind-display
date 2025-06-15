@@ -1,4 +1,3 @@
-
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +11,9 @@ const pricingPlans = [
     priceDescription: "/month",
     description: "Access StratAIge's core features at no cost.",
     features: [
-      "AI-powered strategy generation",
-      "Backtesting on historical data",
-      "Up to 3 saved strategies",
-      "Basic support",
+      "Unlimited strategy generation",
+      "Unlimited strategy backtest and modification",
+      "Strategy management",
     ],
     buttonText: "Get Started Free",
     buttonLink: "/signup",
@@ -27,11 +25,9 @@ const pricingPlans = [
     priceDescription: "/month",
     description: "For professional traders and businesses.",
     features: [
-      "Everything in Free, plus:",
-      "Unlimited strategies",
-      "Advanced backtesting options",
-      "Real-time market data",
-      "Priority support",
+      "Everything in the free plan",
+      "Live trading via API",
+      "Priority Customer Service",
     ],
     buttonText: "Get Started",
     buttonLink: "/signup",

@@ -159,10 +159,10 @@ const Landing = () => {
               <h1 className="text-4xl md:text-6xl font-bold leading-tight group">
                 <span style={{
                 animationDelay: '200ms'
-              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">Build,Optimize and Monitor Excellent </span>
+              }} className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500 my-0 py-[10px]">Build, Optimize and monitor</span>
                 <span style={{
                 animationDelay: '400ms'
-              }} className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500 my-0 py-[10px]">Trading Strategies with AI</span>
+              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">Trading Strategies with AI</span>
               </h1>
               
               {/* Enhanced Description */}

@@ -1,3 +1,4 @@
+
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +67,7 @@ export const PricingSection = ({
                   <span className="text-4xl font-bold">{plan.price}</span>
                   <span className="text-muted-foreground">{plan.priceDescription}</span>
                 </div>
-                <ul className="space-y-4 pb-8">
+                <ul className="space-y-4 pb-12">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-start">
                       <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-1" />

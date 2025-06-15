@@ -8,7 +8,10 @@ export const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           <div className="space-y-4 animate-fade-in">
             <Logo size="md" />
-            <p className="text-sm text-gray-600">Build, Optimize, Profit with StratAIge.</p>
+            <p className="text-sm text-gray-600">
+              Build, Optimize, Profit with{" "}
+              <span className="text-blue-600">StratAIge</span>.
+            </p>
             {/* Social Media Links */}
             <div className="flex space-x-4 pt-2">
               <a href="https://x.com/StratAIge_cc" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)" className="transition-transform hover:scale-110">

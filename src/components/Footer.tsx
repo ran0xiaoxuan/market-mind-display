@@ -1,19 +1,14 @@
-
 import { Link } from "react-router-dom";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
-
 export const Footer = () => {
-  return (
-    <footer className="border-t bg-gray-50 py-12 relative">
+  return <footer className="border-t bg-gray-50 py-12 relative">
       <div className="absolute inset-0 bg-gradient-to-t from-blue-50/30 to-transparent"></div>
       <Container className="relative z-10">
         <div className="grid md:grid-cols-4 gap-8">
           <div className="space-y-4 animate-fade-in">
             <Logo size="md" />
-            <p className="text-sm text-gray-600">
-              Build winning trading strategies with AI-powered tools and advanced backtesting.
-            </p>
+            <p className="text-sm text-gray-600">Build, Optimize, Profit with StratAIge.</p>
             {/* Social Media Links */}
             <div className="flex space-x-4 pt-2">
               <a href="https://x.com/StratAIge_cc" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)" className="transition-transform hover:scale-110">
@@ -46,6 +41,5 @@ export const Footer = () => {
           © 2025 StratAlge. All rights reserved.
         </div>
       </Container>
-    </footer>
-  );
+    </footer>;
 };

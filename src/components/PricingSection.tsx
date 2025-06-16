@@ -98,7 +98,14 @@ export const PricingSection = ({
               style={{ animationDelay: `${200 + index * 100}ms` }}
             >
               <CardHeader>
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  {plan.isFeatured && isAnnual && (
+                    <Badge variant="pro" className="text-xs px-2 py-1 animate-fade-in">
+                      Save ${annualSavings}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="flex-grow">
                 <div className="mb-6">

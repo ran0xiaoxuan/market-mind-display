@@ -39,7 +39,7 @@ export default function Confirm() {
           setIsConfirmed(true);
           toast({
             title: "Email confirmed",
-            description: "Your email has been successfully confirmed. You can now sign in."
+            description: "Your email has been successfully confirmed."
           });
         }
       } catch (err: any) {
@@ -72,7 +72,7 @@ export default function Confirm() {
   }
 
   if (isConfirmed) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth/confirmed" replace />;
   }
 
   return (

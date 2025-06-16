@@ -11,7 +11,7 @@ interface PricingSectionProps {
 export const PricingSection = ({
   isPage = false
 }: PricingSectionProps) => {
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(true);
   const pricingPlans = [{
     name: "Free",
     monthlyPrice: "$0",

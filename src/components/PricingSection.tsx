@@ -3,30 +3,9 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { Badge } from "@/components/Badge";
 import { Link } from "react-router-dom";
-
-const pricingPlans = [
-  {
-    name: "Free",
-    price: "$0",
-    priceDescription: "/month",
-    description: "Access StratAIge's core features at no cost.",
-    features: ["Unlimited strategy generation", "Unlimited strategy backtest and modification", "Strategy management"],
-    buttonText: "Get Started Free",
-    buttonLink: "/signup",
-    isFeatured: false
-  },
-  {
-    name: "Pro",
-    price: "$29",
-    priceDescription: "/month",
-    description: "For professional traders and businesses.",
-    features: ["Everything in the free plan", "Live trading via API", "Priority Customer Service"],
-    buttonText: "Get Started",
-    buttonLink: "/signup",
-    isFeatured: true
-  }
-];
+import { useState } from "react";
 
 interface PricingSectionProps {
   isPage?: boolean;
@@ -35,7 +14,36 @@ interface PricingSectionProps {
 export const PricingSection = ({
   isPage = false
 }: PricingSectionProps) => {
+  const [isAnnual, setIsAnnual] = useState(false);
+  
+  const pricingPlans = [
+    {
+      name: "Free",
+      monthlyPrice: "$0",
+      annualPrice: "$0",
+      priceDescription: isAnnual ? "/year" : "/month",
+      description: "Access StratAIge's core features at no cost.",
+      features: ["Unlimited strategy generation", "Unlimited strategy backtest and modification", "Strategy management"],
+      buttonText: "Get Started Free",
+      buttonLink: "/signup",
+      isFeatured: false
+    },
+    {
+      name: "Pro",
+      monthlyPrice: "$50",
+      annualPrice: "$480",
+      priceDescription: isAnnual ? "/year" : "/month",
+      description: "For professional traders and businesses.",
+      features: ["Everything in the free plan", "Live trading via API", "Priority Customer Service"],
+      buttonText: "Get Started",
+      buttonLink: "/signup",
+      isFeatured: true
+    }
+  ];
+
   const TitleTag = isPage ? "h1" : "h2";
+  const annualSavings = 50 * 12 - 480; // $600 - $480 = $120 savings
+
   return (
     <section className={isPage ? "bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden py-16" : "py-20 bg-white"}>
       <Container>
@@ -43,10 +51,40 @@ export const PricingSection = ({
           <TitleTag className={isPage ? "text-4xl md:text-5xl font-bold mb-4 text-gray-900" : "text-3xl md:text-4xl font-bold mb-4 text-gray-900"}>
             Find the perfect plan for your needs
           </TitleTag>
-          <p className={isPage ? "text-lg text-gray-700 max-w-2xl mx-auto" : "text-xl text-gray-600 max-w-2xl mx-auto"}>
+          <p className={isPage ? "text-lg text-gray-700 max-w-2xl mx-auto mb-8" : "text-xl text-gray-600 max-w-2xl mx-auto mb-8"}>
             Start with a generous free plan and upgrade as your trading scales.
           </p>
+          
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
+              Monthly
+            </span>
+            <button
+              onClick={() => setIsAnnual(!isAnnual)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                isAnnual ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isAnnual ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
+                Annual
+              </span>
+              {isAnnual && (
+                <Badge variant="pro" className="text-xs px-2 py-1 animate-fade-in">
+                  Save ${annualSavings}
+                </Badge>
+              )}
+            </div>
+          </div>
         </div>
+        
         <div
           className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch animate-fade-in max-w-4xl mx-auto"
           style={{ animationDelay: '200ms' }}
@@ -64,8 +102,15 @@ export const PricingSection = ({
               </CardHeader>
               <CardContent className="flex-grow">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">{plan.price}</span>
+                  <span className="text-4xl font-bold">
+                    {isAnnual ? plan.annualPrice : plan.monthlyPrice}
+                  </span>
                   <span className="text-muted-foreground">{plan.priceDescription}</span>
+                  {isAnnual && plan.name === "Pro" && (
+                    <div className="text-sm text-gray-500 mt-1">
+                      ${(480 / 12).toFixed(0)}/month billed annually
+                    </div>
+                  )}
                 </div>
                 <ul className="space-y-4 pb-12">
                   {plan.features.map((feature, featureIndex) => (

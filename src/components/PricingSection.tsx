@@ -1,4 +1,3 @@
-
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,16 +71,9 @@ export const PricingSection = ({
                 }`}
               />
             </button>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
-                Annual
-              </span>
-              {isAnnual && (
-                <Badge variant="pro" className="text-xs px-2 py-1 animate-fade-in">
-                  Save ${annualSavings}
-                </Badge>
-              )}
-            </div>
+            <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
+              Annual
+            </span>
           </div>
         </div>
         

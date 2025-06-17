@@ -19,6 +19,7 @@ import ForgotPassword from "@/pages/auth/ForgotPassword";
 import Confirm from "@/pages/auth/Confirm";
 import Confirmed from "@/pages/auth/Confirmed";
 import AuthCallback from "@/pages/auth/AuthCallback";
+import ResetPassword from "@/pages/auth/ResetPassword";
 import Backtest from "@/pages/Backtest";
 import StrategyPreview from "@/pages/StrategyPreview";
 import Recommendations from "@/pages/Recommendations";
@@ -48,6 +49,7 @@ function App() {
           <Route path="/confirm" element={<Confirm />} />
           <Route path="/auth/confirmed" element={<Confirmed />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/strategies" element={<ProtectedRoute><Strategies /></ProtectedRoute>} />
           <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />

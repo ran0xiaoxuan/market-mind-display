@@ -6,52 +6,68 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export default function Confirm() {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     const token = searchParams.get('token');
     const type = searchParams.get('type');
+    const tokenHash = searchParams.get('token_hash');
 
-    if (!token || !type) {
-      setError("Invalid confirmation link");
+    console.log('Email confirmation params:', { token: !!token, type, tokenHash: !!tokenHash });
+
+    // Handle both old format (token) and new format (token_hash)
+    const confirmationToken = tokenHash || token;
+
+    if (!confirmationToken || !type) {
+      console.error('Missing confirmation parameters:', { token: !!confirmationToken, type });
+      setError("Invalid confirmation link. Missing required parameters.");
       setIsLoading(false);
       return;
     }
 
     const confirmEmail = async () => {
       try {
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: token,
+        console.log('Attempting email confirmation with type:', type);
+        
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: confirmationToken,
           type: type as any
         });
 
+        console.log('Email confirmation result:', { data: !!data, error: error?.message });
+
         if (error) {
           console.error('Email confirmation error:', error);
-          setError(error.message || "Failed to confirm email");
+          
+          // Provide more specific error messages
+          if (error.message.includes('expired')) {
+            setError("This confirmation link has expired. Please request a new confirmation email.");
+          } else if (error.message.includes('invalid')) {
+            setError("This confirmation link is invalid or has already been used.");
+          } else {
+            setError(error.message || "Failed to confirm email");
+          }
         } else {
+          console.log('Email confirmed successfully');
           setIsConfirmed(true);
-          toast({
-            title: "Email confirmed",
-            description: "Your email has been successfully confirmed."
-          });
+          toast.success("Email confirmed successfully!");
         }
       } catch (err: any) {
-        console.error('Email confirmation error:', err);
-        setError("An unexpected error occurred");
+        console.error('Email confirmation exception:', err);
+        setError("An unexpected error occurred during email confirmation.");
       } finally {
         setIsLoading(false);
       }
     };
 
     confirmEmail();
-  }, [searchParams, toast]);
+  }, [searchParams]);
 
   if (isLoading) {
     return (

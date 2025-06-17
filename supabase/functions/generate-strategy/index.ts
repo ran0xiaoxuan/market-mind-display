@@ -154,13 +154,15 @@ IMPORTANT RULES:
 1. Generate strategy based ONLY on the user's description - do not default to RSI/MACD unless specifically requested
 2. Use indicators that are relevant to the user's request from this list: ${validIndicators.join(", ")}
 3. If the user requests features not supported by the available indicators, mention this limitation in the description
-4. Vary risk management parameters based on the strategy type and asset - don't always use the same values
-5. Make the strategy name and description specific to the user's request
+4. For risk management: stopLoss percentage MUST be less than takeProfit percentage, and singleBuyVolume MUST be less than maxBuyVolume
+5. If the user provides specific risk management requirements in their description, follow those requirements
+6. If no specific risk management is mentioned, set values that suit the strategy type and asset volatility
+7. Make the strategy name and description specific to the user's request
 
 Analyze the user's request and determine:
 - What type of strategy they want (trend following, mean reversion, momentum, etc.)
 - Which indicators would be most appropriate for their request
-- Appropriate risk management levels for this strategy type
+- Appropriate risk management levels based on strategy aggressiveness and any user specifications
 - Reasonable entry/exit conditions based on their description
 
 Return ONLY this JSON structure:
@@ -201,14 +203,14 @@ Return ONLY this JSON structure:
     }
   ],
   "riskManagement": {
-    "stopLoss": "percentage appropriate for strategy type (1-10%)",
-    "takeProfit": "percentage appropriate for strategy type (5-25%)",
-    "singleBuyVolume": "amount appropriate for asset type ($500-$5000)",
-    "maxBuyVolume": "maximum exposure appropriate for strategy ($2500-$20000)"
+    "stopLoss": "percentage (must be less than takeProfit)",
+    "takeProfit": "percentage (must be greater than stopLoss)",
+    "singleBuyVolume": "dollar amount (must be less than maxBuyVolume)",
+    "maxBuyVolume": "dollar amount (must be greater than singleBuyVolume)"
   }
 }
 
-Choose indicators and parameters that make sense for the user's specific request. Vary the risk management based on the strategy aggressiveness and asset volatility.`;
+Choose indicators and parameters that make sense for the user's specific request. Set risk management values that align with the strategy type and any user requirements, ensuring stopLoss < takeProfit and singleBuyVolume < maxBuyVolume.`;
 
     console.log('Calling OpenAI API...');
     

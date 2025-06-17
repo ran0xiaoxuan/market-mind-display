@@ -133,18 +133,40 @@ serve(async (req) => {
 
     // Generate strategy using OpenAI
     const validIndicators = [
-      "SMA", "EMA", "WMA", "DEMA", "TEMA", "RSI", "Stochastic", "MACD", 
-      "Bollinger Bands", "ATR", "Volume", "ADX", "CCI", "Williams %R"
+      // Moving Averages
+      "SMA", "EMA", "WMA", "DEMA", "TEMA", "TRIMA", "KAMA", "VWMA",
+      // Oscillators
+      "RSI", "Stochastic", "StochRSI", "CCI", "Williams %R", "Ultimate Oscillator", 
+      "MACD", "Awesome Oscillator", "Momentum", "CMO", "MFI", "OBV",
+      // Trend Indicators
+      "ADX", "DMI", "Ichimoku Cloud", "PSAR", "VWAP", "Supertrend", "TTM Squeeze",
+      // Volatility Indicators
+      "Bollinger Bands", "ATR", "Keltner Channel", "Donchian Channel", "Chandelier Exit",
+      // Volume Indicators
+      "Volume", "Chaikin Money Flow", "On Balance Volume", "Volume Oscillator", "Volume Weighted Moving Average",
+      // Price Patterns
+      "Heikin Ashi", "Engulfing", "Hammer", "Doji", "Morning Star", "Evening Star"
     ];
 
-    const prompt = `Generate a trading strategy for ${selectedAsset} (${assetType}) based on: ${strategyDescription}
+    const prompt = `You are an expert trading strategy generator. Create a trading strategy for ${selectedAsset} (${assetType}) based STRICTLY on this user request: "${strategyDescription}"
 
-Use only these indicators: ${validIndicators.join(", ")}
+IMPORTANT RULES:
+1. Generate strategy based ONLY on the user's description - do not default to RSI/MACD unless specifically requested
+2. Use indicators that are relevant to the user's request from this list: ${validIndicators.join(", ")}
+3. If the user requests features not supported by the available indicators, mention this limitation in the description
+4. Vary risk management parameters based on the strategy type and asset - don't always use the same values
+5. Make the strategy name and description specific to the user's request
+
+Analyze the user's request and determine:
+- What type of strategy they want (trend following, mean reversion, momentum, etc.)
+- Which indicators would be most appropriate for their request
+- Appropriate risk management levels for this strategy type
+- Reasonable entry/exit conditions based on their description
 
 Return ONLY this JSON structure:
 {
-  "name": "Strategy Name",
-  "description": "Strategy description",
+  "name": "Descriptive strategy name based on user request",
+  "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
   "timeframe": "Daily",
   "targetAsset": "${selectedAsset}",
   "entryRules": [
@@ -154,10 +176,10 @@ Return ONLY this JSON structure:
       "inequalities": [
         {
           "id": 1,
-          "left": {"type": "INDICATOR", "indicator": "RSI", "parameters": {"period": "14"}, "value": "", "valueType": "number"},
+          "left": {"type": "INDICATOR", "indicator": "ChosenIndicator", "parameters": {"period": "14"}, "value": "", "valueType": "number"},
           "condition": "GREATER_THAN",
-          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "30", "valueType": "number"},
-          "explanation": "RSI above 30"
+          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "threshold", "valueType": "number"},
+          "explanation": "Clear explanation of this condition"
         }
       ]
     }
@@ -170,21 +192,23 @@ Return ONLY this JSON structure:
       "inequalities": [
         {
           "id": 1,
-          "left": {"type": "INDICATOR", "indicator": "RSI", "parameters": {"period": "14"}, "value": "", "valueType": "number"},
+          "left": {"type": "INDICATOR", "indicator": "ChosenIndicator", "parameters": {"period": "14"}, "value": "", "valueType": "number"},
           "condition": "LESS_THAN",
-          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "70", "valueType": "number"},
-          "explanation": "RSI below 70"
+          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "threshold", "valueType": "number"},
+          "explanation": "Clear explanation of this exit condition"
         }
       ]
     }
   ],
   "riskManagement": {
-    "stopLoss": "5",
-    "takeProfit": "10",
-    "singleBuyVolume": "1000",
-    "maxBuyVolume": "5000"
+    "stopLoss": "percentage appropriate for strategy type (1-10%)",
+    "takeProfit": "percentage appropriate for strategy type (5-25%)",
+    "singleBuyVolume": "amount appropriate for asset type ($500-$5000)",
+    "maxBuyVolume": "maximum exposure appropriate for strategy ($2500-$20000)"
   }
-}`;
+}
+
+Choose indicators and parameters that make sense for the user's specific request. Vary the risk management based on the strategy aggressiveness and asset volatility.`;
 
     console.log('Calling OpenAI API...');
     
@@ -197,7 +221,7 @@ Return ONLY this JSON structure:
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Return only valid JSON.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies. Return only valid JSON that matches the specified structure exactly.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

@@ -21,6 +21,16 @@ import { Navbar } from "@/components/Navbar";
 import { getStockPrice } from "@/services/marketDataService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 
+// Type for signal data structure
+interface SignalData {
+  reason?: string;
+  price?: number;
+  volume?: number;
+  profit?: number;
+  profitPercentage?: number;
+  [key: string]: any;
+}
+
 const StrategyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -123,7 +133,7 @@ const StrategyDetail = () => {
 
           // Format trading signals for display
           const formattedTrades = validSignals.map(signal => {
-            const signalData = signal.signal_data || {};
+            const signalData = (signal.signal_data as SignalData) || {};
             const currentPrice = currentPrices.get(strategyData.targetAsset);
             
             let calculatedProfit = signalData.profit;

@@ -26,6 +26,16 @@ export interface PortfolioMetrics {
   dailyChangePercent: number;
 }
 
+// Type for signal data structure
+interface SignalData {
+  reason?: string;
+  price?: number;
+  volume?: number;
+  profit?: number;
+  profitPercentage?: number;
+  [key: string]: any;
+}
+
 /**
  * Get current stock price for a symbol
  */
@@ -361,7 +371,7 @@ export const getRealTradeHistory = async (timeRange: string = "all") => {
         return signalDate >= strategyDate;
       })
       .map(signal => {
-        const signalData = signal.signal_data;
+        const signalData = (signal.signal_data as SignalData) || {};
         return {
           id: signal.id,
           date: new Date(signal.created_at).toLocaleDateString(),

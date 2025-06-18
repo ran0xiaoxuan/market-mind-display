@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -81,102 +80,88 @@ const StrategyDetail = () => {
         setHasValidTradingRules(hasEntryRules || hasExitRules);
       }
       
-      // Only fetch trade data if strategy has valid trading rules
+      // Only fetch real trading signals if strategy has valid trading rules
       if (hasValidTradingRules) {
-        // Fetch real backtest trades for this strategy with temporal validation
-        const { data: backtests, error: backtestError } = await supabase
-          .from("backtests")
-          .select("id, start_date, end_date")
+        // Fetch real trading signals for this strategy (not backtest data)
+        const { data: signals, error: signalsError } = await supabase
+          .from("trading_signals")
+          .select("*")
           .eq("strategy_id", id)
+          .eq("processed", true)
           .order("created_at", { ascending: false })
-          .limit(1);
+          .limit(20);
         
-        if (!backtestError && backtests && backtests.length > 0) {
-          const latestBacktest = backtests[0];
+        if (!signalsError && signals && signals.length > 0) {
           const strategyCreatedAt = new Date(strategyData.createdAt);
-          const backtestStartDate = new Date(latestBacktest.start_date);
           
-          // Validate that backtest doesn't start before strategy creation
-          if (backtestStartDate < strategyCreatedAt) {
-            console.warn(`Backtest start date (${backtestStartDate.toISOString()}) is before strategy creation date (${strategyCreatedAt.toISOString()}). This indicates problematic data.`);
-            toast.error("Data inconsistency detected", {
-              description: "Trade history contains data from before the strategy was created. This will be cleaned up."
-            });
+          // Filter signals that occur after strategy creation
+          const validSignals = signals.filter(signal => {
+            const signalDate = new Date(signal.created_at);
+            const isValid = signalDate >= strategyCreatedAt;
+            
+            if (!isValid) {
+              console.warn(`Filtering out signal ${signal.id} with date ${signalDate.toISOString()} as it predates strategy creation`);
+            }
+            return isValid;
+          });
+          
+          if (validSignals.length !== signals.length) {
+            console.log(`Filtered out ${signals.length - validSignals.length} invalid signals`);
           }
           
-          const { data: tradesData, error: tradesError } = await supabase
-            .from("backtest_trades")
-            .select("*")
-            .eq("backtest_id", latestBacktest.id)
-            .order("date", { ascending: false })
-            .limit(20);
+          // Get current prices for open positions
+          const currentPrices = new Map();
           
-          if (!tradesError && tradesData) {
-            // Filter out trades that occur before strategy creation or on weekends
-            const validTrades = tradesData.filter(trade => {
-              const tradeDate = new Date(trade.date);
-              const dayOfWeek = tradeDate.getDay();
-              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
-              const isValid = tradeDate >= strategyCreatedAt && !isWeekend;
-              
-              if (!isValid) {
-                console.warn(`Filtering out trade ${trade.id} with date ${tradeDate.toISOString()} as it ${tradeDate < strategyCreatedAt ? 'predates strategy creation' : 'occurred on weekend'}`);
-              }
-              return isValid;
-            });
-            
-            if (validTrades.length !== tradesData.length) {
-              console.log(`Filtered out ${tradesData.length - validTrades.length} invalid trades`);
+          try {
+            const priceData = await getStockPrice(strategyData.targetAsset);
+            if (priceData) {
+              currentPrices.set(strategyData.targetAsset, priceData.price);
             }
-            
-            // Get current prices for open positions
-            const uniqueAssets = [...new Set(validTrades.map(trade => strategyData.targetAsset).filter(Boolean))];
-            const currentPrices = new Map();
-            
-            for (const asset of uniqueAssets) {
-              try {
-                const priceData = await getStockPrice(asset);
-                if (priceData) {
-                  currentPrices.set(asset, priceData.price);
-                }
-              } catch (error) {
-                console.warn(`Failed to fetch price for ${asset}:`, error);
-              }
-            }
+          } catch (error) {
+            console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
+          }
 
-            // Format trade data for display
-            const formattedTrades = validTrades.map(trade => {
-              const currentPrice = currentPrices.get(strategyData.targetAsset);
-              let calculatedProfit = trade.profit;
-              let calculatedProfitPercentage = trade.profit_percentage;
+          // Format trading signals for display
+          const formattedTrades = validSignals.map(signal => {
+            const signalData = signal.signal_data || {};
+            const currentPrice = currentPrices.get(strategyData.targetAsset);
+            
+            let calculatedProfit = signalData.profit;
+            let calculatedProfitPercentage = signalData.profitPercentage;
 
-              // For open positions (buy trades without corresponding sells), calculate unrealized P&L
-              if (trade.type === 'Buy' && currentPrice && !trade.profit) {
-                const unrealizedProfitPercentage = ((currentPrice - trade.price) / trade.price) * 100;
-                const unrealizedProfit = unrealizedProfitPercentage / 100 * trade.price * trade.contracts;
+            // For open positions (entry signals without corresponding exits), calculate unrealized P&L
+            if (signal.signal_type === 'entry' && currentPrice && !calculatedProfit) {
+              const entryPrice = signalData.price || 0;
+              if (entryPrice > 0) {
+                const unrealizedProfitPercentage = ((currentPrice - entryPrice) / entryPrice) * 100;
+                const volume = signalData.volume || 0;
+                const unrealizedProfit = unrealizedProfitPercentage / 100 * entryPrice * volume;
                 
                 calculatedProfit = unrealizedProfit;
                 calculatedProfitPercentage = unrealizedProfitPercentage;
 
-                console.log(`Open position ${trade.id}: Unrealized P&L: ${unrealizedProfitPercentage.toFixed(2)}%`);
+                console.log(`Open position ${signal.id}: Unrealized P&L: ${unrealizedProfitPercentage.toFixed(2)}%`);
               }
+            }
 
-              return {
-                id: trade.id,
-                date: new Date(trade.date).toLocaleDateString(),
-                type: trade.type,
-                signal: trade.signal,
-                price: `$${trade.price.toFixed(2)}`,
-                contracts: trade.contracts,
-                profit: calculatedProfit !== null ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
-                profitPercentage: calculatedProfitPercentage !== null ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
-                strategyId: id,
-                targetAsset: strategyData.targetAsset
-              };
-            });
-            
-            setTrades(formattedTrades);
-          }
+            return {
+              id: signal.id,
+              date: new Date(signal.created_at).toLocaleDateString(),
+              type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
+              signal: signalData.reason || 'Trading Signal',
+              price: `$${(signalData.price || 0).toFixed(2)}`,
+              contracts: signalData.volume || 0,
+              profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
+              profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
+              strategyId: id,
+              targetAsset: strategyData.targetAsset
+            };
+          });
+          
+          setTrades(formattedTrades);
+        } else {
+          console.log('No trading signals found for this strategy');
+          setTrades([]);
         }
       }
     } catch (err: any) {

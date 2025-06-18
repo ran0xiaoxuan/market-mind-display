@@ -306,61 +306,82 @@ export const calculatePortfolioMetrics = async (timeRange: "7d" | "30d" | "all")
 /**
  * Get real trade history from database with current market prices
  */
-export const getRealTradeHistory = async (timeRange: "7d" | "30d" | "all") => {
+export const getRealTradeHistory = async (timeRange: string = "all") => {
   try {
-    // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
+    console.log(`Fetching real trade history for timeRange: ${timeRange}`);
+    
+    // Calculate date filter based on timeRange
+    let dateFilter = null;
+    const now = new Date();
+    
     if (timeRange === "7d") {
-      startDate.setDate(endDate.getDate() - 7);
+      dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     } else if (timeRange === "30d") {
-      startDate.setDate(endDate.getDate() - 30);
-    } else {
-      startDate.setFullYear(endDate.getFullYear() - 1);
+      dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
-    // Fetch trades from database
-    const { data: trades, error: tradesError } = await supabase
-      .from('backtest_trades')
+    // Fetch real trading signals (not backtest data)
+    let query = supabase
+      .from('trading_signals')
       .select(`
         *,
-        backtests!inner (
-          strategy_id,
-          strategies!inner (
-            name,
-            target_asset
-          )
+        strategies!inner(
+          id,
+          name,
+          target_asset,
+          created_at
         )
       `)
-      .gte('date', startDate.toISOString())
-      .order('date', { ascending: false })
+      .eq('processed', true)
+      .order('created_at', { ascending: false })
       .limit(50);
 
-    if (tradesError) {
-      console.error("Error fetching trades:", tradesError);
+    if (dateFilter) {
+      query = query.gte('created_at', dateFilter);
+    }
+
+    const { data: signals, error } = await query;
+
+    if (error) {
+      console.error('Error fetching real trading signals:', error);
+      throw error;
+    }
+
+    if (!signals || signals.length === 0) {
+      console.log('No real trading signals found');
       return [];
     }
 
-    if (!trades || trades.length === 0) {
-      return [];
-    }
+    // Transform trading signals into trade history format
+    const tradeHistory = signals
+      .filter(signal => {
+        // Only include signals created after the strategy was created
+        const signalDate = new Date(signal.created_at);
+        const strategyDate = new Date(signal.strategies.created_at);
+        return signalDate >= strategyDate;
+      })
+      .map(signal => {
+        const signalData = signal.signal_data;
+        return {
+          id: signal.id,
+          date: new Date(signal.created_at).toLocaleDateString(),
+          type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
+          signal: signalData.reason || 'Trading Signal',
+          price: `$${(signalData.price || 0).toFixed(2)}`,
+          contracts: signalData.volume || 0,
+          profit: signal.signal_type === 'exit' ? `$${(signalData.profit || 0).toFixed(2)}` : null,
+          profitPercentage: signal.signal_type === 'exit' ? `${(signalData.profitPercentage || 0).toFixed(2)}%` : null,
+          strategyName: signal.strategies.name,
+          targetAsset: signal.strategies.target_asset,
+          strategyId: signal.strategy_id
+        };
+      });
 
-    // Format trades for display
-    return trades.map(trade => ({
-      id: trade.id,
-      date: new Date(trade.date).toLocaleDateString(),
-      type: trade.type,
-      signal: trade.signal,
-      price: `$${trade.price.toFixed(2)}`,
-      contracts: trade.contracts,
-      profit: trade.profit !== null ? `${trade.profit >= 0 ? '+' : ''}$${trade.profit.toFixed(2)}` : null,
-      profitPercentage: trade.profit_percentage !== null ? `${trade.profit_percentage >= 0 ? '+' : ''}${trade.profit_percentage.toFixed(2)}%` : null,
-      strategyName: trade.backtests?.strategies?.name || "Unknown Strategy",
-      strategyId: trade.backtests?.strategy_id,
-      targetAsset: trade.backtests?.strategies?.target_asset || "Unknown"
-    }));
+    console.log(`Fetched ${tradeHistory.length} real trades`);
+    return tradeHistory;
+
   } catch (error) {
-    console.error("Error fetching real trade history:", error);
+    console.error('Error in getRealTradeHistory:', error);
     return [];
   }
 };

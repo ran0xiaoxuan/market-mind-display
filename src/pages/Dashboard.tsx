@@ -43,7 +43,7 @@ const Dashboard = () => {
       // First clean up invalid signals
       await cleanupInvalidSignals();
       
-      // Fetch strategies, portfolio metrics and clean trade history in parallel
+      // Fetch strategies, portfolio metrics and real trade history in parallel
       const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([
         getStrategies(),
         calculatePortfolioMetrics(timeRange),
@@ -54,22 +54,22 @@ const Dashboard = () => {
       const totalStrategies = strategies.length;
       const activeStrategies = strategies.filter(s => s.isActive).length;
 
-      // Calculate signal amount and transaction amount from trade history
+      // Calculate signal amount and transaction amount from real trade history (not backtest data)
       const signalAmount = realTradeHistory.length;
       
-      // Calculate total transaction amount as sum of (price × contracts) for each trade
+      // Calculate total transaction amount as sum of (price × contracts) for each real trade
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
-        const price = parseFloat(trade.price) || 0;
+        const price = parseFloat(trade.price.replace('$', '')) || 0;
         const contracts = parseInt(trade.contracts.toString()) || 0;
         const subtotal = price * contracts;
-        console.log(`Trade: price=${price}, contracts=${contracts}, subtotal=${subtotal}`);
+        console.log(`Real trade: price=${price}, contracts=${contracts}, subtotal=${subtotal}`);
         return total + subtotal;
       }, 0);
 
-      console.log(`Total transaction amount: ${transactionAmount}`);
-      console.log(`Trade history data:`, realTradeHistory);
+      console.log(`Total transaction amount from real trades: ${transactionAmount}`);
+      console.log(`Real trade history data:`, realTradeHistory);
 
-      // Update metrics with real strategy counts
+      // Update metrics with real strategy counts and real trading data
       const updatedMetrics = {
         ...portfolioMetrics,
         strategiesCount: totalStrategies.toString(),

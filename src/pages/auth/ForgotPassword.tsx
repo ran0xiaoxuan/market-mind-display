@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -65,6 +66,14 @@ export default function ForgotPassword() {
               <p className="text-sm text-muted-foreground">
                 Please check your email and click the link to reset your password. The link will expire in 24 hours.
               </p>
+              
+              <Alert className="text-left">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Don't see the email?</strong> Check your spam or junk folder. Sometimes password reset emails can end up there.
+                </AlertDescription>
+              </Alert>
+              
               <div className="space-y-2 pt-4">
                 <Button asChild className="w-full">
                   <Link to="/login">

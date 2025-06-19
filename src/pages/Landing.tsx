@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -79,7 +78,7 @@ const Landing = () => {
     answer: "As a free user of StratAIge, you can only receive trading signals on the app, while pro users can receive live trading signals via Email/Telegram/Discord."
   }, {
     question: "How can I contact customer support for help?",
-    answer: "If you have any questions or need assistance, don't hesitate to reach out to help@strataige.cc."
+    answer: "If you have any questions or need assistance, please join our Discord community for support: https://discord.com/invite/EEEnGUwDEF"
   }];
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
@@ -459,14 +458,14 @@ const Landing = () => {
               What Our Users Say
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Don’t just take our word for it – here’s what our users think about StratAlge.
+              Don't just take our word for it – here's what our users think about StratAlge.
             </p>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
             <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in">
               <img src="/lovable-uploads/b0c24627-b719-457c-bdd7-e5a78effba37.png" alt="Thomas Brown testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-blue-400" />
               <div className="font-semibold text-gray-900 mb-2">Thomas Brown</div>
-              <div className="text-gray-600 text-center mb-2">“As someone without a coding background, StratAIge’s no-code platform has been a game-changer. I can easily turn my trading ideas into strategies without any technical hurdles. It’s incredibly user-friendly!”</div>
+              <div className="text-gray-600 text-center mb-2">"As someone without a coding background, StratAIge's no-code platform has been a game-changer. I can easily turn my trading ideas into strategies without any technical hurdles. It's incredibly user-friendly!"</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -480,7 +479,7 @@ const Landing = () => {
           }}>
               <img src="/lovable-uploads/efffc395-e026-4d17-a2bd-bc05cf2b3235.png" alt="Daniel Kim testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-green-400" />
               <div className="font-semibold text-gray-900 mb-2">Daniel Kim</div>
-              <div className="text-gray-600 text-center mb-2">“Running a business leaves me little time for trading. StratAIge’s efficiency is remarkable—it executes strategies quickly and lets me manage trading alongside my daily tasks without stress.”</div>
+              <div className="text-gray-600 text-center mb-2">"Running a business leaves me little time for trading. StratAIge's efficiency is remarkable—it executes strategies quickly and lets me manage trading alongside my daily tasks without stress."</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -494,7 +493,7 @@ const Landing = () => {
           }}>
               <img src="/lovable-uploads/e1ba2654-83c2-4e67-b3b6-822ae2901951.png" alt="Maria Rodriguez testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-cyan-400" />
               <div className="font-semibold text-gray-900 mb-2">Maria Rodriguez</div>
-              <div className="text-gray-600 text-center mb-2">“The backtesting tools in StratAIge are top-notch. They provide detailed, accurate performance insights that boost my confidence in every strategy. It’s a rigorous yet efficient way to refine my trading.”</div>
+              <div className="text-gray-600 text-center mb-2">"The backtesting tools in StratAIge are top-notch. They provide detailed, accurate performance insights that boost my confidence in every strategy. It's a rigorous yet efficient way to refine my trading."</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -515,7 +514,7 @@ const Landing = () => {
               Frequently Asked Questions
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Still have questions? We’re here to help.
+              Still have questions? We're here to help.
             </p>
           </div>
           <div className="max-w-2xl mx-auto">

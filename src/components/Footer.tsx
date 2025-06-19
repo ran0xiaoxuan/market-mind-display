@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
@@ -19,7 +20,7 @@ export const Footer = () => {
                 background: "#fff"
               }} />
               </a>
-              <a href="https://discord.gg/hjyC8bSrxT" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="transition-transform hover:scale-110">
+              <a href="https://discord.gg/EEEnGUwDEF" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="transition-transform hover:scale-110">
                 <img src="/lovable-uploads/8708168b-5adf-4599-9513-99c7e4c7bcc8.png" alt="Discord logo" className="w-6 h-6 object-contain rounded" style={{
                 background: "#fff"
               }} />

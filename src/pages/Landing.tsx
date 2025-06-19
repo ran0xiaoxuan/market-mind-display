@@ -8,7 +8,6 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
 import { PricingSection } from "@/components/PricingSection";
-
 const Landing = () => {
   const features = [{
     icon: Brain,
@@ -80,42 +79,34 @@ const Landing = () => {
     question: "How can I contact customer support for help?",
     answer: "If you have any questions or need assistance, please join our Discord community for support: https://discord.com/invite/EEEnGUwDEF"
   }];
-
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault();
     const section = document.getElementById(targetId);
     if (!section) return;
-
     const targetPosition = section.getBoundingClientRect().top + window.pageYOffset;
     const startPosition = window.pageYOffset;
     const distance = targetPosition - startPosition;
     const duration = 1000; // Slower scroll: 1000ms
     let startTime: number | null = null;
-
     const easeInOutQuad = (t: number, b: number, c: number, d: number) => {
       t /= d / 2;
-      if (t < 1) return (c / 2) * t * t + b;
+      if (t < 1) return c / 2 * t * t + b;
       t--;
-      return (-c / 2) * (t * (t - 2) - 1) + b;
+      return -c / 2 * (t * (t - 2) - 1) + b;
     };
-
     const animateScroll = (currentTime: number) => {
       if (startTime === null) startTime = currentTime;
       const timeElapsed = currentTime - startTime;
       const nextPosition = easeInOutQuad(timeElapsed, startPosition, distance, duration);
-
       window.scrollTo(0, nextPosition);
-
       if (timeElapsed < duration) {
         requestAnimationFrame(animateScroll);
       } else {
         window.scrollTo(0, targetPosition);
       }
     };
-
     requestAnimationFrame(animateScroll);
   };
-
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
@@ -124,31 +115,16 @@ const Landing = () => {
             <div className="flex items-center gap-8 animate-fade-in">
               <Logo size="md" />
               <div className="hidden md:flex items-center gap-6">
-                <a
-                  href="#features"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                  onClick={e => handleNavClick(e, 'features')}
-                >
+                <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer" onClick={e => handleNavClick(e, 'features')}>
                   Features
                 </a>
-                <a
-                  href="#how-it-works"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                  onClick={e => handleNavClick(e, 'how-it-works')}
-                >
+                <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer" onClick={e => handleNavClick(e, 'how-it-works')}>
                   How It Works
                 </a>
-                <Link
-                  to="/pricing"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                >
+                <Link to="/pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
                   Pricing
                 </Link>
-                <a
-                  href="#faq"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                  onClick={e => handleNavClick(e, 'faq')}
-                >
+                <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer" onClick={e => handleNavClick(e, 'faq')}>
                   FAQ
                 </a>
               </div>
@@ -507,7 +483,7 @@ const Landing = () => {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 bg-white">
+      <section id="faq" className="py-20 bg-[#f8f9fc]">
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">

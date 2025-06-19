@@ -1,5 +1,3 @@
-
-
 import { Container } from "@/components/ui/container";
 import BackToLandingNavbar from "@/components/BackToLandingNavbar";
 import { CtaSection } from "@/components/CtaSection";
@@ -105,10 +103,10 @@ const PrivacyPolicy = () => (
           <section>
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Contact Us</h2>
             <p className="text-gray-700 leading-relaxed">
-              If you have any questions about this privacy policy, please contact us:
+              If you have any questions about this privacy policy, please join our Discord community for support:
             </p>
             <p className="text-gray-700 mt-2">
-              Email: <a href="mailto:help@strataige.cc" className="text-gray-900 hover:underline">help@strataige.cc</a>
+              Discord: <a href="https://discord.gg/EEEnGUwDEF" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://discord.gg/EEEnGUwDEF</a>
             </p>
           </section>
         </div>

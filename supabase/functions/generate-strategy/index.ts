@@ -159,9 +159,24 @@ IMPORTANT RULES:
 6. If no specific risk management is mentioned, set values that suit the strategy type and asset volatility
 7. Make the strategy name and description specific to the user's request
 
+TIMEFRAME SELECTION:
+- Analyze the user's description for timeframe keywords:
+  - "scalping", "second", "minute", "intraday", "very short term" → use "1m"
+  - "day trading", "hourly", "short term" → use "1h" 
+  - "swing trading", "daily", "medium term" → use "Daily"
+  - "position trading", "weekly", "long term", "investment" → use "Weekly"
+  - "buy and hold", "monthly", "very long term" → use "Monthly"
+- If no timeframe is explicitly mentioned, select based on strategy type:
+  - Momentum/breakout strategies → "1h"
+  - Mean reversion strategies → "Daily"
+  - Trend following strategies → "Daily"
+  - Value/fundamental strategies → "Weekly"
+- Default to "Daily" only if strategy type cannot be determined
+
 Analyze the user's request and determine:
 - What type of strategy they want (trend following, mean reversion, momentum, etc.)
 - Which indicators would be most appropriate for their request
+- Appropriate timeframe based on their description or strategy type
 - Appropriate risk management levels based on strategy aggressiveness and any user specifications
 - Reasonable entry/exit conditions based on their description
 
@@ -169,7 +184,7 @@ Return ONLY this JSON structure:
 {
   "name": "Descriptive strategy name based on user request",
   "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
-  "timeframe": "Daily",
+  "timeframe": "Selected timeframe based on user description or strategy type",
   "targetAsset": "${selectedAsset}",
   "entryRules": [
     {
@@ -210,7 +225,7 @@ Return ONLY this JSON structure:
   }
 }
 
-Choose indicators and parameters that make sense for the user's specific request. Set risk management values that align with the strategy type and any user requirements, ensuring stopLoss < takeProfit and singleBuyVolume < maxBuyVolume.`;
+Choose indicators, timeframe, and parameters that make sense for the user's specific request. Set risk management values that align with the strategy type and any user requirements, ensuring stopLoss < takeProfit and singleBuyVolume < maxBuyVolume.`;
 
     console.log('Calling OpenAI API...');
     

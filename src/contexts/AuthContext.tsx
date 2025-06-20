@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -66,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
+  const lastSignInUserRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -83,15 +83,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && currentSession) {        
         console.log('User signed in successfully');
         
-        toast({
-          title: "Logged in successfully",
-          description: "Welcome back!"
-        });
+        // Only show toast if this is a different user or first sign in for this session
+        const currentUserId = currentSession.user.id;
+        if (lastSignInUserRef.current !== currentUserId) {
+          lastSignInUserRef.current = currentUserId;
+          toast({
+            title: "Logged in successfully",
+            description: "Welcome back!"
+          });
+        }
       }
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out successfully');
         setIsSigningOut(false);
+        lastSignInUserRef.current = null;
         setTimeout(() => {
           if (mounted) {
             toast({
@@ -114,6 +120,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
+        
+        // Set the last signed in user to prevent duplicate toast on initial load
+        if (currentSession?.user) {
+          lastSignInUserRef.current = currentSession.user.id;
+        }
       }
     });
 

@@ -160,17 +160,26 @@ IMPORTANT RULES:
 7. Make the strategy name and description specific to the user's request
 
 TIMEFRAME SELECTION:
+Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
+
 - Analyze the user's description for timeframe keywords:
-  - "scalping", "second", "minute", "intraday", "very short term" → use "1m"
-  - "day trading", "hourly", "short term" → use "1h" 
+  - "scalping", "second", "minute", "very fast", "intraday" → use "1 minute"
+  - "5 min", "5 minute", "quick scalping" → use "5 minutes"
+  - "15 min", "15 minute", "short scalping" → use "15 minutes"
+  - "30 min", "30 minute", "half hour" → use "30 minutes"
+  - "day trading", "hourly", "1 hour", "short term" → use "1 hour"
+  - "4 hour", "4h", "medium intraday" → use "4 hours"
   - "swing trading", "daily", "medium term" → use "Daily"
   - "position trading", "weekly", "long term", "investment" → use "Weekly"
   - "buy and hold", "monthly", "very long term" → use "Monthly"
+
 - If no timeframe is explicitly mentioned, select based on strategy type:
-  - Momentum/breakout strategies → "1h"
-  - Mean reversion strategies → "Daily"
-  - Trend following strategies → "Daily"
-  - Value/fundamental strategies → "Weekly"
+  - High-frequency/scalping strategies → "1 minute" or "5 minutes"
+  - Momentum/breakout strategies → "15 minutes" or "1 hour"
+  - Mean reversion strategies → "1 hour" or "Daily"
+  - Trend following strategies → "Daily" or "4 hours"
+  - Value/fundamental strategies → "Weekly" or "Monthly"
+
 - Default to "Daily" only if strategy type cannot be determined
 
 Analyze the user's request and determine:
@@ -184,7 +193,7 @@ Return ONLY this JSON structure:
 {
   "name": "Descriptive strategy name based on user request",
   "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
-  "timeframe": "Selected timeframe based on user description or strategy type",
+  "timeframe": "Selected timeframe from available options based on user description or strategy type",
   "targetAsset": "${selectedAsset}",
   "entryRules": [
     {

@@ -383,13 +383,7 @@ const Backtest = () => {
 
             {/* Optimized Backtest History Section */}
             <Card className="shadow-sm border-zinc-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <h2 className="text-xl font-bold">Backtest History</h2>
-                </div>
-                
-                <BacktestHistoryTable backtestHistory={backtestHistory} isLoading={loadingHistory} error={historyError} hasMore={hasMore} onLoadMore={loadMoreHistory} onRefresh={refreshHistory} onViewDetails={handleViewDetails} onRowClick={handleBacktestRowClick} />
-              </CardContent>
+              
             </Card>
           </div>
         </Container>

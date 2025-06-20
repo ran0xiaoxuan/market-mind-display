@@ -9,12 +9,12 @@ import { BrowserRouter as Router } from 'react-router-dom'
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <AuthNavigationHandler>
           <App />
         </AuthNavigationHandler>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   </React.StrictMode>
 );

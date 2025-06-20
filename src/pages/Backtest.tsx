@@ -382,9 +382,7 @@ const Backtest = () => {
             </div>
 
             {/* Optimized Backtest History Section */}
-            <Card className="shadow-sm border-zinc-200">
-              
-            </Card>
+            
           </div>
         </Container>
       </main>

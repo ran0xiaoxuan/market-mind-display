@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -182,12 +181,44 @@ Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 ho
 
 - Default to "Daily" only if strategy type cannot be determined
 
-Analyze the user's request and determine:
-- What type of strategy they want (trend following, mean reversion, momentum, etc.)
-- Which indicators would be most appropriate for their request
-- Appropriate timeframe based on their description or strategy type
-- Appropriate risk management levels based on strategy aggressiveness and any user specifications
-- Reasonable entry/exit conditions based on their description
+STRATEGY LOGIC ANALYSIS:
+Analyze the user's description to determine:
+
+1. ENTRY LOGIC STRUCTURE:
+   - If user mentions "all conditions must be met", "and", "both", "together" → use "AND" logic
+   - If user mentions "any condition", "or", "either", "alternative" → use "OR" logic
+   - If user mentions complex combinations → create multiple rule groups as needed
+   - Default to "AND" for single-condition strategies, "OR" for multi-alternative strategies
+
+2. EXIT LOGIC STRUCTURE:
+   - If user mentions "stop loss OR take profit", "either condition" → use "OR" logic with requiredConditions: 1
+   - If user mentions "both conditions must be met" → use "AND" logic
+   - If user mentions multiple exit scenarios → use "OR" logic with appropriate requiredConditions
+   - Default to "OR" with requiredConditions: 1 for typical exit strategies
+
+3. INDICATOR PARAMETERS:
+   - Extract specific periods from user description (e.g., "14-day RSI", "20-period moving average")
+   - Use common defaults based on indicator type if not specified:
+     * RSI, Stochastic: 14
+     * Moving Averages: 20 for short-term, 50 for medium-term, 200 for long-term
+     * MACD: 12,26,9
+     * Bollinger Bands: 20,2
+   - Adjust parameters based on timeframe (shorter periods for shorter timeframes)
+
+4. CONDITIONS AND THRESHOLDS:
+   - For RSI: overbought (>70), oversold (<30), or custom levels from user
+   - For price vs MA: above/below based on trend direction in user description
+   - For momentum indicators: analyze if user wants bullish (>) or bearish (<) signals
+   - For volume: analyze if user wants high volume (>) or low volume (<) confirmation
+   - Use appropriate comparison operators based on the logical intent of the strategy
+
+5. REQUIRED CONDITIONS FOR OR GROUPS:
+   - If user wants "any one condition" → requiredConditions: 1
+   - If user wants "at least 2 out of 3" → requiredConditions: 2
+   - If user wants "majority" → requiredConditions: more than half
+   - Default to 1 for typical OR exit conditions
+
+Analyze the user's request and determine the most appropriate structure, parameters, and logic based on their specific description.
 
 Return ONLY this JSON structure:
 {
@@ -198,14 +229,14 @@ Return ONLY this JSON structure:
   "entryRules": [
     {
       "id": 1,
-      "logic": "AND",
+      "logic": "Determined based on user description (AND/OR)",
       "inequalities": [
         {
           "id": 1,
-          "left": {"type": "INDICATOR", "indicator": "ChosenIndicator", "parameters": {"period": "14"}, "value": "", "valueType": "number"},
-          "condition": "GREATER_THAN",
-          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "threshold", "valueType": "number"},
-          "explanation": "Clear explanation of this condition"
+          "left": {"type": "INDICATOR", "indicator": "IndicatorChosenBasedOnUserRequest", "parameters": {"period": "DeterminedFromUserDescriptionOrAppropriateDefault"}, "value": "", "valueType": "number"},
+          "condition": "DeterminedBasedOnLogicalIntent (GREATER_THAN/LESS_THAN/EQUALS/etc)",
+          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "ThresholdBasedOnUserDescriptionOrIndicatorDefaults", "valueType": "number"},
+          "explanation": "Clear explanation of this condition based on user's strategy intent"
         }
       ]
     }
@@ -213,28 +244,28 @@ Return ONLY this JSON structure:
   "exitRules": [
     {
       "id": 1,
-      "logic": "OR",
-      "requiredConditions": 1,
+      "logic": "DeterminedBasedOnUserDescription (typically OR for exits)",
+      "requiredConditions": "DeterminedBasedOnUserIntent (1 for typical exits, higher for complex requirements)",
       "inequalities": [
         {
           "id": 1,
-          "left": {"type": "INDICATOR", "indicator": "ChosenIndicator", "parameters": {"period": "14"}, "value": "", "valueType": "number"},
-          "condition": "LESS_THAN",
-          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "threshold", "valueType": "number"},
-          "explanation": "Clear explanation of this exit condition"
+          "left": {"type": "INDICATOR", "indicator": "IndicatorChosenBasedOnUserRequest", "parameters": {"period": "DeterminedFromUserDescriptionOrAppropriateDefault"}, "value": "", "valueType": "number"},
+          "condition": "DeterminedBasedOnLogicalIntent (opposite of entry or specific exit condition)",
+          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "ThresholdBasedOnUserDescriptionOrIndicatorDefaults", "valueType": "number"},
+          "explanation": "Clear explanation of this exit condition based on user's strategy intent"
         }
       ]
     }
   ],
   "riskManagement": {
-    "stopLoss": "percentage (must be less than takeProfit)",
-    "takeProfit": "percentage (must be greater than stopLoss)",
-    "singleBuyVolume": "dollar amount (must be less than maxBuyVolume)",
-    "maxBuyVolume": "dollar amount (must be greater than singleBuyVolume)"
+    "stopLoss": "percentage (must be less than takeProfit, based on user description or strategy type)",
+    "takeProfit": "percentage (must be greater than stopLoss, based on user description or strategy type)",
+    "singleBuyVolume": "dollar amount (must be less than maxBuyVolume, based on user description or reasonable defaults)",
+    "maxBuyVolume": "dollar amount (must be greater than singleBuyVolume, based on user description or reasonable defaults)"
   }
 }
 
-Choose indicators, timeframe, and parameters that make sense for the user's specific request. Set risk management values that align with the strategy type and any user requirements, ensuring stopLoss < takeProfit and singleBuyVolume < maxBuyVolume.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures, parameters, conditions, and thresholds rather than following a rigid template.`;
 
     console.log('Calling OpenAI API...');
     

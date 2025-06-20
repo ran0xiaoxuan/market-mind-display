@@ -159,8 +159,22 @@ IMPORTANT RULES:
 6. If no specific risk management is mentioned, set values that suit the strategy type and asset volatility
 7. Make the strategy name and description specific to the user's request
 
+TIMEFRAME SELECTION - VERY IMPORTANT:
+8. Choose the appropriate timeframe based on the user's description:
+   - If user mentions "scalping", "quick trades", "minutes", "intraday" → use "1min", "5min", or "15min"
+   - If user mentions "day trading", "daily", "short-term" → use "1h" or "4h"
+   - If user mentions "swing trading", "medium-term", "weekly" → use "Daily"
+   - If user mentions "position trading", "long-term", "monthly", "buy and hold" → use "Weekly"
+   - If no timeframe is specified, choose based on strategy type:
+     * Mean reversion strategies → "1h" or "4h"
+     * Trend following strategies → "Daily"
+     * Momentum strategies → "4h" or "Daily"
+     * Breakout strategies → "1h" or "4h"
+   - Available timeframes: "1min", "5min", "15min", "30min", "1h", "4h", "Daily", "Weekly"
+
 Analyze the user's request and determine:
 - What type of strategy they want (trend following, mean reversion, momentum, etc.)
+- Which timeframe is most appropriate for their request and trading style
 - Which indicators would be most appropriate for their request
 - Appropriate risk management levels based on strategy aggressiveness and any user specifications
 - Reasonable entry/exit conditions based on their description
@@ -169,7 +183,7 @@ Return ONLY this JSON structure:
 {
   "name": "Descriptive strategy name based on user request",
   "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
-  "timeframe": "Daily",
+  "timeframe": "Selected timeframe based on user description or strategy type",
   "targetAsset": "${selectedAsset}",
   "entryRules": [
     {
@@ -210,7 +224,7 @@ Return ONLY this JSON structure:
   }
 }
 
-Choose indicators and parameters that make sense for the user's specific request. Set risk management values that align with the strategy type and any user requirements, ensuring stopLoss < takeProfit and singleBuyVolume < maxBuyVolume.`;
+Choose indicators, timeframe, and parameters that make sense for the user's specific request. Set risk management values that align with the strategy type and any user requirements, ensuring stopLoss < takeProfit and singleBuyVolume < maxBuyVolume.`;
 
     console.log('Calling OpenAI API...');
     
@@ -223,7 +237,7 @@ Choose indicators and parameters that make sense for the user's specific request
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies. Return only valid JSON that matches the specified structure exactly.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with suitable timeframes. Return only valid JSON that matches the specified structure exactly.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

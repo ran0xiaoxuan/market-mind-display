@@ -1,7 +1,7 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
@@ -66,8 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
@@ -83,29 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Security: Log authentication events
       if (event === 'SIGNED_IN' && currentSession) {        
-        console.log('User signed in successfully, current path:', location.pathname);
+        console.log('User signed in successfully');
         
-        // Only redirect to dashboard if user is on auth pages or auth callback
-        const authPages = ['/login', '/signup', '/forgot-password', '/auth/confirm', '/auth/callback'];
-        if (authPages.includes(location.pathname)) {
-          const redirectDelay = 500;
-          
-          setTimeout(() => {
-            if (mounted) {
-              console.log('Redirecting to dashboard from auth page after successful sign in');
-              navigate('/dashboard', { replace: true });
-              toast({
-                title: "Logged in successfully",
-                description: "Welcome back!"
-              });
-            }
-          }, redirectDelay);
-        } else {
-          toast({
-            title: "Logged in successfully",
-            description: "Welcome back!"
-          });
-        }
+        toast({
+          title: "Logged in successfully",
+          description: "Welcome back!"
+        });
       }
       
       if (event === 'SIGNED_OUT') {
@@ -133,13 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
-        
-        // Only redirect if user is on auth pages and has a session and not currently signing out
-        const authPages = ['/login', '/signup', '/forgot-password'];
-        if (currentSession && authPages.includes(location.pathname) && !isSigningOut) {
-          console.log('User already logged in, redirecting from auth page to dashboard');
-          navigate('/dashboard', { replace: true });
-        }
       }
     });
 
@@ -147,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate, location.pathname, isSigningOut]);
+  }, [isSigningOut]);
 
   const getErrorMessage = (error: any): string => {
     if (!error?.message) return "An unexpected error occurred. Please try again.";
@@ -302,15 +276,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setUser(null);
       
-      // Navigate to login page
-      navigate('/login');
+      // Use window.location for navigation since we can't use useNavigate here
+      window.location.href = '/login';
     } catch (error) {
       console.error("Error signing out:", error);
       // Clear local state and navigate even if there's an exception
       setSession(null);
       setUser(null);
       setIsSigningOut(false);
-      navigate('/login');
+      window.location.href = '/login';
       throw error;
     }
   };

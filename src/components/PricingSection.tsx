@@ -5,13 +5,16 @@ import { Container } from "@/components/ui/container";
 import { Badge } from "@/components/Badge";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+
 interface PricingSectionProps {
   isPage?: boolean;
 }
+
 export const PricingSection = ({
   isPage = false
 }: PricingSectionProps) => {
   const [isAnnual, setIsAnnual] = useState(true);
+  
   const pricingPlans = [{
     name: "Free",
     monthlyPrice: "$0",
@@ -28,11 +31,12 @@ export const PricingSection = ({
     annualPrice: "$480",
     priceDescription: isAnnual ? "/year" : "/month",
     description: "For professional traders and businesses.",
-    features: ["Everything in the free plan", "Live trading via API", "Priority Customer Service"],
+    features: ["Everything in the free plan", "Live trading signals to Email/Discord/Telegram", "Priority Customer Service"],
     buttonText: "Get Started",
     buttonLink: "/signup",
     isFeatured: true
   }];
+
   const TitleTag = isPage ? "h1" : "h2";
   const annualSavings = 50 * 12 - 480; // $600 - $480 = $120 savings
 

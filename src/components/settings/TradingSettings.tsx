@@ -73,6 +73,29 @@ export function TradingSettings() {
     }
   };
 
+  const verifyDiscordWebhookHandler = async () => {
+    const webhookUrl = form.getValues("discord_webhook_url");
+    if (!webhookUrl) {
+      toast.error("Please enter a Discord webhook URL");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const result = await verifyDiscordWebhook(webhookUrl);
+      if (result.verified) {
+        setIsDiscordVerified(true);
+        toast.success("Discord webhook verified successfully");
+      } else {
+        toast.error("Discord webhook verification failed");
+      }
+    } catch (error) {
+      console.error('Discord verification error:', error);
+      toast.error("Failed to verify Discord webhook");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const verifyTelegramBotHandler = async () => {
     const botToken = form.getValues("telegram_bot_token");
     const chatId = form.getValues("telegram_chat_id");
@@ -116,6 +139,32 @@ export function TradingSettings() {
       toast.success("Copied to clipboard!");
     } catch (error) {
       toast.error("Failed to copy to clipboard");
+    }
+  };
+
+  // Helper function to mask sensitive values
+  const maskSensitiveValue = (value: string, type: 'webhook' | 'token' | 'chatId') => {
+    if (!value) return '';
+    
+    switch (type) {
+      case 'webhook':
+        // Show only the domain part and mask the sensitive webhook ID/token
+        const webhookMatch = value.match(/https:\/\/discord\.com\/api\/webhooks\/(\d+)\/([\w-]+)/);
+        if (webhookMatch) {
+          return `https://discord.com/api/webhooks/${webhookMatch[1]}/****`;
+        }
+        return '****';
+      case 'token':
+        // Show only first few characters and mask the rest
+        return value.substring(0, 12) + '****';
+      case 'chatId':
+        // Show the chat ID as it's less sensitive but still mask partially
+        if (value.length > 6) {
+          return value.substring(0, 3) + '****' + value.substring(value.length - 3);
+        }
+        return '****';
+      default:
+        return '****';
     }
   };
 
@@ -462,8 +511,16 @@ export function TradingSettings() {
                       <FormLabel>Discord Webhook URL</FormLabel>
                       <div className="flex space-x-2">
                         <FormControl className="flex-1">
-                          <Input placeholder="https://discord.com/api/webhooks/..." {...field} disabled={isDiscordVerified} />
+                          <Input 
+                            placeholder="https://discord.com/api/webhooks/..." 
+                            {...field} 
+                            value={isDiscordVerified ? maskSensitiveValue(field.value, 'webhook') : field.value}
+                            disabled={isDiscordVerified} 
+                          />
                         </FormControl>
+                        {!isDiscordVerified && <Button type="button" variant="outline" onClick={verifyDiscordWebhookHandler} disabled={isLoading || !field.value}>
+                            <Send className="h-4 w-4" />
+                          </Button>}
                         {isDiscordVerified && <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectDiscord}>
                             <Trash2 className="h-4 w-4" />
                           </Button>}
@@ -471,11 +528,11 @@ export function TradingSettings() {
                       <div className="flex items-center mt-1">
                         {isDiscordVerified && <div className="flex items-center text-sm text-green-600">
                             <Check className="mr-1 h-4 w-4" />
-                            Webhook verified
+                            Webhook verified and secured
                           </div>}
                       </div>
                       <FormDescription>
-                        Paste your Discord webhook URL here to receive trading signals
+                        {isDiscordVerified ? "Your Discord webhook is connected and secured" : "Paste your Discord webhook URL here to receive trading signals"}
                       </FormDescription>
                     </FormItem>} />
               </div>}
@@ -509,10 +566,15 @@ export function TradingSettings() {
               }) => <FormItem>
                         <FormLabel>Telegram Bot Token</FormLabel>
                         <FormControl>
-                          <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} disabled={isTelegramVerified} />
+                          <Input 
+                            placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" 
+                            {...field} 
+                            value={isTelegramVerified ? maskSensitiveValue(field.value, 'token') : field.value}
+                            disabled={isTelegramVerified} 
+                          />
                         </FormControl>
                         <FormDescription>
-                          Get this from @BotFather when creating your bot
+                          {isTelegramVerified ? "Your bot token is secured" : "Get this from @BotFather when creating your bot"}
                         </FormDescription>
                       </FormItem>} />
                   
@@ -522,8 +584,16 @@ export function TradingSettings() {
                         <FormLabel>Telegram Chat ID</FormLabel>
                         <div className="flex space-x-2">
                           <FormControl className="flex-1">
-                            <Input placeholder="-100123456789 or 123456789" {...field} disabled={isTelegramVerified} />
+                            <Input 
+                              placeholder="-100123456789 or 123456789" 
+                              {...field} 
+                              value={isTelegramVerified ? maskSensitiveValue(field.value, 'chatId') : field.value}
+                              disabled={isTelegramVerified} 
+                            />
                           </FormControl>
+                          {!isTelegramVerified && <Button type="button" variant="outline" onClick={verifyTelegramBotHandler} disabled={isLoading || !form.getValues("telegram_bot_token") || !field.value}>
+                              <Send className="h-4 w-4" />
+                            </Button>}
                           {isTelegramVerified && <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={disconnectTelegram}>
                               <Trash2 className="h-4 w-4" />
                             </Button>}
@@ -531,11 +601,11 @@ export function TradingSettings() {
                         <div className="flex items-center mt-1">
                           {isTelegramVerified && <div className="flex items-center text-sm text-green-600">
                               <Check className="mr-1 h-4 w-4" />
-                              Bot verified
+                              Bot verified and secured
                             </div>}
                         </div>
                         <FormDescription>
-                          The chat or group where signals will be sent
+                          {isTelegramVerified ? "Your Telegram bot is connected and secured" : "The chat or group where signals will be sent"}
                         </FormDescription>
                       </FormItem>} />
                 </div>

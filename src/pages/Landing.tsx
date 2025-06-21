@@ -190,7 +190,7 @@ const Landing = () => {
               }} className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500 my-0 py-[10px]">Build, Optimize and Monitor</span>
                 <span style={{
                 animationDelay: '400ms'
-              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">Excellent Trading Strategies with AI</span>
+              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">Excellent Trading Strategies with AI.</span>
               </h1>
               
               {/* Enhanced Description */}

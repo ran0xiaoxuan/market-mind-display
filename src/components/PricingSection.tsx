@@ -1,3 +1,4 @@
+
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +32,7 @@ export const PricingSection = ({
     annualPrice: "$480",
     priceDescription: isAnnual ? "/year" : "/month",
     description: "For professional traders and businesses.",
-    features: ["Everything in the free plan", "Live trading signals to Email/Discord/Telegram", "Priority Customer Service"],
+    features: ["Everything in the free plan", "Live signals to Email/Discord/Telegram", "Priority Customer Service"],
     buttonText: "Get Started",
     buttonLink: "/signup",
     isFeatured: true

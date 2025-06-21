@@ -226,23 +226,7 @@ const Landing = () => {
             </div>
 
             {/* Enhanced Stats with Bright Colors */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-16">
-              {stats.map((stat, index) => <div key={index} className="text-center group cursor-pointer animate-fade-in hover:scale-110 transition-all duration-500 hover:bg-white/60 rounded-lg p-4 hover:shadow-lg" style={{
-              animationDelay: `${1200 + index * 150}ms`
-            }}>
-                  <div className="flex items-center justify-center mb-3">
-                    <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 group-hover:from-blue-200 group-hover:to-cyan-200 transition-all duration-300 group-hover:rotate-12">
-                      <stat.icon className={`h-6 w-6 ${stat.color} group-hover:scale-125 transition-transform duration-300`} />
-                    </div>
-                  </div>
-                  <div className={`text-3xl md:text-4xl font-bold ${stat.color} group-hover:animate-pulse`}>
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors duration-300">
-                    {stat.label}
-                  </div>
-                </div>)}
-            </div>
+            
 
             {/* Enhanced Floating Action Hint */}
             <div className="pt-8 animate-fade-in" style={{

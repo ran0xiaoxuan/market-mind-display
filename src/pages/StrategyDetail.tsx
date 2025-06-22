@@ -56,6 +56,11 @@ const StrategyDetail = () => {
     try {
       console.log("Fetching strategy details for ID:", id);
       
+      // Clear existing data first to avoid showing stale data
+      setStrategy(null);
+      setEntryRules([]);
+      setExitRules([]);
+      
       // Fetch strategy details using the service function
       const strategyData = await getStrategyById(id);
       
@@ -187,6 +192,23 @@ const StrategyDetail = () => {
   
   useEffect(() => {
     fetchStrategyDetails();
+  }, [id]);
+
+  // Add effect to refresh data when returning from edit page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible, refresh data to ensure we have latest changes
+        console.log("Page became visible, refreshing strategy data");
+        fetchStrategyDetails();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [id]);
   
   const handleStatusChange = async (checked: boolean) => {

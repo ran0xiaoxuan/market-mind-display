@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
@@ -251,8 +252,15 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
 
   const conditionSymbol = getConditionSymbol(inequality.condition);
   
+  // Create a unique key based on the inequality data to force re-render when data changes
+  const inequalityKey = JSON.stringify({
+    left: inequality.left,
+    right: inequality.right,
+    condition: inequality.condition
+  });
+  
   return (
-    <div className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
+    <div key={inequalityKey} className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
       <div className="flex flex-col gap-2">
         <div className="flex justify-end items-center">
           {editable && (

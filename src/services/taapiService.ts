@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { IndicatorParameters } from "@/types/backtest";
 
@@ -274,7 +273,7 @@ export const mapParametersToTaapi = (
       break;
       
     case "vwap":
-      // No parameters for VWAP
+      if (parameters.source) params.source = parameters.source;
       break;
       
     case "supertrend":

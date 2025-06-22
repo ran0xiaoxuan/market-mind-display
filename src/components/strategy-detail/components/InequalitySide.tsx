@@ -1,4 +1,3 @@
-
 import React from "react";
 import { InequalitySide as InequalitySideType } from "../types";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -203,7 +202,15 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
         );
         
       case 'vwap':
-        return null; // No parameters for VWAP
+        return (
+          <div className="grid grid-cols-1 gap-2">
+            <IndicatorParameter 
+              name="source" 
+              value={sideObj.parameters?.source || 'close'} 
+              onChange={value => updateParameters(side, 'source', value)} 
+            />
+          </div>
+        );
         
       case 'supertrend':
         return (

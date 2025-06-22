@@ -1,5 +1,6 @@
 
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect } from "react";
 
 interface IndicatorValueSelectorProps {
   indicator: string;
@@ -43,7 +44,44 @@ export const IndicatorValueSelector = ({
     }
   };
 
+  const getDefaultValue = (indicatorName: string): string => {
+    const normalizedIndicator = indicatorName.toLowerCase().replace(/\s+/g, '');
+    
+    switch (normalizedIndicator) {
+      case 'macd':
+        return 'MACD Value'; // Most commonly used MACD line
+      
+      case 'stochastic':
+      case 'stochrsi':
+        return 'K Value'; // K line is more commonly used than D line
+      
+      case 'bollingerbands':
+        return 'Middle Band'; // SMA/EMA line is most commonly used
+      
+      case 'ichimokucloud':
+        return 'Conversion Line'; // Most commonly used Ichimoku line
+      
+      case 'keltnerchannel':
+      case 'donchianchannel':
+        return 'Middle Band'; // Middle line is most commonly used
+      
+      case 'heikinashi':
+        return 'Close'; // Close price is most commonly used
+      
+      default:
+        return 'Value';
+    }
+  };
+
   const valueOptions = getValueOptions(indicator);
+  
+  // Set default value when indicator changes and no value is selected
+  useEffect(() => {
+    if (indicator && (!selectedValue || selectedValue === 'Value') && valueOptions.length > 1) {
+      const defaultValue = getDefaultValue(indicator);
+      onValueChange(defaultValue);
+    }
+  }, [indicator, selectedValue, onValueChange]);
   
   // If there's only one option, don't show the selector
   if (valueOptions.length === 1) {

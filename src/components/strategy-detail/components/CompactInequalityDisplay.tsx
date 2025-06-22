@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
@@ -30,16 +29,14 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
     if (side.type === "INDICATOR") {
       // Display indicator with key parameters if available
       if (side.indicator) {
-        let displayText = side.indicator;
-        
-        // Show valueType if available (e.g., MACD Line, Signal, etc)
-        if (side.valueType && side.valueType !== "Value") {
-          displayText += ` (${side.valueType})`;
-        }
-
         return (
           <div className="flex flex-col">
-            <span className="font-medium">{displayText}</span>
+            <div className="flex flex-col items-center">
+              <span className="font-medium text-center">{side.indicator}</span>
+              {side.valueType && side.valueType !== "Value" && (
+                <span className="text-xs text-muted-foreground">({side.valueType})</span>
+              )}
+            </div>
             {renderIndicatorParameters(side)}
           </div>
         );
@@ -196,7 +193,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
     if (params.length === 0) return null;
     
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
+      <div className="flex flex-wrap gap-1 mt-1 justify-center">
         {params.map((param, index) => (
           <Badge key={index} variant="outline" className="text-xs bg-gray-50">
             {param}

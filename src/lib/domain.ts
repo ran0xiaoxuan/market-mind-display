@@ -17,8 +17,8 @@ export const getDomainConfig = () => {
     isAppDomain,
     isLandingDomain,
     hostname,
-    appDomain: process.env.VITE_APP_DOMAIN || 'app.strataige.cc',
-    landingDomain: process.env.VITE_LANDING_DOMAIN || 'www.strataige.cc'
+    appDomain: import.meta.env.VITE_APP_DOMAIN || 'app.strataige.cc',
+    landingDomain: import.meta.env.VITE_LANDING_DOMAIN || 'www.strataige.cc'
   };
 };
 

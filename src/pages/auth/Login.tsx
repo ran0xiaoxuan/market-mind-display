@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { AuthLayout } from "@/components/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { AlertCircle, CheckCircle, Loader2, EyeOff, Eye } from "lucide-react";
+import { Turnstile } from "@/components/Turnstile";
 
 const Login = () => {
   usePageTitle("Log In - StratAIge");

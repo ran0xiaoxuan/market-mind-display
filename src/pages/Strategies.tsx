@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Container } from "@/components/ui/container";
@@ -6,10 +7,25 @@ import { StrategyList } from "@/components/StrategyList";
 import { FilterBar } from "@/components/FilterBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+interface Strategy {
+  id: string;
+  name: string;
+  asset: string;
+  status: string;
+  returns: string;
+  risk: string;
+}
+
+interface Filters {
+  status: string;
+  asset: string;
+  sort: string;
+}
+
 const Strategies = () => {
   usePageTitle("Strategies - StratAIge");
   
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<Filters>({
     status: "all",
     asset: "all",
     sort: "newest",
@@ -17,11 +33,11 @@ const Strategies = () => {
 
   const { data: strategies, isLoading, isError } = useQuery({
     queryKey: ["strategies", filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<Strategy[]> => {
       // Simulate fetching strategies from an API
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const mockStrategies = [
+      const mockStrategies: Strategy[] = [
         {
           id: "1",
           name: "Momentum Master",
@@ -72,7 +88,7 @@ const Strategies = () => {
     },
   });
 
-  const handleFilterChange = (newFilters: any) => {
+  const handleFilterChange = (newFilters: Filters) => {
     setFilters(newFilters);
   };
 

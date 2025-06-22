@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -5,30 +6,51 @@ import { Navbar } from "@/components/Navbar";
 import { PerformanceMetricsGrid } from "@/components/PerformanceMetricsGrid";
 import { RecentActivities } from "@/components/RecentActivities";
 import { StrategyCard } from "@/components/StrategyCard";
-import { TrendingUp, DollarSign, Target, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, Target } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+
+interface DashboardData {
+  totalStrategies: number;
+  totalProfit: number;
+  averageReturn: number;
+  recentActivities: Array<{
+    id: number;
+    description: string;
+    time: string;
+  }>;
+  popularStrategies: Array<{
+    id: string;
+    name: string;
+    description: string;
+    roi: number;
+    risk: string;
+  }>;
+}
 
 const Dashboard = () => {
   usePageTitle("Dashboard - StratAIge");
   
-  const { data: dashboardData, isLoading, isError } = useQuery('dashboardData', async () => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const { data: dashboardData, isLoading, isError } = useQuery({
+    queryKey: ['dashboardData'],
+    queryFn: async (): Promise<DashboardData> => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    return {
-      totalStrategies: 15,
-      totalProfit: 5240.50,
-      averageReturn: 7.2,
-      recentActivities: [
-        { id: 1, description: 'Strategy "Momentum Master" executed a trade on AAPL', time: '2 minutes ago' },
-        { id: 2, description: 'Strategy "Trend Tracker" rebalanced portfolio', time: '15 minutes ago' },
-        { id: 3, description: 'New strategy "Daily Divergence" created', time: '30 minutes ago' },
-      ],
-      popularStrategies: [
-        { id: 'momentum-master', name: 'Momentum Master', description: 'Captures short-term momentum in growth stocks', roi: 12.5, risk: 'Medium' },
-        { id: 'trend-tracker', name: 'Trend Tracker', description: 'Follows long-term trends in major indices', roi: 9.8, risk: 'Low' },
-      ],
-    };
+      return {
+        totalStrategies: 15,
+        totalProfit: 5240.50,
+        averageReturn: 7.2,
+        recentActivities: [
+          { id: 1, description: 'Strategy "Momentum Master" executed a trade on AAPL', time: '2 minutes ago' },
+          { id: 2, description: 'Strategy "Trend Tracker" rebalanced portfolio', time: '15 minutes ago' },
+          { id: 3, description: 'New strategy "Daily Divergence" created', time: '30 minutes ago' },
+        ],
+        popularStrategies: [
+          { id: 'momentum-master', name: 'Momentum Master', description: 'Captures short-term momentum in growth stocks', roi: 12.5, risk: 'Medium' },
+          { id: 'trend-tracker', name: 'Trend Tracker', description: 'Follows long-term trends in major indices', roi: 9.8, risk: 'Low' },
+        ],
+      };
+    },
   });
 
   if (isLoading) {

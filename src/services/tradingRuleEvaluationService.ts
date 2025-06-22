@@ -1,6 +1,5 @@
-
 import { RuleGroupData } from "@/components/strategy-detail/types";
-import { getTaapiIndicator } from "./taapiService";
+import { getTaapiIndicator, getIndicatorValue } from "./taapiService";
 
 export interface RuleEvaluation {
   signalGenerated: boolean;
@@ -137,31 +136,12 @@ const evaluateInequality = async (inequality: any, asset: string, currentPrice: 
   }
 };
 
-const getValueFromSide = async (side: any, asset: string, currentPrice: number): Promise<number | null> => {
-  try {
-    switch (side.type) {
-      case 'INDICATOR':
-        if (!side.indicator) return null;
-        return await getIndicatorValue(side.indicator, asset, side.parameters || {});
-      
-      case 'PRICE':
-        return currentPrice;
-      
-      case 'VALUE':
-        const value = parseFloat(side.value);
-        return isNaN(value) ? null : value;
-      
-      default:
-        console.error('Unknown side type:', side.type);
-        return null;
-    }
-  } catch (error) {
-    console.error('Error getting value from side:', error);
-    return null;
-  }
-};
-
-const getIndicatorValue = async (indicator: string, asset: string, parameters: any): Promise<number | null> => {
+const getIndicatorValueWithType = async (
+  indicator: string, 
+  asset: string, 
+  parameters: any,
+  valueType?: string
+): Promise<number | null> => {
   try {
     // Map indicator names to TAAPI indicator codes
     const indicatorMap: { [key: string]: string } = {
@@ -170,9 +150,34 @@ const getIndicatorValue = async (indicator: string, asset: string, parameters: a
       'Moving Average': 'sma',
       'SMA': 'sma',
       'EMA': 'ema',
+      'WMA': 'wma',
+      'TRIMA': 'trima',
+      'KAMA': 'kama',
       'Bollinger Bands': 'bbands',
       'Stochastic': 'stoch',
-      'Volume': 'volume'
+      'StochRSI': 'stochrsi',
+      'Ultimate Oscillator': 'ultosc',
+      'Awesome Oscillator': 'ao',
+      'MFI': 'mfi',
+      'ADX': 'adx',
+      'DMI': 'dmi',
+      'Ichimoku Cloud': 'ichimoku',
+      'PSAR': 'psar',
+      'VWAP': 'vwap',
+      'Supertrend': 'supertrend',
+      'TTM Squeeze': 'ttmsqueeze',
+      'ATR': 'atr',
+      'Keltner Channel': 'keltnerchannels',
+      'Donchian Channel': 'donchian',
+      'Chandelier Exit': 'chandelier',
+      'Volume': 'volume',
+      'Chaikin Money Flow': 'cmf',
+      'Volume Oscillator': 'volumeoscillator',
+      'Heikin Ashi': 'heikinashi',
+      'CCI': 'cci',
+      'Williams %R': 'willr',
+      'Momentum': 'mom',
+      'CMO': 'cmo'
     };
 
     const taapiIndicator = indicatorMap[indicator];
@@ -189,34 +194,39 @@ const getIndicatorValue = async (indicator: string, asset: string, parameters: a
       return null;
     }
 
-    // Handle different indicator return types based on the TAAPI response structure
-    if (typeof indicatorData.value === 'number') {
-      return indicatorData.value;
-    } 
-    
-    // Handle MACD indicator which has multiple values
-    if (taapiIndicator === 'macd') {
-      return indicatorData.valueMACD || indicatorData.valueHistogram || null;
-    } 
-    
-    // Handle Bollinger Bands which has multiple bands
-    if (taapiIndicator === 'bbands') {
-      return indicatorData.valueMiddleBand || null;
-    } 
-    
-    // Handle Stochastic which has K and D lines
-    if (taapiIndicator === 'stoch') {
-      return indicatorData.valueK || null;
-    }
-
-    // If it's an array, take the first value
-    if (Array.isArray(indicatorData.value) && indicatorData.value.length > 0) {
-      return indicatorData.value[0];
-    }
-
-    return null;
+    // Use the updated getIndicatorValue function that handles value types
+    return getIndicatorValue(indicator, indicatorData, valueType);
   } catch (error) {
     console.error('Error getting indicator value:', error);
+    return null;
+  }
+};
+
+const getValueFromSide = async (side: any, asset: string, currentPrice: number): Promise<number | null> => {
+  try {
+    switch (side.type) {
+      case 'INDICATOR':
+        if (!side.indicator) return null;
+        return await getIndicatorValueWithType(
+          side.indicator, 
+          asset, 
+          side.parameters || {}, 
+          side.valueType
+        );
+      
+      case 'PRICE':
+        return currentPrice;
+      
+      case 'VALUE':
+        const value = parseFloat(side.value);
+        return isNaN(value) ? null : value;
+      
+      default:
+        console.error('Unknown side type:', side.type);
+        return null;
+    }
+  } catch (error) {
+    console.error('Error getting value from side:', error);
     return null;
   }
 };

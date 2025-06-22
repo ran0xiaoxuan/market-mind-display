@@ -17,11 +17,8 @@ export const AvailableIndicators = ({
       "SMA", 
       "EMA", 
       "WMA", 
-      "DEMA", 
-      "TEMA", 
       "TRIMA", 
-      "KAMA", 
-      "VWMA"
+      "KAMA"
     ],
     "Oscillators": [
       "RSI", 
@@ -34,8 +31,7 @@ export const AvailableIndicators = ({
       "Awesome Oscillator", 
       "Momentum", 
       "CMO", 
-      "MFI", 
-      "OBV"
+      "MFI"
     ],
     "Trend Indicators": [
       "ADX", 
@@ -56,17 +52,10 @@ export const AvailableIndicators = ({
     "Volume Indicators": [
       "Volume", 
       "Chaikin Money Flow", 
-      "On Balance Volume", 
-      "Volume Oscillator", 
-      "Volume Weighted Moving Average"
+      "Volume Oscillator"
     ],
     "Price Patterns": [
-      "Heikin Ashi", 
-      "Engulfing", 
-      "Hammer", 
-      "Doji", 
-      "Morning Star", 
-      "Evening Star"
+      "Heikin Ashi"
     ]
   };
 

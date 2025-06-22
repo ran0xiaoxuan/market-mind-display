@@ -9,6 +9,10 @@ export type IndicatorParameters = {
   // Moving Averages
   optInTimePeriod?: string;
   
+  // KAMA parameters
+  fastEmaLength?: string;
+  slowEmaLength?: string;
+  
   // MACD parameters
   fast?: string;
   slow?: string;
@@ -35,12 +39,36 @@ export type IndicatorParameters = {
   kPeriod?: string;
   dPeriod?: string;
   slowing?: string;
+  stochasticLength?: string; // For StochRSI
   
   // Ichimoku parameters
   conversionPeriod?: string;
   basePeriod?: string;
   laggingSpan?: string;
   displacement?: string;
+  
+  // Ultimate Oscillator parameters
+  fastLineLength?: string;
+  middleLineLength?: string;
+  slowLineLength?: string;
+  
+  // ADX/DMI parameters
+  adxSmoothing?: string;
+  diLength?: string;
+  
+  // PSAR parameters
+  start?: string;
+  increment?: string;
+  maximum?: string;
+  
+  // Volume Oscillator parameters
+  shortLength?: string;
+  longLength?: string;
+  
+  // Heikin Ashi parameters
+  emaSource?: string;
+  fastLength?: string;
+  slowLength?: string;
   
   // Generic parameters
   length?: string;
@@ -54,11 +82,6 @@ export type IndicatorParameters = {
   channelPeriod?: string;
   upperDeviation?: string;
   lowerDeviation?: string;
-  
-  // Awesome Oscillator parameters
-  fastLength?: string;
-  slowLength?: string;
-  signalLength?: string;
   
   // RSI/Momentum parameters
   rsiPeriod?: string;
@@ -79,27 +102,27 @@ export type IndicatorParameters = {
 };
 
 export type InequalitySide = {
-  type: "INDICATOR" | "VALUE" | string;
+  type: "INDICATOR" | "VALUE" | "PRICE" | string;
   indicator?: string;
   parameters?: IndicatorParameters;
   value?: string;
-  valueType?: string; // Added for specific components of indicators (MACD Line, Signal, Lower Band, etc.)
+  valueType?: string; // For specific components of indicators (MACD Line, Signal, Lower Band, etc.)
 };
 
 export type Inequality = {
-  id: string | number; // Accept both string and number types
+  id: string | number;
   left: InequalitySide;
   condition: string;
   right: InequalitySide;
-  explanation?: string; // Added to store AI's explanation for each rule
+  explanation?: string;
 };
 
 export type RuleGroupData = {
-  id: string | number; // Accept both string and number types
+  id: string | number;
   logic: string;
   inequalities: Inequality[];
-  requiredConditions?: number; // Number of conditions that must be met for OR groups
-  explanation?: string; // Add explanation property to match the database structure
+  requiredConditions?: number;
+  explanation?: string;
 };
 
 // New type definitions for the DB schema

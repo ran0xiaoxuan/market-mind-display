@@ -215,15 +215,14 @@ export const mapParametersToTaapi = (
     case "sma":
     case "ema":
     case "wma":
-    case "dema":
-    case "tema":
     case "trima":
-    case "kama":
-    case "t3":
-    case "hma":
-    case "wilders":
-    case "zlema":
       params.period = parseInt(parameters.period || parameters.optInTimePeriod || "14");
+      break;
+      
+    case "kama":
+      params.period = parseInt(parameters.period || "14");
+      params.fastEmaLength = parseInt(parameters.fastEmaLength || "2");
+      params.slowEmaLength = parseInt(parameters.slowEmaLength || "30");
       break;
       
     case "bbands": // Bollinger Bands
@@ -247,30 +246,45 @@ export const mapParametersToTaapi = (
       break;
       
     case "stochrsi": // Stochastic RSI
-      params.rsiPeriod = parseInt(parameters.period || parameters.rsiPeriod || "14");
+      params.rsiPeriod = parseInt(parameters.rsiPeriod || "14");
+      params.stochasticLength = parseInt(parameters.stochasticLength || "14");
       params.kPeriod = parseInt(parameters.k || parameters.kPeriod || parameters.fastK || "14");
       params.dPeriod = parseInt(parameters.d || parameters.dPeriod || parameters.fastD || "3");
       break;
       
-    case "ichimoku":
-      params.conversionPeriod = parseInt(parameters.conversionPeriod || "9");
-      params.basePeriod = parseInt(parameters.basePeriod || "26");
-      params.laggingSpanPeriod = parseInt(parameters.laggingSpan || "52");
-      params.displacement = parseInt(parameters.displacement || "26");
+    case "ultosc": // Ultimate Oscillator
+      params.fastPeriod = parseInt(parameters.fastLineLength || "7");
+      params.slowPeriod = parseInt(parameters.middleLineLength || "14");
+      params.signalPeriod = parseInt(parameters.slowLineLength || "28");
+      break;
+      
+    case "adx":
+    case "dmi":
+      params.period = parseInt(parameters.adxSmoothing || "14");
+      params.diLength = parseInt(parameters.diLength || "14");
+      break;
+      
+    case "psar":
+      params.start = parseFloat(parameters.start || "0.02");
+      params.increment = parseFloat(parameters.increment || "0.02");
+      params.maximum = parseFloat(parameters.maximum || "0.2");
+      break;
+      
+    case "vwap":
+      // No parameters for VWAP
+      break;
+      
+    case "supertrend":
+      params.period = parseInt(parameters.atrPeriod || "10");
+      params.multiplier = parseFloat(parameters.multiplier || "3");
+      break;
+      
+    case "ttmsqueeze":
+      params.period = parseInt(parameters.period || "20");
       break;
       
     case "atr":
       params.period = parseInt(parameters.period || parameters.atrPeriod || "14");
-      break;
-      
-    case "supertrend":
-      params.period = parseInt(parameters.period || parameters.atrPeriod || "10");
-      params.multiplier = parseFloat(parameters.multiplier || "3");
-      break;
-      
-    case "chandelier":
-      params.period = parseInt(parameters.period || parameters.atrPeriod || "22");
-      params.multiplier = parseFloat(parameters.multiplier || "3");
       break;
       
     case "keltnerchannels":
@@ -283,55 +297,52 @@ export const mapParametersToTaapi = (
       params.period = parseInt(parameters.period || parameters.channelPeriod || "20");
       break;
       
-    case "rsi":
-    case "cci":
-    case "cmo":
-    case "mfi":
-    case "willr":
-    case "roc":
-      params.period = parseInt(parameters.period || parameters.rsiPeriod || "14");
+    case "chandelier":
+      params.period = parseInt(parameters.atrPeriod || "22");
+      params.multiplier = parseFloat(parameters.multiplier || "3");
       break;
       
-    case "adx":
-    case "dmi":
-    case "di+":
-    case "di-":
-      params.period = parseInt(parameters.period || "14");
+    case "volume":
+      // No parameters for Volume
       break;
       
-    case "ao": // Awesome Oscillator
-      params.fastPeriod = parseInt(parameters.fast || parameters.fastLength || "5");
-      params.slowPeriod = parseInt(parameters.slow || parameters.slowLength || "34");
+    case "cmf": // Chaikin Money Flow
+      params.period = parseInt(parameters.period || "20");
+      break;
+      
+    case "volumeoscillator":
+      params.shortLength = parseInt(parameters.shortLength || "5");
+      params.longLength = parseInt(parameters.longLength || "10");
       break;
       
     case "heikinashi":
-      if (parameters.wicks === "true") params.wicks = true;
-      if (parameters.wicks === "false") params.wicks = false;
+      params.emaSource = parameters.emaSource || "close";
+      params.fastLength = parseInt(parameters.fastLength || "9");
+      params.slowLength = parseInt(parameters.slowLength || "21");
       break;
       
-    case "mom": // Momentum
-    case "ultosc": // Ultimate Oscillator
-    case "bop": // Balance of Power
-    case "obv": // On Balance Volume
-    case "ad": // Accumulation/Distribution Line
-    case "adosc": // Chaikin Oscillator
-    case "cmf": // Chaikin Money Flow
-    case "vwap": // Volume Weighted Average Price
+    case "ao": // Awesome Oscillator
+      // No parameters for Awesome Oscillator
+      break;
+      
+    case "mfi":
       params.period = parseInt(parameters.period || "14");
       break;
       
-    // Pattern recognition indicators use optInPenetration
-    case "cdldarkcloudcover":
-    case "cdlengulfing":
-    case "cdlhammer":
-    case "cdlhangingman":
-    case "cdlharami":
-    case "cdlharamicross":
-    case "cdlmorningstar":
-    case "cdlpiercing":
-      if (parameters.optInPenetration) {
-        params.optInPenetration = parseFloat(parameters.optInPenetration);
-      }
+    case "ichimoku":
+      params.conversionPeriod = parseInt(parameters.conversionPeriod || "9");
+      params.basePeriod = parseInt(parameters.basePeriod || "26");
+      params.laggingSpanPeriod = parseInt(parameters.laggingSpan || "52");
+      params.displacement = parseInt(parameters.displacement || "26");
+      break;
+      
+    case "rsi":
+    case "cci":
+    case "cmo":
+    case "willr":
+    case "roc":
+    case "mom": // Momentum
+      params.period = parseInt(parameters.period || parameters.rsiPeriod || "14");
       break;
   }
   
@@ -348,31 +359,31 @@ export const getIndicatorValue = (
   
   switch (indicator.toLowerCase()) {
     case "macd":
-      if (valueType === "MACD Line") return data.valueMACD || null;
-      if (valueType === "Signal") return data.valueSignal || null;
-      if (valueType === "Histogram") return data.valueHistogram || null;
+      if (valueType === "MACD Value") return data.valueMACD || null;
+      if (valueType === "Signal Value") return data.valueSignal || null;
+      if (valueType === "Histogram Value") return data.valueHistogram || null;
       return data.valueMACD || null; // Default to MACD line
       
     case "bbands":
     case "keltnerchannels":
     case "donchian":
       if (valueType === "Upper Band") return data.valueUpperBand || null;
-      if (valueType === "Middle Band" || valueType === "Middle Line") return data.valueMiddleBand || null;
+      if (valueType === "Middle Band") return data.valueMiddleBand || null;
       if (valueType === "Lower Band") return data.valueLowerBand || null;
       return data.valueMiddleBand || null; // Default to middle band
       
     case "stoch":
     case "stochrsi":
-      if (valueType === "K Line") return data.valueK || null;
-      if (valueType === "D Line") return data.valueD || null;
+      if (valueType === "K Value") return data.valueK || null;
+      if (valueType === "D Value") return data.valueD || null;
       return data.valueK || null; // Default to K line
       
     case "ichimoku":
       if (valueType === "Conversion Line") return data.valueConversionLine || null;
       if (valueType === "Base Line") return data.valueBaseLine || null;
-      if (valueType === "Leading Span A") return data.valueSpanA || null;
-      if (valueType === "Leading Span B") return data.valueSpanB || null;
-      if (valueType === "Lagging Span") return data.valueLaggingSpan || null;
+      if (valueType === "Lagging Band") return data.valueLaggingSpan || null;
+      if (valueType === "Leading Band A") return data.valueSpanA || null;
+      if (valueType === "Leading Band B") return data.valueSpanB || null;
       return data.valueConversionLine || null; // Default to conversion line
       
     case "heikinashi":
@@ -380,6 +391,8 @@ export const getIndicatorValue = (
       if (valueType === "High") return data.high || null;
       if (valueType === "Low") return data.low || null;
       if (valueType === "Close") return data.close || null;
+      if (valueType === "FastEMA") return data.valueFastEMA || null;
+      if (valueType === "SlowEMA") return data.valueSlowEMA || null;
       return data.close || null; // Default to close
       
     default:

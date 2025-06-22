@@ -14,14 +14,13 @@ interface RiskManagementProps {
 }
 
 export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
-  // More robust validation to check if riskManagement data is valid
-  const isValidData = riskManagement && 
-    typeof riskManagement.stopLoss === 'string' && 
-    typeof riskManagement.takeProfit === 'string' &&
-    typeof riskManagement.singleBuyVolume === 'string' && 
-    typeof riskManagement.maxBuyVolume === 'string';
+  // Provide default values for missing or empty risk management data
+  const getRiskManagementValue = (value: string | null | undefined, defaultValue: string = "Not set") => {
+    return value && value.trim() !== "" ? value : defaultValue;
+  };
 
-  if (!isValidData) {
+  // More robust validation - only show error if riskManagement object is completely missing
+  if (!riskManagement) {
     return (
       <Card className="p-6">
         <div className="mb-2">
@@ -40,9 +39,15 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
 
   // Remove the % symbol if it's present at the end of the string
   const formatPercentage = (value: string) => {
-    if (!value) return "0%";
+    if (!value || value === "Not set") return value;
     return value.endsWith('%') ? value : `${value}%`;
   };
+
+  // Get values with defaults
+  const stopLoss = getRiskManagementValue(riskManagement.stopLoss, "5%");
+  const takeProfit = getRiskManagementValue(riskManagement.takeProfit, "10%");
+  const singleBuyVolume = getRiskManagementValue(riskManagement.singleBuyVolume, "$1,000");
+  const maxBuyVolume = getRiskManagementValue(riskManagement.maxBuyVolume, "$5,000");
 
   return (
     <Card className="p-6">
@@ -57,22 +62,22 @@ export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Stop Loss</p>
-            <p className="font-medium text-red-500">{formatPercentage(riskManagement.stopLoss)}</p>
+            <p className="font-medium text-red-500">{formatPercentage(stopLoss)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Take Profit</p>
-            <p className="font-medium text-green-500">{formatPercentage(riskManagement.takeProfit)}</p>
+            <p className="font-medium text-green-500">{formatPercentage(takeProfit)}</p>
           </div>
         </div>
         
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Single Buy Volume</p>
-            <p className="font-medium">{formatCurrency(riskManagement.singleBuyVolume)}</p>
+            <p className="font-medium">{singleBuyVolume.startsWith('$') ? singleBuyVolume : formatCurrency(singleBuyVolume)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Max Buy Volume</p>
-            <p className="font-medium">{formatCurrency(riskManagement.maxBuyVolume)}</p>
+            <p className="font-medium">{maxBuyVolume.startsWith('$') ? maxBuyVolume : formatCurrency(maxBuyVolume)}</p>
           </div>
         </div>
       </div>

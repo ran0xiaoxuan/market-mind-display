@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
@@ -71,29 +70,85 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
     };
     
     switch (indicator) {
-      case "MACD":
-        if (getParam('fast') || getParam('fastPeriod')) params.push(`Fast: ${getParam('fast') || getParam('fastPeriod')}`);
-        if (getParam('slow') || getParam('slowPeriod')) params.push(`Slow: ${getParam('slow') || getParam('slowPeriod')}`);
-        if (getParam('signal') || getParam('signalPeriod')) params.push(`Signal: ${getParam('signal') || getParam('signalPeriod')}`);
+      // Moving Averages
+      case "SMA":
+      case "EMA":
+      case "WMA":
+      case "TRIMA":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
         break;
         
+      case "KAMA":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('fastEmaLength')) params.push(`Fast: ${getParam('fastEmaLength')}`);
+        if (getParam('slowEmaLength')) params.push(`Slow: ${getParam('slowEmaLength')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
+        break;
+        
+      case "VWAP":
+        // VWAP typically has no parameters
+        break;
+        
+      // Oscillators
       case "RSI":
       case "CCI":
-        if (getParam('period') || getParam('rsiPeriod')) params.push(`Period: ${getParam('period') || getParam('rsiPeriod')}`);
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
+        break;
+        
+      case "WILLIAMS %R":
+      case "WILLR":
+      case "MOMENTUM":
+      case "MOM":
+      case "ROC":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        break;
+        
+      case "CMO":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
+        break;
+        
+      case "MFI":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        break;
+        
+      case "MACD":
+        if (getParam('fast')) params.push(`Fast: ${getParam('fast')}`);
+        if (getParam('slow')) params.push(`Slow: ${getParam('slow')}`);
+        if (getParam('signal')) params.push(`Signal: ${getParam('signal')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
         break;
         
       case "STOCHASTIC":
-      case "STOCHRSI":
-        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
-        if (getParam('k') || getParam('kPeriod')) params.push(`K: ${getParam('k') || getParam('kPeriod')}`);
-        if (getParam('d') || getParam('dPeriod')) params.push(`D: ${getParam('d') || getParam('dPeriod')}`);
+        if (getParam('k')) params.push(`K: ${getParam('k')}`);
+        if (getParam('d')) params.push(`D: ${getParam('d')}`);
         if (getParam('slowing')) params.push(`Slowing: ${getParam('slowing')}`);
         break;
         
-      case "BOLLINGER BANDS":
-      case "BBANDS":
-        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
-        if (getParam('deviation') || getParam('stdDev')) params.push(`Dev: ${getParam('deviation') || getParam('stdDev')}`);
+      case "STOCHRSI":
+        if (getParam('rsiPeriod')) params.push(`RSI: ${getParam('rsiPeriod')}`);
+        if (getParam('stochasticLength')) params.push(`Stoch: ${getParam('stochasticLength')}`);
+        if (getParam('k')) params.push(`K: ${getParam('k')}`);
+        if (getParam('d')) params.push(`D: ${getParam('d')}`);
+        break;
+        
+      case "ULTIMATE OSCILLATOR":
+        if (getParam('fastLineLength')) params.push(`Fast: ${getParam('fastLineLength')}`);
+        if (getParam('middleLineLength')) params.push(`Mid: ${getParam('middleLineLength')}`);
+        if (getParam('slowLineLength')) params.push(`Slow: ${getParam('slowLineLength')}`);
+        break;
+        
+      case "AWESOME OSCILLATOR":
+        // AO doesn't need parameters
+        break;
+        
+      // Trend Indicators
+      case "ADX":
+      case "DMI":
+        if (getParam('adxSmoothing')) params.push(`ADX: ${getParam('adxSmoothing')}`);
+        if (getParam('diLength')) params.push(`DI: ${getParam('diLength')}`);
         break;
         
       case "ICHIMOKU CLOUD":
@@ -101,76 +156,9 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
         if (getParam('conversionPeriod')) params.push(`Conv: ${getParam('conversionPeriod')}`);
         if (getParam('basePeriod')) params.push(`Base: ${getParam('basePeriod')}`);
         if (getParam('laggingSpan')) params.push(`Lag: ${getParam('laggingSpan')}`);
+        if (getParam('displacement')) params.push(`Disp: ${getParam('displacement')}`);
         break;
       
-      case "SMA":
-      case "EMA":
-      case "WMA":
-      case "VWMA":
-      case "VWAP":
-        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
-        break;
-        
-      case "ATR":
-      case "SUPERTREND":
-      case "CHANDELIER EXIT":
-      case "CHANDELIER":
-        if (getParam('period') || getParam('atrPeriod')) {
-          params.push(`Period: ${getParam('period') || getParam('atrPeriod')}`);
-        }
-        if (getParam('multiplier')) params.push(`Mult: ${getParam('multiplier')}`);
-        break;
-        
-      case "AWESOME OSCILLATOR":
-      case "AO":
-        if (getParam('fast') || getParam('fastLength')) {
-          params.push(`Fast: ${getParam('fast') || getParam('fastLength')}`);
-        }
-        if (getParam('slow') || getParam('slowLength')) {
-          params.push(`Slow: ${getParam('slow') || getParam('slowLength')}`);
-        }
-        break;
-        
-      case "KELTNER CHANNELS":
-      case "KELTNERCHANNELS":
-      case "DONCHIAN CHANNEL":
-      case "DONCHIANCHANNEL":
-      case "DONCHIAN":
-        if (getParam('period') || getParam('channelPeriod')) {
-          params.push(`Period: ${getParam('period') || getParam('channelPeriod')}`);
-        }
-        if (getParam('multiplier')) params.push(`Mult: ${getParam('multiplier')}`);
-        if (getParam('atrPeriod')) params.push(`ATR: ${getParam('atrPeriod')}`);
-        break;
-        
-      case "HEIKINASHI":
-      case "HEIKIN ASHI":
-        if (getParam('fastLength')) params.push(`Fast: ${getParam('fastLength')}`);
-        if (getParam('slowLength')) params.push(`Slow: ${getParam('slowLength')}`);
-        if (getParam('emaSource')) params.push(`EMA Source: ${getParam('emaSource')}`);
-        break;
-        
-      case "MFI":
-        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
-        break;
-        
-      case "WILLIAMS %R":
-      case "WILLR":
-        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
-        break;
-        
-      case "MOMENTUM":
-      case "MOM":
-      case "ROC":
-        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
-        break;
-        
-      case "ADX":
-      case "DMI":
-        if (getParam('period') || getParam('adxSmoothing')) params.push(`Period: ${getParam('period') || getParam('adxSmoothing')}`);
-        if (getParam('diLength')) params.push(`DI: ${getParam('diLength')}`);
-        break;
-        
       case "PARABOLIC SAR":
       case "PSAR":
         if (getParam('start')) params.push(`Start: ${getParam('start')}`);
@@ -178,16 +166,76 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
         if (getParam('maximum')) params.push(`Max: ${getParam('maximum')}`);
         break;
         
+      case "SUPERTREND":
+        if (getParam('atrPeriod')) params.push(`ATR: ${getParam('atrPeriod')}`);
+        if (getParam('multiplier')) params.push(`Mult: ${getParam('multiplier')}`);
+        break;
+        
+      case "TTM SQUEEZE":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('multiplier')) params.push(`Mult: ${getParam('multiplier')}`);
+        break;
+        
+      // Volatility Indicators
+      case "BOLLINGER BANDS":
+      case "BBANDS":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('deviation')) params.push(`Dev: ${getParam('deviation')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
+        break;
+        
+      case "ATR":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        break;
+        
+      case "KELTNER CHANNEL":
+      case "KELTNER CHANNELS":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        if (getParam('atrPeriod')) params.push(`ATR: ${getParam('atrPeriod')}`);
+        if (getParam('multiplier')) params.push(`Mult: ${getParam('multiplier')}`);
+        break;
+        
+      case "DONCHIAN CHANNEL":
+      case "DONCHIAN":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        break;
+        
+      case "CHANDELIER EXIT":
+      case "CHANDELIER":
+        if (getParam('atrPeriod')) params.push(`ATR: ${getParam('atrPeriod')}`);
+        if (getParam('multiplier')) params.push(`Mult: ${getParam('multiplier')}`);
+        break;
+        
+      // Volume Indicators
+      case "VOLUME":
+        // Volume doesn't need parameters
+        break;
+        
+      case "CHAIKIN MONEY FLOW":
+        if (getParam('period')) params.push(`Period: ${getParam('period')}`);
+        // Note: No source parameter for Chaikin Money Flow
+        break;
+        
+      case "VOLUME OSCILLATOR":
+        if (getParam('shortLength')) params.push(`Short: ${getParam('shortLength')}`);
+        if (getParam('longLength')) params.push(`Long: ${getParam('longLength')}`);
+        break;
+        
+      // Price Patterns
+      case "HEIKIN ASHI":
+        if (getParam('fastLength')) params.push(`Fast: ${getParam('fastLength')}`);
+        if (getParam('slowLength')) params.push(`Slow: ${getParam('slowLength')}`);
+        if (getParam('emaSource')) params.push(`EMA Source: ${getParam('emaSource')}`);
+        break;
+        
       default:
         // For indicators with just a period or other common parameters
         if (getParam('period')) params.push(`Period: ${getParam('period')}`);
         if (getParam('length')) params.push(`Length: ${getParam('length')}`);
         if (getParam('timeperiod')) params.push(`Period: ${getParam('timeperiod')}`);
+        if (getParam('source')) params.push(`Source: ${getParam('source')}`);
         break;
     }
-    
-    // Add source parameter if available
-    if (getParam('source')) params.push(`Source: ${getParam('source')}`);
     
     console.log('Generated params for display:', params);
     

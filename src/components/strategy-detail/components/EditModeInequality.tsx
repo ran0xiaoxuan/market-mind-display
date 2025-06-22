@@ -28,38 +28,88 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
     const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
     
     switch (normalizedIndicator) {
+      // Moving Averages
+      case 'sma':
+      case 'ema':
+      case 'wma':
+      case 'trima':
+        return { period: '20', source: 'close' };
+      case 'kama':
+        return { period: '14', fastEmaLength: '2', slowEmaLength: '30', source: 'close' };
+      case 'vwap':
+        return {}; // VWAP typically doesn't need parameters
+      
+      // Oscillators  
+      case 'rsi':
+        return { period: '14', source: 'close' };
+      case 'cci':
+        return { period: '14', source: 'close' };
+      case 'williamsর':
+      case 'willr':
+        return { period: '14' };
+      case 'momentum':
+      case 'mom':
+      case 'roc':
+        return { period: '14', source: 'close' };
+      case 'cmo':
+        return { period: '14', source: 'close' };
+      case 'mfi':
+        return { period: '14' };
       case 'macd':
         return { fast: '12', slow: '26', signal: '9', source: 'close' };
-      case 'bollingerbands':
-        return { period: '20', deviation: '2', source: 'close' };
       case 'stochastic':
         return { k: '14', d: '3', slowing: '3' };
       case 'stochrsi':
-        return { rsiPeriod: '14', stochasticLength: '14', k: '14', d: '3' };
-      case 'ichimokucloud':
-        return { conversionPeriod: '9', basePeriod: '26', laggingSpan: '52', displacement: '26' };
-      case 'supertrend':
-        return { atrPeriod: '10', multiplier: '3' };
-      case 'keltnerchannel':
-        return { period: '20', atrPeriod: '20', multiplier: '2' };
-      case 'psar':
-        return { start: '0.02', increment: '0.02', maximum: '0.2' };
+        return { rsiPeriod: '14', stochasticLength: '14', k: '3', d: '3' };
       case 'ultimateoscillator':
         return { fastLineLength: '7', middleLineLength: '14', slowLineLength: '28' };
+      case 'awesomeoscillator':
+        return {}; // AO doesn't need parameters
+        
+      // Trend Indicators
       case 'adx':
       case 'dmi':
         return { adxSmoothing: '14', diLength: '14' };
+      case 'ichimokucloud':
+      case 'ichimoku':
+        return { conversionPeriod: '9', basePeriod: '26', laggingSpan: '52', displacement: '26' };
+      case 'psar':
+      case 'parabolicsar':
+        return { start: '0.02', increment: '0.02', maximum: '0.2' };
+      case 'supertrend':
+        return { atrPeriod: '10', multiplier: '3' };
+      case 'ttmsqueeze':
+        return { period: '20', multiplier: '2' };
+        
+      // Volatility Indicators
+      case 'bollingerbands':
+      case 'bbands':
+        return { period: '20', deviation: '2', source: 'close' };
+      case 'atr':
+        return { period: '14' };
+      case 'keltnerchannel':
+      case 'keltnerchannels':
+        return { period: '20', atrPeriod: '20', multiplier: '2' };
+      case 'donchianchannel':
+      case 'donchian':
+        return { period: '20' };
+      case 'chandelierexit':
+      case 'chandelier':
+        return { atrPeriod: '22', multiplier: '3' };
+        
+      // Volume Indicators
+      case 'volume':
+        return {}; // Volume doesn't need parameters
+      case 'chaikinmoneyflow':
+        return { period: '20' }; // Only period, no source
       case 'volumeoscillator':
         return { shortLength: '5', longLength: '10' };
+        
+      // Price Patterns
       case 'heikinashi':
-        return { emaSource: 'close', fastLength: '9', slowLength: '21' };
-      case 'kama':
-        return { period: '14', fastEmaLength: '2', slowEmaLength: '30' };
-      case 'chandelierexit':
-        return { atrPeriod: '22', multiplier: '3' };
-      case 'volume':
-      case 'awesomeoscillator':
-        return {}; // No parameters needed
+      case 'heikin ashi':
+        return { fastLength: '9', slowLength: '21', emaSource: 'close' };
+        
       default:
         return { period: '14', source: 'close' };
     }
@@ -68,7 +118,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
   // Helper function to check if an indicator needs parameters
   const indicatorNeedsParameters = (indicator: string) => {
     const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
-    const noParamIndicators = ['volume', 'awesomeoscillator'];
+    const noParamIndicators = ['volume', 'awesomeoscillator', 'vwap'];
     return !noParamIndicators.includes(normalizedIndicator);
   };
 

@@ -1,12 +1,10 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { InequalitySide } from "./InequalitySide";
-import { toast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
 
 interface EditModeInequalityProps {
   localInequality: Inequality;
@@ -25,120 +23,119 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
   onSave,
   onCancel
 }) => {
-  const [validationTriggered, setValidationTriggered] = useState(false);
-  
-  const updateInequality = (side: 'left' | 'right', field: string, value: any) => {
-    const updatedInequality = {
-      ...localInequality,
-      [side]: {
-        ...localInequality[side],
-        [field]: value
-      }
-    };
-    setLocalInequality(updatedInequality);
-  };
-  
-  const updateParameters = (side: 'left' | 'right', paramName: string, paramValue: string) => {
-    const currentParams = localInequality[side].parameters || {};
-    const updatedParams = {
-      ...currentParams,
-      [paramName]: paramValue
-    };
-    const updatedInequality = {
-      ...localInequality,
-      [side]: {
-        ...localInequality[side],
-        parameters: updatedParams
-      }
-    };
-    setLocalInequality(updatedInequality);
+  // Helper function to get default parameters for an indicator
+  const getDefaultParameters = (indicator: string) => {
+    const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
+    
+    switch (normalizedIndicator) {
+      case 'macd':
+        return { fast: '12', slow: '26', signal: '9', source: 'close' };
+      case 'bollingerbands':
+        return { period: '20', deviation: '2', source: 'close' };
+      case 'stochastic':
+        return { k: '14', d: '3', slowing: '3' };
+      case 'stochrsi':
+        return { rsiPeriod: '14', stochasticLength: '14', k: '14', d: '3' };
+      case 'ichimokucloud':
+        return { conversionPeriod: '9', basePeriod: '26', laggingSpan: '52', displacement: '26' };
+      case 'supertrend':
+        return { atrPeriod: '10', multiplier: '3' };
+      case 'keltnerchannel':
+        return { period: '20', atrPeriod: '20', multiplier: '2' };
+      case 'psar':
+        return { start: '0.02', increment: '0.02', maximum: '0.2' };
+      case 'ultimateoscillator':
+        return { fastLineLength: '7', middleLineLength: '14', slowLineLength: '28' };
+      case 'adx':
+      case 'dmi':
+        return { adxSmoothing: '14', diLength: '14' };
+      case 'volumeoscillator':
+        return { shortLength: '5', longLength: '10' };
+      case 'heikinashi':
+        return { emaSource: 'close', fastLength: '9', slowLength: '21' };
+      case 'kama':
+        return { period: '14', fastEmaLength: '2', slowEmaLength: '30' };
+      case 'chandelierexit':
+        return { atrPeriod: '22', multiplier: '3' };
+      case 'volume':
+      case 'awesomeoscillator':
+        return {}; // No parameters needed
+      default:
+        return { period: '14', source: 'close' };
+    }
   };
 
-  const validateInequality = (): {isValid: boolean, missingFields: string[]} => {
-    const missingFields: string[] = [];
-    
-    if (!localInequality.condition) {
-      missingFields.push("Operator");
-    }
-    
-    // Validate left side
-    if (!localInequality.left.type) {
-      missingFields.push("Left type");
-    } else {
-      if (localInequality.left.type === 'INDICATOR' && !localInequality.left.indicator) {
-        missingFields.push("Left indicator");
-      }
-      if (localInequality.left.type === 'PRICE' && !localInequality.left.value) {
-        missingFields.push("Left price value");
-      }
-    }
-    
-    // Validate right side
-    if (!localInequality.right.type) {
-      missingFields.push("Right type");
-    } else {
-      if (localInequality.right.type === 'INDICATOR' && !localInequality.right.indicator) {
-        missingFields.push("Right indicator");
-      }
-      if (localInequality.right.type === 'VALUE' && 
-          (localInequality.right.value === undefined || localInequality.right.value === "")) {
-        missingFields.push("Right value");
-      }
-    }
-    
-    return { isValid: missingFields.length === 0, missingFields };
+  // Helper function to check if an indicator needs parameters
+  const indicatorNeedsParameters = (indicator: string) => {
+    const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
+    const noParamIndicators = ['volume', 'awesomeoscillator'];
+    return !noParamIndicators.includes(normalizedIndicator);
   };
-  
-  const handleSave = () => {
-    setValidationTriggered(true);
-    const validation = validateInequality();
+
+  const updateInequality = (side: 'left' | 'right', field: string, value: any) => {
+    console.log(`EditModeInequality: Updating ${side} ${field} to:`, value);
     
-    if (!validation.isValid) {
-      // Show toast notification with the missing fields
-      toast({
-        title: "Unable to save condition",
-        description: (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <span>Please fill out all required fields:</span>
-            </div>
-            <ul className="list-disc pl-5 text-sm">
-              {validation.missingFields.map((field, index) => (
-                <li key={index}>{field}</li>
-              ))}
-            </ul>
-          </div>
-        ),
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // If valid, proceed with saving
-    onSave();
-    setValidationTriggered(false);
-  };
-  
-  return (
-    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 space-y-4">
-      <h3 className="text-lg font-semibold text-center mb-2">Define Inequality Condition</h3>
+    setLocalInequality(prev => {
+      const updatedSide = { ...prev[side] };
       
-      <div className="flex flex-col md:flex-row items-start justify-start gap-4 p-3 bg-white rounded-lg border border-gray-100">
-        {/* Left side */}
-        <div className="w-full md:w-1/3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+      if (field === 'indicator') {
+        // When indicator changes, reset parameters and valueType appropriately
+        updatedSide.indicator = value;
+        
+        // Reset parameters based on the new indicator
+        if (indicatorNeedsParameters(value)) {
+          updatedSide.parameters = getDefaultParameters(value);
+        } else {
+          updatedSide.parameters = {}; // Clear parameters for indicators that don't need them
+        }
+        
+        // Reset valueType - will be handled by IndicatorValueSelector
+        updatedSide.valueType = undefined;
+      } else {
+        updatedSide[field] = value;
+      }
+      
+      const updated = {
+        ...prev,
+        [side]: updatedSide
+      };
+      
+      console.log(`EditModeInequality: Updated inequality:`, updated);
+      return updated;
+    });
+  };
+
+  const updateParameters = (side: 'left' | 'right', paramName: string, paramValue: string) => {
+    setLocalInequality(prev => ({
+      ...prev,
+      [side]: {
+        ...prev[side],
+        parameters: {
+          ...prev[side].parameters,
+          [paramName]: paramValue
+        }
+      }
+    }));
+  };
+
+  return (
+    <div className="p-4 rounded-lg bg-white border border-gray-300 shadow-sm">
+      <div className="space-y-4">
+        {/* Left Side */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Left Side</label>
           <Select 
-            value={localInequality.left.type} 
+            value={localInequality.left?.type || ''} 
             onValueChange={value => updateInequality('left', 'type', value)}
           >
-            <SelectTrigger className={`${(!localInequality.left.type && (showValidation || validationTriggered)) ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`${!localInequality.left?.type && showValidation ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectItem value="INDICATOR">Indicator</SelectItem>
                 <SelectItem value="PRICE">Price</SelectItem>
-                {/* Removed "VALUE" option for left side */}
+                <SelectItem value="VALUE">Value</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -148,44 +145,42 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
             sideObj={localInequality.left}
             updateInequality={updateInequality}
             updateParameters={updateParameters}
-            showValidation={showValidation || validationTriggered}
+            showValidation={showValidation}
           />
         </div>
-        
-        {/* Condition operator */}
-        <div className="w-full md:w-1/5">
-          <div className="text-center mb-2 font-medium text-sm">Operator</div>
+
+        {/* Condition */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Condition</label>
           <Select 
-            value={localInequality.condition} 
-            onValueChange={value => setLocalInequality({
-              ...localInequality,
-              condition: value
-            })}
+            value={localInequality.condition || ''} 
+            onValueChange={value => updateInequality('condition', 'condition', value)}
           >
-            <SelectTrigger className={`${(!localInequality.condition && (showValidation || validationTriggered)) ? 'border-red-500' : ''}`}>
-              <SelectValue placeholder="Select operator" />
+            <SelectTrigger className={`${!localInequality.condition && showValidation ? 'border-red-500' : ''}`}>
+              <SelectValue placeholder="Select condition" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="CROSSES_ABOVE">Crosses Above</SelectItem>
-                <SelectItem value="CROSSES_BELOW">Crosses Below</SelectItem>
-                <SelectItem value="GREATER_THAN">&gt;</SelectItem>
-                <SelectItem value="LESS_THAN">&lt;</SelectItem>
-                <SelectItem value="EQUAL">=</SelectItem>
-                <SelectItem value="GREATER_THAN_OR_EQUAL">≥</SelectItem>
-                <SelectItem value="LESS_THAN_OR_EQUAL">≤</SelectItem>
+                <SelectItem value="GREATER_THAN">Greater than (&gt;)</SelectItem>
+                <SelectItem value="LESS_THAN">Less than (&lt;)</SelectItem>
+                <SelectItem value="EQUAL">Equal (=)</SelectItem>
+                <SelectItem value="GREATER_THAN_OR_EQUAL">Greater than or equal (≥)</SelectItem>
+                <SelectItem value="LESS_THAN_OR_EQUAL">Less than or equal (≤)</SelectItem>
+                <SelectItem value="CROSSES_ABOVE">Crosses above</SelectItem>
+                <SelectItem value="CROSSES_BELOW">Crosses below</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
         </div>
-        
-        {/* Right side */}
-        <div className="w-full md:w-1/3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+
+        {/* Right Side */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Right Side</label>
           <Select 
-            value={localInequality.right.type} 
+            value={localInequality.right?.type || ''} 
             onValueChange={value => updateInequality('right', 'type', value)}
           >
-            <SelectTrigger className={`${(!localInequality.right.type && (showValidation || validationTriggered)) ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`${!localInequality.right?.type && showValidation ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -202,33 +197,40 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
             sideObj={localInequality.right}
             updateInequality={updateInequality}
             updateParameters={updateParameters}
-            showValidation={showValidation || validationTriggered}
+            showValidation={showValidation}
           />
         </div>
-      </div>
-      
-      {/* Explanation field */}
-      <div>
-        <label className="text-sm font-medium">Explanation (optional)</label>
-        <Input 
-          type="text" 
-          value={localInequality.explanation || ''} 
-          onChange={e => setLocalInequality({
-            ...localInequality,
-            explanation: e.target.value
-          })} 
-          placeholder="Explain this rule (optional)" 
-        />
-      </div>
-      
-      {/* Action buttons */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button size="sm" onClick={handleSave}>
-          Save
-        </Button>
+
+        {/* Explanation */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Explanation (Optional)</label>
+          <Textarea
+            value={localInequality.explanation || ''}
+            onChange={e => setLocalInequality(prev => ({ ...prev, explanation: e.target.value }))}
+            placeholder="Add an explanation for this condition..."
+            className="text-sm"
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onCancel} size="sm">
+            Cancel
+          </Button>
+          <Button 
+            onClick={onSave} 
+            disabled={isIncomplete && showValidation}
+            size="sm"
+          >
+            Save
+          </Button>
+        </div>
+        
+        {isIncomplete && showValidation && (
+          <p className="text-sm text-red-600 mt-2">
+            Please fill in all required fields before saving.
+          </p>
+        )}
       </div>
     </div>
   );

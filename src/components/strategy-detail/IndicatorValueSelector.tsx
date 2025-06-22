@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect } from "react";
 
@@ -75,20 +74,29 @@ export const IndicatorValueSelector = ({
 
   const valueOptions = getValueOptions(indicator);
   
-  // Set default value when indicator changes and no meaningful value is selected
+  // Set default value when indicator changes
   useEffect(() => {
-    if (indicator && valueOptions.length > 1) {
-      // Check if selectedValue is empty, 'Value', or not in the current options
-      const hasValidSelection = selectedValue && valueOptions.includes(selectedValue);
+    if (indicator) {
+      const defaultValue = getDefaultValue(indicator);
       
-      if (!hasValidSelection) {
-        const defaultValue = getDefaultValue(indicator);
-        onValueChange(defaultValue);
+      // Always update the value when the indicator changes
+      // This ensures we don't keep old valueType from previous indicators
+      if (valueOptions.length === 1) {
+        // For single-value indicators, always set to 'Value'
+        if (selectedValue !== 'Value') {
+          onValueChange('Value');
+        }
+      } else {
+        // For multi-value indicators, check if current selection is valid
+        const hasValidSelection = selectedValue && valueOptions.includes(selectedValue);
+        if (!hasValidSelection) {
+          onValueChange(defaultValue);
+        }
       }
     }
-  }, [indicator, valueOptions.length, selectedValue, onValueChange]);
+  }, [indicator, valueOptions, selectedValue, onValueChange]);
   
-  // If there's only one option, don't show the selector
+  // If there's only one option, don't show the selector but ensure the value is set correctly
   if (valueOptions.length === 1) {
     return null;
   }

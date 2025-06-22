@@ -15,8 +15,17 @@ interface RiskManagementProps {
 
 export const RiskManagement = ({ riskManagement }: RiskManagementProps) => {
   // Provide default values for missing or empty risk management data
-  const getRiskManagementValue = (value: string | null | undefined, defaultValue: string = "Not set") => {
-    return value && value.trim() !== "" ? value : defaultValue;
+  const getRiskManagementValue = (value: string | null | undefined | number, defaultValue: string = "Not set") => {
+    // Handle null, undefined, or empty values
+    if (value === null || value === undefined) {
+      return defaultValue;
+    }
+    
+    // Convert to string if it's a number
+    const stringValue = typeof value === 'string' ? value : String(value);
+    
+    // Check if the string value is empty after trimming
+    return stringValue.trim() !== "" ? stringValue : defaultValue;
   };
 
   // More robust validation - only show error if riskManagement object is completely missing

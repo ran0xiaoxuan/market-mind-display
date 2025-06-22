@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { IndicatorParameters } from "@/types/backtest";
 
@@ -52,6 +53,8 @@ export interface TaapiIndicatorResponse {
   valueSpanA?: number;
   valueSpanB?: number;
   valueLaggingSpan?: number;
+  valueFastEMA?: number;
+  valueSlowEMA?: number;
   timestamp?: number;
   backtracks?: any[];
   open?: number;

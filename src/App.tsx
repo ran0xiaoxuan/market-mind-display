@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { getDomainConfig } from "@/lib/domain";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 import Index from "@/pages/Index";
@@ -38,6 +39,13 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const domainConfig = getDomainConfig();
+
+  // For landing domain, only show landing, auth, and legal pages
+  const isRestrictedToLanding = domainConfig.hostname.includes('www.') && 
+                               !domainConfig.hostname.includes('localhost') &&
+                               !domainConfig.hostname.includes('lovableproject.com');
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -50,21 +58,28 @@ function App() {
           <Route path="/auth/confirmed" element={<Confirmed />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/auth/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/strategies" element={<ProtectedRoute><Strategies /></ProtectedRoute>} />
-          <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
-          <Route path="/strategies/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
-          <Route path="/strategies/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
-          <Route path="/strategy/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
-          <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
-          <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
-          <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
-          <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/pricing" element={<PricingPage />} />
+          
+          {/* App routes - only available on app domain or development */}
+          {!isRestrictedToLanding && (
+            <>
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/strategies" element={<ProtectedRoute><Strategies /></ProtectedRoute>} />
+              <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
+              <Route path="/strategies/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
+              <Route path="/strategies/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
+              <Route path="/strategy/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
+              <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
+              <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
+              <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
+              <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
+            </>
+          )}
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

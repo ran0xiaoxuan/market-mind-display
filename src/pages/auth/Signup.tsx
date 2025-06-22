@@ -1,15 +1,17 @@
-
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import { AuthLayout } from "@/components/AuthLayout";
-import { Input } from "@/components/ui/input";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Turnstile } from "@/components/Turnstile";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthLayout } from "@/components/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
-export default function Signup() {
+const Signup = () => {
+  usePageTitle("Sign Up - StratAIge");
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -215,7 +217,7 @@ export default function Signup() {
     <AuthLayout>
       <Card className="border shadow-sm">
         <CardHeader className="pb-0">
-          <h1 className="text-xl font-semibold">Create an account</h1>
+          <CardTitle>Create an account</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
@@ -257,16 +259,16 @@ export default function Signup() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
+                <Label htmlFor="email" className="text-sm font-medium">
                   Email *
-                </label>
+                </Label>
                 <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isSubmitting} placeholder="Enter your email address" />
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
+                <Label htmlFor="password" className="text-sm font-medium">
                   Password *
-                </label>
+                </Label>
                 <div className="relative">
                   <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => handlePasswordChange(e.target.value)} required disabled={isSubmitting} placeholder="Create a password" />
                   <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)} disabled={isSubmitting}>
@@ -301,9 +303,9 @@ export default function Signup() {
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="confirm-password" className="text-sm font-medium">
+                <Label htmlFor="confirm-password" className="text-sm font-medium">
                   Confirm Password *
-                </label>
+                </Label>
                 <div className="relative">
                   <Input id="confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={isSubmitting} placeholder="Confirm your password" />
                   <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowConfirmPassword(!showConfirmPassword)} disabled={isSubmitting}>
@@ -333,4 +335,6 @@ export default function Signup() {
       </Card>
     </AuthLayout>
   );
-}
+};
+
+export default Signup;

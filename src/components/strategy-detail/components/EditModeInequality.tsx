@@ -118,6 +118,13 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
     }));
   };
 
+  const updateCondition = (value: string) => {
+    setLocalInequality(prev => ({
+      ...prev,
+      condition: value
+    }));
+  };
+
   return (
     <div className="p-4 rounded-lg bg-white border border-gray-300 shadow-sm">
       <div className="space-y-4">
@@ -154,7 +161,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
           <label className="text-sm font-medium">Condition</label>
           <Select 
             value={localInequality.condition || ''} 
-            onValueChange={value => updateInequality('condition', 'condition', value)}
+            onValueChange={updateCondition}
           >
             <SelectTrigger className={`${!localInequality.condition && showValidation ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="Select condition" />

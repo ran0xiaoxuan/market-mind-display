@@ -44,8 +44,27 @@ export const RuleInequality = ({
   const handleSaveChanges = () => {
     console.log('RuleInequality: Saving changes, local inequality:', localInequality);
     if (onChange) {
+      // Create a deep copy to ensure all data is properly propagated
+      const updatedInequality = {
+        ...localInequality,
+        left: {
+          ...localInequality.left,
+          // Ensure all properties are included
+          parameters: localInequality.left.parameters || {},
+          valueType: localInequality.left.valueType || undefined
+        },
+        right: {
+          ...localInequality.right,
+          // Ensure all properties are included
+          parameters: localInequality.right.parameters || {},
+          valueType: localInequality.right.valueType || undefined
+        }
+      };
+      
+      console.log('RuleInequality: Updated inequality being passed to parent:', updatedInequality);
+      
       // Immediately call onChange to update parent state
-      onChange(localInequality);
+      onChange(updatedInequality);
     }
     setIsOpen(false);
     if (onEditingComplete) {
@@ -88,8 +107,30 @@ export const RuleInequality = ({
   
   const isIncomplete = !localInequality.condition || hasEmptyRequiredFields('left') || hasEmptyRequiredFields('right');
 
-  // Use the current inequality data (not local) for display to ensure fresh data
+  // Always use the parent inequality for display to ensure we show the most current saved data
+  // Only use localInequality when in edit mode
   const displayInequality = isOpen ? localInequality : inequality;
+
+  // Create a unique key that includes all relevant data to force re-render when any part changes
+  const inequalityKey = JSON.stringify({
+    id: inequality.id,
+    left: {
+      type: inequality.left?.type,
+      indicator: inequality.left?.indicator,
+      parameters: inequality.left?.parameters,
+      valueType: inequality.left?.valueType,
+      value: inequality.left?.value
+    },
+    right: {
+      type: inequality.right?.type,
+      indicator: inequality.right?.indicator,
+      parameters: inequality.right?.parameters,
+      valueType: inequality.right?.valueType,
+      value: inequality.right?.value
+    },
+    condition: inequality.condition,
+    explanation: inequality.explanation
+  });
 
   // Render appropriate view based on mode
   return (
@@ -105,6 +146,7 @@ export const RuleInequality = ({
         />
       ) : (
         <CompactInequalityDisplay
+          key={inequalityKey}
           inequality={displayInequality}
           editable={editable}
           isIncomplete={isIncomplete}

@@ -13,10 +13,13 @@ import { calculatePortfolioMetrics, getRealTradeHistory } from "@/services/marke
 import { getStrategies } from "@/services/strategyService";
 import { cleanupInvalidSignals, getCleanTradingSignals } from "@/services/signalCleanupService";
 import { toast } from "sonner";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type TimeRange = "7d" | "30d" | "all";
 
 const Dashboard = () => {
+  usePageTitle("Dashboard - StratAIge");
+
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [period, setPeriod] = useState<string>("Last Week");
   const [isTradeHistoryModalOpen, setIsTradeHistoryModalOpen] = useState(false);

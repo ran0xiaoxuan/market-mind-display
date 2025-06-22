@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
@@ -9,11 +8,14 @@ import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { ArrowUp, ArrowDown } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type SortOption = 'name' | 'created' | 'updated';
 type SortDirection = 'asc' | 'desc';
 
 const Strategies = () => {
+  usePageTitle("My Strategies - StratAIge");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>("updated");

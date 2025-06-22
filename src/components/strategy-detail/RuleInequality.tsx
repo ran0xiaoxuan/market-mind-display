@@ -28,7 +28,9 @@ export const RuleInequality = ({
   const [isOpen, setIsOpen] = useState<boolean>(isNewlyAdded);
   const [localInequality, setLocalInequality] = useState<Inequality>(inequality);
   
+  // Update local state when parent inequality changes
   useEffect(() => {
+    console.log('RuleInequality: Parent inequality changed, updating local state:', inequality);
     setLocalInequality(inequality);
   }, [inequality]);
   
@@ -40,7 +42,9 @@ export const RuleInequality = ({
   }, [isNewlyAdded]);
   
   const handleSaveChanges = () => {
+    console.log('RuleInequality: Saving changes, local inequality:', localInequality);
     if (onChange) {
+      // Immediately call onChange to update parent state
       onChange(localInequality);
     }
     setIsOpen(false);
@@ -84,6 +88,9 @@ export const RuleInequality = ({
   
   const isIncomplete = !localInequality.condition || hasEmptyRequiredFields('left') || hasEmptyRequiredFields('right');
 
+  // Use the current inequality data (not local) for display to ensure fresh data
+  const displayInequality = isOpen ? localInequality : inequality;
+
   // Render appropriate view based on mode
   return (
     <>
@@ -98,7 +105,7 @@ export const RuleInequality = ({
         />
       ) : (
         <CompactInequalityDisplay
-          inequality={localInequality}
+          inequality={displayInequality}
           editable={editable}
           isIncomplete={isIncomplete}
           showValidation={showValidation}

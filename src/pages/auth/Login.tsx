@@ -1,17 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Link, Navigate } from "react-router-dom";
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { AuthLayout } from "@/components/AuthLayout";
-import { useAuth } from "@/contexts/AuthContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
-import { AlertCircle, CheckCircle, Loader2, EyeOff, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Turnstile } from "@/components/Turnstile";
+import { useAuth } from "@/contexts/AuthContext";
 
-const Login = () => {
-  usePageTitle("Log In - StratAIge");
-  
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,9 +17,6 @@ const Login = () => {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [notification, setNotification] = useState<{type: 'error' | 'success', message: string} | null>(null);
-  
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   
   const {
     signIn,
@@ -330,6 +324,4 @@ const Login = () => {
       </Card>
     </AuthLayout>
   );
-};
-
-export default Login;
+}

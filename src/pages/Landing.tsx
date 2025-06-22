@@ -8,11 +8,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
 import { PricingSection } from "@/components/PricingSection";
-import { usePageTitle } from "@/hooks/usePageTitle";
-
 const Landing = () => {
-  usePageTitle("StratAIge - AI-Powered Trading Strategy Platform");
-
   const features = [{
     icon: Brain,
     title: "AI-Powered Strategy Creation",
@@ -505,5 +501,4 @@ const Landing = () => {
       <Footer />
     </div>;
 };
-
 export default Landing;

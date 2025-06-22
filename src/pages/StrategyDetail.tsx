@@ -20,8 +20,6 @@ import { getTradingRulesForStrategy, getStrategyById, getRiskManagementForStrate
 import { Navbar } from "@/components/Navbar";
 import { getStockPrice } from "@/services/marketDataService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
-import { useQuery } from "@tanstack/react-query";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Type for signal data structure
 interface SignalData {
@@ -313,10 +311,6 @@ const StrategyDetail = () => {
     singleBuyVolume: strategy.singleBuyVolume || "Not set",
     maxBuyVolume: strategy.maxBuyVolume || "Not set"
   };
-  
-  // Set dynamic title based on strategy name
-  const strategyName = strategy?.name || "Strategy";
-  usePageTitle(`${strategyName} - StratAIge`);
   
   return (
     <>

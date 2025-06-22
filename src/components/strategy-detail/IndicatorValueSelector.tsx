@@ -75,13 +75,18 @@ export const IndicatorValueSelector = ({
 
   const valueOptions = getValueOptions(indicator);
   
-  // Set default value when indicator changes and no value is selected
+  // Set default value when indicator changes and no meaningful value is selected
   useEffect(() => {
-    if (indicator && (!selectedValue || selectedValue === 'Value') && valueOptions.length > 1) {
-      const defaultValue = getDefaultValue(indicator);
-      onValueChange(defaultValue);
+    if (indicator && valueOptions.length > 1) {
+      // Check if selectedValue is empty, 'Value', or not in the current options
+      const hasValidSelection = selectedValue && valueOptions.includes(selectedValue);
+      
+      if (!hasValidSelection) {
+        const defaultValue = getDefaultValue(indicator);
+        onValueChange(defaultValue);
+      }
     }
-  }, [indicator, selectedValue, onValueChange]);
+  }, [indicator, valueOptions.length, selectedValue, onValueChange]);
   
   // If there's only one option, don't show the selector
   if (valueOptions.length === 1) {

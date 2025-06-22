@@ -8,7 +8,7 @@ import { InequalitySide } from "./InequalitySide";
 
 interface EditModeInequalityProps {
   localInequality: Inequality;
-  setLocalInequality: (inequality: Inequality) => void;
+  setLocalInequality: React.Dispatch<React.SetStateAction<Inequality>>;
   isIncomplete: boolean;
   showValidation: boolean;
   onSave: () => void;

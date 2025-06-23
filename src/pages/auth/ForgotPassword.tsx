@@ -10,15 +10,25 @@ import { Loader2, ArrowLeft, Mail, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Turnstile } from "@/components/Turnstile";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ForgotPassword() {
+  usePageTitle("Reset Password - StratAIge");
+
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!turnstileToken) {
+      toast.error("Please complete the security verification");
+      return;
+    }
     
     if (!email) {
       toast.error("Please enter your email address");
@@ -86,6 +96,7 @@ export default function ForgotPassword() {
                   onClick={() => {
                     setIsEmailSent(false);
                     setEmail("");
+                    setTurnstileToken(null);
                   }}
                   className="w-full"
                 >
@@ -120,13 +131,18 @@ export default function ForgotPassword() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 autoComplete="email"
+                disabled={isLoading}
               />
+            </div>
+
+            <div className="flex justify-center">
+              <Turnstile onVerify={setTurnstileToken} />
             </div>
 
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={isLoading || !turnstileToken}
             >
               {isLoading ? (
                 <>

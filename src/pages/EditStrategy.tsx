@@ -326,14 +326,16 @@ const EditStrategy = () => {
     if (!id) return;
     try {
       setIsSaving(true);
+      console.log('Starting strategy save process...');
 
       // Update strategy information
+      console.log('Updating basic strategy information...');
       const { error: strategyError } = await supabase.from('strategies').update({
         name: strategyName,
         description: description,
         timeframe: timeframe, 
         target_asset: targetAsset,
-        target_asset_name: targetAssetName, // Ensure target_asset_name is included
+        target_asset_name: targetAssetName,
         is_active: isActive,
         stop_loss: stopLoss,
         take_profit: takeProfit,
@@ -343,43 +345,56 @@ const EditStrategy = () => {
       }).eq('id', id);
       
       if (strategyError) {
+        console.error('Error updating strategy:', strategyError);
         throw new Error(`Error updating strategy: ${strategyError.message}`);
       }
+      console.log('Basic strategy information updated successfully');
 
       // Get all existing rule groups for this strategy
+      console.log('Fetching existing rule groups...');
       const {
         data: existingRuleGroups,
         error: ruleGroupsError
       } = await supabase.from('rule_groups').select('id, rule_type').eq('strategy_id', id);
+      
       if (ruleGroupsError) {
+        console.error('Error fetching rule groups:', ruleGroupsError);
         throw new Error(`Error fetching rule groups: ${ruleGroupsError.message}`);
       }
+      console.log('Existing rule groups:', existingRuleGroups);
 
       // Delete existing rule groups and their associated trading rules
       if (existingRuleGroups && existingRuleGroups.length > 0) {
-        // Get the IDs of all rule groups
         const ruleGroupIds = existingRuleGroups.map(group => group.id);
+        console.log('Deleting existing trading rules for groups:', ruleGroupIds);
 
         // Delete trading rules first (foreign key constraint)
         const {
           error: deleteRulesError
         } = await supabase.from('trading_rules').delete().in('rule_group_id', ruleGroupIds);
         if (deleteRulesError) {
+          console.error('Error deleting trading rules:', deleteRulesError);
           throw new Error(`Error deleting trading rules: ${deleteRulesError.message}`);
         }
+        console.log('Existing trading rules deleted');
 
         // Delete rule groups
+        console.log('Deleting existing rule groups...');
         const {
           error: deleteGroupsError
         } = await supabase.from('rule_groups').delete().eq('strategy_id', id);
         if (deleteGroupsError) {
+          console.error('Error deleting rule groups:', deleteGroupsError);
           throw new Error(`Error deleting rule groups: ${deleteGroupsError.message}`);
         }
+        console.log('Existing rule groups deleted');
       }
 
       // Create new entry rule groups and rules
+      console.log('Creating entry rules:', entryRules);
       for (let groupIndex = 0; groupIndex < entryRules.length; groupIndex++) {
         const group = entryRules[groupIndex];
+        console.log(`Processing entry group ${groupIndex + 1}:`, group);
 
         // Insert the rule group
         const {
@@ -392,40 +407,55 @@ const EditStrategy = () => {
           logic: group.logic,
           required_conditions: group.logic === 'OR' ? group.requiredConditions : null
         }).select().single();
+        
         if (entryGroupError) {
+          console.error('Error creating entry rule group:', entryGroupError);
           throw new Error(`Error creating entry rule group: ${entryGroupError.message}`);
         }
+        console.log('Created entry rule group:', entryGroup);
 
         // Add each inequality as a trading rule
         for (let i = 0; i < group.inequalities.length; i++) {
           const inequality = group.inequalities[i];
-          const {
-            error: ruleError
-          } = await supabase.from('trading_rules').insert({
+          console.log(`Processing entry inequality ${i + 1}:`, inequality);
+          
+          // Ensure proper data types and handle undefined values
+          const tradingRuleData = {
             rule_group_id: entryGroup.id,
             inequality_order: i + 1,
-            left_type: inequality.left.type,
-            left_indicator: inequality.left.indicator,
-            left_parameters: inequality.left.parameters,
-            left_value: inequality.left.value,
-            left_value_type: inequality.left.valueType,
-            condition: inequality.condition,
-            right_type: inequality.right.type,
-            right_indicator: inequality.right.indicator,
-            right_parameters: inequality.right.parameters,
-            right_value: inequality.right.value,
-            right_value_type: inequality.right.valueType,
-            explanation: inequality.explanation
-          });
+            left_type: inequality.left?.type || '',
+            left_indicator: inequality.left?.indicator || null,
+            left_parameters: inequality.left?.parameters || {},
+            left_value: inequality.left?.value || null,
+            left_value_type: inequality.left?.valueType || null,
+            condition: inequality.condition || '',
+            right_type: inequality.right?.type || '',
+            right_indicator: inequality.right?.indicator || null,
+            right_parameters: inequality.right?.parameters || {},
+            right_value: inequality.right?.value || null,
+            right_value_type: inequality.right?.valueType || null,
+            explanation: inequality.explanation || null
+          };
+          
+          console.log('Inserting trading rule data:', tradingRuleData);
+          
+          const {
+            error: ruleError
+          } = await supabase.from('trading_rules').insert(tradingRuleData);
+          
           if (ruleError) {
+            console.error('Error saving entry rule:', ruleError);
             throw new Error(`Error saving entry rule: ${ruleError.message}`);
           }
+          console.log(`Entry rule ${i + 1} saved successfully`);
         }
       }
 
       // Create new exit rule groups and rules
+      console.log('Creating exit rules:', exitRules);
       for (let groupIndex = 0; groupIndex < exitRules.length; groupIndex++) {
         const group = exitRules[groupIndex];
+        console.log(`Processing exit group ${groupIndex + 1}:`, group);
 
         // Insert the rule group
         const {
@@ -438,44 +468,59 @@ const EditStrategy = () => {
           logic: group.logic,
           required_conditions: group.logic === 'OR' ? group.requiredConditions : null
         }).select().single();
+        
         if (exitGroupError) {
+          console.error('Error creating exit rule group:', exitGroupError);
           throw new Error(`Error creating exit rule group: ${exitGroupError.message}`);
         }
+        console.log('Created exit rule group:', exitGroup);
 
         // Add each inequality as a trading rule
         for (let i = 0; i < group.inequalities.length; i++) {
           const inequality = group.inequalities[i];
-          const {
-            error: ruleError
-          } = await supabase.from('trading_rules').insert({
+          console.log(`Processing exit inequality ${i + 1}:`, inequality);
+          
+          // Ensure proper data types and handle undefined values
+          const tradingRuleData = {
             rule_group_id: exitGroup.id,
             inequality_order: i + 1,
-            left_type: inequality.left.type,
-            left_indicator: inequality.left.indicator,
-            left_parameters: inequality.left.parameters,
-            left_value: inequality.left.value,
-            left_value_type: inequality.left.valueType,
-            condition: inequality.condition,
-            right_type: inequality.right.type,
-            right_indicator: inequality.right.indicator,
-            right_parameters: inequality.right.parameters,
-            right_value: inequality.right.value,
-            right_value_type: inequality.right.valueType,
-            explanation: inequality.explanation
-          });
+            left_type: inequality.left?.type || '',
+            left_indicator: inequality.left?.indicator || null,
+            left_parameters: inequality.left?.parameters || {},
+            left_value: inequality.left?.value || null,
+            left_value_type: inequality.left?.valueType || null,
+            condition: inequality.condition || '',
+            right_type: inequality.right?.type || '',
+            right_indicator: inequality.right?.indicator || null,
+            right_parameters: inequality.right?.parameters || {},
+            right_value: inequality.right?.value || null,
+            right_value_type: inequality.right?.valueType || null,
+            explanation: inequality.explanation || null
+          };
+          
+          console.log('Inserting trading rule data:', tradingRuleData);
+          
+          const {
+            error: ruleError
+          } = await supabase.from('trading_rules').insert(tradingRuleData);
+          
           if (ruleError) {
+            console.error('Error saving exit rule:', ruleError);
             throw new Error(`Error saving exit rule: ${ruleError.message}`);
           }
+          console.log(`Exit rule ${i + 1} saved successfully`);
         }
       }
-      toast("Your strategy has been successfully updated.");
+      
+      console.log('All strategy data saved successfully');
+      toast.success("Your strategy has been successfully updated.");
       navigate(`/strategy/${id}`);
     } catch (error) {
       console.error("Error saving strategy:", error);
       if (error instanceof Error) {
-        toast.error(error.message);
+        toast.error(`Failed to save strategy: ${error.message}`);
       } else {
-        toast.error("An unknown error occurred");
+        toast.error("An unknown error occurred while saving the strategy");
       }
     } finally {
       setIsSaving(false);

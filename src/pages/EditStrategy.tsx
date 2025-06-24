@@ -133,13 +133,31 @@ const EditStrategy = () => {
 
         // Process timeframe to ensure it matches our standard options format
         let normalizedTimeframe = strategy.timeframe;
-        // Legacy conversion for any timeframe values not already standardized
-        if (strategy.timeframe === "1d") {
-          normalizedTimeframe = "Daily";
+        
+        // Handle legacy timeframe conversions
+        const timeframeMappings: { [key: string]: string } = {
+          "1d": "Daily",
+          "1w": "Weekly",
+          "1M": "Monthly",
+          "1day": "Daily",
+          "1week": "Weekly",
+          "1month": "Monthly"
+        };
+        
+        if (timeframeMappings[strategy.timeframe]) {
+          normalizedTimeframe = timeframeMappings[strategy.timeframe];
         }
         
-        console.log("Setting timeframe from strategy data:", normalizedTimeframe);
-        setTimeframe(normalizedTimeframe || "");
+        // Verify the timeframe exists in our options
+        const validTimeframe = TIMEFRAME_OPTIONS.find(option => option.value === normalizedTimeframe);
+        if (validTimeframe) {
+          console.log("Setting valid timeframe:", normalizedTimeframe);
+          setTimeframe(normalizedTimeframe);
+        } else {
+          console.warn("Invalid timeframe found:", strategy.timeframe, "- setting to Daily as fallback");
+          setTimeframe("Daily");
+        }
+
         setTargetAsset(strategy.targetAsset || "");
         setTargetAssetName(strategy.targetAssetName || "");
         setIsActive(strategy.isActive);
@@ -291,14 +309,17 @@ const EditStrategy = () => {
       searchAssets(searchQuery);
     }
   }, [searchQuery, isSearchOpen, searchAssets]);
+
   const handleSearchOpen = () => {
     setIsSearchOpen(true);
   };
+
   const handleSelectAsset = (asset: Asset) => {
     setTargetAsset(asset.symbol);
     setTargetAssetName(asset.name || "");
     setIsSearchOpen(false);
   };
+
   const handleCancel = () => {
     // Navigate to the strategy detail page instead of going back in history
     if (id) {
@@ -307,6 +328,7 @@ const EditStrategy = () => {
       navigate('/strategies');
     }
   };
+
   const handleSave = async () => {
     setShowValidation(true);
     
@@ -327,6 +349,10 @@ const EditStrategy = () => {
     try {
       setIsSaving(true);
       console.log('Starting strategy save process...');
+
+      // Enhanced logging for trading rules data
+      console.log('Current entry rules before save:', JSON.stringify(entryRules, null, 2));
+      console.log('Current exit rules before save:', JSON.stringify(exitRules, null, 2));
 
       // Update strategy information
       console.log('Updating basic strategy information...');
@@ -396,6 +422,12 @@ const EditStrategy = () => {
         const group = entryRules[groupIndex];
         console.log(`Processing entry group ${groupIndex + 1}:`, group);
 
+        // Skip groups with no inequalities
+        if (!group.inequalities || group.inequalities.length === 0) {
+          console.log(`Skipping entry group ${groupIndex + 1} - no inequalities`);
+          continue;
+        }
+
         // Insert the rule group
         const {
           data: entryGroup,
@@ -404,7 +436,7 @@ const EditStrategy = () => {
           strategy_id: id,
           rule_type: 'entry',
           group_order: groupIndex + 1,
-          logic: group.logic,
+          logic: group.logic || 'AND',
           required_conditions: group.logic === 'OR' ? group.requiredConditions : null
         }).select().single();
         
@@ -419,25 +451,25 @@ const EditStrategy = () => {
           const inequality = group.inequalities[i];
           console.log(`Processing entry inequality ${i + 1}:`, inequality);
           
-          // Ensure proper data types and handle undefined values
+          // Enhanced data validation and null safety
           const tradingRuleData = {
             rule_group_id: entryGroup.id,
             inequality_order: i + 1,
             left_type: inequality.left?.type || '',
             left_indicator: inequality.left?.indicator || null,
-            left_parameters: inequality.left?.parameters || {},
+            left_parameters: inequality.left?.parameters ? JSON.parse(JSON.stringify(inequality.left.parameters)) : {},
             left_value: inequality.left?.value || null,
             left_value_type: inequality.left?.valueType || null,
             condition: inequality.condition || '',
             right_type: inequality.right?.type || '',
             right_indicator: inequality.right?.indicator || null,
-            right_parameters: inequality.right?.parameters || {},
+            right_parameters: inequality.right?.parameters ? JSON.parse(JSON.stringify(inequality.right.parameters)) : {},
             right_value: inequality.right?.value || null,
             right_value_type: inequality.right?.valueType || null,
             explanation: inequality.explanation || null
           };
           
-          console.log('Inserting trading rule data:', tradingRuleData);
+          console.log('Inserting trading rule data:', JSON.stringify(tradingRuleData, null, 2));
           
           const {
             error: ruleError
@@ -445,6 +477,7 @@ const EditStrategy = () => {
           
           if (ruleError) {
             console.error('Error saving entry rule:', ruleError);
+            console.error('Failed rule data:', tradingRuleData);
             throw new Error(`Error saving entry rule: ${ruleError.message}`);
           }
           console.log(`Entry rule ${i + 1} saved successfully`);
@@ -457,6 +490,12 @@ const EditStrategy = () => {
         const group = exitRules[groupIndex];
         console.log(`Processing exit group ${groupIndex + 1}:`, group);
 
+        // Skip groups with no inequalities
+        if (!group.inequalities || group.inequalities.length === 0) {
+          console.log(`Skipping exit group ${groupIndex + 1} - no inequalities`);
+          continue;
+        }
+
         // Insert the rule group
         const {
           data: exitGroup,
@@ -465,7 +504,7 @@ const EditStrategy = () => {
           strategy_id: id,
           rule_type: 'exit',
           group_order: groupIndex + 1,
-          logic: group.logic,
+          logic: group.logic || 'AND',
           required_conditions: group.logic === 'OR' ? group.requiredConditions : null
         }).select().single();
         
@@ -480,25 +519,25 @@ const EditStrategy = () => {
           const inequality = group.inequalities[i];
           console.log(`Processing exit inequality ${i + 1}:`, inequality);
           
-          // Ensure proper data types and handle undefined values
+          // Enhanced data validation and null safety
           const tradingRuleData = {
             rule_group_id: exitGroup.id,
             inequality_order: i + 1,
             left_type: inequality.left?.type || '',
             left_indicator: inequality.left?.indicator || null,
-            left_parameters: inequality.left?.parameters || {},
+            left_parameters: inequality.left?.parameters ? JSON.parse(JSON.stringify(inequality.left.parameters)) : {},
             left_value: inequality.left?.value || null,
             left_value_type: inequality.left?.valueType || null,
             condition: inequality.condition || '',
             right_type: inequality.right?.type || '',
             right_indicator: inequality.right?.indicator || null,
-            right_parameters: inequality.right?.parameters || {},
+            right_parameters: inequality.right?.parameters ? JSON.parse(JSON.stringify(inequality.right.parameters)) : {},
             right_value: inequality.right?.value || null,
             right_value_type: inequality.right?.valueType || null,
             explanation: inequality.explanation || null
           };
           
-          console.log('Inserting trading rule data:', tradingRuleData);
+          console.log('Inserting trading rule data:', JSON.stringify(tradingRuleData, null, 2));
           
           const {
             error: ruleError
@@ -506,6 +545,7 @@ const EditStrategy = () => {
           
           if (ruleError) {
             console.error('Error saving exit rule:', ruleError);
+            console.error('Failed rule data:', tradingRuleData);
             throw new Error(`Error saving exit rule: ${ruleError.message}`);
           }
           console.log(`Exit rule ${i + 1} saved successfully`);
@@ -526,12 +566,15 @@ const EditStrategy = () => {
       setIsSaving(false);
     }
   };
+
   const handleEntryRulesChange = (rules: RuleGroupData[]) => {
     setEntryRules(rules);
   };
+
   const handleExitRulesChange = (rules: RuleGroupData[]) => {
     setExitRules(rules);
   };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">

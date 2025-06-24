@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -7,6 +8,7 @@ import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
+import { SignalMonitoringStatusCard } from "@/components/strategy-detail/SignalMonitoringStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info } from "lucide-react";
@@ -354,6 +356,11 @@ const StrategyDetail = () => {
             isActive={isActive} 
             onStatusChange={handleStatusChange} 
           />
+
+          {/* Signal Monitoring Status - only show for strategies with valid rules */}
+          {hasValidTradingRules && (
+            <SignalMonitoringStatusCard strategyId={id || ""} />
+          )}
           
           <TradingRules 
             entryRules={entryRules} 

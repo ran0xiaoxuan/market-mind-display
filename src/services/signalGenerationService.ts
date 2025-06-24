@@ -135,7 +135,7 @@ export const generateTradingSignal = async (
 
     console.log('Valid signal generated:', signal);
 
-    // Trigger notification processing
+    // Trigger notification processing with PRO member validation
     await processSignalNotifications(signal.id);
 
     return signal;
@@ -173,6 +173,25 @@ export const processSignalNotifications = async (signalId: string) => {
 
     const userId = signal.strategies.user_id;
 
+    // CRITICAL: Check if user is PRO member before sending notifications
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return;
+    }
+
+    if (!profile || profile.subscription_tier !== 'pro') {
+      console.log(`User ${userId} is not a PRO member - notifications will not be sent`);
+      return;
+    }
+
+    console.log(`User ${userId} is PRO member - proceeding with notifications`);
+
     // Get user notification settings
     const { data: settings, error: settingsError } = await supabase
       .from('notification_settings')
@@ -197,10 +216,10 @@ export const processSignalNotifications = async (signalId: string) => {
     }
 
     // Get user email for notifications
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError) throw userError;
 
-    const userEmail = userData.user?.email;
+    const userEmail = user?.email;
 
     // Send notifications based on enabled channels
     const notifications = [];

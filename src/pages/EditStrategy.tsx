@@ -107,6 +107,96 @@ const EditStrategy = () => {
   const riskManagementErrors = showValidation ? validateRiskManagement() : [];
   const tradingRulesErrors = showValidation ? validateTradingRules() : [];
 
+  // Function to normalize timeframe from database format to TIMEFRAME_OPTIONS value
+  const normalizeTimeframe = (dbTimeframe: string): string => {
+    if (!dbTimeframe) return "Daily";
+    
+    // Create comprehensive mapping from database formats to TIMEFRAME_OPTIONS values
+    const timeframeMappings: { [key: string]: string } = {
+      // Direct matches (already correct)
+      "1m": "1m",
+      "5m": "5m", 
+      "15m": "15m",
+      "30m": "30m",
+      "1h": "1h",
+      "4h": "4h",
+      "Daily": "Daily",
+      "Weekly": "Weekly",
+      "Monthly": "Monthly",
+      
+      // Common variations that need mapping
+      "1 minute": "1m",
+      "1minute": "1m",
+      "1-minute": "1m",
+      "1 min": "1m",
+      "1min": "1m",
+      
+      "5 minutes": "5m",
+      "5minutes": "5m", 
+      "5-minutes": "5m",
+      "5 mins": "5m",
+      "5mins": "5m",
+      
+      "15 minutes": "15m",
+      "15minutes": "15m",
+      "15-minutes": "15m", 
+      "15 mins": "15m",
+      "15mins": "15m",
+      
+      "30 minutes": "30m",
+      "30minutes": "30m",
+      "30-minutes": "30m",
+      "30 mins": "30m", 
+      "30mins": "30m",
+      
+      "1 hour": "1h",
+      "1hour": "1h",
+      "1-hour": "1h",
+      "1 hr": "1h",
+      "1hr": "1h",
+      
+      "4 hours": "4h",
+      "4hours": "4h",
+      "4-hours": "4h", 
+      "4 hrs": "4h",
+      "4hrs": "4h",
+      
+      // Legacy formats
+      "1d": "Daily",
+      "1day": "Daily",
+      "1-day": "Daily", 
+      "daily": "Daily",
+      
+      "1w": "Weekly",
+      "1week": "Weekly",
+      "1-week": "Weekly",
+      "weekly": "Weekly",
+      
+      "1M": "Monthly",
+      "1month": "Monthly", 
+      "1-month": "Monthly",
+      "monthly": "Monthly"
+    };
+    
+    // Try direct mapping first (case-insensitive)
+    const lowerTimeframe = dbTimeframe.toLowerCase();
+    if (timeframeMappings[lowerTimeframe]) {
+      console.log(`Mapped timeframe "${dbTimeframe}" to "${timeframeMappings[lowerTimeframe]}"`);
+      return timeframeMappings[lowerTimeframe];
+    }
+    
+    // If no mapping found, check if it's already a valid TIMEFRAME_OPTIONS value
+    const validOption = TIMEFRAME_OPTIONS.find(option => option.value === dbTimeframe);
+    if (validOption) {
+      console.log(`Timeframe "${dbTimeframe}" is already valid`);
+      return dbTimeframe;
+    }
+    
+    // Log unmapped timeframe and return default
+    console.warn(`Unmapped timeframe "${dbTimeframe}" - defaulting to Daily`);
+    return "Daily";
+  };
+
   // Fetch strategy data when component mounts
   useEffect(() => {
     const fetchStrategyData = async () => {
@@ -131,32 +221,10 @@ const EditStrategy = () => {
         setStrategyName(strategy.name);
         setDescription(strategy.description || "");
 
-        // Process timeframe to ensure it matches our standard options format
-        let normalizedTimeframe = strategy.timeframe;
-        
-        // Handle legacy timeframe conversions
-        const timeframeMappings: { [key: string]: string } = {
-          "1d": "Daily",
-          "1w": "Weekly",
-          "1M": "Monthly",
-          "1day": "Daily",
-          "1week": "Weekly",
-          "1month": "Monthly"
-        };
-        
-        if (timeframeMappings[strategy.timeframe]) {
-          normalizedTimeframe = timeframeMappings[strategy.timeframe];
-        }
-        
-        // Verify the timeframe exists in our options
-        const validTimeframe = TIMEFRAME_OPTIONS.find(option => option.value === normalizedTimeframe);
-        if (validTimeframe) {
-          console.log("Setting valid timeframe:", normalizedTimeframe);
-          setTimeframe(normalizedTimeframe);
-        } else {
-          console.warn("Invalid timeframe found:", strategy.timeframe, "- setting to Daily as fallback");
-          setTimeframe("Daily");
-        }
+        // Process timeframe using the new normalization function
+        const normalizedTimeframe = normalizeTimeframe(strategy.timeframe);
+        console.log(`Original timeframe: "${strategy.timeframe}" -> Normalized: "${normalizedTimeframe}"`);
+        setTimeframe(normalizedTimeframe);
 
         setTargetAsset(strategy.targetAsset || "");
         setTargetAssetName(strategy.targetAssetName || "");

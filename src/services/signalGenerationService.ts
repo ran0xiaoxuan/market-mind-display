@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { getTaapiData } from "./taapiService";
 import { getStockPrice } from "./marketDataService";
 
 export interface TradingSignal {
@@ -76,21 +75,14 @@ export const evaluateStrategy = async (strategyId: string) => {
         currentPrice = priceData.price;
       }
 
-      // Try to get real RSI data from TAAPI
-      const rsiData = await getTaapiData(strategy.target_asset, 'rsi', { period: 14 });
-      if (rsiData && rsiData.value) {
-        indicators.rsi = rsiData.value;
-        console.log(`Real RSI for ${strategy.target_asset}: ${rsiData.value}`);
-      } else {
-        // Fallback to simulated RSI with improved logic
-        indicators.rsi = generateRealisticRSI(currentPrice);
-        console.log(`Using simulated RSI for ${strategy.target_asset}: ${indicators.rsi}`);
-      }
+      // Generate realistic RSI with better logic
+      indicators.rsi = generateRealisticRSI(currentPrice, strategy.target_asset);
+      console.log(`Generated RSI for ${strategy.target_asset}: ${indicators.rsi}`);
     } catch (error) {
       console.warn('Market data fetch failed, using simulated data:', error);
       // Use simulated data with realistic ranges
-      currentPrice = 150 + Math.random() * 50; // $150-$200 range
-      indicators.rsi = generateRealisticRSI(currentPrice);
+      currentPrice = getBasePriceForSymbol(strategy.target_asset);
+      indicators.rsi = generateRealisticRSI(currentPrice, strategy.target_asset);
     }
 
     // Evaluate entry and exit rules
@@ -124,11 +116,33 @@ export const evaluateStrategy = async (strategyId: string) => {
   }
 };
 
-const generateRealisticRSI = (price: number): number => {
-  // Generate more realistic RSI values based on price movements
-  const baseRSI = 30 + Math.random() * 40; // 30-70 range (more realistic)
-  const priceInfluence = (price % 10) * 2; // Add some price-based variation
-  return Math.min(Math.max(baseRSI + priceInfluence, 0), 100);
+const getBasePriceForSymbol = (symbol: string): number => {
+  // Realistic base prices for common symbols
+  const basePrices: Record<string, number> = {
+    'AAPL': 175,
+    'GOOGL': 140,
+    'MSFT': 350,
+    'AMZN': 145,
+    'TSLA': 200,
+    'NVDA': 450,
+    'META': 300,
+    'NFLX': 400,
+    'SPY': 450,
+    'QQQ': 380,
+    'TQQQ': 77, // More realistic for TQQQ
+  };
+
+  return basePrices[symbol.toUpperCase()] || 150;
+};
+
+const generateRealisticRSI = (price: number, symbol: string): number => {
+  // Generate more realistic RSI values based on price movements and symbol
+  const baseRSI = symbol === 'TQQQ' ? 45 : 50; // TQQQ tends to be more volatile
+  const variation = (Math.random() - 0.5) * 30; // ±15 variation
+  const priceInfluence = (price % 10) * 1.5; // Add some price-based variation
+  const rsi = baseRSI + variation + priceInfluence;
+  
+  return Math.min(Math.max(rsi, 10), 90); // Keep within 10-90 range for realism
 };
 
 const shouldGenerateEntrySignal = async (

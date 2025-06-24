@@ -96,7 +96,7 @@ const StrategyDetail = () => {
         setHasValidTradingRules(hasEntryRules || hasExitRules);
       }
       
-      // Fetch real trading signals for this specific strategy
+      // Fetch trading signals for this specific strategy - use the same logic as dashboard
       console.log("Fetching trading signals for strategy:", id);
       const { data: signals, error: signalsError } = await supabase
         .from("trading_signals")
@@ -108,6 +108,7 @@ const StrategyDetail = () => {
       
       if (signalsError) {
         console.error('Error fetching signals:', signalsError);
+        setTrades([]);
       } else if (signals && signals.length > 0) {
         console.log(`Found ${signals.length} signals for strategy ${id}`);
         
@@ -123,7 +124,7 @@ const StrategyDetail = () => {
           console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
         }
 
-        // Format trading signals for display
+        // Format trading signals for display - same format as dashboard
         const formattedTrades = signals.map(signal => {
           const signalData = (signal.signal_data as SignalData) || {};
           const currentPrice = currentPrices.get(strategyData.targetAsset);
@@ -156,12 +157,13 @@ const StrategyDetail = () => {
             profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
             strategyId: id,
+            strategyName: strategyData.name,
             targetAsset: strategyData.targetAsset
           };
         });
         
         setTrades(formattedTrades);
-        console.log(`Formatted ${formattedTrades.length} trades for display`);
+        console.log(`Formatted ${formattedTrades.length} trades for display on strategy detail page`);
       } else {
         console.log('No trading signals found for this strategy');
         setTrades([]);
@@ -323,7 +325,7 @@ const StrategyDetail = () => {
         <div className="my-6 space-y-8">
           <StrategyHeader 
             strategyId={id || ""} 
-            strategyName={strategy.name} 
+            strategyName={strategy?.name || ""} 
           />
           
           {!hasValidTradingRules && (

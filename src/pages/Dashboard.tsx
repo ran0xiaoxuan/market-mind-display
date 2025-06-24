@@ -10,10 +10,12 @@ import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTabl
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 import { calculatePortfolioMetrics, getRealTradeHistory } from "@/services/marketDataService";
 import { getStrategies } from "@/services/strategyService";
-import { cleanupInvalidSignals, getCleanTradingSignals } from "@/services/signalCleanupService";
+import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
+
 type TimeRange = "7d" | "30d" | "all";
+
 const Dashboard = () => {
   usePageTitle("Dashboard - StratAIge");
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
@@ -22,6 +24,7 @@ const Dashboard = () => {
   const [metrics, setMetrics] = useState<any>(null);
   const [tradeHistory, setTradeHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
     if (range === "7d") {
@@ -42,25 +45,28 @@ const Dashboard = () => {
       await cleanupInvalidSignals();
 
       // Fetch strategies, portfolio metrics and real trade history in parallel
-      const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([getStrategies(), calculatePortfolioMetrics(timeRange), getRealTradeHistory(timeRange)]);
+      const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([
+        getStrategies(), 
+        calculatePortfolioMetrics(timeRange), 
+        getRealTradeHistory(timeRange)
+      ]);
 
       // Calculate strategy metrics from actual user strategies
       const totalStrategies = strategies.length;
       const activeStrategies = strategies.filter(s => s.isActive).length;
 
-      // Calculate signal amount and transaction amount from real trade history (not backtest data)
+      // Use real trade history data directly from the service
       const signalAmount = realTradeHistory.length;
 
-      // Calculate total transaction amount as sum of (price × contracts) for each real trade
+      // Calculate total transaction amount from real trade history
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
         const price = parseFloat(trade.price.replace('$', '')) || 0;
         const contracts = parseInt(trade.contracts.toString()) || 0;
         const subtotal = price * contracts;
-        console.log(`Real trade: price=${price}, contracts=${contracts}, subtotal=${subtotal}`);
         return total + subtotal;
       }, 0);
-      console.log(`Total transaction amount from real trades: ${transactionAmount}`);
-      console.log(`Real trade history data:`, realTradeHistory);
+
+      console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Signals: ${signalAmount}, Transaction Amount: ${transactionAmount}`);
 
       // Update metrics with real strategy counts and real trading data
       const updatedMetrics = {
@@ -122,20 +128,25 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchDashboardData();
   }, [timeRange]);
 
   // Fixed number of trades to show in the dashboard view
   const MAX_VISIBLE_TRADES = 5;
+
   const openTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(true);
   };
+
   const closeTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(false);
   };
+
   if (loading) {
-    return <div className="min-h-screen flex flex-col bg-background">
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         <main className="flex-1">
           <Container className="py-6">
@@ -155,10 +166,12 @@ const Dashboard = () => {
             </div>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map(i => <div key={i} className="rounded-md border bg-card p-4 shadow-sm animate-pulse">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="rounded-md border bg-card p-4 shadow-sm animate-pulse">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
                   <div className="h-8 bg-gray-200 rounded"></div>
-                </div>)}
+                </div>
+              ))}
             </div>
 
             <div className="grid gap-6 mt-6 lg:grid-cols-8">
@@ -167,7 +180,9 @@ const Dashboard = () => {
                   <div className="p-6">
                     <div className="h-6 bg-gray-200 rounded mb-4 animate-pulse"></div>
                     <div className="space-y-3">
-                      {[1, 2, 3].map(i => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>)}
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                      ))}
                     </div>
                   </div>
                 </Card>
@@ -178,9 +193,12 @@ const Dashboard = () => {
             </div>
           </Container>
         </main>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen flex flex-col bg-background">
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
         <Container className="py-6">
@@ -199,12 +217,14 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {metrics && <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {metrics && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <MetricCard title="Total Strategies" value={metrics.strategiesCount} change={metrics.strategiesChange} />
               <MetricCard title="Active Strategies" value={metrics.activeStrategies} change={metrics.activeChange} />
               <MetricCard title="Signal Amount" value={metrics.signalAmount} change={metrics.signalChange} />
               <MetricCard title="Transaction Amount of Signals" value={metrics.transactionAmount} change={metrics.transactionChange} trades={tradeHistory} />
-            </div>}
+            </div>
+          )}
 
           <div className="grid gap-6 mt-6 lg:grid-cols-8">
             <div className="space-y-6 lg:col-span-5">
@@ -214,7 +234,13 @@ const Dashboard = () => {
                 </div>
 
                 <div className="px-6 pb-6">
-                  <TradeHistoryTable trades={tradeHistory} maxRows={MAX_VISIBLE_TRADES} showViewAllButton={true} onViewAllClick={openTradeHistoryModal} enableRowClick={true} />
+                  <TradeHistoryTable 
+                    trades={tradeHistory} 
+                    maxRows={MAX_VISIBLE_TRADES} 
+                    showViewAllButton={true} 
+                    onViewAllClick={openTradeHistoryModal} 
+                    enableRowClick={true} 
+                  />
                 </div>
               </Card>
             </div>
@@ -225,12 +251,20 @@ const Dashboard = () => {
 
           {/* Recent Activities at the bottom */}
           <div className="mt-6">
-        </div>
+            {/* Additional content can go here */}
+          </div>
         </Container>
       </main>
 
       {/* Trade History Modal */}
-      <TradeHistoryModal isOpen={isTradeHistoryModalOpen} onClose={closeTradeHistoryModal} trades={tradeHistory} title="All Trade History" />
-    </div>;
+      <TradeHistoryModal 
+        isOpen={isTradeHistoryModalOpen} 
+        onClose={closeTradeHistoryModal} 
+        trades={tradeHistory} 
+        title="All Trade History" 
+      />
+    </div>
+  );
 };
+
 export default Dashboard;

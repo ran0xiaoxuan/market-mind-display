@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -302,6 +301,23 @@ const StrategyDetail = () => {
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        </Container>
+      </>
+    );
+  }
+
+  // Only create riskManagementData if strategy is loaded
+  if (!strategy) {
+    return (
+      <>
+        <Navbar />
+        <Container>
+          <div className="my-4 space-y-6">
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-60 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
         </Container>
       </>
     );

@@ -333,11 +333,28 @@ export const cleanupInvalidSignals = async () => {
   try {
     console.log('Starting cleanup of invalid signals...');
 
+    // First get all valid strategy IDs
+    const { data: validStrategies, error: strategiesError } = await supabase
+      .from('strategies')
+      .select('id');
+
+    if (strategiesError) {
+      console.error('Error fetching valid strategies:', strategiesError);
+      throw strategiesError;
+    }
+
+    if (!validStrategies || validStrategies.length === 0) {
+      console.log('No valid strategies found, skipping cleanup');
+      return;
+    }
+
+    const validStrategyIds = validStrategies.map(s => s.id);
+
     // Delete signals that don't have valid strategy references
     const { error: deleteError } = await supabase
       .from('trading_signals')
       .delete()
-      .not('strategy_id', 'in', `(SELECT id FROM strategies)`);
+      .not('strategy_id', 'in', `(${validStrategyIds.join(',')})`);
 
     if (deleteError) {
       console.error('Error cleaning up invalid signals:', deleteError);

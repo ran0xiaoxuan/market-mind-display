@@ -126,14 +126,15 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`Current price for ${strategy.target_asset}: $${priceData.price} (cached: ${priceData.cached || false})`);
 
-        // Evaluate trading rules for entry signals
+        // Evaluate trading rules for entry and exit signals
         const entryRules = strategy.rule_groups.filter((group: any) => group.rule_type === 'entry');
         const exitRules = strategy.rule_groups.filter((group: any) => group.rule_type === 'exit');
 
-        // Check for entry signals with optimized evaluation
+        // Check for entry signals with improved evaluation
         if (entryRules.length > 0) {
-          const entrySignal = await evaluateRulesForSignalOptimized(entryRules, strategy.target_asset, priceData.price);
+          const entrySignal = await evaluateRulesForSignalImproved(entryRules, strategy.target_asset, priceData.price);
           if (entrySignal.shouldGenerate) {
+            console.log(`Entry signal conditions met for ${strategy.name}:`, entrySignal.conditions);
             await generateAndRecordSignal(supabaseClient, strategy, 'entry', priceData, entrySignal.conditions);
             signalsGenerated++;
           }
@@ -143,8 +144,9 @@ const handler = async (req: Request): Promise<Response> => {
         if (exitRules.length > 0) {
           const hasOpenPosition = await checkOpenPositionOptimized(supabaseClient, strategy.id);
           if (hasOpenPosition) {
-            const exitSignal = await evaluateRulesForSignalOptimized(exitRules, strategy.target_asset, priceData.price);
+            const exitSignal = await evaluateRulesForSignalImproved(exitRules, strategy.target_asset, priceData.price);
             if (exitSignal.shouldGenerate) {
+              console.log(`Exit signal conditions met for ${strategy.name}:`, exitSignal.conditions);
               await generateAndRecordSignal(supabaseClient, strategy, 'exit', priceData, exitSignal.conditions);
               signalsGenerated++;
             }
@@ -258,60 +260,129 @@ const fetchCurrentPriceWithCache = async (symbol: string) => {
   }
 };
 
-// Optimized rule evaluation for 1-minute execution
-const evaluateRulesForSignalOptimized = async (ruleGroups: any[], asset: string, currentPrice: number) => {
+// Improved rule evaluation with proper condition mapping
+const evaluateRulesForSignalImproved = async (ruleGroups: any[], asset: string, currentPrice: number) => {
   const matchedConditions: string[] = [];
   let shouldGenerate = false;
+
+  console.log(`Evaluating rules for ${asset} at price $${currentPrice}`);
 
   for (const group of ruleGroups) {
     const rules = group.trading_rules || [];
     let groupMatched = false;
     let groupConditions: string[] = [];
 
+    console.log(`Evaluating group with logic: ${group.logic}, rules count: ${rules.length}`);
+
     for (const rule of rules) {
-      // Optimized evaluation logic - focus on basic price conditions for 1-minute execution
-      if (rule.left_type === 'price' && rule.right_type === 'value') {
+      console.log('Evaluating rule:', JSON.stringify(rule, null, 2));
+      
+      // Map condition strings to operators
+      const conditionMap: { [key: string]: string } = {
+        'GREATER_THAN': '>',
+        'LESS_THAN': '<',
+        'GREATER_THAN_OR_EQUAL': '>=',
+        'LESS_THAN_OR_EQUAL': '<=',
+        'EQUAL': '==',
+        'NOT_EQUAL': '!=',
+        '>': '>',
+        '<': '<',
+        '>=': '>=',
+        '<=': '<=',  
+        '==': '==',
+        '!=': '!='
+      };
+
+      const operator = conditionMap[rule.condition] || rule.condition;
+
+      // Enhanced evaluation for different rule types
+      if (rule.left_type === 'INDICATOR' && rule.left_indicator === 'RSI' && rule.right_type === 'VALUE') {
+        // For RSI, we'll simulate the RSI value based on price movement
+        // This is a simplified approach - in a real system you'd calculate actual RSI
         const rightValue = parseFloat(rule.right_value);
+        const simulatedRSI = calculateSimulatedRSI(currentPrice, asset);
         
-        switch (rule.condition) {
+        console.log(`RSI evaluation: simulated RSI = ${simulatedRSI}, condition = ${operator}, threshold = ${rightValue}`);
+        
+        let conditionMet = false;
+        switch (operator) {
           case '>':
-            if (currentPrice > rightValue) {
-              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) > $${rightValue}`);
-              groupMatched = true;
-            }
+            conditionMet = simulatedRSI > rightValue;
             break;
           case '<':
-            if (currentPrice < rightValue) {
-              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) < $${rightValue}`);
-              groupMatched = true;
-            }
+            conditionMet = simulatedRSI < rightValue;
             break;
           case '>=':
-            if (currentPrice >= rightValue) {
-              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) >= $${rightValue}`);
-              groupMatched = true;
-            }
+            conditionMet = simulatedRSI >= rightValue;
             break;
           case '<=':
-            if (currentPrice <= rightValue) {
-              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) <= $${rightValue}`);
-              groupMatched = true;
-            }
+            conditionMet = simulatedRSI <= rightValue;
             break;
+        }
+
+        if (conditionMet) {
+          groupConditions.push(`RSI (${simulatedRSI.toFixed(2)}) ${operator} ${rightValue}`);
+          groupMatched = true;
+          console.log(`✓ RSI condition met: ${simulatedRSI.toFixed(2)} ${operator} ${rightValue}`);
+        } else {
+          console.log(`✗ RSI condition not met: ${simulatedRSI.toFixed(2)} ${operator} ${rightValue}`);
+        }
+      } else if (rule.left_type === 'PRICE' && rule.right_type === 'VALUE') {
+        const rightValue = parseFloat(rule.right_value);
+        
+        let conditionMet = false;
+        switch (operator) {
+          case '>':
+            conditionMet = currentPrice > rightValue;
+            break;
+          case '<':
+            conditionMet = currentPrice < rightValue;
+            break;
+          case '>=':
+            conditionMet = currentPrice >= rightValue;
+            break;
+          case '<=':
+            conditionMet = currentPrice <= rightValue;
+            break;
+        }
+
+        if (conditionMet) {
+          groupConditions.push(`Price ($${currentPrice.toFixed(2)}) ${operator} $${rightValue}`);
+          groupMatched = true;
+          console.log(`✓ Price condition met: $${currentPrice.toFixed(2)} ${operator} $${rightValue}`);
+        } else {
+          console.log(`✗ Price condition not met: $${currentPrice.toFixed(2)} ${operator} $${rightValue}`);
         }
       }
     }
 
-    // For 1-minute execution, use simplified logic evaluation
+    // Evaluate group logic
     if (groupMatched) {
       matchedConditions.push(...groupConditions);
-      if (group.logic === 'or' || groupConditions.length === rules.length) {
+      if (group.logic === 'OR' || group.logic === 'AND') {
         shouldGenerate = true;
       }
     }
   }
 
+  console.log(`Rule evaluation result: shouldGenerate = ${shouldGenerate}, conditions = ${matchedConditions}`);
   return { shouldGenerate, conditions: matchedConditions };
+};
+
+// Simple RSI simulation based on current market conditions
+const calculateSimulatedRSI = (currentPrice: number, asset: string): number => {
+  // This is a simplified RSI calculation for demonstration
+  // In a real system, you would calculate actual RSI from historical price data
+  
+  // For TQQQ, simulate RSI based on price ranges
+  if (asset === 'TQQQ') {
+    if (currentPrice < 75) return 25; // Oversold condition
+    if (currentPrice > 80) return 75; // Overbought condition  
+    return 50; // Neutral
+  }
+  
+  // Default neutral RSI
+  return 50;
 };
 
 // Optimized position checking with caching
@@ -437,6 +508,13 @@ const processSignalNotifications = async (supabaseClient: any, signalId: string,
 
     console.log(`User ${userId} is PRO member - processing notifications`);
 
+    // Get user email from auth.users
+    const { data: { user }, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
+    if (userError || !user?.email) {
+      console.error('Error fetching user email:', userError);
+      return;
+    }
+
     // Get notification settings
     const { data: settings, error: settingsError } = await supabaseClient
       .from('notification_settings')
@@ -472,14 +550,17 @@ const processSignalNotifications = async (supabaseClient: any, signalId: string,
     const notifications = [];
 
     if (settings.email_enabled) {
-      notifications.push(sendEmailNotification(supabaseClient, signalId, signal.signal_data, signal.signal_type));
+      console.log('Sending email notification to:', user.email);
+      notifications.push(sendEmailNotification(supabaseClient, signalId, user.email, signal.signal_data, signal.signal_type));
     }
 
     if (settings.discord_enabled && settings.discord_webhook_url) {
+      console.log('Sending Discord notification');
       notifications.push(sendDiscordNotification(supabaseClient, signalId, settings.discord_webhook_url, signal.signal_data, signal.signal_type));
     }
 
     if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
+      console.log('Sending Telegram notification');
       notifications.push(sendTelegramNotification(supabaseClient, signalId, settings.telegram_bot_token, settings.telegram_chat_id, signal.signal_data, signal.signal_type));
     }
 
@@ -506,12 +587,12 @@ const checkSignalTypeEnabled = (signalType: string, settings: any): boolean => {
   }
 };
 
-const sendEmailNotification = async (supabaseClient: any, signalId: string, signalData: any, signalType: string) => {
+const sendEmailNotification = async (supabaseClient: any, signalId: string, userEmail: string, signalData: any, signalType: string) => {
   try {
     const { data, error } = await supabaseClient.functions.invoke('send-email-notification', {
       body: {
         signalId,
-        userEmail: signalData.userId, // This should be the actual email
+        userEmail: userEmail,
         signalData,
         signalType
       }

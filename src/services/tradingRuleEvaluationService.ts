@@ -1,3 +1,4 @@
+
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { getTaapiIndicator, getIndicatorValue } from "./taapiService";
 
@@ -48,11 +49,11 @@ export const evaluateTradingRules = async (
           
           if (conditionMet) {
             groupConditionsMet++;
-            const conditionDescription = `${inequality.left.type === 'INDICATOR' ? inequality.left.indicator : inequality.left.type} ${inequality.condition} ${inequality.right.type === 'INDICATOR' ? inequality.right.indicator : inequality.right.value}`;
+            const conditionDescription = `${inequality.left.type === 'INDICATOR' ? inequality.left.indicator : inequality.left.type} ${mapConditionToOperator(inequality.condition)} ${inequality.right.type === 'INDICATOR' ? inequality.right.indicator : inequality.right.value}`;
             evaluation.matchedConditions.push(conditionDescription);
             groupEvaluations.push(`✓ ${conditionDescription}`);
           } else {
-            const conditionDescription = `${inequality.left.type === 'INDICATOR' ? inequality.left.indicator : inequality.left.type} ${inequality.condition} ${inequality.right.type === 'INDICATOR' ? inequality.right.indicator : inequality.right.value}`;
+            const conditionDescription = `${inequality.left.type === 'INDICATOR' ? inequality.left.indicator : inequality.left.type} ${mapConditionToOperator(inequality.condition)} ${inequality.right.type === 'INDICATOR' ? inequality.right.indicator : inequality.right.value}`;
             groupEvaluations.push(`✗ ${conditionDescription}`);
           }
         } catch (error) {
@@ -102,6 +103,26 @@ export const evaluateTradingRules = async (
   }
 };
 
+// Map condition strings to operators
+const mapConditionToOperator = (condition: string): string => {
+  const conditionMap: { [key: string]: string } = {
+    'GREATER_THAN': '>',
+    'LESS_THAN': '<', 
+    'GREATER_THAN_OR_EQUAL': '>=',
+    'LESS_THAN_OR_EQUAL': '<=',
+    'EQUAL': '==',
+    'NOT_EQUAL': '!=',
+    '>': '>',
+    '<': '<',
+    '>=': '>=',
+    '<=': '<=',
+    '==': '==',
+    '!=': '!='
+  };
+  
+  return conditionMap[condition] || condition;
+};
+
 const evaluateInequality = async (inequality: any, asset: string, currentPrice: number): Promise<boolean> => {
   try {
     // Get left side value
@@ -112,8 +133,13 @@ const evaluateInequality = async (inequality: any, asset: string, currentPrice: 
     const rightValue = await getValueFromSide(inequality.right, asset, currentPrice);
     if (rightValue === null) return false;
 
+    // Map condition to operator
+    const operator = mapConditionToOperator(inequality.condition);
+
+    console.log(`Evaluating: ${leftValue} ${operator} ${rightValue}`);
+
     // Evaluate condition
-    switch (inequality.condition) {
+    switch (operator) {
       case '>':
         return leftValue > rightValue;
       case '<':

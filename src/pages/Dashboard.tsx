@@ -5,7 +5,6 @@ import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
 import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
-import { RecentActivities } from "@/components/RecentActivities";
 import { useState, useEffect } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
@@ -232,7 +231,7 @@ const Dashboard = () => {
 
           {/* Recent Activities at the bottom */}
           <div className="mt-6">
-            <RecentActivities />
+            RecentActivities
           </div>
         </Container>
       </main>

@@ -9,6 +9,10 @@ export interface SignalMonitoringStatus {
   error?: string;
 }
 
+// Cache for market data and API responses
+const marketDataCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 30000; // 30 seconds cache for market data
+
 export const getSignalMonitoringStatus = async (): Promise<SignalMonitoringStatus> => {
   try {
     // In a real implementation, this would check a monitoring status table
@@ -60,7 +64,11 @@ export const triggerManualSignalCheck = async () => {
     console.log('Triggering manual signal monitoring check...');
     
     const { data, error } = await supabase.functions.invoke('monitor-trading-signals', {
-      body: { manual: true }
+      body: { 
+        manual: true,
+        source: 'manual_trigger',
+        timestamp: new Date().toISOString()
+      }
     });
 
     if (error) {
@@ -76,6 +84,7 @@ export const triggerManualSignalCheck = async () => {
   }
 };
 
+// Enhanced market hours checking with timezone handling
 export const isMarketOpen = (): boolean => {
   const now = new Date();
   const est = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
@@ -122,4 +131,39 @@ export const getNextMarketOpen = (): Date => {
   
   nextMarketDay.setHours(9, 30, 0, 0);
   return nextMarketDay;
+};
+
+// Cache management utilities
+export const getCachedMarketData = (symbol: string) => {
+  const cached = marketDataCache.get(symbol);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+export const setCachedMarketData = (symbol: string, data: any) => {
+  marketDataCache.set(symbol, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
+// Performance monitoring
+export const getMonitoringStats = () => {
+  return {
+    cacheSize: marketDataCache.size,
+    cachedSymbols: Array.from(marketDataCache.keys()),
+    lastCacheCleanup: Date.now()
+  };
+};
+
+// Clean up old cache entries
+export const cleanupCache = () => {
+  const now = Date.now();
+  for (const [key, value] of marketDataCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      marketDataCache.delete(key);
+    }
+  }
 };

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -7,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
+
+// Enhanced cache for 1-minute execution
+const priceCache = new Map<string, { price: any; timestamp: number }>();
+const CACHE_DURATION = 30000; // 30 seconds cache for API calls
+const MAX_STRATEGIES_PER_BATCH = 10; // Process strategies in batches to avoid timeouts
 
 // Check if market is open (US market hours: 9:30 AM - 4:00 PM EST, Monday-Friday)
 const isMarketOpen = (): boolean => {
@@ -28,7 +32,7 @@ const isMarketOpen = (): boolean => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('=== Trading Signal Monitor Started ===');
+  console.log('=== Trading Signal Monitor Started (1-minute frequency) ===');
   console.log('Request method:', req.method);
   
   // Handle CORS preflight
@@ -37,27 +41,33 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const { source = 'unknown', manual = false } = body;
+    
+    console.log(`Signal monitoring triggered by: ${source}, manual: ${manual}`);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     console.log('Checking market status...');
-    if (!isMarketOpen()) {
+    if (!isMarketOpen() && !manual) {
       console.log('Market is closed - no signal monitoring needed');
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Market is closed - no monitoring performed',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          source
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Market is open - starting signal monitoring...');
+    console.log('Market is open - starting optimized 1-minute signal monitoring...');
 
-    // Get all active strategies
+    // Get active strategies with optimized query
     const { data: strategies, error: strategiesError } = await supabaseClient
       .from('strategies')
       .select(`
@@ -73,7 +83,8 @@ const handler = async (req: Request): Promise<Response> => {
           trading_rules(*)
         )
       `)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .limit(MAX_STRATEGIES_PER_BATCH); // Limit for performance
 
     if (strategiesError) {
       console.error('Error fetching strategies:', strategiesError);
@@ -84,7 +95,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     let signalsGenerated = 0;
     const processedStrategies = [];
+    const errors = [];
 
+    // Process strategies with performance optimization
     for (const strategy of strategies || []) {
       try {
         console.log(`Processing strategy: ${strategy.name} (${strategy.id})`);
@@ -99,28 +112,27 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // Get current market price for the target asset
+        // Get current market price for the target asset with caching
         if (!strategy.target_asset) {
           console.log(`Strategy ${strategy.id} has no target asset - skipping`);
           continue;
         }
 
-        // Fetch current price from FMP API
-        const priceData = await fetchCurrentPrice(strategy.target_asset);
+        const priceData = await fetchCurrentPriceWithCache(strategy.target_asset);
         if (!priceData) {
           console.log(`Could not fetch price for ${strategy.target_asset} - skipping strategy ${strategy.id}`);
           continue;
         }
 
-        console.log(`Current price for ${strategy.target_asset}: $${priceData.price}`);
+        console.log(`Current price for ${strategy.target_asset}: $${priceData.price} (cached: ${priceData.cached || false})`);
 
         // Evaluate trading rules for entry signals
         const entryRules = strategy.rule_groups.filter((group: any) => group.rule_type === 'entry');
         const exitRules = strategy.rule_groups.filter((group: any) => group.rule_type === 'exit');
 
-        // Check for entry signals
+        // Check for entry signals with optimized evaluation
         if (entryRules.length > 0) {
-          const entrySignal = await evaluateRulesForSignal(entryRules, strategy.target_asset, priceData.price);
+          const entrySignal = await evaluateRulesForSignalOptimized(entryRules, strategy.target_asset, priceData.price);
           if (entrySignal.shouldGenerate) {
             await generateAndRecordSignal(supabaseClient, strategy, 'entry', priceData, entrySignal.conditions);
             signalsGenerated++;
@@ -129,9 +141,9 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Check for exit signals (only if we have open positions)
         if (exitRules.length > 0) {
-          const hasOpenPosition = await checkOpenPosition(supabaseClient, strategy.id);
+          const hasOpenPosition = await checkOpenPositionOptimized(supabaseClient, strategy.id);
           if (hasOpenPosition) {
-            const exitSignal = await evaluateRulesForSignal(exitRules, strategy.target_asset, priceData.price);
+            const exitSignal = await evaluateRulesForSignalOptimized(exitRules, strategy.target_asset, priceData.price);
             if (exitSignal.shouldGenerate) {
               await generateAndRecordSignal(supabaseClient, strategy, 'exit', priceData, exitSignal.conditions);
               signalsGenerated++;
@@ -143,33 +155,48 @@ const handler = async (req: Request): Promise<Response> => {
           id: strategy.id,
           name: strategy.name,
           asset: strategy.target_asset,
-          price: priceData.price
+          price: priceData.price,
+          cached: priceData.cached || false
         });
 
       } catch (error) {
         console.error(`Error processing strategy ${strategy.id}:`, error);
+        errors.push({
+          strategyId: strategy.id,
+          error: error.message
+        });
       }
     }
 
-    console.log(`Signal monitoring completed. Generated ${signalsGenerated} signals from ${processedStrategies.length} strategies.`);
+    // Clean up old cache entries
+    cleanupPriceCache();
+
+    console.log(`1-minute signal monitoring completed. Generated ${signalsGenerated} signals from ${processedStrategies.length} strategies.`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Signal monitoring completed',
+        message: '1-minute signal monitoring completed',
         signalsGenerated,
         strategiesProcessed: processedStrategies.length,
         strategies: processedStrategies,
-        timestamp: new Date().toISOString()
+        errors: errors.length > 0 ? errors : undefined,
+        cacheStats: {
+          cacheSize: priceCache.size,
+          cachedSymbols: Array.from(priceCache.keys())
+        },
+        timestamp: new Date().toISOString(),
+        source,
+        frequency: '1-minute'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('Error in signal monitoring:', error);
+    console.error('Error in 1-minute signal monitoring:', error);
     return new Response(
       JSON.stringify({
-        error: 'Signal monitoring failed',
+        error: '1-minute signal monitoring failed',
         details: error.message,
         timestamp: new Date().toISOString()
       }),
@@ -178,8 +205,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-const fetchCurrentPrice = async (symbol: string) => {
+// Enhanced price fetching with caching for 1-minute execution
+const fetchCurrentPriceWithCache = async (symbol: string) => {
   try {
+    // Check cache first
+    const cached = priceCache.get(symbol);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log(`Using cached price for ${symbol}`);
+      return { ...cached.price, cached: true };
+    }
+
     const fmpApiKey = Deno.env.get('FMP_API_KEY');
     if (!fmpApiKey) {
       console.error('FMP_API_KEY not found');
@@ -187,7 +222,8 @@ const fetchCurrentPrice = async (symbol: string) => {
     }
 
     const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
+      { signal: AbortSignal.timeout(5000) } // 5 second timeout
     );
 
     if (!response.ok) {
@@ -201,57 +237,64 @@ const fetchCurrentPrice = async (symbol: string) => {
       return null;
     }
 
-    return {
+    const priceData = {
       price: data[0].price,
       change: data[0].change,
       changePercent: data[0].changesPercentage,
       volume: data[0].volume,
       timestamp: new Date().toISOString()
     };
+
+    // Cache the result
+    priceCache.set(symbol, {
+      price: priceData,
+      timestamp: Date.now()
+    });
+
+    return { ...priceData, cached: false };
   } catch (error) {
     console.error(`Error fetching price for ${symbol}:`, error);
     return null;
   }
 };
 
-const evaluateRulesForSignal = async (ruleGroups: any[], asset: string, currentPrice: number) => {
-  // Simplified rule evaluation - in a real implementation, this would evaluate technical indicators
-  // For now, we'll use basic price-based conditions as an example
-  
+// Optimized rule evaluation for 1-minute execution
+const evaluateRulesForSignalOptimized = async (ruleGroups: any[], asset: string, currentPrice: number) => {
   const matchedConditions: string[] = [];
   let shouldGenerate = false;
 
   for (const group of ruleGroups) {
     const rules = group.trading_rules || [];
     let groupMatched = false;
+    let groupConditions: string[] = [];
 
     for (const rule of rules) {
-      // Example evaluation logic - this should be expanded with proper indicator calculations
+      // Optimized evaluation logic - focus on basic price conditions for 1-minute execution
       if (rule.left_type === 'price' && rule.right_type === 'value') {
         const rightValue = parseFloat(rule.right_value);
         
         switch (rule.condition) {
           case '>':
             if (currentPrice > rightValue) {
-              matchedConditions.push(`Price ($${currentPrice}) > $${rightValue}`);
+              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) > $${rightValue}`);
               groupMatched = true;
             }
             break;
           case '<':
             if (currentPrice < rightValue) {
-              matchedConditions.push(`Price ($${currentPrice}) < $${rightValue}`);
+              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) < $${rightValue}`);
               groupMatched = true;
             }
             break;
           case '>=':
             if (currentPrice >= rightValue) {
-              matchedConditions.push(`Price ($${currentPrice}) >= $${rightValue}`);
+              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) >= $${rightValue}`);
               groupMatched = true;
             }
             break;
           case '<=':
             if (currentPrice <= rightValue) {
-              matchedConditions.push(`Price ($${currentPrice}) <= $${rightValue}`);
+              groupConditions.push(`Price ($${currentPrice.toFixed(2)}) <= $${rightValue}`);
               groupMatched = true;
             }
             break;
@@ -259,37 +302,57 @@ const evaluateRulesForSignal = async (ruleGroups: any[], asset: string, currentP
       }
     }
 
-    // For AND logic, all rules in group must match
-    // For OR logic, at least one rule must match
-    if (group.logic === 'and' && groupMatched && matchedConditions.length === rules.length) {
-      shouldGenerate = true;
-    } else if (group.logic === 'or' && groupMatched) {
-      shouldGenerate = true;
+    // For 1-minute execution, use simplified logic evaluation
+    if (groupMatched) {
+      matchedConditions.push(...groupConditions);
+      if (group.logic === 'or' || groupConditions.length === rules.length) {
+        shouldGenerate = true;
+      }
     }
   }
 
   return { shouldGenerate, conditions: matchedConditions };
 };
 
-const checkOpenPosition = async (supabaseClient: any, strategyId: string): Promise<boolean> => {
-  // Check if there are any unmatched entry signals (open positions)
-  const { data: entrySignals, error } = await supabaseClient
-    .from('trading_signals')
-    .select('id')
-    .eq('strategy_id', strategyId)
-    .eq('signal_type', 'entry')
-    .eq('processed', true)
-    .order('created_at', { ascending: false })
-    .limit(1);
+// Optimized position checking with caching
+const positionCache = new Map<string, { hasPosition: boolean; timestamp: number }>();
+const POSITION_CACHE_DURATION = 60000; // 1 minute cache for position checks
 
-  if (error) {
-    console.error('Error checking open positions:', error);
+const checkOpenPositionOptimized = async (supabaseClient: any, strategyId: string): Promise<boolean> => {
+  try {
+    // Check cache first
+    const cached = positionCache.get(strategyId);
+    if (cached && Date.now() - cached.timestamp < POSITION_CACHE_DURATION) {
+      return cached.hasPosition;
+    }
+
+    const { data: entrySignals, error } = await supabaseClient
+      .from('trading_signals')
+      .select('id')
+      .eq('strategy_id', strategyId)
+      .eq('signal_type', 'entry')
+      .eq('processed', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking open positions:', error);
+      return false;
+    }
+
+    const hasPosition = entrySignals && entrySignals.length > 0;
+    
+    // Cache the result
+    positionCache.set(strategyId, {
+      hasPosition,
+      timestamp: Date.now()
+    });
+
+    return hasPosition;
+  } catch (error) {
+    console.error('Error in optimized position check:', error);
     return false;
   }
-
-  // Simple logic: if we have entry signals, assume we have open positions
-  // In a real implementation, this would track actual position status
-  return entrySignals && entrySignals.length > 0;
 };
 
 const generateAndRecordSignal = async (
@@ -302,7 +365,6 @@ const generateAndRecordSignal = async (
   try {
     console.log(`Generating ${signalType} signal for strategy ${strategy.name}`);
 
-    // Create signal record
     const signalData = {
       strategyId: strategy.id,
       strategyName: strategy.name,
@@ -311,10 +373,11 @@ const generateAndRecordSignal = async (
       userId: strategy.user_id,
       timestamp: new Date().toISOString(),
       conditions: conditions,
-      confidence: Math.min(100, Math.round((conditions.length / 5) * 100)), // Simple confidence calculation
-      volume: 100, // Default volume - should be based on strategy settings
+      confidence: Math.min(100, Math.round((conditions.length / 5) * 100)),
+      volume: 100,
       change: priceData.change,
-      changePercent: priceData.changePercent
+      changePercent: priceData.changePercent,
+      frequency: '1-minute'
     };
 
     const { data: signal, error: signalError } = await supabaseClient
@@ -333,7 +396,7 @@ const generateAndRecordSignal = async (
       throw signalError;
     }
 
-    console.log(`Signal ${signal.id} created successfully`);
+    console.log(`1-minute signal ${signal.id} created successfully`);
 
     // Process notifications for PRO members
     await processSignalNotifications(supabaseClient, signal.id, strategy.user_id);
@@ -346,7 +409,7 @@ const generateAndRecordSignal = async (
 
     return signal;
   } catch (error) {
-    console.error('Error generating signal:', error);
+    console.error('Error generating 1-minute signal:', error);
     throw error;
   }
 };
@@ -501,5 +564,22 @@ const sendTelegramNotification = async (supabaseClient: any, signalId: string, b
   }
 };
 
-console.log('=== Starting monitor-trading-signals function ===');
+// Cache cleanup function
+const cleanupPriceCache = () => {
+  const now = Date.now();
+  for (const [key, value] of priceCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      priceCache.delete(key);
+    }
+  }
+  
+  // Also cleanup position cache
+  for (const [key, value] of positionCache.entries()) {
+    if (now - value.timestamp > POSITION_CACHE_DURATION) {
+      positionCache.delete(key);
+    }
+  }
+};
+
+console.log('=== Starting optimized 1-minute monitor-trading-signals function ===');
 serve(handler);

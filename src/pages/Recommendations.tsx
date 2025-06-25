@@ -47,7 +47,8 @@ const Recommendations = () => {
             updated_at,
             user_id,
             can_be_deleted,
-            is_recommended_copy
+            is_recommended_copy,
+            source_strategy_id
           )
         `)
         .eq('is_official', true)
@@ -76,7 +77,8 @@ const Recommendations = () => {
             updated_at,
             user_id,
             can_be_deleted,
-            is_recommended_copy
+            is_recommended_copy,
+            source_strategy_id
           )
         `)
         .eq('is_official', false)

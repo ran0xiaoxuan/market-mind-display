@@ -70,7 +70,13 @@ const StrategyPreview = () => {
       id: index + 1,
       logic: rule.logic,
       requiredConditions: (rule as any).requiredConditions,
-      inequalities: rule.inequalities
+      inequalities: rule.inequalities.map((inequality, inequalityIndex) => ({
+        id: inequalityIndex + 1,
+        left: inequality.left,
+        condition: inequality.condition,
+        right: inequality.right,
+        explanation: inequality.explanation
+      }))
     }));
   };
 

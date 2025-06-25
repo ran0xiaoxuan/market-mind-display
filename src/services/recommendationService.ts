@@ -64,6 +64,29 @@ export const getRecommendedStrategies = async (): Promise<RecommendedStrategy[]>
   }
 };
 
+export const getStrategyApplyCounts = async (): Promise<Map<string, number>> => {
+  try {
+    const { data: applyCounts, error } = await supabase
+      .from('strategy_applications')
+      .select('strategy_id');
+
+    if (error) {
+      throw error;
+    }
+
+    const countMap = new Map<string, number>();
+    applyCounts?.forEach(record => {
+      const count = countMap.get(record.strategy_id) || 0;
+      countMap.set(record.strategy_id, count + 1);
+    });
+
+    return countMap;
+  } catch (error) {
+    console.error('Error fetching strategy apply counts:', error);
+    return new Map();
+  }
+};
+
 export const recommendStrategy = async (strategyId: string, isOfficial: boolean = false) => {
   try {
     const { data: user } = await supabase.auth.getUser();

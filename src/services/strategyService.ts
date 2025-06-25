@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Strategy {
@@ -67,11 +66,11 @@ export interface GeneratedStrategy {
   }>;
 }
 
-export class ServiceError extends Error {
-  constructor(message: string, public code?: string) {
-    super(message);
-    this.name = 'ServiceError';
-  }
+export interface ServiceError {
+  message: string;
+  type: 'connection_error' | 'api_key_error' | 'timeout_error' | 'rate_limit_error' | 'validation_error' | 'parsing_error' | 'service_unavailable' | 'unknown_error';
+  retryable: boolean;
+  details?: string[];
 }
 
 export const getStrategies = async () => {
@@ -221,43 +220,67 @@ export const deleteStrategy = async (strategyId: string) => {
   }
 };
 
-export const generateStrategy = async (prompt: string): Promise<GeneratedStrategy> => {
+export const generateStrategy = async (assetType: string, selectedAsset: string, strategyDescription: string): Promise<GeneratedStrategy> => {
   try {
+    const prompt = `Generate a trading strategy for ${selectedAsset} (${assetType}): ${strategyDescription}`;
+    
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
       body: { prompt }
     });
 
     if (error) {
-      throw new ServiceError(error.message || 'Failed to generate strategy', 'GENERATION_ERROR');
+      throw {
+        message: error.message || 'Failed to generate strategy',
+        type: 'api_key_error',
+        retryable: true,
+        details: [error.message]
+      } as ServiceError;
     }
 
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating strategy:', error);
-    throw error;
+    
+    if (error.type) {
+      throw error;
+    }
+    
+    throw {
+      message: 'Failed to generate strategy',
+      type: 'unknown_error',
+      retryable: true,
+      details: [error.message || 'Unknown error occurred']
+    } as ServiceError;
   }
 };
 
-export const checkAIServiceHealth = async (): Promise<boolean> => {
+export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
     const { error } = await supabase.functions.invoke('generate-strategy', {
       body: { prompt: 'health-check' }
     });
 
-    return !error;
-  } catch (error) {
+    return {
+      healthy: !error,
+      details: { method: 'supabase-function' },
+      error: error?.message
+    };
+  } catch (error: any) {
     console.error('AI service health check failed:', error);
-    return false;
+    return {
+      healthy: false,
+      error: error.message || 'Health check failed'
+    };
   }
 };
 
-export const generateFallbackStrategy = (): GeneratedStrategy => {
+export const generateFallbackStrategy = (assetType: string, selectedAsset: string, strategyDescription: string): GeneratedStrategy => {
   return {
-    name: "Simple RSI Strategy",
-    description: "A basic RSI strategy that buys when RSI is below 30 and sells when RSI is above 70.",
+    name: `Simple RSI Strategy for ${selectedAsset}`,
+    description: `A basic RSI strategy for ${selectedAsset} that buys when RSI is below 30 and sells when RSI is above 70. Based on: ${strategyDescription}`,
     timeframe: "1D",
-    targetAsset: "AAPL",
-    targetAssetName: "Apple Inc.",
+    targetAsset: selectedAsset,
+    targetAssetName: selectedAsset,
     entryRules: [{
       logic: "AND",
       inequalities: [{

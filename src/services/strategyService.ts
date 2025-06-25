@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Strategy {
@@ -222,13 +223,18 @@ export const deleteStrategy = async (strategyId: string) => {
 
 export const generateStrategy = async (assetType: string, selectedAsset: string, strategyDescription: string): Promise<GeneratedStrategy> => {
   try {
-    const prompt = `Generate a trading strategy for ${selectedAsset} (${assetType}): ${strategyDescription}`;
+    console.log('Sending strategy generation request:', { assetType, selectedAsset, strategyDescription });
     
     const { data, error } = await supabase.functions.invoke('generate-strategy', {
-      body: { prompt }
+      body: { 
+        assetType, 
+        selectedAsset, 
+        strategyDescription 
+      }
     });
 
     if (error) {
+      console.error('Supabase function error:', error);
       throw {
         message: error.message || 'Failed to generate strategy',
         type: 'api_key_error',
@@ -237,6 +243,7 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
       } as ServiceError;
     }
 
+    console.log('Strategy generation successful:', data);
     return data;
   } catch (error: any) {
     console.error('Error generating strategy:', error);
@@ -256,14 +263,23 @@ export const generateStrategy = async (assetType: string, selectedAsset: string,
 
 export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
   try {
-    const { error } = await supabase.functions.invoke('generate-strategy', {
-      body: { prompt: 'health-check' }
+    console.log('Checking AI service health...');
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: { healthCheck: true }
     });
 
+    if (error) {
+      console.error('Health check error:', error);
+      return {
+        healthy: false,
+        error: error.message || 'Health check failed'
+      };
+    }
+
+    console.log('Health check response:', data);
     return {
-      healthy: !error,
-      details: { method: 'supabase-function' },
-      error: error?.message
+      healthy: true,
+      details: data
     };
   } catch (error: any) {
     console.error('AI service health check failed:', error);
@@ -401,7 +417,7 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy, userId:
   try {
     console.log('Saving generated strategy:', strategy);
     
-    // Insert the strategy without risk management fields
+    // Insert the strategy without risk management fields (they were removed)
     const { data: savedStrategy, error: strategyError } = await supabase
       .from('strategies')
       .insert({

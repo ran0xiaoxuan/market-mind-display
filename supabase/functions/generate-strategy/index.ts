@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -25,6 +26,7 @@ serve(async (req) => {
     try {
       const rawBody = await req.text();
       console.log('Request body length:', rawBody.length);
+      console.log('Raw request body:', rawBody);
       
       if (!rawBody.trim()) {
         return new Response(JSON.stringify({
@@ -96,6 +98,7 @@ serve(async (req) => {
       if (!selectedAsset) missing.push('selectedAsset');
       if (!strategyDescription) missing.push('strategyDescription');
       
+      console.error('Missing required parameters:', missing);
       return new Response(JSON.stringify({
         message: `Missing required parameters: ${missing.join(', ')}`,
         type: 'validation_error',
@@ -130,7 +133,7 @@ serve(async (req) => {
       })
     }
 
-    // Generate strategy using OpenAI
+    // Generate strategy using OpenAI (removed risk management from prompt)
     const validIndicators = [
       // Moving Averages
       "SMA", "EMA", "WMA", "DEMA", "TEMA", "TRIMA", "KAMA", "VWMA",
@@ -153,74 +156,18 @@ IMPORTANT RULES:
 1. Generate strategy based ONLY on the user's description - do not default to RSI/MACD unless specifically requested
 2. Use indicators that are relevant to the user's request from this list: ${validIndicators.join(", ")}
 3. If the user requests features not supported by the available indicators, mention this limitation in the description
-4. For risk management: stopLoss percentage MUST be less than takeProfit percentage, and singleBuyVolume MUST be less than maxBuyVolume
-5. If the user provides specific risk management requirements in their description, follow those requirements
-6. If no specific risk management is mentioned, set values that suit the strategy type and asset volatility
-7. Make the strategy name and description specific to the user's request
+4. Make the strategy name and description specific to the user's request
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
 
-- Analyze the user's description for timeframe keywords:
-  - "scalping", "second", "minute", "very fast", "intraday" → use "1 minute"
-  - "5 min", "5 minute", "quick scalping" → use "5 minutes"
-  - "15 min", "15 minute", "short scalping" → use "15 minutes"
-  - "30 min", "30 minute", "half hour" → use "30 minutes"
-  - "day trading", "hourly", "1 hour", "short term" → use "1 hour"
-  - "4 hour", "4h", "medium intraday" → use "4 hours"
-  - "swing trading", "daily", "medium term" → use "Daily"
-  - "position trading", "weekly", "long term", "investment" → use "Weekly"
-  - "buy and hold", "monthly", "very long term" → use "Monthly"
-
-- If no timeframe is explicitly mentioned, select based on strategy type:
-  - High-frequency/scalping strategies → "1 minute" or "5 minutes"
-  - Momentum/breakout strategies → "15 minutes" or "1 hour"
-  - Mean reversion strategies → "1 hour" or "Daily"
-  - Trend following strategies → "Daily" or "4 hours"
-  - Value/fundamental strategies → "Weekly" or "Monthly"
-
+- Analyze the user's description for timeframe keywords and select appropriately
 - Default to "Daily" only if strategy type cannot be determined
 
 STRATEGY LOGIC ANALYSIS:
-Analyze the user's description to determine:
+Analyze the user's description to determine appropriate entry and exit logic structures, indicator parameters, conditions, and thresholds.
 
-1. ENTRY LOGIC STRUCTURE:
-   - If user mentions "all conditions must be met", "and", "both", "together" → use "AND" logic
-   - If user mentions "any condition", "or", "either", "alternative" → use "OR" logic
-   - If user mentions complex combinations → create multiple rule groups as needed
-   - Default to "AND" for single-condition strategies, "OR" for multi-alternative strategies
-
-2. EXIT LOGIC STRUCTURE:
-   - If user mentions "stop loss OR take profit", "either condition" → use "OR" logic with requiredConditions: 1
-   - If user mentions "both conditions must be met" → use "AND" logic
-   - If user mentions multiple exit scenarios → use "OR" logic with appropriate requiredConditions
-   - Default to "OR" with requiredConditions: 1 for typical exit strategies
-
-3. INDICATOR PARAMETERS:
-   - Extract specific periods from user description (e.g., "14-day RSI", "20-period moving average")
-   - Use common defaults based on indicator type if not specified:
-     * RSI, Stochastic: 14
-     * Moving Averages: 20 for short-term, 50 for medium-term, 200 for long-term
-     * MACD: 12,26,9
-     * Bollinger Bands: 20,2
-   - Adjust parameters based on timeframe (shorter periods for shorter timeframes)
-
-4. CONDITIONS AND THRESHOLDS:
-   - For RSI: overbought (>70), oversold (<30), or custom levels from user
-   - For price vs MA: above/below based on trend direction in user description
-   - For momentum indicators: analyze if user wants bullish (>) or bearish (<) signals
-   - For volume: analyze if user wants high volume (>) or low volume (<) confirmation
-   - Use appropriate comparison operators based on the logical intent of the strategy
-
-5. REQUIRED CONDITIONS FOR OR GROUPS:
-   - If user wants "any one condition" → requiredConditions: 1
-   - If user wants "at least 2 out of 3" → requiredConditions: 2
-   - If user wants "majority" → requiredConditions: more than half
-   - Default to 1 for typical OR exit conditions
-
-Analyze the user's request and determine the most appropriate structure, parameters, and logic based on their specific description.
-
-Return ONLY this JSON structure:
+Return ONLY this JSON structure (WITHOUT risk management section):
 {
   "name": "Descriptive strategy name based on user request",
   "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
@@ -256,13 +203,7 @@ Return ONLY this JSON structure:
         }
       ]
     }
-  ],
-  "riskManagement": {
-    "stopLoss": "percentage (must be less than takeProfit, based on user description or strategy type)",
-    "takeProfit": "percentage (must be greater than stopLoss, based on user description or strategy type)",
-    "singleBuyVolume": "dollar amount (must be less than maxBuyVolume, based on user description or reasonable defaults)",
-    "maxBuyVolume": "dollar amount (must be greater than singleBuyVolume, based on user description or reasonable defaults)"
-  }
+  ]
 }
 
 Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures, parameters, conditions, and thresholds rather than following a rigid template.`;
@@ -334,8 +275,8 @@ Carefully analyze the user's description to create a strategy that truly reflect
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       strategy = JSON.parse(cleanContent);
       
-      // Basic validation
-      if (!strategy.name || !strategy.entryRules || !strategy.exitRules || !strategy.riskManagement) {
+      // Basic validation (removed risk management validation)
+      if (!strategy.name || !strategy.entryRules || !strategy.exitRules) {
         throw new Error('Invalid strategy structure');
       }
 

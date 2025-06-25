@@ -21,16 +21,15 @@ export const evaluateStrategy = async (strategyId: string) => {
   console.log(`Evaluating strategy ${strategyId}`);
   
   try {
-    // Get strategy details
+    // Get strategy details - removed is_active filter to evaluate all strategies
     const { data: strategy, error: strategyError } = await supabase
       .from('strategies')
       .select('*')
       .eq('id', strategyId)
-      .eq('is_active', true)
       .single();
 
     if (strategyError || !strategy) {
-      console.log(`Strategy ${strategyId} not found or inactive`);
+      console.log(`Strategy ${strategyId} not found`);
       return;
     }
 
@@ -270,6 +269,7 @@ const generateTradingSignal = async (
       }
     }
 
+    // Always generate and store the signal regardless of strategy active status
     const { error } = await supabase
       .from('trading_signals')
       .insert({
@@ -282,7 +282,7 @@ const generateTradingSignal = async (
     if (error) {
       console.error('Error inserting trading signal:', error);
     } else {
-      console.log(`Generated ${signalType} signal for strategy ${strategyId} (no volume data)`);
+      console.log(`Generated ${signalType} signal for strategy ${strategyId} - signal stored in app`);
     }
   } catch (error) {
     console.error('Error generating trading signal:', error);

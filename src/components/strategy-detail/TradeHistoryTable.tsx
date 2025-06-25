@@ -48,7 +48,7 @@ export const TradeHistoryTable = ({
     }
   }, [navigate, enableRowClick]);
 
-  // Format date to include time with proper parsing
+  // Format date to YYYY/MM/DD HH:MM format
   const formatDateTime = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -58,24 +58,13 @@ export const TradeHistoryTable = ({
         return dateString; // Return original string if invalid
       }
       
-      // Format date and time separately for better control
-      const dateOptions: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      };
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
       
-      const timeOptions: Intl.DateTimeFormatOptions = {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      };
-      
-      const formattedDate = date.toLocaleDateString('en-US', dateOptions);
-      const formattedTime = date.toLocaleTimeString('en-US', timeOptions);
-      
-      return `${formattedDate} ${formattedTime}`;
+      return `${year}/${month}/${day} ${hours}:${minutes}`;
     } catch (error) {
       console.error('Error formatting date:', error, dateString);
       return dateString; // Return original string if error occurs

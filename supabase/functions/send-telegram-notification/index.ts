@@ -33,7 +33,7 @@ serve(async (req) => {
 
     // Create Telegram message
     const telegramMessage = `
-🚨 *Trading Signal Alert*
+🚨 *StratAIge Bot*
 
 📊 *Signal Type:* ${signalType.toUpperCase()}
 📈 *Strategy:* ${signalData.strategyName || 'Unknown'}

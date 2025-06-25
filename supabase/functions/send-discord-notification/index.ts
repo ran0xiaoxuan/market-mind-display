@@ -54,7 +54,7 @@ serve(async (req) => {
         ],
         timestamp: new Date().toISOString(),
         footer: {
-          text: "Trading Signal Bot"
+          text: "StratAIge Bot"
         }
       }]
     }

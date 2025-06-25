@@ -133,21 +133,21 @@ serve(async (req) => {
       })
     }
 
-    // Updated indicator list - removed deprecated indicators and added commonly used ones
+    // Indicator list matching exactly what's in AvailableIndicators component
     const validIndicators = [
       // Moving Averages
-      "SMA", "EMA", "WMA", "VWMA", "KAMA",
+      "SMA", "EMA", "WMA", "TRIMA", "KAMA",
       // Oscillators
       "RSI", "Stochastic", "StochRSI", "CCI", "Williams %R", "Ultimate Oscillator", 
-      "MACD", "Awesome Oscillator", "Momentum", "CMO", "MFI", "OBV",
+      "MACD", "Awesome Oscillator", "Momentum", "CMO", "MFI",
       // Trend Indicators
-      "ADX", "DMI", "Ichimoku Cloud", "PSAR", "VWAP", "Supertrend",
+      "ADX", "DMI", "Ichimoku Cloud", "PSAR", "VWAP", "Supertrend", "TTM Squeeze",
       // Volatility Indicators
-      "Bollinger Bands", "ATR", "Keltner Channel", "Donchian Channel",
+      "Bollinger Bands", "ATR", "Keltner Channel", "Donchian Channel", "Chandelier Exit",
       // Volume Indicators
-      "Volume", "Chaikin Money Flow", "On Balance Volume", "Volume Oscillator",
-      // Price Action
-      "Support Resistance", "Pivot Points", "Fibonacci Retracement"
+      "Volume", "Chaikin Money Flow", "Volume Oscillator",
+      // Price Patterns
+      "Heikin Ashi"
     ];
 
     const prompt = `You are an expert trading strategy generator. Create a trading strategy for ${selectedAsset} (${assetType}) based STRICTLY on this user request: "${strategyDescription}"

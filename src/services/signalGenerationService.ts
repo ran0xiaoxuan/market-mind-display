@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getStockPrice } from "./marketDataService";
 
@@ -21,7 +22,7 @@ export const evaluateStrategy = async (strategyId: string) => {
   console.log(`Evaluating strategy ${strategyId}`);
   
   try {
-    // Get strategy details - removed is_active filter to evaluate all strategies
+    // Get strategy details - evaluate all strategies regardless of active status
     const { data: strategy, error: strategyError } = await supabase
       .from('strategies')
       .select('*')
@@ -269,20 +270,21 @@ const generateTradingSignal = async (
       }
     }
 
-    // Always generate and store the signal regardless of strategy active status
+    // Always generate and store the signal - this ensures all signals appear in the app
     const { error } = await supabase
       .from('trading_signals')
       .insert({
         strategy_id: strategyId,
         signal_type: signalType,
         signal_data: signalData,
-        processed: true
+        processed: true,
+        created_at: new Date().toISOString() // Ensure proper timestamp
       });
 
     if (error) {
       console.error('Error inserting trading signal:', error);
     } else {
-      console.log(`Generated ${signalType} signal for strategy ${strategyId} - signal stored in app`);
+      console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
     }
   } catch (error) {
     console.error('Error generating trading signal:', error);

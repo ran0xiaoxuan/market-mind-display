@@ -6,20 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Check if market is open (simplified version)
+// Check if market is open with proper timezone handling
 function isMarketOpen(): boolean {
   const now = new Date();
-  const utcHour = now.getUTCHours();
-  const utcDay = now.getUTCDay();
   
-  // Market is open Monday-Friday, 14:30-21:00 UTC (9:30 AM - 4:00 PM EST)
+  // Convert to Eastern Time (market timezone)
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const utcHour = easternTime.getUTCHours();
+  const utcDay = easternTime.getUTCDay();
+  const easternHour = easternTime.getHours();
+  const easternMinutes = easternTime.getMinutes();
+  
+  console.log(`Market check - Eastern Time: ${easternTime.toLocaleString()}, Hour: ${easternHour}, Minutes: ${easternMinutes}`);
+  
+  // Market is open Monday-Friday, 9:30 AM - 4:00 PM Eastern Time
   const isWeekday = utcDay >= 1 && utcDay <= 5;
-  const isMarketHours = utcHour >= 14 && utcHour < 21;
+  const timeInMinutes = easternHour * 60 + easternMinutes;
+  const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM
+  const marketCloseMinutes = 16 * 60; // 4:00 PM
+  
+  const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
+  
+  console.log(`Market status - Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Time in minutes: ${timeInMinutes}`);
   
   return isWeekday && isMarketHours;
 }
 
-// Optimized strategy evaluation
+// Optimized strategy evaluation with proper timestamp handling
 async function evaluateStrategy(supabase: any, strategyId: string, strategy: any) {
   try {
     console.log(`Evaluating strategy ${strategyId}: ${strategy.name}`);
@@ -57,9 +70,10 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
     const price = 100 + Math.random() * 50; // Random price
     
     let signalsGenerated = 0;
+    const currentTime = new Date().toISOString();
     
     // Generate entry signal if RSI conditions are met
-    if (rsi < 35 && Math.random() > 0.8) {
+    if (rsi < 35 && Math.random() > 0.7) {
       const { error } = await supabase
         .from('trading_signals')
         .insert({
@@ -68,20 +82,32 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
           signal_data: {
             reason: 'Entry conditions met - RSI oversold',
             price: price,
-            timestamp: new Date().toISOString(),
+            timestamp: currentTime,
             indicators: { rsi }
           },
-          processed: true
+          processed: true,
+          created_at: currentTime // Explicit timestamp to avoid timezone issues
         });
 
       if (!error) {
         signalsGenerated++;
-        console.log(`Generated entry signal for strategy ${strategyId}`);
+        console.log(`Generated entry signal for strategy ${strategyId} at ${currentTime}`);
+        
+        // Send notification only if strategy is active
+        if (strategy.is_active) {
+          await sendNotification(supabase, strategyId, 'entry', {
+            reason: 'Entry conditions met - RSI oversold',
+            price: price,
+            timestamp: currentTime,
+            strategyName: strategy.name,
+            targetAsset: strategy.target_asset
+          });
+        }
       }
     }
     
     // Generate exit signal if RSI conditions are met and there are open positions
-    if (rsi > 65 && Math.random() > 0.8) {
+    if (rsi > 65 && Math.random() > 0.7) {
       // Check for open positions
       const { data: openPositions } = await supabase
         .from('trading_signals')
@@ -104,17 +130,31 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
             signal_data: {
               reason: 'Exit conditions met - RSI overbought',
               price: price,
-              timestamp: new Date().toISOString(),
+              timestamp: currentTime,
               profit: profit,
               profitPercentage: profitPercentage,
               indicators: { rsi }
             },
-            processed: true
+            processed: true,
+            created_at: currentTime // Explicit timestamp to avoid timezone issues
           });
 
         if (!error) {
           signalsGenerated++;
-          console.log(`Generated exit signal for strategy ${strategyId}`);
+          console.log(`Generated exit signal for strategy ${strategyId} at ${currentTime}`);
+          
+          // Send notification only if strategy is active
+          if (strategy.is_active) {
+            await sendNotification(supabase, strategyId, 'exit', {
+              reason: 'Exit conditions met - RSI overbought',
+              price: price,
+              timestamp: currentTime,
+              profit: profit,
+              profitPercentage: profitPercentage,
+              strategyName: strategy.name,
+              targetAsset: strategy.target_asset
+            });
+          }
         }
       }
     }
@@ -126,6 +166,68 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
   }
 }
 
+// Send notifications for active strategies only
+async function sendNotification(supabase: any, strategyId: string, signalType: string, signalData: any) {
+  try {
+    console.log(`Sending notification for ${signalType} signal on strategy ${strategyId}`);
+    
+    // Get user notification settings
+    const { data: strategy } = await supabase
+      .from('strategies')
+      .select('user_id')
+      .eq('id', strategyId)
+      .single();
+
+    if (!strategy) return;
+
+    const { data: settings } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', strategy.user_id)
+      .single();
+
+    if (!settings) return;
+
+    // Send Discord notification if enabled
+    if (settings.discord_enabled && settings.discord_webhook_url) {
+      try {
+        await supabase.functions.invoke('send-discord-notification', {
+          body: {
+            webhookUrl: settings.discord_webhook_url,
+            signalData: signalData,
+            signalType: signalType
+          }
+        });
+        console.log(`Discord notification sent for strategy ${strategyId}`);
+      } catch (error) {
+        console.error(`Failed to send Discord notification:`, error);
+      }
+    }
+
+    // Send Telegram notification if enabled
+    if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            botToken: settings.telegram_bot_token,
+            chatId: settings.telegram_chat_id,
+            signalData: signalData,
+            signalType: signalType
+          }
+        });
+        console.log(`Telegram notification sent for strategy ${strategyId}`);
+      } catch (error) {
+        console.error(`Failed to send Telegram notification:`, error);
+      }
+    }
+
+    // Email notifications can be added here later
+    
+  } catch (error) {
+    console.error(`Error sending notification for strategy ${strategyId}:`, error);
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -134,6 +236,7 @@ Deno.serve(async (req) => {
 
   console.log('=== Trading Signal Monitor Started (1-minute frequency) ===');
   console.log('Request method:', req.method);
+  console.log('Current time:', new Date().toISOString());
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -175,8 +278,7 @@ Deno.serve(async (req) => {
 
     console.log('Market is open - starting optimized 1-minute signal monitoring...');
     
-    // Get ALL strategies with valid trading rules (not just active ones)
-    // The strategy status only affects external notifications, not signal generation
+    // Get ALL strategies - signals are always generated for app display
     const { data: strategies, error: strategiesError } = await supabase
       .from('strategies')
       .select(`
@@ -193,7 +295,7 @@ Deno.serve(async (req) => {
       throw strategiesError;
     }
 
-    console.log(`Found ${strategies?.length || 0} strategies to monitor (including inactive ones for signal generation)`);
+    console.log(`Found ${strategies?.length || 0} strategies to monitor`);
 
     if (!strategies || strategies.length === 0) {
       return new Response(

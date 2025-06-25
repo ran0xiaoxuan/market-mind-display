@@ -57,7 +57,6 @@ export const TradeHistoryTable = ({
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Date</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Volume</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Profit/Loss</TableHead>
           </TableRow>
         </TableHeader>
@@ -105,9 +104,6 @@ export const TradeHistoryTable = ({
                     {trade.price}
                   </TableCell>
                   <TableCell>
-                    {trade.contracts}
-                  </TableCell>
-                  <TableCell>
                     {!isBuy && trade.profit && (
                       <div className="flex flex-col">
                         <span className={
@@ -135,7 +131,7 @@ export const TradeHistoryTable = ({
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 No trade history available
               </TableCell>
             </TableRow>

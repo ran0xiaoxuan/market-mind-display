@@ -58,12 +58,11 @@ const Dashboard = () => {
       // Use real trade history data directly from the service
       const signalAmount = realTradeHistory.length;
 
-      // Calculate total transaction amount from real trade history
+      // Calculate total transaction amount from real trade history (sum of prices only, no volume)
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
         const price = parseFloat(trade.price.replace('$', '')) || 0;
-        const contracts = parseInt(trade.contracts.toString()) || 0;
-        const subtotal = price * contracts;
-        return total + subtotal;
+        console.log(`Dashboard Trade: price=${price}`);
+        return total + price;
       }, 0);
 
       console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Signals: ${signalAmount}, Transaction Amount: ${transactionAmount}`);

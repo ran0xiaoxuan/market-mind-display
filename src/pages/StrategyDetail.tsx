@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -122,7 +121,7 @@ const StrategyDetail = () => {
           console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
         }
 
-        // Format trading signals for display
+        // Format trading signals for display (without volume)
         const formattedTrades = signals.map(signal => {
           const signalData = (signal.signal_data as SignalData) || {};
           const currentPrice = currentPrices.get(strategyData.targetAsset);
@@ -135,9 +134,8 @@ const StrategyDetail = () => {
             const entryPrice = signalData.price || 0;
             if (entryPrice > 0) {
               const unrealizedProfitPercentage = ((currentPrice - entryPrice) / entryPrice) * 100;
-              // Use default volume since we removed volume from strategies
-              const defaultVolume = 100;
-              const unrealizedProfit = unrealizedProfitPercentage / 100 * entryPrice * defaultVolume;
+              // Calculate profit based on price difference only (no volume)
+              const unrealizedProfit = currentPrice - entryPrice;
               
               calculatedProfit = unrealizedProfit;
               calculatedProfitPercentage = unrealizedProfitPercentage;
@@ -152,7 +150,7 @@ const StrategyDetail = () => {
             type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
             signal: signalData.reason || 'Trading Signal',
             price: `$${(signalData.price || 0).toFixed(2)}`,
-            contracts: 100, // Default volume since removed from strategy
+            contracts: 1, // Set to 1 since volume is removed but still needed for interface compatibility
             profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
             strategyId: id,
@@ -162,7 +160,7 @@ const StrategyDetail = () => {
         });
         
         setTrades(formattedTrades);
-        console.log(`Formatted ${formattedTrades.length} trades for display on strategy detail page`);
+        console.log(`Formatted ${formattedTrades.length} trades for display on strategy detail page (without volume)`);
       } else {
         console.log('No trading signals found for this strategy');
         setTrades([]);

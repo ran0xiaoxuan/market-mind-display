@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getStockPrice } from "./marketDataService";
 
@@ -283,7 +282,7 @@ const generateTradingSignal = async (
     if (error) {
       console.error('Error inserting trading signal:', error);
     } else {
-      console.log(`Generated ${signalType} signal for strategy ${strategyId}`);
+      console.log(`Generated ${signalType} signal for strategy ${strategyId} (no volume data)`);
     }
   } catch (error) {
     console.error('Error generating trading signal:', error);
@@ -310,9 +309,8 @@ const calculateExitProfit = async (strategyId: string, exitPrice: number) => {
 
     if (entryPrice > 0) {
       const profitPercentage = ((exitPrice - entryPrice) / entryPrice) * 100;
-      // Use a default volume for profit calculation since we removed volume from signals
-      const defaultVolume = 100;
-      const profit = profitPercentage / 100 * entryPrice * defaultVolume;
+      // Calculate profit based on price difference only (no volume)
+      const profit = exitPrice - entryPrice;
 
       return {
         profit: Math.round(profit * 100) / 100,

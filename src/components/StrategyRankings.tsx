@@ -7,7 +7,7 @@ import { getRecommendedStrategies, getStrategyApplyCounts } from "@/services/rec
 interface Strategy {
   id: string;
   name: string;
-  target_asset: string | null;
+  targetAsset: string | null;
   applyCount: number;
 }
 
@@ -34,7 +34,7 @@ export function StrategyRankings() {
           .map(strategy => ({
             id: strategy.id,
             name: strategy.name,
-            target_asset: strategy.target_asset,
+            targetAsset: strategy.targetAsset,
             applyCount: applyCounts.get(strategy.id) || 0
           }))
           .sort((a, b) => b.applyCount - a.applyCount) // Sort by apply count descending
@@ -89,9 +89,9 @@ export function StrategyRankings() {
                   'bg-blue-500'
                 }`}></div>
                 <span className="text-sm font-medium">{strategy.name}</span>
-                {strategy.target_asset && (
+                {strategy.targetAsset && (
                   <Badge variant="outline" className="text-xs">
-                    {strategy.target_asset}
+                    {strategy.targetAsset}
                   </Badge>
                 )}
               </div>

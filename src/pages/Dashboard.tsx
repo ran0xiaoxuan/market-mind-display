@@ -13,6 +13,7 @@ import { getStrategies } from "@/services/strategyService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { supabase } from "@/integrations/supabase/client";
 
 type TimeRange = "7d" | "30d" | "all";
 
@@ -44,6 +45,12 @@ const Dashboard = () => {
       // First clean up invalid signals
       await cleanupInvalidSignals();
 
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       // Fetch strategies, portfolio metrics and real trade history in parallel
       const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([
         getStrategies(), 
@@ -55,8 +62,24 @@ const Dashboard = () => {
       const totalStrategies = strategies.length;
       const activeStrategies = strategies.filter(s => s.isActive).length;
 
-      // Use real trade history data directly from the service
-      const signalAmount = realTradeHistory.length;
+      // Get ALL signals for the user's strategies (not just processed ones)
+      const userStrategyIds = strategies.map(s => s.id);
+      
+      let totalSignalCount = 0;
+      if (userStrategyIds.length > 0) {
+        const { data: allSignals, error: signalsError } = await supabase
+          .from("trading_signals")
+          .select("id")
+          .in("strategy_id", userStrategyIds);
+
+        if (signalsError) {
+          console.error("Error fetching total signals:", signalsError);
+        } else {
+          totalSignalCount = allSignals?.length || 0;
+        }
+      }
+
+      console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Total Signals: ${totalSignalCount}`);
 
       // Calculate total transaction amount from real trade history (sum of prices only, no volume)
       const transactionAmount = realTradeHistory.reduce((total, trade) => {
@@ -65,9 +88,7 @@ const Dashboard = () => {
         return total + price;
       }, 0);
 
-      console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Signals: ${signalAmount}, Transaction Amount: ${transactionAmount}`);
-
-      // Update metrics with real strategy counts and real trading data
+      // Update metrics with real strategy counts and corrected signal count
       const updatedMetrics = {
         ...portfolioMetrics,
         strategiesCount: totalStrategies.toString(),
@@ -80,7 +101,7 @@ const Dashboard = () => {
           value: "+0",
           positive: false
         },
-        signalAmount: signalAmount.toString(),
+        signalAmount: totalSignalCount.toString(),
         signalChange: {
           value: "+0",
           positive: false

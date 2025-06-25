@@ -93,21 +93,19 @@ const StrategyDetail = () => {
         setHasValidTradingRules(hasEntryRules || hasExitRules);
       }
       
-      // Fetch trading signals for this specific strategy
-      console.log("Fetching trading signals for strategy:", id);
+      // Fetch ALL trading signals for this specific strategy (not just processed ones)
+      console.log("Fetching ALL trading signals for strategy:", id);
       const { data: signals, error: signalsError } = await supabase
         .from("trading_signals")
         .select("*")
         .eq("strategy_id", id)
-        .eq("processed", true)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .order("created_at", { ascending: false });
       
       if (signalsError) {
         console.error('Error fetching signals:', signalsError);
         setTrades([]);
       } else if (signals && signals.length > 0) {
-        console.log(`Found ${signals.length} signals for strategy ${id}`);
+        console.log(`Found ${signals.length} total signals for strategy ${id} (including unprocessed)`);
         
         // Get current prices for open positions
         const currentPrices = new Map();
@@ -121,7 +119,7 @@ const StrategyDetail = () => {
           console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
         }
 
-        // Format trading signals for display (without volume)
+        // Format ALL trading signals for display (including unprocessed ones)
         const formattedTrades = signals.map(signal => {
           const signalData = (signal.signal_data as SignalData) || {};
           const currentPrice = currentPrices.get(strategyData.targetAsset);
@@ -155,12 +153,13 @@ const StrategyDetail = () => {
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
             strategyId: id,
             strategyName: strategyData.name,
-            targetAsset: strategyData.targetAsset
+            targetAsset: strategyData.targetAsset,
+            processed: signal.processed
           };
         });
         
         setTrades(formattedTrades);
-        console.log(`Formatted ${formattedTrades.length} trades for display on strategy detail page (without volume)`);
+        console.log(`Strategy Detail: Formatted ${formattedTrades.length} trades for display (including unprocessed signals)`);
       } else {
         console.log('No trading signals found for this strategy');
         setTrades([]);

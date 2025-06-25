@@ -8,7 +8,7 @@ import { StrategyList } from "@/components/StrategyList";
 import { useState, useEffect } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
-import { calculatePortfolioMetrics, getRealTradeHistory } from "@/services/marketDataService";
+import { calculatePortfolioMetrics } from "@/services/marketDataService";
 import { getStrategies } from "@/services/strategyService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 import { toast } from "sonner";
@@ -37,6 +37,87 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch all trade history from trading_signals table
+  const fetchAllTradeHistory = async (strategies: any[]) => {
+    try {
+      const userStrategyIds = strategies.map(s => s.id);
+      
+      if (userStrategyIds.length === 0) {
+        return [];
+      }
+
+      // Get date range filter based on timeRange
+      let dateFilter = {};
+      const now = new Date();
+      if (timeRange === "7d") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        dateFilter = { gte: sevenDaysAgo.toISOString() };
+      } else if (timeRange === "30d") {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        dateFilter = { gte: thirtyDaysAgo.toISOString() };
+      }
+
+      // Fetch all trading signals for user's strategies
+      let query = supabase
+        .from("trading_signals")
+        .select("*")
+        .in("strategy_id", userStrategyIds)
+        .eq("processed", true)
+        .order("created_at", { ascending: false });
+
+      // Apply date filter if not "all"
+      if (timeRange !== "all") {
+        query = query.gte("created_at", dateFilter.gte);
+      }
+
+      const { data: signals, error } = await query;
+
+      if (error) {
+        console.error('Error fetching trade history:', error);
+        return [];
+      }
+
+      if (!signals || signals.length === 0) {
+        return [];
+      }
+
+      // Create a map of strategy names for quick lookup
+      const strategyMap = new Map();
+      strategies.forEach(strategy => {
+        strategyMap.set(strategy.id, {
+          name: strategy.name,
+          targetAsset: strategy.targetAsset
+        });
+      });
+
+      // Format trading signals for display
+      const formattedTrades = signals.map(signal => {
+        const signalData = (signal.signal_data as any) || {};
+        const strategyInfo = strategyMap.get(signal.strategy_id);
+        
+        return {
+          id: signal.id,
+          date: new Date(signal.created_at).toLocaleDateString(),
+          type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
+          signal: signalData.reason || 'Trading Signal',
+          price: `$${(signalData.price || 0).toFixed(2)}`,
+          contracts: 1,
+          profit: signalData.profit !== null && signalData.profit !== undefined ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` : null,
+          profitPercentage: signalData.profitPercentage !== null && signalData.profitPercentage !== undefined ? `${signalData.profitPercentage >= 0 ? '+' : ''}${signalData.profitPercentage.toFixed(2)}%` : null,
+          strategyId: signal.strategy_id,
+          strategyName: strategyInfo?.name || 'Unknown Strategy',
+          targetAsset: strategyInfo?.targetAsset || 'Unknown Asset'
+        };
+      });
+
+      console.log(`Dashboard: Formatted ${formattedTrades.length} trades from trading_signals table`);
+      return formattedTrades;
+    } catch (error) {
+      console.error('Error in fetchAllTradeHistory:', error);
+      return [];
+    }
+  };
+
   // Fetch real-time data
   const fetchDashboardData = async () => {
     try {
@@ -51,11 +132,10 @@ const Dashboard = () => {
         throw new Error("User not authenticated");
       }
 
-      // Fetch strategies, portfolio metrics and real trade history in parallel
-      const [strategies, portfolioMetrics, realTradeHistory] = await Promise.all([
+      // Fetch strategies and portfolio metrics in parallel
+      const [strategies, portfolioMetrics] = await Promise.all([
         getStrategies(), 
-        calculatePortfolioMetrics(timeRange), 
-        getRealTradeHistory(timeRange)
+        calculatePortfolioMetrics(timeRange)
       ]);
 
       // Calculate strategy metrics from actual user strategies
@@ -81,8 +161,11 @@ const Dashboard = () => {
 
       console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Total Signals: ${totalSignalCount}`);
 
-      // Calculate total transaction amount from real trade history (sum of prices only, no volume)
-      const transactionAmount = realTradeHistory.reduce((total, trade) => {
+      // Fetch all trade history from trading_signals table
+      const allTradeHistory = await fetchAllTradeHistory(strategies);
+
+      // Calculate total transaction amount from trade history (sum of prices only, no volume)
+      const transactionAmount = allTradeHistory.reduce((total, trade) => {
         const price = parseFloat(trade.price.replace('$', '')) || 0;
         console.log(`Dashboard Trade: price=${price}`);
         return total + price;
@@ -113,7 +196,7 @@ const Dashboard = () => {
         }
       };
       setMetrics(updatedMetrics);
-      setTradeHistory(realTradeHistory);
+      setTradeHistory(allTradeHistory);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast.error("Failed to load dashboard data", {

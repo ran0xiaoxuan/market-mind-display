@@ -48,10 +48,38 @@ export const TradeHistoryTable = ({
     }
   }, [navigate, enableRowClick]);
 
-  // Format date to include time
+  // Format date to include time with proper parsing
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return dateString; // Return original string if invalid
+      }
+      
+      // Format date and time separately for better control
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      };
+      
+      const timeOptions: Intl.DateTimeFormatOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      };
+      
+      const formattedDate = date.toLocaleDateString('en-US', dateOptions);
+      const formattedTime = date.toLocaleTimeString('en-US', timeOptions);
+      
+      return `${formattedDate} ${formattedTime}`;
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return dateString; // Return original string if error occurs
+    }
   };
 
   return (
@@ -104,7 +132,9 @@ export const TradeHistoryTable = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {formatDateTime(trade.date)}
+                    <div className="text-sm">
+                      {formatDateTime(trade.date)}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {trade.price}

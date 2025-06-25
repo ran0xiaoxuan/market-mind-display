@@ -133,21 +133,21 @@ serve(async (req) => {
       })
     }
 
-    // Generate strategy using OpenAI (removed risk management from prompt)
+    // Updated indicator list - removed deprecated indicators and added commonly used ones
     const validIndicators = [
       // Moving Averages
-      "SMA", "EMA", "WMA", "DEMA", "TEMA", "TRIMA", "KAMA", "VWMA",
+      "SMA", "EMA", "WMA", "VWMA", "KAMA",
       // Oscillators
       "RSI", "Stochastic", "StochRSI", "CCI", "Williams %R", "Ultimate Oscillator", 
       "MACD", "Awesome Oscillator", "Momentum", "CMO", "MFI", "OBV",
       // Trend Indicators
-      "ADX", "DMI", "Ichimoku Cloud", "PSAR", "VWAP", "Supertrend", "TTM Squeeze",
+      "ADX", "DMI", "Ichimoku Cloud", "PSAR", "VWAP", "Supertrend",
       // Volatility Indicators
-      "Bollinger Bands", "ATR", "Keltner Channel", "Donchian Channel", "Chandelier Exit",
+      "Bollinger Bands", "ATR", "Keltner Channel", "Donchian Channel",
       // Volume Indicators
-      "Volume", "Chaikin Money Flow", "On Balance Volume", "Volume Oscillator", "Volume Weighted Moving Average",
-      // Price Patterns
-      "Heikin Ashi", "Engulfing", "Hammer", "Doji", "Morning Star", "Evening Star"
+      "Volume", "Chaikin Money Flow", "On Balance Volume", "Volume Oscillator",
+      // Price Action
+      "Support Resistance", "Pivot Points", "Fibonacci Retracement"
     ];
 
     const prompt = `You are an expert trading strategy generator. Create a trading strategy for ${selectedAsset} (${assetType}) based STRICTLY on this user request: "${strategyDescription}"
@@ -167,7 +167,7 @@ Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 ho
 STRATEGY LOGIC ANALYSIS:
 Analyze the user's description to determine appropriate entry and exit logic structures, indicator parameters, conditions, and thresholds.
 
-Return ONLY this JSON structure (WITHOUT risk management section):
+Return ONLY this JSON structure:
 {
   "name": "Descriptive strategy name based on user request",
   "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
@@ -275,7 +275,7 @@ Carefully analyze the user's description to create a strategy that truly reflect
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       strategy = JSON.parse(cleanContent);
       
-      // Basic validation (removed risk management validation)
+      // Basic validation
       if (!strategy.name || !strategy.entryRules || !strategy.exitRules) {
         throw new Error('Invalid strategy structure');
       }

@@ -47,17 +47,7 @@ const Dashboard = () => {
       }
 
       // Get date range filter based on timeRange
-      let dateFilter = {};
       const now = new Date();
-      if (timeRange === "7d") {
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        dateFilter = { gte: sevenDaysAgo.toISOString() };
-      } else if (timeRange === "30d") {
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        dateFilter = { gte: thirtyDaysAgo.toISOString() };
-      }
-
-      // Fetch all trading signals for user's strategies
       let query = supabase
         .from("trading_signals")
         .select("*")
@@ -66,8 +56,12 @@ const Dashboard = () => {
         .order("created_at", { ascending: false });
 
       // Apply date filter if not "all"
-      if (timeRange !== "all") {
-        query = query.gte("created_at", dateFilter.gte);
+      if (timeRange === "7d") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        query = query.gte("created_at", sevenDaysAgo.toISOString());
+      } else if (timeRange === "30d") {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        query = query.gte("created_at", thirtyDaysAgo.toISOString());
       }
 
       const { data: signals, error } = await query;

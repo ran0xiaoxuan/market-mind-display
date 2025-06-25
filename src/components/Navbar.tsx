@@ -124,16 +124,6 @@ export function Navbar() {
                   Strategies
                 </Link>
                 <Link
-                  to="/recommendations"
-                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                    location.pathname === "/recommendations"
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
-                  }`}
-                >
-                  Recommendations
-                </Link>
-                <Link
                   to="/backtest"
                   className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
                     location.pathname.startsWith("/backtest")
@@ -227,9 +217,6 @@ export function Navbar() {
               </Link>
               <Link to="/strategies" className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={closeMobileMenu}>
                 Strategies
-              </Link>
-              <Link to="/recommendations" className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={closeMobileMenu}>
-                Recommendations
               </Link>
               <Link to="/backtest" className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={closeMobileMenu}>
                 Backtest

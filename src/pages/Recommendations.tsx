@@ -323,14 +323,12 @@ const Recommendations = () => {
       <div className="container mx-auto p-6 space-y-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Strategy Recommendations</h1>
-          <p className="text-muted-foreground">
-            Discover and copy proven trading strategies from our community and experts.
-          </p>
+          
         </div>
 
         {/* Official Recommendations */}
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Official Recommendations</h2>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recommendedStrategies.map(strategy => <StrategyCard key={strategy.id} strategy={strategy} isOfficial={true} />)}
           </div>

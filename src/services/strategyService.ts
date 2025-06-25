@@ -67,6 +67,13 @@ export interface GeneratedStrategy {
   }>;
 }
 
+export class ServiceError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+    this.name = 'ServiceError';
+  }
+}
+
 export const getStrategies = async () => {
   try {
     const { data: strategies, error } = await supabase
@@ -137,6 +144,155 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
     console.error(`Error fetching strategy ${id}:`, error);
     throw error;
   }
+};
+
+export const deleteStrategy = async (strategyId: string) => {
+  try {
+    console.log(`Deleting strategy ${strategyId}`);
+
+    // Delete trading rules first (they reference rule groups)
+    const { data: ruleGroups } = await supabase
+      .from('rule_groups')
+      .select('id')
+      .eq('strategy_id', strategyId);
+
+    if (ruleGroups && ruleGroups.length > 0) {
+      const ruleGroupIds = ruleGroups.map(rg => rg.id);
+      
+      const { error: rulesError } = await supabase
+        .from('trading_rules')
+        .delete()
+        .in('rule_group_id', ruleGroupIds);
+
+      if (rulesError) {
+        console.error('Error deleting trading rules:', rulesError);
+        throw rulesError;
+      }
+    }
+
+    // Delete rule groups
+    const { error: ruleGroupsError } = await supabase
+      .from('rule_groups')
+      .delete()
+      .eq('strategy_id', strategyId);
+
+    if (ruleGroupsError) {
+      console.error('Error deleting rule groups:', ruleGroupsError);
+      throw ruleGroupsError;
+    }
+
+    // Delete trading signals
+    const { error: signalsError } = await supabase
+      .from('trading_signals')
+      .delete()
+      .eq('strategy_id', strategyId);
+
+    if (signalsError) {
+      console.error('Error deleting trading signals:', signalsError);
+      throw signalsError;
+    }
+
+    // Delete backtests
+    const { error: backtestsError } = await supabase
+      .from('backtests')
+      .delete()
+      .eq('strategy_id', strategyId);
+
+    if (backtestsError) {
+      console.error('Error deleting backtests:', backtestsError);
+      throw backtestsError;
+    }
+
+    // Finally delete the strategy
+    const { error: strategyError } = await supabase
+      .from('strategies')
+      .delete()
+      .eq('id', strategyId);
+
+    if (strategyError) {
+      console.error('Error deleting strategy:', strategyError);
+      throw strategyError;
+    }
+
+    console.log(`Strategy ${strategyId} deleted successfully`);
+  } catch (error) {
+    console.error('Error in deleteStrategy:', error);
+    throw error;
+  }
+};
+
+export const generateStrategy = async (prompt: string): Promise<GeneratedStrategy> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-strategy', {
+      body: { prompt }
+    });
+
+    if (error) {
+      throw new ServiceError(error.message || 'Failed to generate strategy', 'GENERATION_ERROR');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error generating strategy:', error);
+    throw error;
+  }
+};
+
+export const checkAIServiceHealth = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase.functions.invoke('generate-strategy', {
+      body: { prompt: 'health-check' }
+    });
+
+    return !error;
+  } catch (error) {
+    console.error('AI service health check failed:', error);
+    return false;
+  }
+};
+
+export const generateFallbackStrategy = (): GeneratedStrategy => {
+  return {
+    name: "Simple RSI Strategy",
+    description: "A basic RSI strategy that buys when RSI is below 30 and sells when RSI is above 70.",
+    timeframe: "1D",
+    targetAsset: "AAPL",
+    targetAssetName: "Apple Inc.",
+    entryRules: [{
+      logic: "AND",
+      inequalities: [{
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: { period: 14 }
+        },
+        condition: "<",
+        right: {
+          type: "value",
+          value: "30",
+          valueType: "number"
+        },
+        explanation: "RSI is oversold"
+      }]
+    }],
+    exitRules: [{
+      logic: "AND",
+      inequalities: [{
+        left: {
+          type: "indicator",
+          indicator: "RSI",
+          parameters: { period: 14 }
+        },
+        condition: ">",
+        right: {
+          type: "value",
+          value: "70",
+          valueType: "number"
+        },
+        explanation: "RSI is overbought"
+      }]
+    }]
+  };
 };
 
 export const getTradingRulesForStrategy = async (strategyId: string) => {

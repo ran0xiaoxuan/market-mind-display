@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
-import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 
@@ -40,7 +39,7 @@ const StrategyPreview = () => {
     try {
       console.log("Saving strategy:", generatedStrategy);
       
-      const strategyId = await saveGeneratedStrategy(generatedStrategy);
+      const strategyId = await saveGeneratedStrategy(generatedStrategy, user.id);
       console.log("Strategy saved with ID:", strategyId);
       
       toast.success("Your strategy has been saved successfully");
@@ -63,6 +62,16 @@ const StrategyPreview = () => {
 
   const handleGenerateAnother = () => {
     navigate('/ai-strategy');
+  };
+
+  // Convert GeneratedStrategy format to RuleGroupData format for display
+  const formatRulesForDisplay = (rules: GeneratedStrategy['entryRules'] | GeneratedStrategy['exitRules']) => {
+    return rules.map((rule, index) => ({
+      id: index + 1,
+      logic: rule.logic,
+      requiredConditions: (rule as any).requiredConditions,
+      inequalities: rule.inequalities
+    }));
   };
 
   return (
@@ -113,9 +122,10 @@ const StrategyPreview = () => {
             </Card>
           </div>
 
-          <RiskManagement riskManagement={generatedStrategy.riskManagement} />
-
-          <TradingRules entryRules={generatedStrategy.entryRules} exitRules={generatedStrategy.exitRules} />
+          <TradingRules 
+            entryRules={formatRulesForDisplay(generatedStrategy.entryRules)} 
+            exitRules={formatRulesForDisplay(generatedStrategy.exitRules)} 
+          />
         </div>
       </main>
     </div>

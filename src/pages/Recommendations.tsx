@@ -1,650 +1,401 @@
+
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Clock, TrendingUp, Copy, CheckCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash, Star, Eye, Info, BookOpen, Shield, ListOrdered, Check, Search, Loader2, ArrowUp, ArrowDown, Timer } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
-import { TradingRules } from "@/components/strategy-detail/TradingRules";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { StrategySelect } from "@/components/backtest/StrategySelect";
+import { useNavigate } from "react-router-dom";
+import { Navbar } from "@/components/Navbar";
 import { Strategy } from "@/services/strategyService";
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { getStrategyApplyCounts, trackStrategyApplication, createRecommendedStrategy, removeRecommendedStrategy, getRecommendedStrategies } from "@/services/recommendationService";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { TradingRules } from "@/components/strategy-detail/TradingRules";
 
-// Define a recommended strategy type that matches our new structure
-interface RecommendedStrategy {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  is_active: boolean;
-  timeframe: string;
-  target_asset: string | null;
-  target_asset_name: string | null;
-  created_at: string;
-  updated_at: string;
-  stop_loss: string | null;
-  take_profit: string | null;
-  single_buy_volume: string | null;
-  max_buy_volume: string | null;
-  recommendation_count?: number;
-  rating?: number;
-  is_public?: boolean;
-  is_official?: boolean;
-  original_strategy_id?: string;
-}
-type SortOption = 'name' | 'created' | 'updated' | 'apply_count';
-type SortDirection = 'asc' | 'desc';
-type RankingMode = 'popular' | 'recent';
 const Recommendations = () => {
-  const [strategies, setStrategies] = useState<RecommendedStrategy[]>([]);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [recommendedStrategies, setRecommendedStrategies] = useState<Strategy[]>([]);
+  const [communityStrategies, setCommunityStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("apply_count");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [rankingMode, setRankingMode] = useState<RankingMode>("popular");
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState<RecommendedStrategy | null>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [applyCounts, setApplyCounts] = useState<Map<string, number>>(new Map());
-  const {
-    session
-  } = useAuth();
+  const [copiedStrategies, setCopiedStrategies] = useState<Set<string>>(new Set());
 
-  // Admin check - only this specific email can add/delete official recommendations
-  const isAdmin = session?.user?.email === "ran0xiaoxuan@gmail.com";
-
-  // Strategy selection related states
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [userStrategies, setUserStrategies] = useState<Strategy[]>([]);
-  const [loadingUserStrategies, setLoadingUserStrategies] = useState(false);
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string>("");
-  const [filteredUserStrategies, setFilteredUserStrategies] = useState<Strategy[]>([]);
-
-  // Add the missing toggleSortDirection function
-  const toggleSortDirection = () => {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-  };
-
-  // Fetch the admin's personal strategies for selection
-  const fetchUserStrategies = async () => {
-    if (!isAdmin || !session?.user?.id) return;
-    try {
-      setLoadingUserStrategies(true);
-      console.log("Fetching strategies for admin user:", session.user.id);
-      const {
-        data,
-        error
-      } = await supabase.from('strategies').select('*').eq('user_id', session.user.id).eq('is_recommended_copy', false); // Only show original strategies, not copies
-
-      if (error) {
-        console.error("Error fetching user strategies:", error);
-        throw error;
-      }
-      console.log("Admin strategies fetched:", data);
-      const strategiesData = data.map(strategy => ({
-        id: strategy.id,
-        name: strategy.name,
-        description: strategy.description || "",
-        targetAsset: strategy.target_asset || "",
-        targetAssetName: strategy.target_asset_name || "",
-        isActive: strategy.is_active,
-        timeframe: strategy.timeframe,
-        createdAt: strategy.created_at,
-        updatedAt: strategy.updated_at,
-        userId: strategy.user_id,
-        stopLoss: strategy.stop_loss || "",
-        takeProfit: strategy.take_profit || "",
-        singleBuyVolume: strategy.single_buy_volume || "",
-        maxBuyVolume: strategy.max_buy_volume || ""
-      }));
-      setUserStrategies(strategiesData);
-      setFilteredUserStrategies(strategiesData);
-    } catch (error) {
-      console.error("Error fetching user strategies:", error);
-      toast.error("Failed to load your strategies");
-    } finally {
-      setLoadingUserStrategies(false);
-    }
-  };
-
-  // Filter user strategies based on search query
   useEffect(() => {
-    if (isSearchOpen && searchQuery && userStrategies.length > 0) {
-      const filtered = userStrategies.filter(strategy => strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) || strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      setFilteredUserStrategies(filtered);
-    } else {
-      setFilteredUserStrategies(userStrategies);
-    }
-  }, [searchQuery, userStrategies, isSearchOpen]);
+    fetchRecommendedStrategies();
+  }, []);
 
-  // Fetch recommended strategies using new service
   const fetchRecommendedStrategies = async () => {
     try {
       setLoading(true);
-      console.log("Starting to fetch recommended strategies...");
-      const collectedStrategies = await getRecommendedStrategies();
-      console.log("Collected strategies using new service:", collectedStrategies);
-      setStrategies(collectedStrategies);
+      
+      // Fetch official recommended strategies
+      const { data: officialStrategies, error: officialError } = await supabase
+        .from('recommended_strategies')
+        .select(`
+          strategy_id,
+          is_official,
+          strategies (
+            id,
+            name,
+            description,
+            timeframe,
+            target_asset,
+            target_asset_name,
+            is_active,
+            created_at,
+            updated_at,
+            user_id,
+            can_be_deleted,
+            is_recommended_copy
+          )
+        `)
+        .eq('is_official', true)
+        .eq('deprecated', false);
+
+      if (officialError) {
+        console.error('Error fetching official strategies:', officialError);
+        throw officialError;
+      }
+
+      // Fetch community recommended strategies
+      const { data: communityStrategiesList, error: communityError } = await supabase
+        .from('recommended_strategies')
+        .select(`
+          strategy_id,
+          is_official,
+          strategies (
+            id,
+            name,
+            description,
+            timeframe,
+            target_asset,
+            target_asset_name,
+            is_active,
+            created_at,
+            updated_at,
+            user_id,
+            can_be_deleted,
+            is_recommended_copy
+          )
+        `)
+        .eq('is_official', false)
+        .eq('deprecated', false)
+        .limit(10);
+
+      if (communityError) {
+        console.error('Error fetching community strategies:', communityError);
+        throw communityError;
+      }
+
+      // Format official strategies
+      const formattedOfficialStrategies = officialStrategies
+        ?.filter(item => item.strategies)
+        .map(item => ({
+          id: item.strategies.id,
+          name: item.strategies.name,
+          description: item.strategies.description || '',
+          targetAsset: item.strategies.target_asset || '',
+          targetAssetName: item.strategies.target_asset_name || '',
+          isActive: item.strategies.is_active,
+          timeframe: item.strategies.timeframe,
+          createdAt: item.strategies.created_at,
+          updatedAt: item.strategies.updated_at,
+          userId: item.strategies.user_id,
+          canBeDeleted: item.strategies.can_be_deleted,
+          isRecommendedCopy: item.strategies.is_recommended_copy,
+          sourceStrategyId: item.strategies.source_strategy_id
+        })) || [];
+
+      // Format community strategies
+      const formattedCommunityStrategies = communityStrategiesList
+        ?.filter(item => item.strategies)
+        .map(item => ({
+          id: item.strategies.id,
+          name: item.strategies.name,
+          description: item.strategies.description || '',
+          targetAsset: item.strategies.target_asset || '',
+          targetAssetName: item.strategies.target_asset_name || '',
+          isActive: item.strategies.is_active,
+          timeframe: item.strategies.timeframe,
+          createdAt: item.strategies.created_at,
+          updatedAt: item.strategies.updated_at,
+          userId: item.strategies.user_id,
+          canBeDeleted: item.strategies.can_be_deleted,
+          isRecommendedCopy: item.strategies.is_recommended_copy,
+          sourceStrategyId: item.strategies.source_strategy_id
+        })) || [];
+
+      setRecommendedStrategies(formattedOfficialStrategies);
+      setCommunityStrategies(formattedCommunityStrategies);
+
     } catch (error) {
-      console.error("Error in fetchRecommendedStrategies:", error);
-      toast.error("Failed to load recommendations");
+      console.error('Error fetching recommended strategies:', error);
+      toast.error('Failed to load recommended strategies');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch apply counts for all strategies
-  const fetchApplyCounts = async () => {
-    try {
-      const counts = await getStrategyApplyCounts();
-      setApplyCounts(counts);
-    } catch (error) {
-      console.error("Error fetching apply counts:", error);
+  const copyStrategy = async (strategy: Strategy) => {
+    if (!user) {
+      toast.error("Please log in to copy strategies");
+      navigate('/auth/login');
+      return;
     }
-  };
 
-  // Apply a strategy to user's own strategies - Updated to use new tracking
-  const applyStrategy = async (strategy: RecommendedStrategy) => {
     try {
-      if (!session?.user?.id) {
-        toast.error("You must be logged in to apply a strategy");
-        return;
+      // First, fetch the trading rules for the original strategy
+      const { data: ruleGroups, error: rulesError } = await supabase
+        .from('rule_groups')
+        .select(`
+          rule_type,
+          logic,
+          required_conditions,
+          group_order,
+          trading_rules (
+            left_type,
+            left_indicator,
+            left_parameters,
+            left_value,
+            left_value_type,
+            condition,
+            right_type,
+            right_indicator,
+            right_parameters,
+            right_value,
+            right_value_type,
+            explanation,
+            inequality_order
+          )
+        `)
+        .eq('strategy_id', strategy.id)
+        .order('group_order');
+
+      if (rulesError) {
+        console.error('Error fetching trading rules:', rulesError);
+        throw rulesError;
       }
-      console.log("Applying strategy:", strategy.id);
 
-      // Show loading toast
-      const loadingToast = toast.loading("Applying strategy...", {
-        description: `Copying "${strategy.name}" to your collection`
-      });
+      // Create the new strategy copy
+      const { data: newStrategy, error: strategyError } = await supabase
+        .from('strategies')
+        .insert({
+          name: `${strategy.name} (Copy)`,
+          description: strategy.description,
+          timeframe: strategy.timeframe,
+          target_asset: strategy.targetAsset,
+          target_asset_name: strategy.targetAssetName,
+          user_id: user.id,
+          is_active: false,
+          is_recommended_copy: true,
+          source_strategy_id: strategy.id
+        })
+        .select()
+        .single();
 
-      // Use new service function that creates a copy and tracks the application
-      const copiedStrategy = await trackStrategyApplication(strategy.id, session.user.id);
+      if (strategyError) {
+        console.error('Error creating strategy copy:', strategyError);
+        throw strategyError;
+      }
 
-      // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      // Copy the trading rules if they exist
+      if (ruleGroups && ruleGroups.length > 0) {
+        for (const group of ruleGroups) {
+          const { data: newRuleGroup, error: groupError } = await supabase
+            .from('rule_groups')
+            .insert({
+              strategy_id: newStrategy.id,
+              rule_type: group.rule_type,
+              logic: group.logic,
+              required_conditions: group.required_conditions,
+              group_order: group.group_order
+            })
+            .select()
+            .single();
 
-      // Show success notification with details
-      toast.success("Strategy applied successfully!", {
-        description: `"${strategy.name}" has been added to your strategy collection and is ready to use.`,
-        duration: 5000,
-        action: {
-          label: "View Strategies",
-          onClick: () => window.location.href = "/strategies"
+          if (groupError) {
+            console.error('Error creating rule group:', groupError);
+            throw groupError;
+          }
+
+          // Copy the individual trading rules
+          if (group.trading_rules && group.trading_rules.length > 0) {
+            const rulesToInsert = group.trading_rules.map((rule: any) => ({
+              rule_group_id: newRuleGroup.id,
+              left_type: rule.left_type,
+              left_indicator: rule.left_indicator,
+              left_parameters: rule.left_parameters,
+              left_value: rule.left_value,
+              left_value_type: rule.left_value_type,
+              condition: rule.condition,
+              right_type: rule.right_type,
+              right_indicator: rule.right_indicator,
+              right_parameters: rule.right_parameters,
+              right_value: rule.right_value,
+              right_value_type: rule.right_value_type,
+              explanation: rule.explanation,
+              inequality_order: rule.inequality_order
+            }));
+
+            const { error: rulesInsertError } = await supabase
+              .from('trading_rules')
+              .insert(rulesToInsert);
+
+            if (rulesInsertError) {
+              console.error('Error inserting trading rules:', rulesInsertError);
+              throw rulesInsertError;
+            }
+          }
         }
-      });
-
-      // Refresh apply counts to show updated data
-      await fetchApplyCounts();
-      console.log("Strategy successfully copied:", copiedStrategy);
-    } catch (error) {
-      console.error("Error applying strategy:", error);
-
-      // Show error notification with more details
-      toast.error("Failed to apply strategy", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred while copying the strategy. Please try again.",
-        duration: 7000
-      });
-    }
-  };
-
-  // Delete a recommended strategy (admin only) - Updated to use new service
-  const deleteStrategy = async (id: string) => {
-    if (!isAdmin || !session?.user?.id) return;
-    try {
-      console.log("Deleting recommended strategy:", id);
-      await removeRecommendedStrategy(id, session.user.id);
-      toast.success("Strategy removed from recommendations");
-      fetchRecommendedStrategies();
-    } catch (error) {
-      console.error("Error deleting recommended strategy:", error);
-      toast.error("Failed to delete recommendation");
-    }
-  };
-
-  // Add a new recommended strategy (admin only) - Updated to use new service
-  const addOfficialStrategy = async () => {
-    if (!isAdmin || !session?.user?.id) return;
-    try {
-      console.log("Adding official strategy with ID:", selectedStrategyId);
-      if (!selectedStrategyId) {
-        toast.error("Please select a strategy");
-        return;
       }
-      const recommendedStrategy = await createRecommendedStrategy(selectedStrategyId, session.user.id);
-      console.log("Successfully created recommended strategy:", recommendedStrategy);
-      toast.success("Official strategy added to recommendations");
-      setShowUploadDialog(false);
-      setSelectedStrategyId("");
-      fetchRecommendedStrategies(); // Refresh the list
-    } catch (error) {
-      console.error("Error adding strategy:", error);
-      toast.error("Failed to add strategy");
-    }
-  };
 
-  // Handle strategy selection from command dialog
-  const handleStrategySelect = (strategyId: string) => {
-    setSelectedStrategyId(strategyId);
-    setIsSearchOpen(false);
-    setSearchQuery("");
-  };
+      // Record the copy action
+      const { error: copyRecordError } = await supabase
+        .from('strategy_copies')
+        .insert({
+          source_strategy_id: strategy.id,
+          copied_strategy_id: newStrategy.id,
+          copied_by: user.id,
+          copy_type: 'recommendation'
+        });
 
-  // Show strategy details in dialog
-  const showStrategyDetails = (strategy: RecommendedStrategy) => {
-    setSelectedStrategy(strategy);
-    setShowDetailsDialog(true);
-    setActiveTab("overview");
-  };
-
-  // Filter strategies based on search term and apply ranking mode
-  const filteredAndSortedStrategies = strategies.filter(strategy => strategy.name?.toLowerCase().includes(searchTerm.toLowerCase()) || strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => {
-    let comparison = 0;
-
-    // Apply ranking mode logic
-    if (rankingMode === 'popular') {
-      // Sort by popularity (apply count)
-      const aCount = applyCounts.get(a.id) || 0;
-      const bCount = applyCounts.get(b.id) || 0;
-      comparison = bCount - aCount; // Descending order for popularity
-    } else if (rankingMode === 'recent') {
-      // Sort by recommendation timestamp (created_at)
-      comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Descending order for recent
-    }
-
-    // If comparison is 0 (tie) or no ranking mode matches, fall back to regular sorting
-    if (comparison === 0) {
-      switch (sortBy) {
-        case 'name':
-          comparison = (a.name || '').localeCompare(b.name || '');
-          break;
-        case 'created':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        case 'updated':
-          comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
-          break;
-        case 'apply_count':
-          const aCount = applyCounts.get(a.id) || 0;
-          const bCount = applyCounts.get(b.id) || 0;
-          comparison = aCount - bCount;
-          break;
-        default:
-          comparison = 0;
+      if (copyRecordError) {
+        console.error('Error recording copy action:', copyRecordError);
+        // This is not critical, so we don't throw
       }
-      return sortDirection === 'asc' ? comparison : -comparison;
-    }
-    return comparison;
-  });
 
-  // Fetch recommended strategies and apply counts on component mount
-  useEffect(() => {
-    fetchRecommendedStrategies();
-    fetchApplyCounts();
-    if (isAdmin) {
-      fetchUserStrategies();
+      setCopiedStrategies(prev => new Set([...prev, strategy.id]));
+      toast.success(`Strategy "${strategy.name}" copied successfully!`);
+      
+      // Navigate to the copied strategy
+      navigate(`/strategy/${newStrategy.id}`);
+
+    } catch (error) {
+      console.error('Error copying strategy:', error);
+      toast.error('Failed to copy strategy. Please try again.');
     }
-  }, [isAdmin, session?.user?.id]);
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
-            <h1 className="text-3xl font-bold">Recommendations</h1>
-            {isAdmin && (
-              <Button 
-                className="mt-4 sm:mt-0" 
-                onClick={() => {
-                  fetchUserStrategies();
-                  setShowUploadDialog(true);
-                }}
-              >
-                Add Official Strategy
-              </Button>
+  };
+
+  const StrategyCard = ({ strategy, isOfficial = false }: { strategy: Strategy; isOfficial?: boolean }) => (
+    <Card className="h-full">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-lg">{strategy.name}</CardTitle>
+          <div className="flex gap-2">
+            {isOfficial && (
+              <Badge variant="default" className="bg-blue-500">
+                Official
+              </Badge>
             )}
+            <Badge variant={strategy.isActive ? "default" : "secondary"}>
+              {strategy.isActive ? "Active" : "Inactive"}
+            </Badge>
           </div>
-          
-          {/* Search and Ranking Controls */}
-          <div className="mb-6 flex flex-col lg:flex-row justify-between gap-4">
-            <div className="w-full lg:w-2/5">
-              <Input 
-                placeholder="Search recommendations..." 
-                value={searchTerm} 
-                onChange={e => setSearchTerm(e.target.value)} 
-                className="w-full" 
-              />
-            </div>
-            
-            <div className="flex justify-end w-full lg:w-3/5">
-              <div className="w-auto min-w-[120px]">
-                <ToggleGroup 
-                  type="single" 
-                  value={rankingMode} 
-                  onValueChange={(value: RankingMode) => value && setRankingMode(value)} 
-                  className="w-full"
-                >
-                  <ToggleGroupItem value="popular" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    <Star className="h-4 w-4" />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="recent" className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    <Timer className="h-4 w-4" />
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-            </div>
-          </div>
-          
-          {/* Strategy cards */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <Card key={i} className="h-64 animate-pulse">
-                  <div className="h-full flex flex-col">
-                    <div className="h-10 bg-muted rounded-t-lg"></div>
-                    <div className="flex-1 p-6">
-                      <div className="h-6 w-3/4 bg-muted rounded mb-4"></div>
-                      <div className="h-4 w-full bg-muted rounded mb-2"></div>
-                      <div className="h-4 w-5/6 bg-muted rounded mb-2"></div>
-                      <div className="h-4 w-4/6 bg-muted rounded"></div>
-                    </div>
-                    <div className="h-12 bg-muted rounded-b-lg"></div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Results count and current ranking mode display */}
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                
-              </div>
-
-              {filteredAndSortedStrategies.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedStrategies.map(strategy => (
-                    <Card 
-                      key={strategy.id} 
-                      className="flex flex-col h-72 hover:border-primary hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50" 
-                      onClick={() => showStrategyDetails(strategy)}
-                    >
-                      <CardHeader className="pb-2 border-b flex-shrink-0">
-                        <div className="flex justify-between items-start">
-                          <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg text-slate-800 truncate">{strategy.name}</CardTitle>
-                            <div className="flex items-center mt-1 space-x-2">
-                              {strategy.target_asset && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
-                                  {strategy.target_asset}
-                                </Badge>
-                              )}
-                              {strategy.is_official}
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="flex-1 py-3 px-4 min-h-0">
-                        <div className="h-full flex flex-col">
-                          <div className="flex-1 overflow-hidden my-[15px]">
-                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
-                              {strategy.description || "No description provided"}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="pt-2 px-4 pb-3 flex justify-between border-t flex-shrink-0">
-                        <div>
-                          {isAdmin && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="p-0 h-8 w-8 text-destructive" 
-                              onClick={e => {
-                                e.stopPropagation();
-                                deleteStrategy(strategy.id);
-                              }}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center">
-                          <Star className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" />
-                          <span className="text-sm font-medium">{applyCounts.get(strategy.id) || 0}</span>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No recommendations match your criteria</p>
-                </div>
-              )}
-            </>
-          )}
         </div>
-      </main>
-      
-      {/* Enhanced Strategy details dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">{selectedStrategy?.name}</DialogTitle>
-            <DialogDescription className="flex items-center space-x-2">
-              {selectedStrategy?.target_asset && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                  {selectedStrategy.target_asset}
-                </Badge>
-              )}
-              {selectedStrategy?.is_official}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-3 mb-4">
-              <TabsTrigger value="overview" className="flex items-center">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="risk" className="flex items-center">
-                Risk Management
-              </TabsTrigger>
-              <TabsTrigger value="rules" className="flex items-center">
-                Trading Rules
-              </TabsTrigger>
-            </TabsList>
-            
-            <ScrollArea className="h-[50vh] pr-4">
-              <TabsContent value="overview" className="mt-0">
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Description</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {selectedStrategy?.description || "No description provided."}
-                    </p>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Strategy Details</h3>
-                    <Card className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Target Asset:</span>
-                            <span className="text-sm font-medium">{selectedStrategy?.target_asset || "N/A"}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Timeframe:</span>
-                            <span className="text-sm font-medium">{selectedStrategy?.timeframe || "N/A"}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Applications:</span>
-                            <span className="text-sm font-medium">{applyCounts.get(selectedStrategy?.id || '') || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="risk" className="mt-0">
-                {selectedStrategy && (
-                  <RiskManagement 
-                    riskManagement={{
-                      stopLoss: selectedStrategy.stop_loss || "0%",
-                      takeProfit: selectedStrategy.take_profit || "0%",
-                      singleBuyVolume: selectedStrategy.single_buy_volume || "0",
-                      maxBuyVolume: selectedStrategy.max_buy_volume || "0"
-                    }} 
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="rules" className="mt-0">
-                {selectedStrategy && (
-                  <TradingRules entryRules={[]} exitRules={[]} editable={false} />
-                )}
-                <div className="text-sm text-muted-foreground mt-4 p-4 bg-slate-50 rounded-md">
-                  <p>This is a simplified view of the trading rules. Apply this strategy to your collection to see and customize the complete rule set.</p>
-                </div>
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
-          
-          <DialogFooter className="mt-4 pt-2 border-t">
-            <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-              Close
-            </Button>
-            <Button onClick={() => {
-              if (selectedStrategy) {
-                applyStrategy(selectedStrategy);
-                setShowDetailsDialog(false);
-              }
-            }}>
-              Apply Strategy
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Admin dialog to select an existing strategy */}
-      {isAdmin && (
-        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Official Strategy</DialogTitle>
-              <DialogDescription>
-                Select one of your existing strategies to recommend to all users.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Strategy</label>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-left font-normal h-10 bg-background" 
-                  onClick={() => setIsSearchOpen(true)}
-                >
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                  {userStrategies.find(s => s.id === selectedStrategyId)?.name || "Select a strategy"}
-                </Button>
-              </div>
-
-              {selectedStrategyId && (
-                <div className="bg-muted/50 p-3 rounded-md">
-                  <h4 className="font-medium text-sm">Selected Strategy</h4>
-                  <p className="text-sm mt-1">{userStrategies.find(s => s.id === selectedStrategyId)?.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {userStrategies.find(s => s.id === selectedStrategyId)?.description || "No description"}
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={addOfficialStrategy} disabled={!selectedStrategyId || loadingUserStrategies}>
-                {loadingUserStrategies ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Add to Recommendations
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground line-clamp-3">
+          {strategy.description}
+        </p>
         
-      {/* Command dialog for strategy selection */}
-      <CommandDialog open={isSearchOpen} onOpenChange={open => {
-        setIsSearchOpen(open);
-        if (!open) {
-          setSearchQuery("");
-        }
-      }}>
-        <CommandInput 
-          placeholder="Search your strategies..." 
-          value={searchQuery} 
-          onValueChange={setSearchQuery} 
-          autoFocus={true} 
-        />
-        <CommandList>
-          <CommandEmpty>
-            {loadingUserStrategies ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <p className="p-4 text-center text-sm text-muted-foreground">
-                {searchQuery ? "No strategies found" : "Type to search your strategies"}
-              </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <TrendingUp className="h-4 w-4" />
+            <span>{strategy.targetAsset}</span>
+            {strategy.targetAssetName && (
+              <span className="text-muted-foreground">({strategy.targetAssetName})</span>
             )}
-          </CommandEmpty>
-          
-          {filteredUserStrategies.length > 0 && (
-            <CommandGroup heading="Your Strategies">
-              {filteredUserStrategies.map(strategy => (
-                <CommandItem 
-                  key={strategy.id} 
-                  value={`${strategy.name} ${strategy.description || ''}`} 
-                  onSelect={() => handleStrategySelect(strategy.id)}
-                >
-                  <div className="flex items-center">
-                    {selectedStrategyId === strategy.id && <Check className="mr-2 h-4 w-4 text-primary" />}
-                    <div className="flex flex-col">
-                      <span>{strategy.name}</span>
-                      {strategy.description && (
-                        <span className="text-xs text-muted-foreground line-clamp-1">
-                          {strategy.description}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>Timeframe: {strategy.timeframe}</span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Updated {formatDistanceToNow(new Date(strategy.updatedAt), { addSuffix: true })}
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate(`/strategy/${strategy.id}`)}
+            className="flex-1"
+          >
+            View Details
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={() => copyStrategy(strategy)}
+            disabled={copiedStrategies.has(strategy.id)}
+            className="flex-1"
+          >
+            {copiedStrategies.has(strategy.id) ? (
+              <>
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 mr-1" />
+                Copy
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto p-6">
+          <div className="text-center">Loading recommendations...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto p-6 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Strategy Recommendations</h1>
+          <p className="text-muted-foreground">
+            Discover and copy proven trading strategies from our community and experts.
+          </p>
+        </div>
+
+        {/* Official Recommendations */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Official Recommendations</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recommendedStrategies.map((strategy) => (
+              <StrategyCard key={strategy.id} strategy={strategy} isOfficial={true} />
+            ))}
+          </div>
+          {recommendedStrategies.length === 0 && (
+            <p className="text-muted-foreground">No official recommendations available at the moment.</p>
           )}
-        </CommandList>
-      </CommandDialog>
+        </section>
+
+        {/* Community Recommendations */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Community Favorites</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {communityStrategies.map((strategy) => (
+              <StrategyCard key={strategy.id} strategy={strategy} />
+            ))}
+          </div>
+          {communityStrategies.length === 0 && (
+            <p className="text-muted-foreground">No community recommendations available at the moment.</p>
+          )}
+        </section>
+      </div>
     </div>
   );
 };

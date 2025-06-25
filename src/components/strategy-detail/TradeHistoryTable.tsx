@@ -48,6 +48,12 @@ export const TradeHistoryTable = ({
     }
   }, [navigate, enableRowClick]);
 
+  // Format date to include time
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -55,9 +61,9 @@ export const TradeHistoryTable = ({
           <TableRow className="bg-muted/20">
             <TableHead className="whitespace-nowrap font-medium">Asset</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Date</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Time</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
-            <TableHead className="whitespace-nowrap font-medium">Profit/Loss</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Profit/Loss per share</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -98,7 +104,7 @@ export const TradeHistoryTable = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {trade.date}
+                    {formatDateTime(trade.date)}
                   </TableCell>
                   <TableCell>
                     {trade.price}

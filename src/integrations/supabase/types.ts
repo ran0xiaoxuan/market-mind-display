@@ -177,8 +177,6 @@ export type Database = {
           entry_signals: boolean
           exit_signals: boolean
           id: string
-          stop_loss_alerts: boolean
-          take_profit_alerts: boolean
           telegram_bot_token: string | null
           telegram_chat_id: string | null
           telegram_enabled: boolean
@@ -193,8 +191,6 @@ export type Database = {
           entry_signals?: boolean
           exit_signals?: boolean
           id?: string
-          stop_loss_alerts?: boolean
-          take_profit_alerts?: boolean
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
           telegram_enabled?: boolean
@@ -209,8 +205,6 @@ export type Database = {
           entry_signals?: boolean
           exit_signals?: boolean
           id?: string
-          stop_loss_alerts?: boolean
-          take_profit_alerts?: boolean
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
           telegram_enabled?: boolean
@@ -339,12 +333,8 @@ export type Database = {
           id: string
           is_active: boolean
           is_recommended_copy: boolean
-          max_buy_volume: string | null
           name: string
-          single_buy_volume: string | null
           source_strategy_id: string | null
-          stop_loss: string | null
-          take_profit: string | null
           target_asset: string | null
           target_asset_name: string | null
           timeframe: string
@@ -358,12 +348,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_recommended_copy?: boolean
-          max_buy_volume?: string | null
           name: string
-          single_buy_volume?: string | null
           source_strategy_id?: string | null
-          stop_loss?: string | null
-          take_profit?: string | null
           target_asset?: string | null
           target_asset_name?: string | null
           timeframe: string
@@ -377,12 +363,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_recommended_copy?: boolean
-          max_buy_volume?: string | null
           name?: string
-          single_buy_volume?: string | null
           source_strategy_id?: string | null
-          stop_loss?: string | null
-          take_profit?: string | null
           target_asset?: string | null
           target_asset_name?: string | null
           timeframe?: string

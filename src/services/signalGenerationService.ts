@@ -9,7 +9,6 @@ export interface TradingSignal {
   signal_data: {
     reason: string;
     price: number;
-    volume: number;
     timestamp: string;
     profit?: number;
     profitPercentage?: number;
@@ -94,7 +93,6 @@ export const evaluateStrategy = async (strategyId: string) => {
       await generateTradingSignal(strategyId, 'entry', {
         reason: 'Entry conditions met',
         price: currentPrice,
-        volume: parseInt(strategy.single_buy_volume) || 100,
         timestamp: new Date().toISOString(),
         indicators
       });
@@ -105,7 +103,6 @@ export const evaluateStrategy = async (strategyId: string) => {
       await generateTradingSignal(strategyId, 'exit', {
         reason: 'Exit conditions met',
         price: currentPrice,
-        volume: parseInt(strategy.single_buy_volume) || 100,
         timestamp: new Date().toISOString(),
         indicators
       });
@@ -129,7 +126,7 @@ const getBasePriceForSymbol = (symbol: string): number => {
     'NFLX': 400,
     'SPY': 450,
     'QQQ': 380,
-    'TQQQ': 77, // More realistic for TQQQ
+    'TQQQ': 77,
   };
 
   return basePrices[symbol.toUpperCase()] || 150;
@@ -137,12 +134,12 @@ const getBasePriceForSymbol = (symbol: string): number => {
 
 const generateRealisticRSI = (price: number, symbol: string): number => {
   // Generate more realistic RSI values based on price movements and symbol
-  const baseRSI = symbol === 'TQQQ' ? 45 : 50; // TQQQ tends to be more volatile
-  const variation = (Math.random() - 0.5) * 30; // ±15 variation
-  const priceInfluence = (price % 10) * 1.5; // Add some price-based variation
+  const baseRSI = symbol === 'TQQQ' ? 45 : 50;
+  const variation = (Math.random() - 0.5) * 30;
+  const priceInfluence = (price % 10) * 1.5;
   const rsi = baseRSI + variation + priceInfluence;
   
-  return Math.min(Math.max(rsi, 10), 90); // Keep within 10-90 range for realism
+  return Math.min(Math.max(rsi, 10), 90);
 };
 
 const shouldGenerateEntrySignal = async (
@@ -177,7 +174,7 @@ const shouldGenerateExitSignal = async (
     .eq('processed', true);
 
   if (!openPositions || openPositions.length === 0) {
-    return false; // No open positions to exit
+    return false;
   }
 
   for (const group of exitRules) {
@@ -249,7 +246,7 @@ const evaluateRule = (
       case '<=':
         return leftValue <= rightValue;
       case '==':
-        return Math.abs(leftValue - rightValue) < 0.01; // Allow small floating point differences
+        return Math.abs(leftValue - rightValue) < 0.01;
       default:
         return false;
     }
@@ -310,11 +307,12 @@ const calculateExitProfit = async (strategyId: string, exitPrice: number) => {
 
     const entryData = entrySignal.signal_data as any;
     const entryPrice = entryData.price || 0;
-    const volume = entryData.volume || 0;
 
-    if (entryPrice > 0 && volume > 0) {
+    if (entryPrice > 0) {
       const profitPercentage = ((exitPrice - entryPrice) / entryPrice) * 100;
-      const profit = profitPercentage / 100 * entryPrice * volume;
+      // Use a default volume for profit calculation since we removed volume from signals
+      const defaultVolume = 100;
+      const profit = profitPercentage / 100 * entryPrice * defaultVolume;
 
       return {
         profit: Math.round(profit * 100) / 100,

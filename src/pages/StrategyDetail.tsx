@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
 import { StrategyHeader } from "@/components/strategy-detail/StrategyHeader";
 import { StrategyInfo } from "@/components/strategy-detail/StrategyInfo";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
-import { RiskManagement } from "@/components/strategy-detail/RiskManagement";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
 import { SignalMonitoringStatusCard } from "@/components/strategy-detail/SignalMonitoringStatus";
@@ -14,10 +14,9 @@ import { AlertCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getTradingRulesForStrategy, getStrategyById, getRiskManagementForStrategy } from "@/services/strategyService";
+import { getTradingRulesForStrategy, getStrategyById } from "@/services/strategyService";
 import { Navbar } from "@/components/Navbar";
 import { getStockPrice } from "@/services/marketDataService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
@@ -26,7 +25,6 @@ import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 interface SignalData {
   reason?: string;
   price?: number;
-  volume?: number;
   profit?: number;
   profitPercentage?: number;
   [key: string]: any;
@@ -96,7 +94,7 @@ const StrategyDetail = () => {
         setHasValidTradingRules(hasEntryRules || hasExitRules);
       }
       
-      // Fetch trading signals for this specific strategy - use the same logic as dashboard
+      // Fetch trading signals for this specific strategy
       console.log("Fetching trading signals for strategy:", id);
       const { data: signals, error: signalsError } = await supabase
         .from("trading_signals")
@@ -124,7 +122,7 @@ const StrategyDetail = () => {
           console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
         }
 
-        // Format trading signals for display - same format as dashboard
+        // Format trading signals for display
         const formattedTrades = signals.map(signal => {
           const signalData = (signal.signal_data as SignalData) || {};
           const currentPrice = currentPrices.get(strategyData.targetAsset);
@@ -137,8 +135,9 @@ const StrategyDetail = () => {
             const entryPrice = signalData.price || 0;
             if (entryPrice > 0) {
               const unrealizedProfitPercentage = ((currentPrice - entryPrice) / entryPrice) * 100;
-              const volume = signalData.volume || 0;
-              const unrealizedProfit = unrealizedProfitPercentage / 100 * entryPrice * volume;
+              // Use default volume since we removed volume from strategies
+              const defaultVolume = 100;
+              const unrealizedProfit = unrealizedProfitPercentage / 100 * entryPrice * defaultVolume;
               
               calculatedProfit = unrealizedProfit;
               calculatedProfitPercentage = unrealizedProfitPercentage;
@@ -153,7 +152,7 @@ const StrategyDetail = () => {
             type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
             signal: signalData.reason || 'Trading Signal',
             price: `$${(signalData.price || 0).toFixed(2)}`,
-            contracts: signalData.volume || 0,
+            contracts: 100, // Default volume since removed from strategy
             profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
             strategyId: id,
@@ -187,7 +186,6 @@ const StrategyDetail = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // Page became visible, refresh data to ensure we have latest changes
         console.log("Page became visible, refreshing strategy data");
         fetchStrategyDetails();
       }
@@ -220,7 +218,6 @@ const StrategyDetail = () => {
       if (error) {
         console.error("Error updating strategy status:", error);
         toast.error("Failed to update strategy status");
-        // Revert the UI state if there was an error
         setIsActive(!checked);
         return;
       }
@@ -229,7 +226,6 @@ const StrategyDetail = () => {
     } catch (err) {
       console.error("Error in handleStatusChange:", err);
       toast.error("An error occurred while updating strategy status");
-      // Revert the UI state if there was an error
       setIsActive(!checked);
     }
   };
@@ -238,7 +234,6 @@ const StrategyDetail = () => {
     try {
       await cleanupInvalidSignals();
       toast.success("Invalid signals cleaned up successfully");
-      // Refresh the data
       await fetchStrategyDetails();
     } catch (error) {
       console.error("Error cleaning up invalid data:", error);
@@ -294,7 +289,6 @@ const StrategyDetail = () => {
     );
   }
 
-  // Only create riskManagementData if strategy is loaded
   if (!strategy) {
     return (
       <>
@@ -310,13 +304,6 @@ const StrategyDetail = () => {
       </>
     );
   }
-  
-  const riskManagementData = {
-    stopLoss: strategy.stopLoss || "Not set",
-    takeProfit: strategy.takeProfit || "Not set",
-    singleBuyVolume: strategy.singleBuyVolume || "Not set",
-    maxBuyVolume: strategy.maxBuyVolume || "Not set"
-  };
   
   return (
     <>
@@ -361,7 +348,6 @@ const StrategyDetail = () => {
             onStatusChange={handleStatusChange} 
           />
 
-          {/* Signal Monitoring Status - only show for strategies with valid rules */}
           {hasValidTradingRules && (
             <SignalMonitoringStatusCard strategyId={id || ""} />
           )}
@@ -370,8 +356,6 @@ const StrategyDetail = () => {
             entryRules={entryRules} 
             exitRules={exitRules} 
           />
-          
-          <RiskManagement riskManagement={riskManagementData} />
           
           <PerformanceMetricsCard strategyId={id || ""} />
           

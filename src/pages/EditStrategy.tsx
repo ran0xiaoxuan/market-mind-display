@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, X, Search, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Loader2, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -46,10 +47,6 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("");
   const [targetAssetName, setTargetAssetName] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [stopLoss, setStopLoss] = useState("");
-  const [takeProfit, setTakeProfit] = useState("");
-  const [singleBuyVolume, setSingleBuyVolume] = useState("");
-  const [maxBuyVolume, setMaxBuyVolume] = useState("");
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -69,15 +66,6 @@ const EditStrategy = () => {
     if (!description.trim()) errors.push("Description is required");
     if (!timeframe) errors.push("Timeframe is required");
     if (!targetAsset.trim()) errors.push("Target Asset is required");
-    return errors;
-  };
-
-  const validateRiskManagement = () => {
-    const errors = [];
-    if (!stopLoss.trim()) errors.push("Stop Loss is required");
-    if (!takeProfit.trim()) errors.push("Take Profit is required");
-    if (!singleBuyVolume.trim()) errors.push("Single Buy Volume is required");
-    if (!maxBuyVolume.trim()) errors.push("Max Buy Volume is required");
     return errors;
   };
 
@@ -104,7 +92,6 @@ const EditStrategy = () => {
   };
 
   const basicInfoErrors = showValidation ? validateBasicInfo() : [];
-  const riskManagementErrors = showValidation ? validateRiskManagement() : [];
   const tradingRulesErrors = showValidation ? validateTradingRules() : [];
 
   // Function to normalize timeframe from database format to TIMEFRAME_OPTIONS value
@@ -201,7 +188,7 @@ const EditStrategy = () => {
   useEffect(() => {
     const fetchStrategyData = async () => {
       if (!id) {
-        toast("No strategy ID provided");
+        toast.error("No strategy ID provided");
         navigate('/strategies');
         return;
       }
@@ -212,7 +199,7 @@ const EditStrategy = () => {
         // Fetch strategy basic data
         const strategy = await getStrategyById(id);
         if (!strategy) {
-          toast("The requested strategy could not be found");
+          toast.error("The requested strategy could not be found");
           navigate('/strategies');
           return;
         }
@@ -229,25 +216,6 @@ const EditStrategy = () => {
         setTargetAsset(strategy.targetAsset || "");
         setTargetAssetName(strategy.targetAssetName || "");
         setIsActive(strategy.isActive);
-
-        // Set risk management data - strip any currency or percent symbols for form values
-        const cleanStopLoss = strategy.stopLoss?.replace(/[%$]/g, '') || "";
-        const cleanTakeProfit = strategy.takeProfit?.replace(/[%$]/g, '') || "";
-        const cleanSingleBuyVolume = strategy.singleBuyVolume?.replace(/[$,]/g, '') || "";
-        const cleanMaxBuyVolume = strategy.maxBuyVolume?.replace(/[$,]/g, '') || "";
-        
-        console.log("Setting risk management data:", {
-          stopLoss: cleanStopLoss,
-          takeProfit: cleanTakeProfit,
-          singleBuyVolume: cleanSingleBuyVolume,
-          maxBuyVolume: cleanMaxBuyVolume,
-          timeframe: normalizedTimeframe
-        });
-        
-        setStopLoss(cleanStopLoss);
-        setTakeProfit(cleanTakeProfit);
-        setSingleBuyVolume(cleanSingleBuyVolume);
-        setMaxBuyVolume(cleanMaxBuyVolume);
 
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(id);
@@ -307,7 +275,7 @@ const EditStrategy = () => {
         console.log("Strategy data loaded successfully");
       } catch (error) {
         console.error("Error fetching strategy data:", error);
-        toast("Failed to load strategy details");
+        toast.error("Failed to load strategy details");
       } finally {
         setLoading(false);
       }
@@ -326,7 +294,7 @@ const EditStrategy = () => {
           console.log("API key retrieved successfully for EditStrategy");
         } else {
           console.error("API key not found in EditStrategy");
-          toast("Unable to connect to financial data service");
+          toast.error("Unable to connect to financial data service");
         }
       } catch (error) {
         console.error("Error fetching API key in EditStrategy:", error);
@@ -360,11 +328,11 @@ const EditStrategy = () => {
       const stockResults = await searchStocks(query, apiKey || "");
       setSearchResults(stockResults);
       if (stockResults.length === 0 && query.length > 0) {
-        toast(`No assets found matching "${query}"`);
+        toast.info(`No assets found matching "${query}"`);
       }
     } catch (error) {
       console.error(`Error searching assets:`, error);
-      toast("Could not connect to financial data service");
+      toast.error("Could not connect to financial data service");
       setSearchResults([]);
     } finally {
       setIsLoading(false);
@@ -401,10 +369,9 @@ const EditStrategy = () => {
     setShowValidation(true);
     
     const basicErrors = validateBasicInfo();
-    const riskErrors = validateRiskManagement();
     const rulesErrors = validateTradingRules();
     
-    const allErrors = [...basicErrors, ...riskErrors, ...rulesErrors];
+    const allErrors = [...basicErrors, ...rulesErrors];
     
     if (allErrors.length > 0) {
       toast.error("Please complete all required fields before saving", {
@@ -422,7 +389,7 @@ const EditStrategy = () => {
       console.log('Current entry rules before save:', JSON.stringify(entryRules, null, 2));
       console.log('Current exit rules before save:', JSON.stringify(exitRules, null, 2));
 
-      // Update strategy information
+      // Update strategy information (removed risk management fields)
       console.log('Updating basic strategy information...');
       const { error: strategyError } = await supabase.from('strategies').update({
         name: strategyName,
@@ -431,10 +398,6 @@ const EditStrategy = () => {
         target_asset: targetAsset,
         target_asset_name: targetAssetName,
         is_active: isActive,
-        stop_loss: stopLoss,
-        take_profit: takeProfit,
-        single_buy_volume: singleBuyVolume,
-        max_buy_volume: maxBuyVolume,
         updated_at: new Date().toISOString()
       }).eq('id', id);
       
@@ -742,7 +705,7 @@ const EditStrategy = () => {
                   className={`w-full justify-start text-left font-normal h-10 ${!targetAsset.trim() && showValidation ? 'border-red-500' : ''}`} 
                   onClick={handleSearchOpen}
                 >
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <span className="mr-2">🔍</span>
                   {targetAsset ? `${targetAsset}${targetAssetName ? ` - ${targetAssetName}` : ''}` : "Search for stocks..."}
                 </Button>
                 
@@ -769,79 +732,6 @@ const EditStrategy = () => {
                     </CommandGroup>
                   </CommandList>
                 </CommandDialog>
-              </div>
-            </div>
-          </Card>
-          
-          <Card className={`p-6 mb-6 ${riskManagementErrors.length > 0 ? 'border-red-500' : ''}`}>
-            <h2 className="text-xl font-semibold mb-1">Risk Management</h2>
-            <p className="text-sm text-muted-foreground mb-4">Define your risk parameters and investment limits</p>
-            
-            {riskManagementErrors.length > 0 && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="font-medium mb-1">Please complete the following fields:</div>
-                  <ul className="list-disc pl-4">
-                    {riskManagementErrors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="stopLoss">Stop Loss (%)</Label>
-                <Input 
-                  id="stopLoss" 
-                  type="number" 
-                  min="0" 
-                  step="0.1" 
-                  value={stopLoss} 
-                  onChange={e => setStopLoss(e.target.value)} 
-                  className={`mt-1 ${!stopLoss.trim() && showValidation ? 'border-red-500' : ''}`}
-                />
-              </div>
-              <div>
-                <Label htmlFor="takeProfit">Take Profit (%)</Label>
-                <Input 
-                  id="takeProfit" 
-                  type="number" 
-                  min="0" 
-                  step="0.1" 
-                  value={takeProfit} 
-                  onChange={e => setTakeProfit(e.target.value)} 
-                  className={`mt-1 ${!takeProfit.trim() && showValidation ? 'border-red-500' : ''}`}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-              <div>
-                <Label htmlFor="singleBuyVolume">Single Buy Volume ($)</Label>
-                <Input 
-                  id="singleBuyVolume" 
-                  type="number" 
-                  min="0" 
-                  step="100" 
-                  value={singleBuyVolume} 
-                  onChange={e => setSingleBuyVolume(e.target.value)} 
-                  className={`mt-1 ${!singleBuyVolume.trim() && showValidation ? 'border-red-500' : ''}`}
-                />
-              </div>
-              <div>
-                <Label htmlFor="maxBuyVolume">Max Buy Volume ($)</Label>
-                <Input 
-                  id="maxBuyVolume" 
-                  type="number" 
-                  min="0" 
-                  step="100" 
-                  value={maxBuyVolume} 
-                  onChange={e => setMaxBuyVolume(e.target.value)} 
-                  className={`mt-1 ${!maxBuyVolume.trim() && showValidation ? 'border-red-500' : ''}`}
-                />
               </div>
             </div>
           </Card>

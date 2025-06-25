@@ -22,6 +22,7 @@ import { BacktestProgressIndicator } from "@/components/backtest/BacktestProgres
 import { useBacktestProgress } from "@/hooks/useBacktestProgress";
 import { useBacktestHistory } from "@/hooks/useBacktestHistory";
 import { BacktestHistoryTable } from "@/components/backtest/BacktestHistoryTable";
+
 interface BacktestHistoryItem {
   id: string;
   strategyName: string;
@@ -36,6 +37,7 @@ interface BacktestHistoryItem {
   totalTrades: number;
   createdAt: string;
 }
+
 const Backtest = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,6 +45,13 @@ const Backtest = () => {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [initialCapital, setInitialCapital] = useState<string>("10000");
+  
+  // Risk Management Parameters
+  const [stopLoss, setStopLoss] = useState<string>("5");
+  const [takeProfit, setTakeProfit] = useState<string>("10");
+  const [singleBuyVolume, setSingleBuyVolume] = useState<string>("1000");
+  const [maxBuyVolume, setMaxBuyVolume] = useState<string>("5000");
+  
   const [hasResults, setHasResults] = useState<boolean>(false);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -70,9 +79,8 @@ const Backtest = () => {
     refreshHistory,
     addBacktestToHistory
   } = useBacktestHistory();
-  const {
-    toast: showToast
-  } = useToast();
+  
+  const { toast: showToast } = useToast();
 
   // Fetch strategies from database
   useEffect(() => {
@@ -112,11 +120,12 @@ const Backtest = () => {
   const disableFutureDates = (date: Date) => {
     return date > new Date();
   };
+
   const handleBacktestRowClick = (strategyId: string) => {
     navigate(`/strategy/${strategyId}`);
   };
 
-  // Optimized backtest handler with progress tracking
+  // Optimized backtest handler with progress tracking and risk management
   const runBacktestHandler = async () => {
     if (!strategy) {
       showToast({
@@ -134,17 +143,75 @@ const Backtest = () => {
       });
       return;
     }
+
+    // Validate risk management parameters
+    const stopLossValue = parseFloat(stopLoss);
+    const takeProfitValue = parseFloat(takeProfit);
+    const singleBuyVolumeValue = parseFloat(singleBuyVolume);
+    const maxBuyVolumeValue = parseFloat(maxBuyVolume);
+
+    if (isNaN(stopLossValue) || stopLossValue <= 0) {
+      showToast({
+        title: "Invalid Stop Loss",
+        description: "Stop Loss must be a positive number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isNaN(takeProfitValue) || takeProfitValue <= 0) {
+      showToast({
+        title: "Invalid Take Profit", 
+        description: "Take Profit must be a positive number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isNaN(singleBuyVolumeValue) || singleBuyVolumeValue <= 0) {
+      showToast({
+        title: "Invalid Single Buy Volume",
+        description: "Single Buy Volume must be a positive number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isNaN(maxBuyVolumeValue) || maxBuyVolumeValue <= 0) {
+      showToast({
+        title: "Invalid Max Buy Volume",
+        description: "Max Buy Volume must be a positive number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (singleBuyVolumeValue > maxBuyVolumeValue) {
+      showToast({
+        title: "Invalid Volume Settings",
+        description: "Single Buy Volume cannot exceed Max Buy Volume",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       startProgress();
       toast.success("Optimized backtest started", {
-        description: "Using enhanced algorithms for faster processing..."
+        description: "Using enhanced algorithms with risk management..."
       });
+
       const result = await runOptimizedBacktest({
         strategyId: strategy,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
-        initialCapital: parseFloat(initialCapital)
+        initialCapital: parseFloat(initialCapital),
+        stopLoss: stopLossValue,
+        takeProfit: takeProfitValue,
+        singleBuyVolume: singleBuyVolumeValue,
+        maxBuyVolume: maxBuyVolumeValue
       }, updateProgress);
+
       setBacktestResults(result);
       setHasResults(true);
       completeProgress();
@@ -178,15 +245,18 @@ const Backtest = () => {
       description: "Backtest caches have been cleared for optimal performance"
     });
   };
+
   const handleViewDetails = (backtest: BacktestHistoryItem, event: React.MouseEvent) => {
     event.stopPropagation();
     setSelectedBacktest(backtest);
     setIsDetailsModalOpen(true);
   };
+
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false);
     setSelectedBacktest(null);
   };
+
   const formatMetrics = () => {
     if (!backtestResults) return null;
     return {
@@ -227,14 +297,16 @@ const Backtest = () => {
       }]
     };
   };
+
   const metrics = formatMetrics();
-  return <div className="min-h-screen flex flex-col bg-background">
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
         <Container className="py-6">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Backtest</h1>
-            
           </div>
 
           <div className="space-y-6">
@@ -250,7 +322,13 @@ const Backtest = () => {
                   <p className="text-muted-foreground text-sm mb-6">Configure the parameters for your optimized backtest with real market data.</p>
 
                   <div className="space-y-6">
-                    <StrategySelect selectedStrategy={strategy} strategies={strategies} isLoading={isLoading} onSelectStrategy={setStrategy} disabled={runningBacktest} />
+                    <StrategySelect 
+                      selectedStrategy={strategy} 
+                      strategies={strategies} 
+                      isLoading={isLoading} 
+                      onSelectStrategy={setStrategy} 
+                      disabled={runningBacktest} 
+                    />
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Time Period</label>
@@ -259,13 +337,24 @@ const Backtest = () => {
                           <label className="text-xs text-muted-foreground">Start Date</label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")} disabled={runningBacktest}>
+                              <Button 
+                                variant="outline" 
+                                className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")} 
+                                disabled={runningBacktest}
+                              >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {startDate ? format(startDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0 bg-white" align="start">
-                              <Calendar mode="single" selected={startDate} onSelect={setStartDate} disabled={disableFutureDates} initialFocus className="p-3 pointer-events-auto" />
+                              <Calendar 
+                                mode="single" 
+                                selected={startDate} 
+                                onSelect={setStartDate} 
+                                disabled={disableFutureDates} 
+                                initialFocus 
+                                className="p-3 pointer-events-auto" 
+                              />
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -273,13 +362,24 @@ const Backtest = () => {
                           <label className="text-xs text-muted-foreground">End Date</label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")} disabled={runningBacktest}>
+                              <Button 
+                                variant="outline" 
+                                className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")} 
+                                disabled={runningBacktest}
+                              >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {endDate ? format(endDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0 bg-white" align="start">
-                              <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={disableFutureDates} initialFocus className="p-3 pointer-events-auto" />
+                              <Calendar 
+                                mode="single" 
+                                selected={endDate} 
+                                onSelect={setEndDate} 
+                                disabled={disableFutureDates} 
+                                initialFocus 
+                                className="p-3 pointer-events-auto" 
+                              />
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -288,16 +388,101 @@ const Backtest = () => {
 
                     <div className="space-y-2">
                       <label htmlFor="initialCapital" className="text-sm font-medium">Initial Capital ($)</label>
-                      <Input id="initialCapital" type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} placeholder="10000" disabled={runningBacktest} className="bg-background" />
+                      <Input 
+                        id="initialCapital" 
+                        type="number" 
+                        value={initialCapital} 
+                        onChange={e => setInitialCapital(e.target.value)} 
+                        placeholder="10000" 
+                        disabled={runningBacktest} 
+                        className="bg-background" 
+                      />
                     </div>
 
-                    <Button onClick={runBacktestHandler} className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" disabled={runningBacktest}>
-                      {runningBacktest ? <>
+                    {/* Risk Management Parameters */}
+                    <div className="space-y-4 border-t pt-4">
+                      <h3 className="text-sm font-medium text-muted-foreground">Risk Management</h3>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label htmlFor="stopLoss" className="text-sm font-medium">Stop Loss (%)</label>
+                          <Input 
+                            id="stopLoss" 
+                            type="number" 
+                            step="0.1"
+                            min="0"
+                            value={stopLoss} 
+                            onChange={e => setStopLoss(e.target.value)} 
+                            placeholder="5" 
+                            disabled={runningBacktest} 
+                            className="bg-background" 
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="takeProfit" className="text-sm font-medium">Take Profit (%)</label>
+                          <Input 
+                            id="takeProfit" 
+                            type="number" 
+                            step="0.1"
+                            min="0"
+                            value={takeProfit} 
+                            onChange={e => setTakeProfit(e.target.value)} 
+                            placeholder="10" 
+                            disabled={runningBacktest} 
+                            className="bg-background" 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label htmlFor="singleBuyVolume" className="text-sm font-medium">Single Buy Volume ($)</label>
+                          <Input 
+                            id="singleBuyVolume" 
+                            type="number" 
+                            step="100"
+                            min="0"
+                            value={singleBuyVolume} 
+                            onChange={e => setSingleBuyVolume(e.target.value)} 
+                            placeholder="1000" 
+                            disabled={runningBacktest} 
+                            className="bg-background" 
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="maxBuyVolume" className="text-sm font-medium">Max Buy Volume ($)</label>
+                          <Input 
+                            id="maxBuyVolume" 
+                            type="number" 
+                            step="100"
+                            min="0"
+                            value={maxBuyVolume} 
+                            onChange={e => setMaxBuyVolume(e.target.value)} 
+                            placeholder="5000" 
+                            disabled={runningBacktest} 
+                            className="bg-background" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={runBacktestHandler} 
+                      className="w-full bg-zinc-950 hover:bg-zinc-800 text-white" 
+                      disabled={runningBacktest}
+                    >
+                      {runningBacktest ? (
+                        <>
                           <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent" /> 
                           Running Optimized Backtest...
-                        </> : <>
+                        </>
+                      ) : (
+                        <>
                           <PlayIcon className="h-4 w-4 mr-2" /> Run Optimized Backtest
-                        </>}
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardContent>
@@ -311,7 +496,8 @@ const Backtest = () => {
                     {hasResults ? "View the performance of your strategy using optimized algorithms and real market data." : "Run an optimized backtest to see results here."}
                   </p>
 
-                  {hasResults && metrics ? <div>
+                  {hasResults && metrics ? (
+                    <div>
                       <Tabs defaultValue="summary" className="mb-6">
                         <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -322,23 +508,35 @@ const Backtest = () => {
                             <div>
                               <h3 className="font-medium mb-3">Performance Metrics</h3>
                               <div className="space-y-2">
-                                {metrics.performanceMetrics.map((metric, index) => <div key={index} className="flex justify-between items-center">
+                                {metrics.performanceMetrics.map((metric, index) => (
+                                  <div key={index} className="flex justify-between items-center">
                                     <span className="text-sm text-muted-foreground">{metric.name}</span>
-                                    <span className={cn("text-sm font-medium", metric.green ? "text-green-600" : metric.value.startsWith("+") ? "text-green-600" : metric.value.startsWith("-") ? "text-red-600" : "")}>
+                                    <span className={cn("text-sm font-medium", 
+                                      metric.green ? "text-green-600" : 
+                                      metric.value.startsWith("+") ? "text-green-600" : 
+                                      metric.value.startsWith("-") ? "text-red-600" : ""
+                                    )}>
                                       {metric.value}
                                     </span>
-                                  </div>)}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                             <div>
                               <h3 className="font-medium mb-3">Trade Statistics</h3>
                               <div className="space-y-2">
-                                {metrics.tradeStatistics.map((stat, index) => <div key={index} className="flex justify-between items-center">
+                                {metrics.tradeStatistics.map((stat, index) => (
+                                  <div key={index} className="flex justify-between items-center">
                                     <span className="text-sm text-muted-foreground">{stat.name}</span>
-                                    <span className={cn("text-sm font-medium", stat.green ? "text-green-600" : stat.value.startsWith("+") ? "text-green-600" : stat.value.startsWith("-") ? "text-red-600" : "")}>
+                                    <span className={cn("text-sm font-medium", 
+                                      stat.green ? "text-green-600" :
+                                      stat.value.startsWith("+") ? "text-green-600" : 
+                                      stat.value.startsWith("-") ? "text-red-600" : ""
+                                    )}>
                                       {stat.value}
                                     </span>
-                                  </div>)}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           </div>
@@ -356,38 +554,53 @@ const Backtest = () => {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {backtestResults?.trades.slice(0, 10).map((trade, index) => <TableRow key={index}>
+                                {backtestResults?.trades.slice(0, 10).map((trade, index) => (
+                                  <TableRow key={index}>
                                     <TableCell>{new Date(trade.date).toLocaleDateString()}</TableCell>
                                     <TableCell>{trade.type}</TableCell>
                                     <TableCell>${trade.price.toFixed(2)}</TableCell>
                                     <TableCell>{trade.contracts}</TableCell>
-                                    <TableCell className={cn("text-right", trade.profit ? trade.profit > 0 ? "text-green-600" : "text-red-600" : "")}>
+                                    <TableCell className={cn("text-right", 
+                                      trade.profit ? 
+                                        trade.profit > 0 ? "text-green-600" : "text-red-600" : ""
+                                    )}>
                                       {trade.profit ? `$${trade.profit.toFixed(2)}` : "-"}
                                     </TableCell>
-                                  </TableRow>)}
+                                  </TableRow>
+                                ))}
                               </TableBody>
                             </Table>
                           </div>
                         </TabsContent>
                       </Tabs>
-                    </div> : <div className="flex flex-col items-center justify-center h-64">
-                      {runningBacktest ? <div className="flex flex-col items-center">
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64">
+                      {runningBacktest ? (
+                        <div className="flex flex-col items-center">
                           <div className="h-8 w-8 mb-4 animate-spin rounded-full border-4 border-t-transparent border-zinc-800" /> 
                           <p className="text-muted-foreground">Processing your optimized backtest...</p>
                           {progress && <p className="text-sm text-gray-500 mt-2">{progress.message}</p>}
-                        </div> : <p className="text-muted-foreground">No backtest results to display. Click "Run Optimized Backtest" to start.</p>}
-                    </div>}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No backtest results to display. Click "Run Optimized Backtest" to start.</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
-
-            {/* Optimized Backtest History Section */}
-            
           </div>
         </Container>
       </main>
 
-      <BacktestDetailsModal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} backtest={selectedBacktest} />
-    </div>;
+      <BacktestDetailsModal 
+        isOpen={isDetailsModalOpen} 
+        onClose={handleCloseDetailsModal} 
+        backtest={selectedBacktest} 
+      />
+    </div>
+  );
 };
+
 export default Backtest;

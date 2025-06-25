@@ -5,6 +5,10 @@ export interface BacktestParameters {
   startDate: string;
   endDate: string;
   initialCapital: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  singleBuyVolume?: number;
+  maxBuyVolume?: number;
 }
 
 export interface BacktestResult {
@@ -91,9 +95,15 @@ export const runOptimizedBacktest = async (
 
     updateProgress('parsing', 20, 'Parsing risk management settings...');
 
-    // Parse risk management settings efficiently
-    const stopLossPercent = parsePercentage(strategy.stop_loss);
-    const takeProfitPercent = parsePercentage(strategy.take_profit);
+    // Use risk management parameters from the request
+    const riskManagement = {
+      stopLoss: parameters.stopLoss || 5,
+      takeProfit: parameters.takeProfit || 10,
+      singleBuyVolume: parameters.singleBuyVolume || 1000,
+      maxBuyVolume: parameters.maxBuyVolume || 5000
+    };
+
+    console.log('Risk management settings:', riskManagement);
 
     updateProgress('creating', 30, 'Creating backtest record...');
 
@@ -114,13 +124,12 @@ export const runOptimizedBacktest = async (
 
     updateProgress('generating', 40, 'Generating optimized trades...');
 
-    // Generate trades using optimized algorithm
+    // Generate trades using optimized algorithm with risk management
     const trades = await generateOptimizedTrades(
       parameters.startDate,
       parameters.endDate,
       strategy.target_asset || 'AAPL',
-      stopLossPercent,
-      takeProfitPercent,
+      riskManagement,
       (progress) => updateProgress('generating', 40 + (progress * 0.3), `Generating trades: ${Math.round(progress)}%`)
     );
 
@@ -205,16 +214,16 @@ export const runOptimizedBacktest = async (
   }
 };
 
-// Optimized trade generation without temporal validation (backtests are historical simulations)
+// Optimized trade generation with risk management
 const generateOptimizedTrades = async (
   startDate: string, 
   endDate: string, 
   asset: string,
-  stopLossPercent: number | null,
-  takeProfitPercent: number | null,
+  riskManagement: { stopLoss: number; takeProfit: number; singleBuyVolume: number; maxBuyVolume: number },
   onProgress?: (progress: number) => void
 ): Promise<BacktestTrade[]> => {
   console.log('Generating optimized trades for:', { startDate, endDate, asset });
+  console.log('Using risk management:', riskManagement);
   
   const cacheKey = `${asset}_${startDate}_${endDate}`;
   
@@ -265,19 +274,19 @@ const generateOptimizedTrades = async (
     const shouldSell = openPositions.length > 0 && (Math.random() < 0.6 || openPositions.length >= 2);
     
     if (shouldSell && openPositions.length > 0) {
-      // Process sell trade with optimized calculations
+      // Process sell trade with risk management
       const position = openPositions.shift()!;
       const sellTrade = generateOptimizedSellTrade(
         currentDate, 
         currentPrice, 
         position, 
-        stopLossPercent, 
-        takeProfitPercent
+        riskManagement.stopLoss, 
+        riskManagement.takeProfit
       );
       trades.push(sellTrade);
     } else {
-      // Process buy trade
-      const buyTrade = generateOptimizedBuyTrade(currentDate, currentPrice);
+      // Process buy trade with volume constraints
+      const buyTrade = generateOptimizedBuyTrade(currentDate, currentPrice, riskManagement);
       trades.push(buyTrade);
       
       if (openPositions.length < 2) {
@@ -299,15 +308,15 @@ const generateOptimizedTrades = async (
         end, 
         finalPrice, 
         position, 
-        stopLossPercent, 
-        takeProfitPercent,
+        riskManagement.stopLoss, 
+        riskManagement.takeProfit,
         'End of Period'
       );
       trades.push(sellTrade);
     }
   }
   
-  console.log(`Generated ${trades.length} optimized trades`);
+  console.log(`Generated ${trades.length} optimized trades with risk management`);
   return trades;
 };
 
@@ -348,13 +357,13 @@ const generateOptimizedTradeIntervals = (totalDays: number, numTrades: number): 
   return intervals;
 };
 
-// Optimized sell trade generation
+// Optimized sell trade generation with risk management
 const generateOptimizedSellTrade = (
   date: Date,
   currentPrice: number,
   position: any,
-  stopLossPercent: number | null,
-  takeProfitPercent: number | null,
+  stopLossPercent: number,
+  takeProfitPercent: number,
   forcedSignal?: string
 ): BacktestTrade => {
   let actualSellPrice = currentPrice;
@@ -362,11 +371,11 @@ const generateOptimizedSellTrade = (
   let sellSignal = forcedSignal || 'Market Exit';
   
   // Apply risk management efficiently
-  if (stopLossPercent !== null && rawProfitPercentage <= -Math.abs(stopLossPercent)) {
+  if (rawProfitPercentage <= -Math.abs(stopLossPercent)) {
     rawProfitPercentage = -Math.abs(stopLossPercent);
     actualSellPrice = position.entryPrice * (1 + rawProfitPercentage / 100);
     sellSignal = 'Stop Loss Triggered';
-  } else if (takeProfitPercent !== null && rawProfitPercentage >= takeProfitPercent) {
+  } else if (rawProfitPercentage >= takeProfitPercent) {
     rawProfitPercentage = takeProfitPercent;
     actualSellPrice = position.entryPrice * (1 + rawProfitPercentage / 100);
     sellSignal = 'Take Profit Triggered';
@@ -388,9 +397,16 @@ const generateOptimizedSellTrade = (
   };
 };
 
-// Optimized buy trade generation
-const generateOptimizedBuyTrade = (date: Date, currentPrice: number): BacktestTrade => {
-  const contracts = Math.floor(Math.random() * 30) + 20;
+// Optimized buy trade generation with volume constraints
+const generateOptimizedBuyTrade = (
+  date: Date, 
+  currentPrice: number, 
+  riskManagement: { singleBuyVolume: number; maxBuyVolume: number }
+): BacktestTrade => {
+  // Calculate contracts based on risk management volume
+  const maxContracts = Math.floor(riskManagement.singleBuyVolume / currentPrice);
+  const contracts = Math.max(1, Math.min(maxContracts, Math.floor(Math.random() * 30) + 20));
+  
   const signals = ['Technical Breakout', 'RSI Oversold', 'MACD Bullish', 'Support Level', 'Moving Average Cross'];
   const signal = signals[Math.floor(Math.random() * signals.length)];
   

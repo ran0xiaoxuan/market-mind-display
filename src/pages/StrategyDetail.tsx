@@ -9,7 +9,7 @@ import { PerformanceMetricsCard } from "@/components/strategy-detail/Performance
 import { SignalMonitoringStatusCard } from "@/components/strategy-detail/SignalMonitoringStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Info } from "lucide-react";
+import { AlertCircle, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData } from "@/components/strategy-detail/types";
 import { toast } from "sonner";
@@ -41,6 +41,32 @@ const StrategyDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasValidTradingRules, setHasValidTradingRules] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(trades.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTrades = trades.slice(startIndex, endIndex);
+  
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+  
+  const goToPrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  const goToNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   const fetchStrategyDetails = async () => {
     console.log("Strategy ID from params:", id);
     
@@ -58,6 +84,9 @@ const StrategyDetail = () => {
       setStrategy(null);
       setEntryRules([]);
       setExitRules([]);
+      
+      // Reset to first page when fetching new data
+      setCurrentPage(1);
       
       // Fetch strategy details using the service function
       const strategyData = await getStrategyById(id);
@@ -368,7 +397,66 @@ const StrategyDetail = () => {
                 </AlertDescription>
               </Alert>
             ) : trades.length > 0 ? (
-              <TradeHistoryTable trades={trades} />
+              <div className="space-y-4">
+                <TradeHistoryTable trades={currentTrades} />
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1} to {Math.min(endIndex, trades.length)} of {trades.length} trades
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={goToPrevious}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+                      
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                          let pageNumber;
+                          if (totalPages <= 5) {
+                            pageNumber = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNumber = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNumber = totalPages - 4 + i;
+                          } else {
+                            pageNumber = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNumber}
+                              variant={currentPage === pageNumber ? "default" : "outline"}
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                              onClick={() => goToPage(pageNumber)}
+                            >
+                              {pageNumber}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={goToNext}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <Alert>
                 <Info className="h-4 w-4" />

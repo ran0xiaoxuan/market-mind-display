@@ -91,7 +91,7 @@ const Dashboard = () => {
         
         return {
           id: signal.id,
-          date: new Date(signal.created_at).toLocaleDateString(),
+          date: signal.created_at,
           type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
           signal: signalData.reason || 'Trading Signal',
           price: `$${(signalData.price || 0).toFixed(2)}`,

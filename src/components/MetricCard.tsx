@@ -11,10 +11,10 @@ type MetricCardProps = {
   };
   direction?: "up" | "down";
   showChart?: boolean;
-  trades?: any[]; // Array of trade objects for calculating transaction amount
+  trades?: any[]; // Array of trade objects for backward compatibility
 };
 
-export function MetricCard({ title, value, change, direction, showChart = true, trades }: MetricCardProps) {
+export function MetricCard({ title, value, change, direction, showChart = true }: MetricCardProps) {
   const isPositive = change?.positive || direction === "up";
   
   // Determine color based on value for Total Return
@@ -27,23 +27,16 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
     }
   }
 
-  // Calculate transaction amount as sum of prices (without volume multiplication)
-  let displayValue = value;
-  if (title === "Transaction Amount of Signals" && trades && Array.isArray(trades)) {
-    console.log(`MetricCard: Calculating transaction amount for ${trades.length} trades`);
-    const transactionAmount = trades.reduce((total, trade) => {
-      // Remove dollar sign and parse the price correctly
-      const priceString = trade.price.toString().replace('$', '');
-      const price = parseFloat(priceString) || 0;
-      console.log(`MetricCard Trade: price=${price}`);
-      return total + price;
-    }, 0);
-    console.log(`MetricCard: Final transaction amount = ${transactionAmount}`);
-    displayValue = `$${transactionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  } else if (title === "Transaction Amount of Signals" && typeof value === "number") {
-    displayValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  } else if (title === "Transaction Amount of Signals" && typeof value === "string" && !value.startsWith("$")) {
-    displayValue = `$${value}`;
+  // Color coding for Signal Success Rate
+  if (title === "Signal Success Rate" && typeof value === "string") {
+    const percentage = parseFloat(value.replace('%', ''));
+    if (percentage >= 70) {
+      valueColor = "text-green-600";
+    } else if (percentage >= 50) {
+      valueColor = "text-yellow-600";
+    } else {
+      valueColor = "text-red-600";
+    }
   }
 
   return (
@@ -52,7 +45,7 @@ export function MetricCard({ title, value, change, direction, showChart = true, 
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
       </div>
       <div className="mt-2">
-        <h2 className={cn("text-2xl font-bold", valueColor)}>{displayValue}</h2>
+        <h2 className={cn("text-2xl font-bold", valueColor)}>{value}</h2>
       </div>
     </div>
   );

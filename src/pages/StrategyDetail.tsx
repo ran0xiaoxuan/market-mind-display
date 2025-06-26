@@ -5,7 +5,6 @@ import { StrategyHeader } from "@/components/strategy-detail/StrategyHeader";
 import { StrategyInfo } from "@/components/strategy-detail/StrategyInfo";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
-import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info, ChevronLeft, ChevronRight } from "lucide-react";
@@ -377,8 +376,6 @@ const StrategyDetail = () => {
             entryRules={entryRules} 
             exitRules={exitRules} 
           />
-          
-          <PerformanceMetricsCard strategyId={id || ""} />
           
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Trade History</h2>

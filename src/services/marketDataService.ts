@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StockPrice {
@@ -34,14 +33,14 @@ export interface PortfolioMetrics {
 
 export const getStockPrice = async (symbol: string): Promise<StockPrice | null> => {
   try {
-    console.log(`Fetching stock price for ${symbol}`);
+    console.log(`Fetching real stock price for ${symbol}`);
     
-    // Try to get FMP API key
+    // Get FMP API key
     const { data, error } = await supabase.functions.invoke('get-fmp-key');
     
     if (error || !data?.key) {
-      console.warn('FMP API key not available, using simulated price data');
-      return generateSimulatedPrice(symbol);
+      console.error('FMP API key not available, cannot fetch real market data');
+      throw new Error('FMP API key not available');
     }
 
     const response = await fetch(
@@ -50,8 +49,7 @@ export const getStockPrice = async (symbol: string): Promise<StockPrice | null> 
 
     if (!response.ok) {
       if (response.status === 429) {
-        console.warn('FMP API rate limit reached, using simulated data');
-        return generateSimulatedPrice(symbol);
+        throw new Error('FMP API rate limit reached');
       }
       throw new Error(`FMP API error: ${response.status}`);
     }
@@ -59,22 +57,32 @@ export const getStockPrice = async (symbol: string): Promise<StockPrice | null> 
     const quotes = await response.json();
     
     if (!Array.isArray(quotes) || quotes.length === 0) {
-      console.warn(`No price data found for ${symbol}, using simulated data`);
-      return generateSimulatedPrice(symbol);
+      throw new Error(`No price data found for ${symbol}`);
     }
 
     const quote = quotes[0];
+    
+    if (!quote.price || quote.price === 0) {
+      throw new Error(`Invalid price data for ${symbol}`);
+    }
+
+    console.log(`Real price data for ${symbol}:`, {
+      price: quote.price,
+      change: quote.change,
+      changePercent: quote.changesPercentage
+    });
+
     return {
       symbol: quote.symbol,
-      price: quote.price || 0,
+      price: quote.price,
       change: quote.change || 0,
       changePercent: quote.changesPercentage || 0,
       timestamp: new Date().toISOString()
     };
 
   } catch (error) {
-    console.warn(`Error fetching price for ${symbol}:`, error);
-    return generateSimulatedPrice(symbol);
+    console.error(`Error fetching real price for ${symbol}:`, error);
+    throw error;
   }
 };
 

@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -12,7 +11,6 @@ function isMarketOpen(): boolean {
   
   // Convert to Eastern Time (market timezone)
   const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-  const utcHour = easternTime.getUTCHours();
   const utcDay = easternTime.getUTCDay();
   const easternHour = easternTime.getHours();
   const easternMinutes = easternTime.getMinutes();
@@ -32,7 +30,7 @@ function isMarketOpen(): boolean {
   return isWeekday && isMarketHours;
 }
 
-// Get real market data from FMP API with improved error handling
+// Get real market data from FMP API - NO FALLBACK TO SIMULATED DATA
 async function getRealMarketData(symbol: string, fmpApiKey: string) {
   try {
     console.log(`Fetching real market data for ${symbol}`);
@@ -58,44 +56,31 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
       throw new Error(`Invalid price data for ${symbol}`);
     }
     
-    // Get technical indicators (RSI) from FMP
+    // Get technical indicators (RSI) from FMP - REQUIRED
     const rsiResponse = await fetch(
       `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`
     );
     
-    let rsiValue = null;
-    if (rsiResponse.ok) {
-      const rsiData = await rsiResponse.json();
-      if (Array.isArray(rsiData) && rsiData.length > 0) {
-        rsiValue = rsiData[0].rsi;
-        console.log(`Real RSI for ${symbol}: ${rsiValue}`);
-      }
+    if (!rsiResponse.ok) {
+      throw new Error(`RSI API error: ${rsiResponse.status}`);
     }
     
-    // If RSI fetch fails, calculate a basic RSI approximation from price data
-    if (rsiValue === null) {
-      console.log(`RSI API failed for ${symbol}, using price-based approximation`);
-      // Get historical data for RSI calculation
-      const historicalResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?timeseries=30&apikey=${fmpApiKey}`
-      );
-      
-      if (historicalResponse.ok) {
-        const historicalData = await historicalResponse.json();
-        if (historicalData.historical && Array.isArray(historicalData.historical) && historicalData.historical.length >= 14) {
-          rsiValue = calculateRSIFromPriceData(historicalData.historical.slice(0, 14));
-          console.log(`Calculated RSI for ${symbol}: ${rsiValue}`);
-        } else {
-          // Generate realistic RSI if historical data is insufficient
-          rsiValue = 30 + Math.random() * 40; // RSI between 30-70
-          console.log(`Generated realistic RSI for ${symbol}: ${rsiValue}`);
-        }
-      } else {
-        // Generate realistic RSI as final fallback
-        rsiValue = 30 + Math.random() * 40; // RSI between 30-70
-        console.log(`Generated fallback RSI for ${symbol}: ${rsiValue}`);
-      }
+    const rsiData = await rsiResponse.json();
+    if (!Array.isArray(rsiData) || rsiData.length === 0) {
+      throw new Error(`No RSI data found for ${symbol}`);
     }
+    
+    const rsiValue = rsiData[0].rsi;
+    if (rsiValue === null || rsiValue === undefined) {
+      throw new Error(`Invalid RSI data for ${symbol}`);
+    }
+    
+    console.log(`Real market data for ${symbol}:`, {
+      price: currentPrice,
+      rsi: rsiValue,
+      change: quote.change,
+      changePercent: quote.changesPercentage
+    });
     
     return {
       price: currentPrice,
@@ -112,45 +97,19 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
   }
 }
 
-// Calculate RSI from price data
-function calculateRSIFromPriceData(priceData: any[]): number {
-  if (priceData.length < 14) return 50; // Default neutral RSI
-  
-  let gains = 0;
-  let losses = 0;
-  
-  for (let i = 1; i < priceData.length; i++) {
-    const change = priceData[i-1].close - priceData[i].close;
-    if (change > 0) {
-      gains += change;
-    } else {
-      losses += Math.abs(change);
-    }
-  }
-  
-  const avgGain = gains / 13;
-  const avgLoss = losses / 13;
-  
-  if (avgLoss === 0) return 100;
-  
-  const rs = avgGain / avgLoss;
-  const rsi = 100 - (100 / (1 + rs));
-  
-  return Math.round(rsi * 100) / 100;
-}
-
-// Enhanced strategy evaluation with improved data handling and fixed rule evaluation
+// Enhanced strategy evaluation - ONLY REAL DATA
 async function evaluateStrategy(supabase: any, strategyId: string, strategy: any) {
   try {
     console.log(`Evaluating strategy ${strategyId}: ${strategy.name} for ${strategy.target_asset}`);
     
-    // Get FMP API key
+    // Get FMP API key - REQUIRED
     const { data: keyData, error: keyError } = await supabase.functions.invoke('get-fmp-key');
-    if (keyError) {
-      console.error(`Error getting FMP API key for strategy ${strategyId}:`, keyError);
+    if (keyError || !keyData?.key) {
+      console.error(`No FMP API key available for strategy ${strategyId}, cannot generate signals`);
+      return 0;
     }
     
-    const fmpApiKey = keyData?.key;
+    const fmpApiKey = keyData.key;
     
     // Get trading rules for this strategy
     const { data: ruleGroups, error: rulesError } = await supabase
@@ -180,36 +139,40 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       return 0;
     }
     
-    // Get market data - prioritize real data, fallback to realistic simulation
+    // Get ONLY real market data - NO FALLBACK
     let marketData;
-    let dataSource = 'simulated';
-    
-    if (fmpApiKey) {
-      try {
-        marketData = await getRealMarketData(strategy.target_asset, fmpApiKey);
-        dataSource = 'real';
-        console.log(`Successfully fetched real market data for ${strategy.target_asset}`);
-      } catch (error) {
-        console.warn(`Failed to get real market data for ${strategy.target_asset}:`, error);
-        // Generate realistic simulated market data
-        marketData = generateRealisticMarketData(strategy.target_asset);
-        dataSource = 'simulated';
-      }
-    } else {
-      console.warn(`No FMP API key available for strategy ${strategyId}, using simulated data`);
-      // Generate realistic simulated market data
-      marketData = generateRealisticMarketData(strategy.target_asset);
-      dataSource = 'simulated';
+    try {
+      marketData = await getRealMarketData(strategy.target_asset, fmpApiKey);
+      console.log(`Successfully fetched real market data for ${strategy.target_asset}`);
+    } catch (error) {
+      console.error(`Failed to get real market data for ${strategy.target_asset}:`, error);
+      console.error(`Cannot generate signals without real market data for strategy ${strategyId}`);
+      return 0;
     }
     
-    console.log(`Market data for ${strategy.target_asset} (${dataSource}):`, {
-      price: marketData.price,
-      rsi: marketData.rsi,
-      change: marketData.change,
-      changePercent: marketData.changePercent
-    });
+    // Check if user is Pro for notification purposes
+    const { data: user } = await supabase
+      .from('strategies')
+      .select('user_id')
+      .eq('id', strategyId)
+      .single();
+
+    if (!user) {
+      console.error(`No user found for strategy ${strategyId}`);
+      return 0;
+    }
+
+    // Get user profile to check Pro status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.user_id)
+      .single();
+
+    const isPro = profile?.is_pro === true;
+    console.log(`User ${user.user_id} Pro status: ${isPro}`);
     
-    // Proceed with signal generation using available data
+    // Proceed with signal generation using real data
     const indicators = {
       rsi: marketData.rsi,
       price: marketData.price,
@@ -219,10 +182,10 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
     let signalsGenerated = 0;
     const currentTime = new Date().toISOString();
     
-    // Evaluate entry rules with improved logic
+    // Evaluate entry rules
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     if (await shouldGenerateSignal(entryRules, indicators, marketData.price)) {
-      const entryReason = `Entry signal (${dataSource}) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}`;
+      const entryReason = `Entry signal (real market data) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}`;
       
       const { error } = await supabase
         .from('trading_signals')
@@ -248,14 +211,16 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
         signalsGenerated++;
         console.log(`Generated entry signal for strategy ${strategyId}: ${entryReason}`);
         
-        // Send notification only if strategy is active
+        // Send notification only if strategy is active and user is Pro
         if (strategy.is_active) {
           await sendNotification(supabase, strategyId, 'entry', {
             reason: entryReason,
             price: marketData.price,
             timestamp: currentTime,
             strategyName: strategy.name,
-            targetAsset: strategy.target_asset
+            targetAsset: strategy.target_asset,
+            userId: user.user_id,
+            isPro: isPro
           });
         }
       } else {
@@ -263,7 +228,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       }
     }
     
-    // Evaluate exit rules with improved logic
+    // Evaluate exit rules
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
     if (exitRules.length > 0) {
       // Check for open positions
@@ -284,7 +249,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
         const profit = marketData.price - entryPrice;
         const profitPercentage = entryPrice > 0 ? (profit / entryPrice) * 100 : 0;
         
-        const exitReason = `Exit signal (${dataSource}) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}, P&L: ${profitPercentage.toFixed(2)}%`;
+        const exitReason = `Exit signal (real market data) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}, P&L: ${profitPercentage.toFixed(2)}%`;
 
         const { error } = await supabase
           .from('trading_signals')
@@ -312,7 +277,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
           signalsGenerated++;
           console.log(`Generated exit signal for strategy ${strategyId}: ${exitReason}`);
           
-          // Send notification only if strategy is active
+          // Send notification only if strategy is active and user is Pro
           if (strategy.is_active) {
             await sendNotification(supabase, strategyId, 'exit', {
               reason: exitReason,
@@ -321,7 +286,9 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
               profit: profit,
               profitPercentage: profitPercentage,
               strategyName: strategy.name,
-              targetAsset: strategy.target_asset
+              targetAsset: strategy.target_asset,
+              userId: user.user_id,
+              isPro: isPro
             });
           }
         } else {
@@ -335,54 +302,6 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
     console.error(`Error evaluating strategy ${strategyId}:`, error);
     return 0;
   }
-}
-
-// Generate realistic simulated market data when real data is not available
-function generateRealisticMarketData(symbol: string) {
-  // Base prices for common symbols - more realistic values
-  const basePrices: Record<string, number> = {
-    'AAPL': 175,
-    'GOOGL': 140,
-    'MSFT': 350,
-    'AMZN': 145,
-    'TSLA': 200,
-    'NVDA': 450,
-    'META': 300,
-    'NFLX': 400,
-    'SPY': 450,
-    'QQQ': 380,
-    'TQQQ': 150,
-    'U': 150
-  };
-  
-  const basePrice = basePrices[symbol.toUpperCase()] || 150;
-  const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-  const price = basePrice * (1 + variation);
-  const change = basePrice * variation;
-  const changePercent = variation * 100;
-  
-  // Generate more realistic RSI values that can trigger signals
-  let rsi;
-  const rand = Math.random();
-  if (rand < 0.2) {
-    // 20% chance of oversold (good for entry signals)
-    rsi = 20 + Math.random() * 15; // RSI 20-35
-  } else if (rand < 0.4) {
-    // 20% chance of overbought (good for exit signals) 
-    rsi = 70 + Math.random() * 15; // RSI 70-85
-  } else {
-    // 60% chance of normal range
-    rsi = 40 + Math.random() * 20; // RSI 40-60
-  }
-  
-  return {
-    price: Math.round(price * 100) / 100,
-    change: Math.round(change * 100) / 100,
-    changePercent: Math.round(changePercent * 100) / 100,
-    rsi: Math.round(rsi * 100) / 100,
-    timestamp: new Date().toISOString(),
-    volume: Math.floor(Math.random() * 1000000) + 100000
-  };
 }
 
 // Improved signal generation logic with better rule evaluation
@@ -473,27 +392,32 @@ function evaluateRule(rule: any, indicators: any, currentPrice: number): boolean
   }
 }
 
-// Send notifications for active strategies only
+// Send notifications with Pro user check
 async function sendNotification(supabase: any, strategyId: string, signalType: string, signalData: any) {
   try {
-    console.log(`Sending notification for ${signalType} signal on strategy ${strategyId}`);
+    console.log(`Processing notification for ${signalType} signal on strategy ${strategyId}`);
+    
+    const isPro = signalData.isPro;
+    const userId = signalData.userId;
+    
+    if (!isPro) {
+      console.log(`User ${userId} is not Pro, notifications will only appear in app`);
+      return;
+    }
+    
+    console.log(`Sending external notifications for Pro user ${userId}`);
     
     // Get user notification settings
-    const { data: strategy } = await supabase
-      .from('strategies')
-      .select('user_id')
-      .eq('id', strategyId)
-      .single();
-
-    if (!strategy) return;
-
     const { data: settings } = await supabase
       .from('notification_settings')
       .select('*')
-      .eq('user_id', strategy.user_id)
+      .eq('user_id', userId)
       .single();
 
-    if (!settings) return;
+    if (!settings) {
+      console.log(`No notification settings found for user ${userId}`);
+      return;
+    }
 
     // Send Discord notification if enabled
     if (settings.discord_enabled && settings.discord_webhook_url) {
@@ -525,6 +449,26 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
         console.log(`Telegram notification sent for strategy ${strategyId}`);
       } catch (error) {
         console.error(`Failed to send Telegram notification:`, error);
+      }
+    }
+
+    // Send Email notification if enabled  
+    if (settings.email_enabled) {
+      try {
+        // Get user email
+        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+        if (authUser?.user?.email) {
+          await supabase.functions.invoke('send-email-notification', {
+            body: {
+              userEmail: authUser.user.email,
+              signalData: signalData,
+              signalType: signalType
+            }
+          });
+          console.log(`Email notification sent for strategy ${strategyId}`);
+        }
+      } catch (error) {
+        console.error(`Failed to send Email notification:`, error);
       }
     }
     
@@ -581,7 +525,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Starting signal monitoring with enhanced data handling...');
+    console.log('Starting signal monitoring with REAL market data only...');
     
     // Get ALL strategies with their target assets
     const { data: strategies, error: strategiesError } = await supabase
@@ -618,8 +562,10 @@ Deno.serve(async (req) => {
     }
 
     // Process strategies in batches
-    const BATCH_SIZE = 5;
+    const BATCH_SIZE = 3; // Reduced batch size for better API rate limiting
     let totalSignalsGenerated = 0;
+    let strategiesProcessed = 0;
+    let strategiesSkipped = 0;
     
     for (let i = 0; i < strategies.length; i += BATCH_SIZE) {
       const batch = strategies.slice(i, i + BATCH_SIZE);
@@ -631,26 +577,33 @@ Deno.serve(async (req) => {
       
       batchResults.forEach((result, index) => {
         if (result.status === 'fulfilled') {
-          totalSignalsGenerated += result.value;
+          if (result.value > 0) {
+            totalSignalsGenerated += result.value;
+            strategiesProcessed++;
+          } else {
+            strategiesSkipped++;
+          }
         } else {
           console.error(`Error processing strategy ${batch[index].id}:`, result.reason);
+          strategiesSkipped++;
         }
       });
       
       // Add delay between batches to respect API rate limits
       if (i + BATCH_SIZE < strategies.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
       }
     }
 
-    const message = `Signal monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategies.length} strategies.`;
+    const message = `Signal monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped due to missing real data).`;
     console.log(message);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message,
-        strategiesProcessed: strategies.length,
+        strategiesProcessed: strategiesProcessed,
+        strategiesSkipped: strategiesSkipped,
         signalsGenerated: totalSignalsGenerated,
         timestamp: new Date().toISOString()
       }), 

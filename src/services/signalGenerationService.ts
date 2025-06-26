@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getStockPrice } from "./marketDataService";
 
@@ -23,7 +22,7 @@ export interface TradingSignal {
   processed: boolean;
 }
 
-// Get real technical indicators from FMP API with improved error handling
+// Get real technical indicators from FMP API
 const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string, number> | null> => {
   try {
     console.log(`Fetching real technical indicators for ${symbol}`);
@@ -31,26 +30,29 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
     // Get FMP API key
     const { data, error } = await supabase.functions.invoke('get-fmp-key');
     if (error || !data?.key) {
-      console.warn('FMP API key not available for technical indicators');
-      return null;
+      console.error('FMP API key not available for technical indicators');
+      throw new Error('FMP API key not available');
     }
 
     const apiKey = data.key;
     
-    // Fetch RSI (14-period) - using daily instead of 1min for better reliability
+    // Fetch RSI (14-period)
     const rsiResponse = await fetch(
       `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${apiKey}`
     );
     
-    let indicators: Record<string, number> = {};
-    
-    if (rsiResponse.ok) {
-      const rsiData = await rsiResponse.json();
-      if (Array.isArray(rsiData) && rsiData.length > 0) {
-        indicators.rsi = rsiData[0].rsi;
-        console.log(`Real RSI for ${symbol}: ${indicators.rsi}`);
-      }
+    if (!rsiResponse.ok) {
+      throw new Error(`RSI API error: ${rsiResponse.status}`);
     }
+    
+    const rsiData = await rsiResponse.json();
+    if (!Array.isArray(rsiData) || rsiData.length === 0) {
+      throw new Error(`No RSI data found for ${symbol}`);
+    }
+    
+    let indicators: Record<string, number> = {
+      rsi: rsiData[0].rsi
+    };
     
     // Fetch SMA (Simple Moving Average)
     try {
@@ -84,41 +86,13 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       console.warn(`Failed to fetch EMA for ${symbol}:`, error);
     }
     
-    return Object.keys(indicators).length > 0 ? indicators : null;
+    console.log(`Real indicators for ${symbol}:`, indicators);
+    return indicators;
     
   } catch (error) {
     console.error(`Error fetching real technical indicators for ${symbol}:`, error);
-    return null;
+    throw error;
   }
-};
-
-// Generate realistic indicators when real data is not available (improved for signal generation)
-const generateRealisticIndicators = (price: number): Record<string, number> => {
-  // Generate RSI values that can trigger signals more often
-  let rsi;
-  const rand = Math.random();
-  if (rand < 0.25) {
-    // 25% chance of oversold (good for entry signals)
-    rsi = 20 + Math.random() * 15; // RSI 20-35
-  } else if (rand < 0.5) {
-    // 25% chance of overbought (good for exit signals) 
-    rsi = 70 + Math.random() * 15; // RSI 70-85
-  } else {
-    // 50% chance of normal range
-    rsi = 40 + Math.random() * 20; // RSI 40-60
-  }
-  
-  // Generate SMA around current price
-  const sma = price * (0.95 + Math.random() * 0.1);
-  
-  // Generate EMA around current price
-  const ema = price * (0.96 + Math.random() * 0.08);
-  
-  return {
-    rsi: Math.round(rsi * 100) / 100,
-    sma: Math.round(sma * 100) / 100,
-    ema: Math.round(ema * 100) / 100
-  };
 };
 
 export const evaluateStrategy = async (strategyId: string) => {
@@ -165,33 +139,26 @@ export const evaluateStrategy = async (strategyId: string) => {
       return;
     }
 
-    // Get market data - try real first, fallback to realistic simulation
+    // Get real market data - MUST use real data
     let priceData;
     let indicators: Record<string, number> = {};
-    let dataSource = 'unknown';
 
     try {
-      // Get price data
+      // Get real price data
       priceData = await getStockPrice(strategy.target_asset);
       if (!priceData || priceData.price === 0) {
-        console.warn(`No price data available for ${strategy.target_asset}, skipping signal generation`);
+        console.error(`No real price data available for ${strategy.target_asset}, cannot generate signals`);
         return;
       }
 
-      // Try to get real technical indicators
-      const realIndicators = await getRealTechnicalIndicators(strategy.target_asset);
-      if (realIndicators && Object.keys(realIndicators).length > 0) {
-        indicators = { ...realIndicators };
-        dataSource = 'real_market_data';
-        console.log(`Using real market data and indicators for ${strategy.target_asset}`);
-      } else {
-        // Fallback to realistic simulated indicators
-        indicators = generateRealisticIndicators(priceData.price);
-        dataSource = 'real_price_simulated_indicators';
-        console.log(`Using real price with simulated indicators for ${strategy.target_asset}`);
+      // Get real technical indicators
+      indicators = await getRealTechnicalIndicators(strategy.target_asset);
+      if (!indicators || Object.keys(indicators).length === 0) {
+        console.error(`No real technical indicators available for ${strategy.target_asset}, cannot generate signals`);
+        return;
       }
 
-      console.log(`Market data for ${strategy.target_asset} (${dataSource}):`, {
+      console.log(`Using real market data for ${strategy.target_asset}:`, {
         price: priceData.price,
         change: priceData.change,
         changePercent: priceData.changePercent,
@@ -199,7 +166,7 @@ export const evaluateStrategy = async (strategyId: string) => {
       });
 
     } catch (error) {
-      console.error(`Failed to get market data for ${strategy.target_asset}:`, error);
+      console.error(`Failed to get real market data for ${strategy.target_asset}:`, error);
       return;
     }
 
@@ -211,7 +178,7 @@ export const evaluateStrategy = async (strategyId: string) => {
 
     // Check for entry signals
     if (await shouldGenerateEntrySignal(entryRules, indicators, currentPrice)) {
-      const entryReason = `Entry signal (${dataSource}) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      const entryReason = `Entry signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
       
       await generateTradingSignal(strategyId, 'entry', {
         reason: entryReason,
@@ -228,7 +195,7 @@ export const evaluateStrategy = async (strategyId: string) => {
 
     // Check for exit signals
     if (await shouldGenerateExitSignal(exitRules, indicators, currentPrice, strategyId)) {
-      const exitReason = `Exit signal (${dataSource}) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      const exitReason = `Exit signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
       
       await generateTradingSignal(strategyId, 'exit', {
         reason: exitReason,
@@ -392,7 +359,7 @@ const generateTradingSignal = async (
     }
 
     // Generate and store the signal
-    const { error } = await supabase
+    const { data: signal, error } = await supabase
       .from('trading_signals')
       .insert({
         strategy_id: strategyId,
@@ -400,15 +367,117 @@ const generateTradingSignal = async (
         signal_data: signalData,
         processed: true,
         created_at: new Date().toISOString()
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error inserting trading signal:', error);
-    } else {
-      console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
+      return;
     }
+
+    console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
+
+    // Send notifications for Pro users only
+    await sendNotificationsForSignal(strategyId, signalType, signalData);
+
   } catch (error) {
     console.error('Error generating trading signal:', error);
+  }
+};
+
+const sendNotificationsForSignal = async (strategyId: string, signalType: string, signalData: any) => {
+  try {
+    // Get strategy and user info
+    const { data: strategy } = await supabase
+      .from('strategies')
+      .select('user_id, name, target_asset')
+      .eq('id', strategyId)
+      .single();
+
+    if (!strategy) return;
+
+    // Check if user is Pro
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const isPro = user.user_metadata?.is_pro === true;
+    
+    if (!isPro) {
+      console.log(`User ${strategy.user_id} is not Pro, skipping external notifications`);
+      return;
+    }
+
+    // Get user notification settings
+    const { data: settings } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', strategy.user_id)
+      .single();
+
+    if (!settings) return;
+
+    const notificationData = {
+      ...signalData,
+      strategyName: strategy.name,
+      targetAsset: strategy.target_asset,
+      userId: strategy.user_id
+    };
+
+    // Send Discord notification if enabled
+    if (settings.discord_enabled && settings.discord_webhook_url) {
+      try {
+        await supabase.functions.invoke('send-discord-notification', {
+          body: {
+            webhookUrl: settings.discord_webhook_url,
+            signalData: notificationData,
+            signalType: signalType
+          }
+        });
+        console.log(`Discord notification sent for strategy ${strategyId}`);
+      } catch (error) {
+        console.error(`Failed to send Discord notification:`, error);
+      }
+    }
+
+    // Send Telegram notification if enabled
+    if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            botToken: settings.telegram_bot_token,
+            chatId: settings.telegram_chat_id,
+            signalData: notificationData,
+            signalType: signalType
+          }
+        });
+        console.log(`Telegram notification sent for strategy ${strategyId}`);
+      } catch (error) {
+        console.error(`Failed to send Telegram notification:`, error);
+      }
+    }
+
+    // Send Email notification if enabled
+    if (settings.email_enabled) {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser?.email) {
+          await supabase.functions.invoke('send-email-notification', {
+            body: {
+              userEmail: authUser.email,
+              signalData: notificationData,
+              signalType: signalType
+            }
+          });
+          console.log(`Email notification sent for strategy ${strategyId}`);
+        }
+      } catch (error) {
+        console.error(`Failed to send Email notification:`, error);
+      }
+    }
+
+  } catch (error) {
+    console.error(`Error sending notifications for strategy ${strategyId}:`, error);
   }
 };
 

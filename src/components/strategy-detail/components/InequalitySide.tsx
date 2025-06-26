@@ -408,6 +408,32 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
     }
   };
   
+  // Helper function to normalize price value for consistent display
+  const normalizePriceValue = (value: string | undefined): string => {
+    if (!value) return 'close';
+    
+    // Convert to lowercase and handle common variations
+    const normalized = value.toLowerCase().trim();
+    
+    // Map common variations to standard values
+    switch (normalized) {
+      case 'open':
+      case 'opening':
+        return 'open';
+      case 'high':
+      case 'highest':
+        return 'high';
+      case 'low':
+      case 'lowest':
+        return 'low';
+      case 'close':
+      case 'closing':
+      case 'last':
+      default:
+        return 'close';
+    }
+  };
+  
   // Render side inputs based on type
   if (sideObj.type === 'INDICATOR') {
     return (
@@ -435,10 +461,12 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
       </div>
     );
   } else if (sideObj.type === 'PRICE') {
+    const currentPriceValue = normalizePriceValue(sideObj.value);
+    
     return (
       <div className="mt-2">
         <Select 
-          value={sideObj.value || 'close'} 
+          value={currentPriceValue} 
           onValueChange={value => updateInequality(side, 'value', value)}
         >
           <SelectTrigger className={`${!sideObj.value && showValidation ? 'border-red-500' : ''}`}>

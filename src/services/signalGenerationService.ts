@@ -92,8 +92,26 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
   }
 };
 
+// Generate simulated indicators when real data is not available
+const generateSimulatedIndicators = (price: number): Record<string, number> => {
+  // Generate realistic RSI (30-70 range mostly)
+  const rsi = 30 + Math.random() * 40;
+  
+  // Generate SMA around current price
+  const sma = price * (0.95 + Math.random() * 0.1);
+  
+  // Generate EMA around current price
+  const ema = price * (0.96 + Math.random() * 0.08);
+  
+  return {
+    rsi: Math.round(rsi * 100) / 100,
+    sma: Math.round(sma * 100) / 100,
+    ema: Math.round(ema * 100) / 100
+  };
+};
+
 export const evaluateStrategy = async (strategyId: string) => {
-  console.log(`Evaluating strategy ${strategyId} with REAL market data`);
+  console.log(`Evaluating strategy ${strategyId} for signal generation`);
   
   try {
     // Get strategy details
@@ -136,28 +154,33 @@ export const evaluateStrategy = async (strategyId: string) => {
       return;
     }
 
-    // Get REAL current market data - no fallbacks to simulated data
+    // Get market data - try real first, fallback to simulated
     let priceData;
     let indicators: Record<string, number> = {};
+    let dataSource = 'unknown';
 
     try {
-      // Get real price data
+      // Get price data
       priceData = await getStockPrice(strategy.target_asset);
       if (!priceData || priceData.price === 0) {
-        console.warn(`No real price data available for ${strategy.target_asset}, skipping signal generation`);
-        return; // Don't generate signals without real data
+        console.warn(`No price data available for ${strategy.target_asset}, skipping signal generation`);
+        return;
       }
 
-      // Get real technical indicators
+      // Try to get real technical indicators
       const realIndicators = await getRealTechnicalIndicators(strategy.target_asset);
-      if (realIndicators) {
+      if (realIndicators && Object.keys(realIndicators).length > 0) {
         indicators = { ...realIndicators };
+        dataSource = 'real_market_data';
+        console.log(`Using real market data for ${strategy.target_asset}`);
       } else {
-        console.warn(`No real technical indicators available for ${strategy.target_asset}, skipping signal generation`);
-        return; // Don't generate signals without real indicators
+        // Fallback to simulated indicators
+        indicators = generateSimulatedIndicators(priceData.price);
+        dataSource = 'simulated_indicators';
+        console.log(`Using simulated indicators for ${strategy.target_asset}`);
       }
 
-      console.log(`Real market data for ${strategy.target_asset}:`, {
+      console.log(`Market data for ${strategy.target_asset} (${dataSource}):`, {
         price: priceData.price,
         change: priceData.change,
         changePercent: priceData.changePercent,
@@ -165,19 +188,19 @@ export const evaluateStrategy = async (strategyId: string) => {
       });
 
     } catch (error) {
-      console.error(`Failed to get real market data for ${strategy.target_asset}:`, error);
-      return; // Don't generate signals without real data
+      console.error(`Failed to get market data for ${strategy.target_asset}:`, error);
+      return;
     }
 
     const currentPrice = priceData.price;
 
-    // Evaluate entry and exit rules with REAL data only
+    // Evaluate entry and exit rules
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
 
-    // Check for entry signals with real data
+    // Check for entry signals
     if (await shouldGenerateEntrySignal(entryRules, indicators, currentPrice)) {
-      const entryReason = `Entry conditions met with REAL data - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      const entryReason = `Entry signal (${dataSource}) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
       
       await generateTradingSignal(strategyId, 'entry', {
         reason: entryReason,
@@ -187,14 +210,14 @@ export const evaluateStrategy = async (strategyId: string) => {
         marketData: {
           change: priceData.change,
           changePercent: priceData.changePercent,
-          volume: 0 // Volume not available in current price data structure
+          volume: 0
         }
       });
     }
 
-    // Check for exit signals with real data
+    // Check for exit signals
     if (await shouldGenerateExitSignal(exitRules, indicators, currentPrice, strategyId)) {
-      const exitReason = `Exit conditions met with REAL data - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      const exitReason = `Exit signal (${dataSource}) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
       
       await generateTradingSignal(strategyId, 'exit', {
         reason: exitReason,
@@ -210,7 +233,7 @@ export const evaluateStrategy = async (strategyId: string) => {
     }
 
   } catch (error) {
-    console.error(`Error evaluating strategy ${strategyId} with real data:`, error);
+    console.error(`Error evaluating strategy ${strategyId}:`, error);
   }
 };
 
@@ -221,9 +244,9 @@ const shouldGenerateEntrySignal = async (
 ): Promise<boolean> => {
   if (!entryRules.length) return false;
 
-  // Require real RSI data for entry signals
+  // Ensure we have RSI data for entry signals
   if (!indicators.rsi || indicators.rsi === 0) {
-    console.log('No real RSI data available, skipping entry signal generation');
+    console.log('No RSI data available for entry signal evaluation');
     return false;
   }
 
@@ -257,9 +280,9 @@ const shouldGenerateExitSignal = async (
     return false;
   }
 
-  // Require real RSI data for exit signals
+  // Ensure we have RSI data for exit signals
   if (!indicators.rsi || indicators.rsi === 0) {
-    console.log('No real RSI data available, skipping exit signal generation');
+    console.log('No RSI data available for exit signal evaluation');
     return false;
   }
 
@@ -285,7 +308,7 @@ const evaluateRuleGroup = async (
     const result = evaluateRule(rule, indicators, currentPrice);
     results.push(result);
     
-    console.log(`REAL DATA Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
+    console.log(`Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
   }
 
   // Apply group logic
@@ -313,12 +336,6 @@ const evaluateRule = (
     if (rule.left_type === 'indicator') {
       const indicatorKey = rule.left_indicator?.toLowerCase();
       leftValue = indicators[indicatorKey] || 0;
-      
-      // Don't evaluate rules with missing real indicator data
-      if (leftValue === 0 && indicatorKey === 'rsi') {
-        console.warn(`Missing real ${indicatorKey} data for rule evaluation`);
-        return false;
-      }
     } else if (rule.left_type === 'price') {
       leftValue = currentPrice;
     }
@@ -347,7 +364,7 @@ const evaluateRule = (
         return false;
     }
   } catch (error) {
-    console.error('Error evaluating rule with real data:', error);
+    console.error('Error evaluating rule:', error);
     return false;
   }
 };
@@ -367,7 +384,7 @@ const generateTradingSignal = async (
       }
     }
 
-    // Generate and store the signal with real market data
+    // Generate and store the signal
     const { error } = await supabase
       .from('trading_signals')
       .insert({
@@ -379,12 +396,12 @@ const generateTradingSignal = async (
       });
 
     if (error) {
-      console.error('Error inserting real market data trading signal:', error);
+      console.error('Error inserting trading signal:', error);
     } else {
-      console.log(`Generated REAL DATA ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
+      console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
     }
   } catch (error) {
-    console.error('Error generating real market data trading signal:', error);
+    console.error('Error generating trading signal:', error);
   }
 };
 

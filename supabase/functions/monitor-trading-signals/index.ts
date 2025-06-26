@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -33,16 +34,25 @@ function isMarketOpen(): boolean {
 // Get real market data from FMP API - ONLY REAL DATA
 async function getRealMarketData(symbol: string, fmpApiKey: string) {
   try {
-    console.log(`Fetching real market data for ${symbol}`);
+    console.log(`[Monitor] Fetching real market data for ${symbol}`);
     
     // Get current quote
     const quoteResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TradingApp/1.0'
+        }
+      }
     );
     
     if (!quoteResponse.ok) {
       if (quoteResponse.status === 429) {
         throw new Error('FMP API rate limit reached');
+      } else if (quoteResponse.status === 401 || quoteResponse.status === 403) {
+        throw new Error('FMP API authentication failed');
       }
       throw new Error(`Quote API error: ${quoteResponse.status}`);
     }
@@ -60,8 +70,16 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
     }
     
     // Get technical indicators (RSI) from FMP - REQUIRED
+    console.log(`[Monitor] Fetching RSI data for ${symbol}...`);
     const rsiResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`
+      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TradingApp/1.0'
+        }
+      }
     );
     
     if (!rsiResponse.ok) {
@@ -78,7 +96,7 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
       throw new Error(`Invalid RSI data for ${symbol}`);
     }
     
-    console.log(`Real market data for ${symbol}:`, {
+    console.log(`[Monitor] Real market data for ${symbol}:`, {
       price: currentPrice,
       rsi: rsiValue,
       change: quote.change,
@@ -95,7 +113,7 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
     };
     
   } catch (error) {
-    console.error(`Error fetching real market data for ${symbol}:`, error);
+    console.error(`[Monitor] Error fetching real market data for ${symbol}:`, error);
     throw error;
   }
 }
@@ -103,22 +121,28 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
 // Enhanced strategy evaluation - ONLY REAL DATA
 async function evaluateStrategy(supabase: any, strategyId: string, strategy: any) {
   try {
-    console.log(`Evaluating strategy ${strategyId}: ${strategy.name} for ${strategy.target_asset}`);
+    console.log(`[Monitor] Evaluating strategy ${strategyId}: ${strategy.name} for ${strategy.target_asset}`);
     
-    // Get FMP API key - REQUIRED
-    const { data: keyData, error: keyError } = await supabase.functions.invoke('get-fmp-key');
+    // Get FMP API key - REQUIRED (using corrected format)
+    const { data: keyData, error: keyError } = await supabase.functions.invoke('get-fmp-key', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
     if (keyError) {
-      console.error(`Error getting FMP API key for strategy ${strategyId}:`, keyError);
+      console.error(`[Monitor] Error getting FMP API key for strategy ${strategyId}:`, keyError);
       return 0;
     }
     
     if (!keyData?.key) {
-      console.error(`No FMP API key available for strategy ${strategyId}, cannot generate signals`);
+      console.error(`[Monitor] No FMP API key available for strategy ${strategyId}, cannot generate signals`);
       return 0;
     }
     
     const fmpApiKey = keyData.key;
-    console.log(`Successfully retrieved FMP API key for strategy ${strategyId}`);
+    console.log(`[Monitor] Successfully retrieved FMP API key for strategy ${strategyId}`);
     
     // Get trading rules for this strategy
     const { data: ruleGroups, error: rulesError } = await supabase
@@ -144,20 +168,20 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       .order('group_order');
 
     if (rulesError || !ruleGroups || ruleGroups.length === 0) {
-      console.log(`No trading rules found for strategy ${strategyId}`);
+      console.log(`[Monitor] No trading rules found for strategy ${strategyId}`);
       return 0;
     }
     
-    console.log(`Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
+    console.log(`[Monitor] Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
     
     // Get ONLY real market data - NO FALLBACK
     let marketData;
     try {
       marketData = await getRealMarketData(strategy.target_asset, fmpApiKey);
-      console.log(`Successfully fetched real market data for ${strategy.target_asset}`);
+      console.log(`[Monitor] Successfully fetched real market data for ${strategy.target_asset}`);
     } catch (error) {
-      console.error(`Failed to get real market data for ${strategy.target_asset}:`, error);
-      console.error(`Cannot generate signals without real market data for strategy ${strategyId}`);
+      console.error(`[Monitor] Failed to get real market data for ${strategy.target_asset}:`, error);
+      console.error(`[Monitor] Cannot generate signals without real market data for strategy ${strategyId}`);
       return 0;
     }
     
@@ -169,7 +193,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       .single();
 
     if (!user) {
-      console.error(`No user found for strategy ${strategyId}`);
+      console.error(`[Monitor] No user found for strategy ${strategyId}`);
       return 0;
     }
 
@@ -180,7 +204,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       .single();
 
     const isPro = profile?.is_pro === true;
-    console.log(`User ${user.user_id} Pro status: ${isPro}`);
+    console.log(`[Monitor] User ${user.user_id} Pro status: ${isPro}`);
     
     // Proceed with signal generation using real data
     const indicators = {
@@ -219,7 +243,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
 
       if (!error) {
         signalsGenerated++;
-        console.log(`Generated entry signal for strategy ${strategyId}: ${entryReason}`);
+        console.log(`[Monitor] Generated entry signal for strategy ${strategyId}: ${entryReason}`);
         
         // Send notification only if strategy is active
         if (strategy.is_active) {
@@ -234,7 +258,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
           });
         }
       } else {
-        console.error(`Error inserting entry signal for strategy ${strategyId}:`, error);
+        console.error(`[Monitor] Error inserting entry signal for strategy ${strategyId}:`, error);
       }
     }
     
@@ -285,7 +309,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
 
         if (!error) {
           signalsGenerated++;
-          console.log(`Generated exit signal for strategy ${strategyId}: ${exitReason}`);
+          console.log(`[Monitor] Generated exit signal for strategy ${strategyId}: ${exitReason}`);
           
           // Send notification only if strategy is active
           if (strategy.is_active) {
@@ -302,14 +326,14 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
             });
           }
         } else {
-          console.error(`Error inserting exit signal for strategy ${strategyId}:`, error);
+          console.error(`[Monitor] Error inserting exit signal for strategy ${strategyId}:`, error);
         }
       }
     }
     
     return signalsGenerated;
   } catch (error) {
-    console.error(`Error evaluating strategy ${strategyId}:`, error);
+    console.error(`[Monitor] Error evaluating strategy ${strategyId}:`, error);
     return 0;
   }
 }
@@ -328,7 +352,7 @@ async function shouldGenerateSignal(ruleGroups: any[], indicators: any, currentP
       const result = evaluateRule(rule, indicators, currentPrice);
       results.push(result);
       
-      console.log(`Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
+      console.log(`[Monitor] Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
     }
 
     // Apply group logic with improved handling
@@ -341,7 +365,7 @@ async function shouldGenerateSignal(ruleGroups: any[], indicators: any, currentP
       groupResult = trueCount >= requiredConditions;
     }
     
-    console.log(`Group ${group.rule_type} result: ${groupResult} (logic: ${group.logic})`);
+    console.log(`[Monitor] Group ${group.rule_type} result: ${groupResult} (logic: ${group.logic})`);
     
     if (groupResult) {
       return true;
@@ -393,11 +417,11 @@ function evaluateRule(rule: any, indicators: any, currentPrice: number): boolean
       case 'EQUAL':
         return Math.abs(leftValue - rightValue) < 0.01;
       default:
-        console.warn(`Unknown condition: ${condition}`);
+        console.warn(`[Monitor] Unknown condition: ${condition}`);
         return false;
     }
   } catch (error) {
-    console.error('Error evaluating rule:', error);
+    console.error('[Monitor] Error evaluating rule:', error);
     return false;
   }
 }
@@ -405,17 +429,17 @@ function evaluateRule(rule: any, indicators: any, currentPrice: number): boolean
 // Send notifications with Pro user check
 async function sendNotification(supabase: any, strategyId: string, signalType: string, signalData: any) {
   try {
-    console.log(`Processing notification for ${signalType} signal on strategy ${strategyId}`);
+    console.log(`[Monitor] Processing notification for ${signalType} signal on strategy ${strategyId}`);
     
     const isPro = signalData.isPro;
     const userId = signalData.userId;
     
     if (!isPro) {
-      console.log(`User ${userId} is not Pro, notifications will only appear in app`);
+      console.log(`[Monitor] User ${userId} is not Pro, notifications will only appear in app`);
       return;
     }
     
-    console.log(`Sending external notifications for Pro user ${userId}`);
+    console.log(`[Monitor] Sending external notifications for Pro user ${userId}`);
     
     // Get user notification settings
     const { data: settings } = await supabase
@@ -425,7 +449,7 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
       .single();
 
     if (!settings) {
-      console.log(`No notification settings found for user ${userId}`);
+      console.log(`[Monitor] No notification settings found for user ${userId}`);
       return;
     }
 
@@ -439,9 +463,9 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
             signalType: signalType
           }
         });
-        console.log(`Discord notification sent for strategy ${strategyId}`);
+        console.log(`[Monitor] Discord notification sent for strategy ${strategyId}`);
       } catch (error) {
-        console.error(`Failed to send Discord notification:`, error);
+        console.error(`[Monitor] Failed to send Discord notification:`, error);
       }
     }
 
@@ -456,9 +480,9 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
             signalType: signalType
           }
         });
-        console.log(`Telegram notification sent for strategy ${strategyId}`);
+        console.log(`[Monitor] Telegram notification sent for strategy ${strategyId}`);
       } catch (error) {
-        console.error(`Failed to send Telegram notification:`, error);
+        console.error(`[Monitor] Failed to send Telegram notification:`, error);
       }
     }
 
@@ -475,15 +499,15 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
               signalType: signalType
             }
           });
-          console.log(`Email notification sent for strategy ${strategyId}`);
+          console.log(`[Monitor] Email notification sent for strategy ${strategyId}`);
         }
       } catch (error) {
-        console.error(`Failed to send Email notification:`, error);
+        console.error(`[Monitor] Failed to send Email notification:`, error);
       }
     }
     
   } catch (error) {
-    console.error(`Error sending notification for strategy ${strategyId}:`, error);
+    console.error(`[Monitor] Error sending notification for strategy ${strategyId}:`, error);
   }
 }
 
@@ -514,13 +538,13 @@ Deno.serve(async (req) => {
       // Body parsing failed, assume it's a cron job
     }
 
-    console.log(`Signal monitoring triggered by: ${isManual ? 'manual' : 'cron_job'}, manual: ${isManual}`);
+    console.log(`[Monitor] Signal monitoring triggered by: ${isManual ? 'manual' : 'cron_job'}, manual: ${isManual}`);
 
     // Check market status for regular cron jobs (allow manual triggers anytime)
     if (!isManual) {
-      console.log('Checking market status...');
+      console.log('[Monitor] Checking market status...');
       if (!isMarketOpen()) {
-        console.log('Market is closed - no signal monitoring needed');
+        console.log('[Monitor] Market is closed - no signal monitoring needed');
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -535,7 +559,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Starting signal monitoring with REAL market data only...');
+    console.log('[Monitor] Starting signal monitoring with REAL market data only...');
     
     // Get ALL active strategies with their target assets
     const { data: strategies, error: strategiesError } = await supabase
@@ -551,11 +575,11 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false });
 
     if (strategiesError) {
-      console.error('Error fetching strategies:', strategiesError);
+      console.error('[Monitor] Error fetching strategies:', strategiesError);
       throw strategiesError;
     }
 
-    console.log(`Found ${strategies?.length || 0} active strategies to monitor`);
+    console.log(`[Monitor] Found ${strategies?.length || 0} active strategies to monitor`);
 
     if (!strategies || strategies.length === 0) {
       return new Response(
@@ -595,7 +619,7 @@ Deno.serve(async (req) => {
             strategiesSkipped++;
           }
         } else {
-          console.error(`Error processing strategy ${batch[index].id}:`, result.reason);
+          console.error(`[Monitor] Error processing strategy ${batch[index].id}:`, result.reason);
           strategiesSkipped++;
         }
       });
@@ -607,7 +631,7 @@ Deno.serve(async (req) => {
     }
 
     const message = `Signal monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped).`;
-    console.log(message);
+    console.log(`[Monitor] ${message}`);
 
     return new Response(
       JSON.stringify({ 
@@ -625,7 +649,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in signal monitoring:', error);
+    console.error('[Monitor] Error in signal monitoring:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

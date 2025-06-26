@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StockPrice {
@@ -34,61 +33,80 @@ export interface PortfolioMetrics {
 
 export const getStockPrice = async (symbol: string): Promise<StockPrice | null> => {
   try {
-    console.log(`Fetching real stock price for ${symbol}`);
+    console.log(`[MarketData] Fetching real stock price for ${symbol}`);
     
-    // Get FMP API key with improved error handling
+    // Get FMP API key with improved error handling and consistent method
     let fmpApiKey;
     try {
-      const { data, error } = await supabase.functions.invoke('get-fmp-key');
+      console.log('[MarketData] Requesting FMP API key from edge function...');
+      const { data, error } = await supabase.functions.invoke('get-fmp-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
       if (error) {
-        console.error('Error invoking get-fmp-key function:', error);
+        console.error('[MarketData] Error invoking get-fmp-key function:', error);
         throw new Error(`Failed to get FMP API key: ${error.message}`);
       }
       
       if (!data?.key) {
-        console.error('No FMP API key returned from function');
-        throw new Error('FMP API key not available');
+        console.error('[MarketData] No FMP API key returned from function:', data);
+        throw new Error('FMP API key not available - please check Supabase secrets configuration');
       }
       
       fmpApiKey = data.key;
-      console.log('Successfully retrieved FMP API key for stock price');
+      console.log('[MarketData] Successfully retrieved FMP API key');
       
     } catch (error) {
-      console.error('Failed to get FMP API key:', error);
-      throw error;
+      console.error('[MarketData] Failed to get FMP API key:', error);
+      throw new Error(`API key retrieval failed: ${error.message}`);
     }
 
-    const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`
+    // Test FMP API connectivity with a simple validation call first
+    console.log(`[MarketData] Testing FMP API connectivity for ${symbol}...`);
+    const testResponse = await fetch(
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TradingApp/1.0'
+        },
+        timeout: 10000
+      }
     );
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('FMP API rate limit reached');
+    if (!testResponse.ok) {
+      if (testResponse.status === 429) {
+        console.error('[MarketData] FMP API rate limit reached');
+        throw new Error('FMP API rate limit reached - please try again later');
+      } else if (testResponse.status === 401 || testResponse.status === 403) {
+        console.error('[MarketData] FMP API authentication failed');
+        throw new Error('FMP API authentication failed - please check API key');
+      } else {
+        console.error(`[MarketData] FMP API error: ${testResponse.status} ${testResponse.statusText}`);
+        throw new Error(`FMP API error: ${testResponse.status} - ${testResponse.statusText}`);
       }
-      throw new Error(`FMP API error: ${response.status}`);
     }
 
-    const quotes = await response.json();
+    const quotes = await testResponse.json();
+    console.log(`[MarketData] Raw FMP API response for ${symbol}:`, quotes);
     
     if (!Array.isArray(quotes) || quotes.length === 0) {
-      throw new Error(`No price data found for ${symbol}`);
+      console.error(`[MarketData] No price data found for ${symbol}:`, quotes);
+      throw new Error(`No price data found for ${symbol} - symbol may not exist or market may be closed`);
     }
 
     const quote = quotes[0];
     
     if (!quote.price || quote.price === 0) {
-      throw new Error(`Invalid price data for ${symbol}`);
+      console.error(`[MarketData] Invalid price data for ${symbol}:`, quote);
+      throw new Error(`Invalid price data for ${symbol} - price is zero or null`);
     }
 
-    console.log(`Real price data for ${symbol}:`, {
-      price: quote.price,
-      change: quote.change,
-      changePercent: quote.changesPercentage
-    });
-
-    return {
+    const stockPrice = {
       symbol: quote.symbol,
       price: quote.price,
       change: quote.change || 0,
@@ -96,9 +114,12 @@ export const getStockPrice = async (symbol: string): Promise<StockPrice | null> 
       timestamp: new Date().toISOString()
     };
 
+    console.log(`[MarketData] Successfully retrieved real price data for ${symbol}:`, stockPrice);
+    return stockPrice;
+
   } catch (error) {
-    console.error(`Error fetching real price for ${symbol}:`, error);
-    throw error;
+    console.error(`[MarketData] Error fetching real price for ${symbol}:`, error);
+    throw new Error(`Failed to fetch real market data for ${symbol}: ${error.message}`);
   }
 };
 

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface TradingSignal {
@@ -25,41 +24,68 @@ export interface TradingSignal {
 // Get real technical indicators from FMP API with improved error handling
 const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string, number> | null> => {
   try {
-    console.log(`Fetching real technical indicators for ${symbol}`);
+    console.log(`[SignalGen] Fetching real technical indicators for ${symbol}`);
     
-    // Get FMP API key with retry logic
+    // Get FMP API key with improved error handling
     let fmpApiKey;
     try {
-      const { data, error } = await supabase.functions.invoke('get-fmp-key');
+      console.log('[SignalGen] Requesting FMP API key from edge function...');
+      const { data, error } = await supabase.functions.invoke('get-fmp-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
       if (error) {
-        console.error('Error invoking get-fmp-key function:', error);
+        console.error('[SignalGen] Error invoking get-fmp-key function:', error);
         throw new Error(`Failed to get FMP API key: ${error.message}`);
       }
+      
       if (!data?.key) {
-        console.error('No FMP API key returned from function');
+        console.error('[SignalGen] No FMP API key returned from function:', data);
         throw new Error('FMP API key not available');
       }
+      
       fmpApiKey = data.key;
-      console.log('Successfully retrieved FMP API key');
+      console.log('[SignalGen] Successfully retrieved FMP API key');
+      
     } catch (error) {
-      console.error('Failed to get FMP API key:', error);
+      console.error('[SignalGen] Failed to get FMP API key:', error);
       throw error;
     }
 
     // Fetch RSI (14-period) - Required for strategy evaluation
+    console.log(`[SignalGen] Fetching RSI data for ${symbol}...`);
     const rsiResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`
+      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TradingApp/1.0'
+        },
+        timeout: 15000
+      }
     );
     
     if (!rsiResponse.ok) {
       if (rsiResponse.status === 429) {
+        console.error('[SignalGen] FMP API rate limit reached for RSI');
         throw new Error('FMP API rate limit reached');
+      } else if (rsiResponse.status === 401 || rsiResponse.status === 403) {
+        console.error('[SignalGen] FMP API authentication failed for RSI');
+        throw new Error('FMP API authentication failed');
       }
+      console.error(`[SignalGen] RSI API error: ${rsiResponse.status}`);
       throw new Error(`RSI API error: ${rsiResponse.status}`);
     }
     
     const rsiData = await rsiResponse.json();
+    console.log(`[SignalGen] Raw RSI data for ${symbol}:`, rsiData);
+    
     if (!Array.isArray(rsiData) || rsiData.length === 0) {
+      console.error(`[SignalGen] No RSI data found for ${symbol}`);
       throw new Error(`No RSI data found for ${symbol}`);
     }
     
@@ -67,42 +93,64 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       rsi: rsiData[0].rsi
     };
     
+    console.log(`[SignalGen] Successfully retrieved RSI for ${symbol}: ${indicators.rsi}`);
+    
     // Fetch additional indicators (SMA, EMA) for comprehensive analysis
     try {
+      console.log(`[SignalGen] Fetching SMA data for ${symbol}...`);
       const smaResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=sma&apikey=${fmpApiKey}`
+        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=sma&apikey=${fmpApiKey}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          timeout: 10000
+        }
       );
       
       if (smaResponse.ok) {
         const smaData = await smaResponse.json();
         if (Array.isArray(smaData) && smaData.length > 0) {
           indicators.sma = smaData[0].sma;
+          console.log(`[SignalGen] Retrieved SMA for ${symbol}: ${indicators.sma}`);
         }
       }
     } catch (error) {
-      console.warn(`Failed to fetch SMA for ${symbol}:`, error);
+      console.warn(`[SignalGen] Failed to fetch SMA for ${symbol}:`, error);
     }
     
     try {
+      console.log(`[SignalGen] Fetching EMA data for ${symbol}...`);
       const emaResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=ema&apikey=${fmpApiKey}`
+        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=ema&apikey=${fmpApiKey}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          timeout: 10000
+        }
       );
       
       if (emaResponse.ok) {
         const emaData = await emaResponse.json();
         if (Array.isArray(emaData) && emaData.length > 0) {
           indicators.ema = emaData[0].ema;
+          console.log(`[SignalGen] Retrieved EMA for ${symbol}: ${indicators.ema}`);
         }
       }
     } catch (error) {
-      console.warn(`Failed to fetch EMA for ${symbol}:`, error);
+      console.warn(`[SignalGen] Failed to fetch EMA for ${symbol}:`, error);
     }
     
-    console.log(`Real indicators for ${symbol}:`, indicators);
+    console.log(`[SignalGen] Real indicators for ${symbol}:`, indicators);
     return indicators;
     
   } catch (error) {
-    console.error(`Error fetching real technical indicators for ${symbol}:`, error);
+    console.error(`[SignalGen] Error fetching real technical indicators for ${symbol}:`, error);
     throw error;
   }
 };
@@ -110,22 +158,38 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
 // Get real market data with improved error handling
 const getRealMarketData = async (symbol: string) => {
   try {
-    console.log(`Fetching real market data for ${symbol}`);
+    console.log(`[SignalGen] Fetching real market data for ${symbol}`);
     
     // Get FMP API key
-    const { data, error } = await supabase.functions.invoke('get-fmp-key');
+    const { data, error } = await supabase.functions.invoke('get-fmp-key', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
     if (error || !data?.key) {
-      console.error('FMP API key not available for market data');
+      console.error('[SignalGen] FMP API key not available for market data:', error);
       throw new Error('FMP API key not available');
     }
 
     const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TradingApp/1.0'
+        },
+        timeout: 10000
+      }
     );
 
     if (!response.ok) {
       if (response.status === 429) {
         throw new Error('FMP API rate limit reached');
+      } else if (response.status === 401 || response.status === 403) {
+        throw new Error('FMP API authentication failed');
       }
       throw new Error(`FMP API error: ${response.status}`);
     }
@@ -142,7 +206,7 @@ const getRealMarketData = async (symbol: string) => {
       throw new Error(`Invalid price data for ${symbol}`);
     }
 
-    console.log(`Real market data for ${symbol}:`, {
+    console.log(`[SignalGen] Real market data for ${symbol}:`, {
       price: quote.price,
       change: quote.change,
       changePercent: quote.changesPercentage
@@ -157,7 +221,7 @@ const getRealMarketData = async (symbol: string) => {
     };
 
   } catch (error) {
-    console.error(`Error fetching real market data for ${symbol}:`, error);
+    console.error(`[SignalGen] Error fetching real market data for ${symbol}:`, error);
     throw error;
   }
 };

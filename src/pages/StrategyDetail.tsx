@@ -6,7 +6,6 @@ import { StrategyInfo } from "@/components/strategy-detail/StrategyInfo";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { PerformanceMetricsCard } from "@/components/strategy-detail/PerformanceMetricsCard";
-import { SignalMonitoringStatusCard } from "@/components/strategy-detail/SignalMonitoringStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info, ChevronLeft, ChevronRight } from "lucide-react";
@@ -373,10 +372,6 @@ const StrategyDetail = () => {
             isActive={isActive} 
             onStatusChange={handleStatusChange} 
           />
-
-          {hasValidTradingRules && (
-            <SignalMonitoringStatusCard strategyId={id || ""} />
-          )}
           
           <TradingRules 
             entryRules={entryRules} 

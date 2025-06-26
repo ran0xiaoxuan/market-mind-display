@@ -9,7 +9,6 @@ const corsHeaders = {
 
 interface DiscordNotificationRequest {
   webhookUrl: string;
-  signalId: string;
   signalData: any;
   signalType: string;
 }
@@ -26,11 +25,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { webhookUrl, signalId, signalData, signalType }: DiscordNotificationRequest = await req.json()
+    const { webhookUrl, signalData, signalType }: DiscordNotificationRequest = await req.json()
 
-    console.log('Processing Discord notification for signal:', signalId)
+    console.log('Processing Discord notification for signal type:', signalType)
 
-    // Create Discord embed message
+    // Create Discord embed message with improved formatting
     const discordMessage = {
       embeds: [{
         title: `🚨 Trading Signal Alert - ${signalType.toUpperCase()}`,
@@ -38,12 +37,12 @@ serve(async (req) => {
         fields: [
           {
             name: "Strategy",
-            value: signalData.strategyName || "Unknown",
+            value: signalData.strategyName || "Trading Strategy",
             inline: true
           },
           {
             name: "Asset",
-            value: signalData.asset || "Unknown",
+            value: signalData.targetAsset || signalData.asset || "Unknown",
             inline: true
           },
           {
@@ -52,11 +51,21 @@ serve(async (req) => {
             inline: true
           }
         ],
+        description: signalData.reason || `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated`,
         timestamp: new Date().toISOString(),
         footer: {
-          text: "StratAIge Bot"
+          text: "StratAIge Trading Platform"
         }
       }]
+    }
+
+    // Add profit information for exit signals
+    if (signalType === 'exit' && signalData.profitPercentage) {
+      discordMessage.embeds[0].fields.push({
+        name: "P&L",
+        value: `${signalData.profitPercentage.toFixed(2)}%`,
+        inline: true
+      });
     }
 
     // Send to Discord webhook
@@ -76,7 +85,7 @@ serve(async (req) => {
       .from('notification_logs')
       .insert({
         user_id: signalData.userId,
-        signal_id: signalId,
+        signal_id: 'discord-' + Date.now(),
         notification_type: 'discord',
         status: status,
         error_message: errorMessage

@@ -10,7 +10,6 @@ const corsHeaders = {
 interface TelegramNotificationRequest {
   botToken: string;
   chatId: string;
-  signalId: string;
   signalData: any;
   signalType: string;
 }
@@ -27,19 +26,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { botToken, chatId, signalId, signalData, signalType }: TelegramNotificationRequest = await req.json()
+    const { botToken, chatId, signalData, signalType }: TelegramNotificationRequest = await req.json()
 
-    console.log('Processing Telegram notification for signal:', signalId)
+    console.log('Processing Telegram notification for signal type:', signalType)
 
-    // Create Telegram message
+    // Create Telegram message with improved formatting
     const telegramMessage = `
-🚨 *StratAIge Bot*
+🚨 *StratAIge Trading Signal*
 
 📊 *Signal Type:* ${signalType.toUpperCase()}
-📈 *Strategy:* ${signalData.strategyName || 'Unknown'}
-💰 *Asset:* ${signalData.asset || 'Unknown'}
+📈 *Strategy:* ${signalData.strategyName || 'Trading Strategy'}
+💰 *Asset:* ${signalData.targetAsset || signalData.asset || 'Unknown'}
 💵 *Price:* $${signalData.price || 'N/A'}
 ⏰ *Time:* ${new Date().toLocaleString()}
+
+${signalData.reason ? `📋 *Reason:* ${signalData.reason}` : ''}
+${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%` : ''}
     `.trim()
 
     // Send to Telegram Bot API
@@ -65,7 +67,7 @@ serve(async (req) => {
       .from('notification_logs')
       .insert({
         user_id: signalData.userId,
-        signal_id: signalId,
+        signal_id: 'telegram-' + Date.now(),
         notification_type: 'telegram',
         status: status,
         error_message: errorMessage

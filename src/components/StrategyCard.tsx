@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { Trash } from "lucide-react";
 import { deleteStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { useState } from "react";
-
 interface StrategyCardProps {
   id: string;
   name: string;
@@ -18,7 +16,6 @@ interface StrategyCardProps {
   status: "active" | "inactive";
   onDeleted?: () => void;
 }
-
 export function StrategyCard({
   id,
   name,
@@ -29,20 +26,17 @@ export function StrategyCard({
   onDeleted
 }: StrategyCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone and will remove all associated trading signals and data.")) {
       return;
     }
-
     try {
       setIsDeleting(true);
       await deleteStrategy(id);
       toast.success("Strategy deleted successfully");
-      
+
       // Call the onDeleted callback to refresh the parent component
       if (onDeleted) {
         onDeleted();
@@ -54,9 +48,7 @@ export function StrategyCard({
       setIsDeleting(false);
     }
   };
-
-  return (
-    <Link to={`/strategy/${id}`} className="block">
+  return <Link to={`/strategy/${id}`} className="block">
       <Card className="h-full hover:shadow-md transition-shadow cursor-pointer flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -65,15 +57,7 @@ export function StrategyCard({
               <Badge variant={status === "active" ? "default" : "secondary"}>
                 {status}
               </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
+              
             </div>
           </div>
         </CardHeader>
@@ -89,6 +73,5 @@ export function StrategyCard({
           </div>
         </CardFooter>
       </Card>
-    </Link>
-  );
+    </Link>;
 }

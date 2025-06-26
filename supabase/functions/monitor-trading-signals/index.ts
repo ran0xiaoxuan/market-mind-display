@@ -30,7 +30,7 @@ function isMarketOpen(): boolean {
   return isWeekday && isMarketHours;
 }
 
-// Get real market data from FMP API - NO FALLBACK TO SIMULATED DATA
+// Get real market data from FMP API - ONLY REAL DATA
 async function getRealMarketData(symbol: string, fmpApiKey: string) {
   try {
     console.log(`Fetching real market data for ${symbol}`);
@@ -41,6 +41,9 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
     );
     
     if (!quoteResponse.ok) {
+      if (quoteResponse.status === 429) {
+        throw new Error('FMP API rate limit reached');
+      }
       throw new Error(`Quote API error: ${quoteResponse.status}`);
     }
     
@@ -104,12 +107,18 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
     
     // Get FMP API key - REQUIRED
     const { data: keyData, error: keyError } = await supabase.functions.invoke('get-fmp-key');
-    if (keyError || !keyData?.key) {
+    if (keyError) {
+      console.error(`Error getting FMP API key for strategy ${strategyId}:`, keyError);
+      return 0;
+    }
+    
+    if (!keyData?.key) {
       console.error(`No FMP API key available for strategy ${strategyId}, cannot generate signals`);
       return 0;
     }
     
     const fmpApiKey = keyData.key;
+    console.log(`Successfully retrieved FMP API key for strategy ${strategyId}`);
     
     // Get trading rules for this strategy
     const { data: ruleGroups, error: rulesError } = await supabase
@@ -139,6 +148,8 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       return 0;
     }
     
+    console.log(`Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
+    
     // Get ONLY real market data - NO FALLBACK
     let marketData;
     try {
@@ -150,7 +161,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       return 0;
     }
     
-    // Check if user is Pro for notification purposes
+    // Get user profile to check Pro status
     const { data: user } = await supabase
       .from('strategies')
       .select('user_id')
@@ -162,7 +173,6 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       return 0;
     }
 
-    // Get user profile to check Pro status
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
@@ -211,7 +221,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
         signalsGenerated++;
         console.log(`Generated entry signal for strategy ${strategyId}: ${entryReason}`);
         
-        // Send notification only if strategy is active and user is Pro
+        // Send notification only if strategy is active
         if (strategy.is_active) {
           await sendNotification(supabase, strategyId, 'entry', {
             reason: entryReason,
@@ -277,7 +287,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
           signalsGenerated++;
           console.log(`Generated exit signal for strategy ${strategyId}: ${exitReason}`);
           
-          // Send notification only if strategy is active and user is Pro
+          // Send notification only if strategy is active
           if (strategy.is_active) {
             await sendNotification(supabase, strategyId, 'exit', {
               reason: exitReason,
@@ -527,7 +537,7 @@ Deno.serve(async (req) => {
 
     console.log('Starting signal monitoring with REAL market data only...');
     
-    // Get ALL strategies with their target assets
+    // Get ALL active strategies with their target assets
     const { data: strategies, error: strategiesError } = await supabase
       .from('strategies')
       .select(`
@@ -537,6 +547,7 @@ Deno.serve(async (req) => {
         user_id,
         is_active
       `)
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
 
     if (strategiesError) {
@@ -544,13 +555,13 @@ Deno.serve(async (req) => {
       throw strategiesError;
     }
 
-    console.log(`Found ${strategies?.length || 0} strategies to monitor`);
+    console.log(`Found ${strategies?.length || 0} active strategies to monitor`);
 
     if (!strategies || strategies.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'No strategies found for monitoring',
+          message: 'No active strategies found for monitoring',
           signalsGenerated: 0,
           timestamp: new Date().toISOString()
         }), 
@@ -561,8 +572,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Process strategies in batches
-    const BATCH_SIZE = 3; // Reduced batch size for better API rate limiting
+    // Process strategies in batches to respect API rate limits
+    const BATCH_SIZE = 3;
     let totalSignalsGenerated = 0;
     let strategiesProcessed = 0;
     let strategiesSkipped = 0;
@@ -591,11 +602,11 @@ Deno.serve(async (req) => {
       
       // Add delay between batches to respect API rate limits
       if (i + BATCH_SIZE < strategies.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
-    const message = `Signal monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped due to missing real data).`;
+    const message = `Signal monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped).`;
     console.log(message);
 
     return new Response(

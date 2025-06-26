@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StockPrice {
@@ -35,16 +36,31 @@ export const getStockPrice = async (symbol: string): Promise<StockPrice | null> 
   try {
     console.log(`Fetching real stock price for ${symbol}`);
     
-    // Get FMP API key
-    const { data, error } = await supabase.functions.invoke('get-fmp-key');
-    
-    if (error || !data?.key) {
-      console.error('FMP API key not available, cannot fetch real market data');
-      throw new Error('FMP API key not available');
+    // Get FMP API key with improved error handling
+    let fmpApiKey;
+    try {
+      const { data, error } = await supabase.functions.invoke('get-fmp-key');
+      
+      if (error) {
+        console.error('Error invoking get-fmp-key function:', error);
+        throw new Error(`Failed to get FMP API key: ${error.message}`);
+      }
+      
+      if (!data?.key) {
+        console.error('No FMP API key returned from function');
+        throw new Error('FMP API key not available');
+      }
+      
+      fmpApiKey = data.key;
+      console.log('Successfully retrieved FMP API key for stock price');
+      
+    } catch (error) {
+      console.error('Failed to get FMP API key:', error);
+      throw error;
     }
 
     const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`
     );
 
     if (!response.ok) {

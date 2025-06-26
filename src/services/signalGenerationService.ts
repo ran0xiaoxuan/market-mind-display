@@ -1,5 +1,5 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { getStockPrice } from "./marketDataService";
 
 export interface TradingSignal {
   id: string;
@@ -22,26 +22,39 @@ export interface TradingSignal {
   processed: boolean;
 }
 
-// Get real technical indicators from FMP API
+// Get real technical indicators from FMP API with improved error handling
 const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string, number> | null> => {
   try {
     console.log(`Fetching real technical indicators for ${symbol}`);
     
-    // Get FMP API key
-    const { data, error } = await supabase.functions.invoke('get-fmp-key');
-    if (error || !data?.key) {
-      console.error('FMP API key not available for technical indicators');
-      throw new Error('FMP API key not available');
+    // Get FMP API key with retry logic
+    let fmpApiKey;
+    try {
+      const { data, error } = await supabase.functions.invoke('get-fmp-key');
+      if (error) {
+        console.error('Error invoking get-fmp-key function:', error);
+        throw new Error(`Failed to get FMP API key: ${error.message}`);
+      }
+      if (!data?.key) {
+        console.error('No FMP API key returned from function');
+        throw new Error('FMP API key not available');
+      }
+      fmpApiKey = data.key;
+      console.log('Successfully retrieved FMP API key');
+    } catch (error) {
+      console.error('Failed to get FMP API key:', error);
+      throw error;
     }
 
-    const apiKey = data.key;
-    
-    // Fetch RSI (14-period)
+    // Fetch RSI (14-period) - Required for strategy evaluation
     const rsiResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${apiKey}`
+      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`
     );
     
     if (!rsiResponse.ok) {
+      if (rsiResponse.status === 429) {
+        throw new Error('FMP API rate limit reached');
+      }
       throw new Error(`RSI API error: ${rsiResponse.status}`);
     }
     
@@ -54,10 +67,10 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       rsi: rsiData[0].rsi
     };
     
-    // Fetch SMA (Simple Moving Average)
+    // Fetch additional indicators (SMA, EMA) for comprehensive analysis
     try {
       const smaResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=sma&apikey=${apiKey}`
+        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=sma&apikey=${fmpApiKey}`
       );
       
       if (smaResponse.ok) {
@@ -70,10 +83,9 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       console.warn(`Failed to fetch SMA for ${symbol}:`, error);
     }
     
-    // Fetch EMA (Exponential Moving Average)
     try {
       const emaResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=ema&apikey=${apiKey}`
+        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=ema&apikey=${fmpApiKey}`
       );
       
       if (emaResponse.ok) {
@@ -95,6 +107,61 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
   }
 };
 
+// Get real market data with improved error handling
+const getRealMarketData = async (symbol: string) => {
+  try {
+    console.log(`Fetching real market data for ${symbol}`);
+    
+    // Get FMP API key
+    const { data, error } = await supabase.functions.invoke('get-fmp-key');
+    if (error || !data?.key) {
+      console.error('FMP API key not available for market data');
+      throw new Error('FMP API key not available');
+    }
+
+    const response = await fetch(
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`
+    );
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('FMP API rate limit reached');
+      }
+      throw new Error(`FMP API error: ${response.status}`);
+    }
+
+    const quotes = await response.json();
+    
+    if (!Array.isArray(quotes) || quotes.length === 0) {
+      throw new Error(`No price data found for ${symbol}`);
+    }
+
+    const quote = quotes[0];
+    
+    if (!quote.price || quote.price === 0) {
+      throw new Error(`Invalid price data for ${symbol}`);
+    }
+
+    console.log(`Real market data for ${symbol}:`, {
+      price: quote.price,
+      change: quote.change,
+      changePercent: quote.changesPercentage
+    });
+
+    return {
+      price: quote.price,
+      change: quote.change || 0,
+      changePercent: quote.changesPercentage || 0,
+      timestamp: new Date().toISOString(),
+      volume: quote.volume || 0
+    };
+
+  } catch (error) {
+    console.error(`Error fetching real market data for ${symbol}:`, error);
+    throw error;
+  }
+};
+
 export const evaluateStrategy = async (strategyId: string) => {
   console.log(`Evaluating strategy ${strategyId} for signal generation`);
   
@@ -107,9 +174,11 @@ export const evaluateStrategy = async (strategyId: string) => {
       .single();
 
     if (strategyError || !strategy) {
-      console.log(`Strategy ${strategyId} not found`);
+      console.log(`Strategy ${strategyId} not found:`, strategyError);
       return;
     }
+
+    console.log(`Strategy found: ${strategy.name} for ${strategy.target_asset}`);
 
     // Get trading rules for this strategy
     const { data: ruleGroups, error: rulesError } = await supabase
@@ -139,22 +208,24 @@ export const evaluateStrategy = async (strategyId: string) => {
       return;
     }
 
+    console.log(`Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
+
     // Get real market data - MUST use real data
     let priceData;
     let indicators: Record<string, number> = {};
 
     try {
       // Get real price data
-      priceData = await getStockPrice(strategy.target_asset);
+      priceData = await getRealMarketData(strategy.target_asset);
       if (!priceData || priceData.price === 0) {
-        console.error(`No real price data available for ${strategy.target_asset}, cannot generate signals`);
+        console.error(`No real price data available for ${strategy.target_asset}, skipping signal generation`);
         return;
       }
 
       // Get real technical indicators
       indicators = await getRealTechnicalIndicators(strategy.target_asset);
       if (!indicators || Object.keys(indicators).length === 0) {
-        console.error(`No real technical indicators available for ${strategy.target_asset}, cannot generate signals`);
+        console.error(`No real technical indicators available for ${strategy.target_asset}, skipping signal generation`);
         return;
       }
 
@@ -176,9 +247,13 @@ export const evaluateStrategy = async (strategyId: string) => {
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
 
+    console.log(`Entry rules: ${entryRules.length}, Exit rules: ${exitRules.length}`);
+
     // Check for entry signals
     if (await shouldGenerateEntrySignal(entryRules, indicators, currentPrice)) {
       const entryReason = `Entry signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      
+      console.log(`Generating entry signal: ${entryReason}`);
       
       await generateTradingSignal(strategyId, 'entry', {
         reason: entryReason,
@@ -188,7 +263,7 @@ export const evaluateStrategy = async (strategyId: string) => {
         marketData: {
           change: priceData.change,
           changePercent: priceData.changePercent,
-          volume: 0
+          volume: priceData.volume
         }
       });
     }
@@ -196,6 +271,8 @@ export const evaluateStrategy = async (strategyId: string) => {
     // Check for exit signals
     if (await shouldGenerateExitSignal(exitRules, indicators, currentPrice, strategyId)) {
       const exitReason = `Exit signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      
+      console.log(`Generating exit signal: ${exitReason}`);
       
       await generateTradingSignal(strategyId, 'exit', {
         reason: exitReason,
@@ -205,7 +282,7 @@ export const evaluateStrategy = async (strategyId: string) => {
         marketData: {
           change: priceData.change,
           changePercent: priceData.changePercent,
-          volume: 0
+          volume: priceData.volume
         }
       });
     }
@@ -378,7 +455,7 @@ const generateTradingSignal = async (
 
     console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
 
-    // Send notifications for Pro users only
+    // Send notifications
     await sendNotificationsForSignal(strategyId, signalType, signalData);
 
   } catch (error) {

@@ -43,17 +43,30 @@ export function TradingSettings() {
       try {
         const settings = await getNotificationSettings();
         if (settings) {
-          form.reset(settings);
-          setIsDiscordVerified(!!settings.discord_webhook_url);
-          setIsTelegramVerified(!!settings.telegram_bot_token && !!settings.telegram_chat_id);
+          // For free users, force all notification settings to be disabled
+          if (!isPro) {
+            const disabledSettings = {
+              ...settings,
+              email_enabled: false,
+              discord_enabled: false,
+              telegram_enabled: false,
+              entry_signals: false,
+              exit_signals: false,
+              stop_loss_alerts: false,
+              take_profit_alerts: false
+            };
+            form.reset(disabledSettings);
+          } else {
+            form.reset(settings);
+            setIsDiscordVerified(!!settings.discord_webhook_url);
+            setIsTelegramVerified(!!settings.telegram_bot_token && !!settings.telegram_chat_id);
+          }
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
       }
     };
-    if (isPro) {
-      loadSettings();
-    }
+    loadSettings();
   }, [isPro, form]);
 
   const handleSubmit = async (values: NotificationSettings) => {
@@ -74,6 +87,10 @@ export function TradingSettings() {
   };
 
   const verifyDiscordWebhookHandler = async () => {
+    if (!isPro) {
+      toast.error("This feature is only available for Pro users");
+      return;
+    }
     const webhookUrl = form.getValues("discord_webhook_url");
     if (!webhookUrl) {
       toast.error("Please enter a Discord webhook URL");
@@ -97,6 +114,10 @@ export function TradingSettings() {
   };
 
   const verifyTelegramBotHandler = async () => {
+    if (!isPro) {
+      toast.error("This feature is only available for Pro users");
+      return;
+    }
     const botToken = form.getValues("telegram_bot_token");
     const chatId = form.getValues("telegram_chat_id");
     if (!botToken || !chatId) {
@@ -121,12 +142,20 @@ export function TradingSettings() {
   };
 
   const disconnectDiscord = () => {
+    if (!isPro) {
+      toast.error("This feature is only available for Pro users");
+      return;
+    }
     form.setValue("discord_webhook_url", "");
     setIsDiscordVerified(false);
     toast.success("Discord webhook disconnected");
   };
 
   const disconnectTelegram = () => {
+    if (!isPro) {
+      toast.error("This feature is only available for Pro users");
+      return;
+    }
     form.setValue("telegram_bot_token", "");
     form.setValue("telegram_chat_id", "");
     setIsTelegramVerified(false);
@@ -372,13 +401,7 @@ export function TradingSettings() {
                       <p className="text-sm text-muted-foreground">Receive trading signals via email</p>
                     </div>
                   </div>
-                  <FormField control={form.control} name="email_enabled" render={({
-                  field
-                }) => <FormItem>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>} />
+                  <Switch checked={false} disabled />
                 </div>
                 
                 {/* Discord Integration */}
@@ -391,26 +414,8 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
                       </div>
                     </div>
-                    <FormField control={form.control} name="discord_enabled" render={({
-                    field
-                  }) => <FormItem>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                        </FormItem>} />
+                    <Switch checked={false} disabled />
                   </div>
-                  
-                  {form.watch("discord_enabled") && <FormField control={form.control} name="discord_webhook_url" render={({
-                  field
-                }) => <FormItem>
-                          <FormLabel>Discord Webhook URL</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Create a webhook in your Discord server settings and paste the URL here
-                          </FormDescription>
-                        </FormItem>} />}
                 </div>
                 
                 {/* Telegram Integration */}
@@ -423,40 +428,8 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
                       </div>
                     </div>
-                    <FormField control={form.control} name="telegram_enabled" render={({
-                    field
-                  }) => <FormItem>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                        </FormItem>} />
+                    <Switch checked={false} disabled />
                   </div>
-                  
-                  {form.watch("telegram_enabled") && <div className="space-y-4">
-                      <FormField control={form.control} name="telegram_bot_token" render={({
-                    field
-                  }) => <FormItem>
-                            <FormLabel>Telegram Bot Token</FormLabel>
-                            <FormControl>
-                              <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Create a bot with @BotFather and paste the token here
-                            </FormDescription>
-                          </FormItem>} />
-                      
-                      <FormField control={form.control} name="telegram_chat_id" render={({
-                    field
-                  }) => <FormItem>
-                            <FormLabel>Telegram Chat ID</FormLabel>
-                            <FormControl>
-                              <Input placeholder="-100123456789" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              The ID of the chat where signals should be sent
-                            </FormDescription>
-                          </FormItem>} />
-                    </div>}
                 </div>
               </form>
             </Form>
@@ -644,7 +617,7 @@ export function TradingSettings() {
                   <p className="font-medium">Entry Signals</p>
                   <p className="text-sm text-muted-foreground">Notify when a new trade opportunity is detected</p>
                 </div>
-                <Switch defaultChecked={false} />
+                <Switch checked={false} disabled />
               </div>
               
               <div className="flex items-center justify-between">
@@ -652,7 +625,7 @@ export function TradingSettings() {
                   <p className="font-medium">Exit Signals</p>
                   <p className="text-sm text-muted-foreground">Notify when a position should be closed</p>
                 </div>
-                <Switch defaultChecked={false} />
+                <Switch checked={false} disabled />
               </div>
               
               <div className="flex items-center justify-between">
@@ -660,7 +633,7 @@ export function TradingSettings() {
                   <p className="font-medium">Stop Loss Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when stop loss is triggered</p>
                 </div>
-                <Switch defaultChecked={false} />
+                <Switch checked={false} disabled />
               </div>
               
               <div className="flex items-center justify-between">
@@ -668,7 +641,7 @@ export function TradingSettings() {
                   <p className="font-medium">Take Profit Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
                 </div>
-                <Switch defaultChecked={false} />
+                <Switch checked={false} disabled />
               </div>
             </div>
           </div>
@@ -752,6 +725,17 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      {isPro}
+      <div>
+        <h2 className="text-xl font-medium mb-2">Signal Types</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Choose which types of trading signals you want to receive
+        </p>
+        
+        <Card className={isPro ? "" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
+          <CardContent className="p-6">
+            {renderSignalNotificationTypes()}
+          </CardContent>
+        </Card>
+      </div>
     </div>;
 }

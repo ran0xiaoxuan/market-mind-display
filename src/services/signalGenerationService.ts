@@ -13,16 +13,90 @@ export interface TradingSignal {
     profit?: number;
     profitPercentage?: number;
     indicators?: Record<string, number>;
+    marketData?: {
+      change: number;
+      changePercent: number;
+      volume: number;
+    };
   };
   created_at: string;
   processed: boolean;
 }
 
+// Get real technical indicators from FMP API
+const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string, number> | null> => {
+  try {
+    console.log(`Fetching real technical indicators for ${symbol}`);
+    
+    // Get FMP API key
+    const { data, error } = await supabase.functions.invoke('get-fmp-key');
+    if (error || !data?.key) {
+      console.warn('FMP API key not available for technical indicators');
+      return null;
+    }
+
+    const apiKey = data.key;
+    
+    // Fetch RSI (14-period)
+    const rsiResponse = await fetch(
+      `https://financialmodelingprep.com/api/v3/technical_indicator/1min/${symbol}?period=14&type=rsi&apikey=${apiKey}`
+    );
+    
+    let indicators: Record<string, number> = {};
+    
+    if (rsiResponse.ok) {
+      const rsiData = await rsiResponse.json();
+      if (Array.isArray(rsiData) && rsiData.length > 0) {
+        indicators.rsi = rsiData[0].rsi;
+        console.log(`Real RSI for ${symbol}: ${indicators.rsi}`);
+      }
+    }
+    
+    // Fetch SMA (Simple Moving Average)
+    try {
+      const smaResponse = await fetch(
+        `https://financialmodelingprep.com/api/v3/technical_indicator/1min/${symbol}?period=20&type=sma&apikey=${apiKey}`
+      );
+      
+      if (smaResponse.ok) {
+        const smaData = await smaResponse.json();
+        if (Array.isArray(smaData) && smaData.length > 0) {
+          indicators.sma = smaData[0].sma;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch SMA for ${symbol}:`, error);
+    }
+    
+    // Fetch EMA (Exponential Moving Average)
+    try {
+      const emaResponse = await fetch(
+        `https://financialmodelingprep.com/api/v3/technical_indicator/1min/${symbol}?period=20&type=ema&apikey=${apiKey}`
+      );
+      
+      if (emaResponse.ok) {
+        const emaData = await emaResponse.json();
+        if (Array.isArray(emaData) && emaData.length > 0) {
+          indicators.ema = emaData[0].ema;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch EMA for ${symbol}:`, error);
+    }
+    
+    return Object.keys(indicators).length > 0 ? indicators : null;
+    
+  } catch (error) {
+    console.error(`Error fetching real technical indicators for ${symbol}:`, error);
+    return null;
+  }
+};
+
 export const evaluateStrategy = async (strategyId: string) => {
-  console.log(`Evaluating strategy ${strategyId}`);
+  console.log(`Evaluating strategy ${strategyId} with REAL market data`);
   
   try {
-    // Get strategy details - evaluate all strategies regardless of active status
+    // Get strategy details
     const { data: strategy, error: strategyError } = await supabase
       .from('strategies')
       .select('*')
@@ -62,83 +136,82 @@ export const evaluateStrategy = async (strategyId: string) => {
       return;
     }
 
-    // Get current market data
-    let currentPrice = 0;
+    // Get REAL current market data - no fallbacks to simulated data
+    let priceData;
     let indicators: Record<string, number> = {};
 
     try {
-      // Try to get real price data
-      const priceData = await getStockPrice(strategy.target_asset);
-      if (priceData) {
-        currentPrice = priceData.price;
+      // Get real price data
+      priceData = await getStockPrice(strategy.target_asset);
+      if (!priceData || priceData.price === 0) {
+        console.warn(`No real price data available for ${strategy.target_asset}, skipping signal generation`);
+        return; // Don't generate signals without real data
       }
 
-      // Generate realistic RSI with better logic
-      indicators.rsi = generateRealisticRSI(currentPrice, strategy.target_asset);
-      console.log(`Generated RSI for ${strategy.target_asset}: ${indicators.rsi}`);
+      // Get real technical indicators
+      const realIndicators = await getRealTechnicalIndicators(strategy.target_asset);
+      if (realIndicators) {
+        indicators = { ...realIndicators };
+      } else {
+        console.warn(`No real technical indicators available for ${strategy.target_asset}, skipping signal generation`);
+        return; // Don't generate signals without real indicators
+      }
+
+      console.log(`Real market data for ${strategy.target_asset}:`, {
+        price: priceData.price,
+        change: priceData.change,
+        changePercent: priceData.changePercent,
+        indicators: indicators
+      });
+
     } catch (error) {
-      console.warn('Market data fetch failed, using simulated data:', error);
-      // Use simulated data with realistic ranges
-      currentPrice = getBasePriceForSymbol(strategy.target_asset);
-      indicators.rsi = generateRealisticRSI(currentPrice, strategy.target_asset);
+      console.error(`Failed to get real market data for ${strategy.target_asset}:`, error);
+      return; // Don't generate signals without real data
     }
 
-    // Evaluate entry and exit rules
+    const currentPrice = priceData.price;
+
+    // Evaluate entry and exit rules with REAL data only
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
 
-    // Check for entry signals
+    // Check for entry signals with real data
     if (await shouldGenerateEntrySignal(entryRules, indicators, currentPrice)) {
+      const entryReason = `Entry conditions met with REAL data - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      
       await generateTradingSignal(strategyId, 'entry', {
-        reason: 'Entry conditions met',
+        reason: entryReason,
         price: currentPrice,
         timestamp: new Date().toISOString(),
-        indicators
+        indicators,
+        marketData: {
+          change: priceData.change,
+          changePercent: priceData.changePercent,
+          volume: 0 // Volume not available in current price data structure
+        }
       });
     }
 
-    // Check for exit signals
+    // Check for exit signals with real data
     if (await shouldGenerateExitSignal(exitRules, indicators, currentPrice, strategyId)) {
+      const exitReason = `Exit conditions met with REAL data - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      
       await generateTradingSignal(strategyId, 'exit', {
-        reason: 'Exit conditions met',
+        reason: exitReason,
         price: currentPrice,
         timestamp: new Date().toISOString(),
-        indicators
+        indicators,
+        marketData: {
+          change: priceData.change,
+          changePercent: priceData.changePercent,
+          volume: 0
+        }
       });
     }
 
   } catch (error) {
-    console.error(`Error evaluating strategy ${strategyId}:`, error);
+    console.error(`Error evaluating strategy ${strategyId} with real data:`, error);
   }
-};
-
-const getBasePriceForSymbol = (symbol: string): number => {
-  // Realistic base prices for common symbols
-  const basePrices: Record<string, number> = {
-    'AAPL': 175,
-    'GOOGL': 140,
-    'MSFT': 350,
-    'AMZN': 145,
-    'TSLA': 200,
-    'NVDA': 450,
-    'META': 300,
-    'NFLX': 400,
-    'SPY': 450,
-    'QQQ': 380,
-    'TQQQ': 77,
-  };
-
-  return basePrices[symbol.toUpperCase()] || 150;
-};
-
-const generateRealisticRSI = (price: number, symbol: string): number => {
-  // Generate more realistic RSI values based on price movements and symbol
-  const baseRSI = symbol === 'TQQQ' ? 45 : 50;
-  const variation = (Math.random() - 0.5) * 30;
-  const priceInfluence = (price % 10) * 1.5;
-  const rsi = baseRSI + variation + priceInfluence;
-  
-  return Math.min(Math.max(rsi, 10), 90);
 };
 
 const shouldGenerateEntrySignal = async (
@@ -147,6 +220,12 @@ const shouldGenerateEntrySignal = async (
   currentPrice: number
 ): Promise<boolean> => {
   if (!entryRules.length) return false;
+
+  // Require real RSI data for entry signals
+  if (!indicators.rsi || indicators.rsi === 0) {
+    console.log('No real RSI data available, skipping entry signal generation');
+    return false;
+  }
 
   for (const group of entryRules) {
     if (await evaluateRuleGroup(group, indicators, currentPrice)) {
@@ -170,9 +249,17 @@ const shouldGenerateExitSignal = async (
     .select('*')
     .eq('strategy_id', strategyId)
     .eq('signal_type', 'entry')
-    .eq('processed', true);
+    .eq('processed', true)
+    .order('created_at', { ascending: false })
+    .limit(1);
 
   if (!openPositions || openPositions.length === 0) {
+    return false;
+  }
+
+  // Require real RSI data for exit signals
+  if (!indicators.rsi || indicators.rsi === 0) {
+    console.log('No real RSI data available, skipping exit signal generation');
     return false;
   }
 
@@ -197,6 +284,8 @@ const evaluateRuleGroup = async (
   for (const rule of rules) {
     const result = evaluateRule(rule, indicators, currentPrice);
     results.push(result);
+    
+    console.log(`REAL DATA Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
   }
 
   // Apply group logic
@@ -222,7 +311,14 @@ const evaluateRule = (
 
     // Get left side value
     if (rule.left_type === 'indicator') {
-      leftValue = indicators[rule.left_indicator?.toLowerCase()] || 0;
+      const indicatorKey = rule.left_indicator?.toLowerCase();
+      leftValue = indicators[indicatorKey] || 0;
+      
+      // Don't evaluate rules with missing real indicator data
+      if (leftValue === 0 && indicatorKey === 'rsi') {
+        console.warn(`Missing real ${indicatorKey} data for rule evaluation`);
+        return false;
+      }
     } else if (rule.left_type === 'price') {
       leftValue = currentPrice;
     }
@@ -231,7 +327,8 @@ const evaluateRule = (
     if (rule.right_type === 'value') {
       rightValue = parseFloat(rule.right_value) || 0;
     } else if (rule.right_type === 'indicator') {
-      rightValue = indicators[rule.right_indicator?.toLowerCase()] || 0;
+      const indicatorKey = rule.right_indicator?.toLowerCase();
+      rightValue = indicators[indicatorKey] || 0;
     }
 
     // Evaluate condition
@@ -250,7 +347,7 @@ const evaluateRule = (
         return false;
     }
   } catch (error) {
-    console.error('Error evaluating rule:', error);
+    console.error('Error evaluating rule with real data:', error);
     return false;
   }
 };
@@ -270,7 +367,7 @@ const generateTradingSignal = async (
       }
     }
 
-    // Always generate and store the signal - this ensures all signals appear in the app
+    // Generate and store the signal with real market data
     const { error } = await supabase
       .from('trading_signals')
       .insert({
@@ -278,16 +375,16 @@ const generateTradingSignal = async (
         signal_type: signalType,
         signal_data: signalData,
         processed: true,
-        created_at: new Date().toISOString() // Ensure proper timestamp
+        created_at: new Date().toISOString()
       });
 
     if (error) {
-      console.error('Error inserting trading signal:', error);
+      console.error('Error inserting real market data trading signal:', error);
     } else {
-      console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
+      console.log(`Generated REAL DATA ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
     }
   } catch (error) {
-    console.error('Error generating trading signal:', error);
+    console.error('Error generating real market data trading signal:', error);
   }
 };
 
@@ -311,7 +408,6 @@ const calculateExitProfit = async (strategyId: string, exitPrice: number) => {
 
     if (entryPrice > 0) {
       const profitPercentage = ((exitPrice - entryPrice) / entryPrice) * 100;
-      // Calculate profit based on price difference only (no volume)
       const profit = exitPrice - entryPrice;
 
       return {

@@ -16,6 +16,7 @@ interface StrategyCardProps {
   updatedAt: Date;
   asset: string;
   status: "active" | "inactive";
+  onDeleted?: () => void;
 }
 
 export function StrategyCard({
@@ -24,7 +25,8 @@ export function StrategyCard({
   description,
   updatedAt,
   asset,
-  status
+  status,
+  onDeleted
 }: StrategyCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -32,7 +34,7 @@ export function StrategyCard({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone.")) {
+    if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone and will remove all associated trading signals and data.")) {
       return;
     }
 
@@ -40,6 +42,11 @@ export function StrategyCard({
       setIsDeleting(true);
       await deleteStrategy(id);
       toast.success("Strategy deleted successfully");
+      
+      // Call the onDeleted callback to refresh the parent component
+      if (onDeleted) {
+        onDeleted();
+      }
     } catch (error) {
       console.error("Error deleting strategy:", error);
       toast.error(error instanceof Error ? error.message : "Failed to delete strategy");
@@ -54,9 +61,20 @@ export function StrategyCard({
         <CardHeader>
           <div className="flex justify-between items-start">
             <CardTitle className="text-xl truncate pr-2">{name}</CardTitle>
-            <Badge variant={status === "active" ? "default" : "secondary"}>
-              {status}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={status === "active" ? "default" : "secondary"}>
+                {status}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1">

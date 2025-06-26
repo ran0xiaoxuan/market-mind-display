@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Strategy {
@@ -148,73 +147,22 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
 
 export const deleteStrategy = async (strategyId: string) => {
   try {
-    console.log(`Deleting strategy ${strategyId}`);
+    console.log(`Deleting strategy ${strategyId} using cascade function`);
 
-    // Delete trading rules first (they reference rule groups)
-    const { data: ruleGroups } = await supabase
-      .from('rule_groups')
-      .select('id')
-      .eq('strategy_id', strategyId);
+    // Use the database cascade function to properly delete strategy and all related data
+    const { error } = await supabase.rpc('delete_strategy_cascade', {
+      strategy_uuid: strategyId
+    });
 
-    if (ruleGroups && ruleGroups.length > 0) {
-      const ruleGroupIds = ruleGroups.map(rg => rg.id);
-      
-      const { error: rulesError } = await supabase
-        .from('trading_rules')
-        .delete()
-        .in('rule_group_id', ruleGroupIds);
-
-      if (rulesError) {
-        console.error('Error deleting trading rules:', rulesError);
-        throw rulesError;
-      }
+    if (error) {
+      console.error('Error calling delete_strategy_cascade:', error);
+      throw error;
     }
 
-    // Delete rule groups
-    const { error: ruleGroupsError } = await supabase
-      .from('rule_groups')
-      .delete()
-      .eq('strategy_id', strategyId);
+    console.log(`Strategy ${strategyId} deleted successfully using cascade function`);
 
-    if (ruleGroupsError) {
-      console.error('Error deleting rule groups:', ruleGroupsError);
-      throw ruleGroupsError;
-    }
-
-    // Delete trading signals
-    const { error: signalsError } = await supabase
-      .from('trading_signals')
-      .delete()
-      .eq('strategy_id', strategyId);
-
-    if (signalsError) {
-      console.error('Error deleting trading signals:', signalsError);
-      throw signalsError;
-    }
-
-    // Delete backtests
-    const { error: backtestsError } = await supabase
-      .from('backtests')
-      .delete()
-      .eq('strategy_id', strategyId);
-
-    if (backtestsError) {
-      console.error('Error deleting backtests:', backtestsError);
-      throw backtestsError;
-    }
-
-    // Finally delete the strategy
-    const { error: strategyError } = await supabase
-      .from('strategies')
-      .delete()
-      .eq('id', strategyId);
-
-    if (strategyError) {
-      console.error('Error deleting strategy:', strategyError);
-      throw strategyError;
-    }
-
-    console.log(`Strategy ${strategyId} deleted successfully`);
+    // Dispatch custom event to notify components that strategy was deleted
+    window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: { strategyId } }));
   } catch (error) {
     console.error('Error in deleteStrategy:', error);
     throw error;

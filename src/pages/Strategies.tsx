@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
@@ -23,21 +24,27 @@ const Strategies = () => {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchStrategies = async () => {
+    try {
+      setLoading(true);
+      const data = await getStrategies();
+      setStrategies(data);
+    } catch (error) {
+      console.error("Error fetching strategies:", error);
+      toast.error("Failed to load strategies");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStrategies = async () => {
-      try {
-        setLoading(true);
-        const data = await getStrategies();
-        setStrategies(data);
-      } catch (error) {
-        console.error("Error fetching strategies:", error);
-        toast.error("Failed to load strategies");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStrategies();
   }, []);
+
+  const handleStrategyDeleted = () => {
+    // Refresh the strategies list when a strategy is deleted
+    fetchStrategies();
+  };
 
   // Filter and sort strategies
   const filteredAndSortedStrategies = strategies.filter(strategy => {
@@ -157,7 +164,8 @@ const Strategies = () => {
                     updatedAt={new Date(strategy.updatedAt || Date.now())} 
                     asset={strategy.targetAsset || "Unknown"} 
                     status={strategy.isActive ? "active" : "inactive"} 
-                    id={strategy.id} 
+                    id={strategy.id}
+                    onDeleted={handleStrategyDeleted}
                   />
                 ))}
               </div>

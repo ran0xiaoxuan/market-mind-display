@@ -20,7 +20,6 @@ import Confirm from "@/pages/auth/Confirm";
 import Confirmed from "@/pages/auth/Confirmed";
 import AuthCallback from "@/pages/auth/AuthCallback";
 import ResetPassword from "@/pages/auth/ResetPassword";
-import Backtest from "@/pages/Backtest";
 import StrategyPreview from "@/pages/StrategyPreview";
 import AITest from "@/pages/AITest";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -57,7 +56,6 @@ function App() {
           <Route path="/strategy/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
           <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
           <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />

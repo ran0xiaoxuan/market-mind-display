@@ -164,6 +164,18 @@ Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 ho
 - Analyze the user's description for timeframe keywords and select appropriately
 - Default to "Daily" only if strategy type cannot be determined
 
+CONDITION VALUES:
+You MUST use these EXACT condition values (these are the only valid options):
+- "GREATER_THAN" for greater than (>)
+- "LESS_THAN" for less than (<)
+- "EQUAL" for equal (=)
+- "GREATER_THAN_OR_EQUAL" for greater than or equal (≥)
+- "LESS_THAN_OR_EQUAL" for less than or equal (≤)
+- "CROSSES_ABOVE" for crosses above
+- "CROSSES_BELOW" for crosses below
+
+DO NOT use any other condition formats like ">" or "<" or "EQUALS" - only use the exact strings listed above.
+
 STRATEGY LOGIC ANALYSIS:
 Analyze the user's description to determine appropriate entry and exit logic structures, indicator parameters, conditions, and thresholds.
 
@@ -181,7 +193,7 @@ Return ONLY this JSON structure:
         {
           "id": 1,
           "left": {"type": "INDICATOR", "indicator": "IndicatorChosenBasedOnUserRequest", "parameters": {"period": "DeterminedFromUserDescriptionOrAppropriateDefault"}, "value": "", "valueType": "number"},
-          "condition": "DeterminedBasedOnLogicalIntent (GREATER_THAN/LESS_THAN/EQUALS/etc)",
+          "condition": "Use ONLY the exact condition values listed above (GREATER_THAN, LESS_THAN, etc.)",
           "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "ThresholdBasedOnUserDescriptionOrIndicatorDefaults", "valueType": "number"},
           "explanation": "Clear explanation of this condition based on user's strategy intent"
         }
@@ -197,7 +209,7 @@ Return ONLY this JSON structure:
         {
           "id": 1,
           "left": {"type": "INDICATOR", "indicator": "IndicatorChosenBasedOnUserRequest", "parameters": {"period": "DeterminedFromUserDescriptionOrAppropriateDefault"}, "value": "", "valueType": "number"},
-          "condition": "DeterminedBasedOnLogicalIntent (opposite of entry or specific exit condition)",
+          "condition": "Use ONLY the exact condition values listed above (GREATER_THAN, LESS_THAN, etc.)",
           "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "ThresholdBasedOnUserDescriptionOrIndicatorDefaults", "valueType": "number"},
           "explanation": "Clear explanation of this exit condition based on user's strategy intent"
         }
@@ -206,7 +218,7 @@ Return ONLY this JSON structure:
   ]
 }
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures, parameters, conditions, and thresholds rather than following a rigid template.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures, parameters, conditions, and thresholds rather than following a rigid template. Remember to use ONLY the exact condition values specified above.`;
 
     console.log('Calling OpenAI API...');
     
@@ -219,7 +231,7 @@ Carefully analyze the user's description to create a strategy that truly reflect
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies. Return only valid JSON that matches the specified structure exactly.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies. Return only valid JSON that matches the specified structure exactly. Use ONLY the exact condition values provided in the prompt.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

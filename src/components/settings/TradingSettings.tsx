@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
-
 export function TradingSettings() {
   const {
     user
@@ -43,32 +42,18 @@ export function TradingSettings() {
       try {
         const settings = await getNotificationSettings();
         if (settings) {
-          // For free users, force all notification settings to be disabled
-          if (!isPro) {
-            const disabledSettings = {
-              ...settings,
-              email_enabled: false,
-              discord_enabled: false,
-              telegram_enabled: false,
-              entry_signals: false,
-              exit_signals: false,
-              stop_loss_alerts: false,
-              take_profit_alerts: false
-            };
-            form.reset(disabledSettings);
-          } else {
-            form.reset(settings);
-            setIsDiscordVerified(!!settings.discord_webhook_url);
-            setIsTelegramVerified(!!settings.telegram_bot_token && !!settings.telegram_chat_id);
-          }
+          form.reset(settings);
+          setIsDiscordVerified(!!settings.discord_webhook_url);
+          setIsTelegramVerified(!!settings.telegram_bot_token && !!settings.telegram_chat_id);
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
       }
     };
-    loadSettings();
+    if (isPro) {
+      loadSettings();
+    }
   }, [isPro, form]);
-
   const handleSubmit = async (values: NotificationSettings) => {
     if (!isPro) {
       toast.error("This feature is only available for Pro users");
@@ -85,12 +70,7 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-
   const verifyDiscordWebhookHandler = async () => {
-    if (!isPro) {
-      toast.error("This feature is only available for Pro users");
-      return;
-    }
     const webhookUrl = form.getValues("discord_webhook_url");
     if (!webhookUrl) {
       toast.error("Please enter a Discord webhook URL");
@@ -112,12 +92,7 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-
   const verifyTelegramBotHandler = async () => {
-    if (!isPro) {
-      toast.error("This feature is only available for Pro users");
-      return;
-    }
     const botToken = form.getValues("telegram_bot_token");
     const chatId = form.getValues("telegram_chat_id");
     if (!botToken || !chatId) {
@@ -140,28 +115,17 @@ export function TradingSettings() {
       setIsLoading(false);
     }
   };
-
   const disconnectDiscord = () => {
-    if (!isPro) {
-      toast.error("This feature is only available for Pro users");
-      return;
-    }
     form.setValue("discord_webhook_url", "");
     setIsDiscordVerified(false);
     toast.success("Discord webhook disconnected");
   };
-
   const disconnectTelegram = () => {
-    if (!isPro) {
-      toast.error("This feature is only available for Pro users");
-      return;
-    }
     form.setValue("telegram_bot_token", "");
     form.setValue("telegram_chat_id", "");
     setIsTelegramVerified(false);
     toast.success("Telegram bot disconnected");
   };
-
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -174,7 +138,6 @@ export function TradingSettings() {
   // Helper function to mask sensitive values
   const maskSensitiveValue = (value: string, type: 'webhook' | 'token' | 'chatId') => {
     if (!value) return '';
-    
     switch (type) {
       case 'webhook':
         // Show only the domain part and mask the sensitive webhook ID/token
@@ -196,7 +159,6 @@ export function TradingSettings() {
         return '****';
     }
   };
-
   const DiscordHelpSection = () => <Collapsible open={showDiscordHelp} onOpenChange={setShowDiscordHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
@@ -250,7 +212,6 @@ export function TradingSettings() {
         </div>
       </CollapsibleContent>
     </Collapsible>;
-
   const TelegramHelpSection = () => <Collapsible open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
       <CollapsibleTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs w-full justify-between">
@@ -401,7 +362,13 @@ export function TradingSettings() {
                       <p className="text-sm text-muted-foreground">Receive trading signals via email</p>
                     </div>
                   </div>
-                  <Switch checked={false} disabled />
+                  <FormField control={form.control} name="email_enabled" render={({
+                  field
+                }) => <FormItem>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>} />
                 </div>
                 
                 {/* Discord Integration */}
@@ -414,8 +381,26 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Discord channel</p>
                       </div>
                     </div>
-                    <Switch checked={false} disabled />
+                    <FormField control={form.control} name="discord_enabled" render={({
+                    field
+                  }) => <FormItem>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>} />
                   </div>
+                  
+                  {form.watch("discord_enabled") && <FormField control={form.control} name="discord_webhook_url" render={({
+                  field
+                }) => <FormItem>
+                          <FormLabel>Discord Webhook URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://discord.com/api/webhooks/..." {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Create a webhook in your Discord server settings and paste the URL here
+                          </FormDescription>
+                        </FormItem>} />}
                 </div>
                 
                 {/* Telegram Integration */}
@@ -428,8 +413,40 @@ export function TradingSettings() {
                         <p className="text-sm text-muted-foreground">Send trading signals to a Telegram chat</p>
                       </div>
                     </div>
-                    <Switch checked={false} disabled />
+                    <FormField control={form.control} name="telegram_enabled" render={({
+                    field
+                  }) => <FormItem>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>} />
                   </div>
+                  
+                  {form.watch("telegram_enabled") && <div className="space-y-4">
+                      <FormField control={form.control} name="telegram_bot_token" render={({
+                    field
+                  }) => <FormItem>
+                            <FormLabel>Telegram Bot Token</FormLabel>
+                            <FormControl>
+                              <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Create a bot with @BotFather and paste the token here
+                            </FormDescription>
+                          </FormItem>} />
+                      
+                      <FormField control={form.control} name="telegram_chat_id" render={({
+                    field
+                  }) => <FormItem>
+                            <FormLabel>Telegram Chat ID</FormLabel>
+                            <FormControl>
+                              <Input placeholder="-100123456789" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              The ID of the chat where signals should be sent
+                            </FormDescription>
+                          </FormItem>} />
+                    </div>}
                 </div>
               </form>
             </Form>
@@ -484,12 +501,7 @@ export function TradingSettings() {
                       <FormLabel>Discord Webhook URL</FormLabel>
                       <div className="flex space-x-2">
                         <FormControl className="flex-1">
-                          <Input 
-                            placeholder="https://discord.com/api/webhooks/..." 
-                            {...field} 
-                            value={isDiscordVerified ? maskSensitiveValue(field.value, 'webhook') : field.value}
-                            disabled={isDiscordVerified} 
-                          />
+                          <Input placeholder="https://discord.com/api/webhooks/..." {...field} value={isDiscordVerified ? maskSensitiveValue(field.value, 'webhook') : field.value} disabled={isDiscordVerified} />
                         </FormControl>
                         {!isDiscordVerified && <Button type="button" variant="outline" onClick={verifyDiscordWebhookHandler} disabled={isLoading || !field.value}>
                             <Send className="h-4 w-4" />
@@ -539,12 +551,7 @@ export function TradingSettings() {
               }) => <FormItem>
                         <FormLabel>Telegram Bot Token</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" 
-                            {...field} 
-                            value={isTelegramVerified ? maskSensitiveValue(field.value, 'token') : field.value}
-                            disabled={isTelegramVerified} 
-                          />
+                          <Input placeholder="123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ" {...field} value={isTelegramVerified ? maskSensitiveValue(field.value, 'token') : field.value} disabled={isTelegramVerified} />
                         </FormControl>
                         <FormDescription>
                           {isTelegramVerified ? "Your bot token is secured" : "Get this from @BotFather when creating your bot"}
@@ -557,12 +564,7 @@ export function TradingSettings() {
                         <FormLabel>Telegram Chat ID</FormLabel>
                         <div className="flex space-x-2">
                           <FormControl className="flex-1">
-                            <Input 
-                              placeholder="-100123456789 or 123456789" 
-                              {...field} 
-                              value={isTelegramVerified ? maskSensitiveValue(field.value, 'chatId') : field.value}
-                              disabled={isTelegramVerified} 
-                            />
+                            <Input placeholder="-100123456789 or 123456789" {...field} value={isTelegramVerified ? maskSensitiveValue(field.value, 'chatId') : field.value} disabled={isTelegramVerified} />
                           </FormControl>
                           {!isTelegramVerified && <Button type="button" variant="outline" onClick={verifyTelegramBotHandler} disabled={isLoading || !form.getValues("telegram_bot_token") || !field.value}>
                               <Send className="h-4 w-4" />
@@ -617,7 +619,7 @@ export function TradingSettings() {
                   <p className="font-medium">Entry Signals</p>
                   <p className="text-sm text-muted-foreground">Notify when a new trade opportunity is detected</p>
                 </div>
-                <Switch checked={false} disabled />
+                <Switch defaultChecked={false} />
               </div>
               
               <div className="flex items-center justify-between">
@@ -625,7 +627,7 @@ export function TradingSettings() {
                   <p className="font-medium">Exit Signals</p>
                   <p className="text-sm text-muted-foreground">Notify when a position should be closed</p>
                 </div>
-                <Switch checked={false} disabled />
+                <Switch defaultChecked={false} />
               </div>
               
               <div className="flex items-center justify-between">
@@ -633,7 +635,7 @@ export function TradingSettings() {
                   <p className="font-medium">Stop Loss Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when stop loss is triggered</p>
                 </div>
-                <Switch checked={false} disabled />
+                <Switch defaultChecked={false} />
               </div>
               
               <div className="flex items-center justify-between">
@@ -641,7 +643,7 @@ export function TradingSettings() {
                   <p className="font-medium">Take Profit Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
                 </div>
-                <Switch checked={false} disabled />
+                <Switch defaultChecked={false} />
               </div>
             </div>
           </div>
@@ -698,11 +700,7 @@ export function TradingSettings() {
                   <p className="font-medium">Take Profit Alerts</p>
                   <p className="text-sm text-muted-foreground">Notify when take profit is triggered</p>
                 </div>
-                <FormItem>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
+                
               </div>} />
         </div>
       </Form>;
@@ -725,17 +723,6 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      <div>
-        <h2 className="text-xl font-medium mb-2">Signal Types</h2>
-        <p className="text-sm text-muted-foreground mb-6">
-          Choose which types of trading signals you want to receive
-        </p>
-        
-        <Card className={isPro ? "" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white"}>
-          <CardContent className="p-6">
-            {renderSignalNotificationTypes()}
-          </CardContent>
-        </Card>
-      </div>
+      {isPro}
     </div>;
 }

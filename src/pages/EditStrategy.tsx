@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -72,22 +71,9 @@ const EditStrategy = () => {
   const validateTradingRules = () => {
     const errors = [];
     
-    // Check if entry rules have at least one condition
-    const hasEntryConditions = entryRules.some(group => 
-      group.inequalities && group.inequalities.length > 0
-    );
-    if (!hasEntryConditions) {
-      errors.push("At least one entry rule condition is required");
-    }
-
-    // Check if exit rules have at least one condition
-    const hasExitConditions = exitRules.some(group => 
-      group.inequalities && group.inequalities.length > 0
-    );
-    if (!hasExitConditions) {
-      errors.push("At least one exit rule condition is required");
-    }
-
+    // Remove the validation checks for entry and exit rules
+    // Users can now save strategies with 0 entry or exit rules
+    
     return errors;
   };
 

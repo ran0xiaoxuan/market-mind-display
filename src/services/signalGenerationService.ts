@@ -55,6 +55,9 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       throw error;
     }
 
+    // Initialize indicators object
+    let indicators: Record<string, number> = {};
+
     // Fetch RSI (14-period) - Required for strategy evaluation with proper timeout
     console.log(`[SignalGen] Fetching RSI data for ${symbol}...`);
     
@@ -96,10 +99,7 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
         throw new Error(`No RSI data found for ${symbol}`);
       }
       
-      let indicators: Record<string, number> = {
-        rsi: rsiData[0].rsi
-      };
-      
+      indicators.rsi = rsiData[0].rsi;
       console.log(`[SignalGen] Successfully retrieved RSI for ${symbol}: ${indicators.rsi}`);
       
     } catch (error) {

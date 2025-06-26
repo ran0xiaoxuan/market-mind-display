@@ -155,12 +155,10 @@ serve(async (req) => {
 IMPORTANT RULES:
 1. Generate strategy based ONLY on the user's description - do not default to RSI/MACD unless specifically requested
 2. Use indicators that are relevant to the user's request from this list: ${validIndicators.join(", ")}
-3. If the user requests features not supported by the available indicators, mention this limitation in the description
-4. Make the strategy name and description specific to the user's request
+3. Make the strategy name and description specific to the user's request
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
-
 - Analyze the user's description for timeframe keywords and select appropriately
 - Default to "Daily" only if strategy type cannot be determined
 
@@ -174,28 +172,54 @@ You MUST use these EXACT condition values (these are the only valid options):
 - "CROSSES_ABOVE" for crosses above
 - "CROSSES_BELOW" for crosses below
 
-DO NOT use any other condition formats like ">" or "<" or "EQUALS" - only use the exact strings listed above.
+CONDITION SIDE TYPES:
+When building conditions, strictly distinguish between:
+1. INDICATOR: Use "type": "INDICATOR" with proper indicator name from validIndicators list
+2. PRICE: Use "type": "PRICE" and specify "value" as one of: "Open", "High", "Low", "Close" (default to "Close" unless user specifies otherwise)
+3. VALUE: Use "type": "VALUE" and provide a numeric string like "30", "70", "2.5", etc. Never use text descriptions like "Current Price"
 
-STRATEGY LOGIC ANALYSIS:
-Analyze the user's description to determine appropriate entry and exit logic structures, indicator parameters, conditions, and thresholds.
+LOGIC GROUPING RULES:
+Analyze the user's strategy description to determine proper AND/OR grouping:
+- Use "AND" when ALL conditions must be met simultaneously (most common for entries)
+- Use "OR" when ANY condition can trigger the signal (common for exits or alternative entry scenarios)
+- For OR groups, set "requiredConditions" to specify how many conditions must be met (minimum 1, maximum = number of conditions in group)
+- Mix AND/OR groups based on strategy complexity described by user
+
+Examples of logic grouping:
+- "RSI below 30 AND MACD crosses above signal" → Single AND group
+- "RSI above 70 OR price breaks resistance" → Single OR group with requiredConditions: 1
+- "Enter when RSI oversold AND volume high, exit when RSI overbought OR stop loss hit" → Multiple groups with different logic
 
 Return ONLY this JSON structure:
 {
   "name": "Descriptive strategy name based on user request",
-  "description": "Strategy description that explains how it implements the user's request. If any requested features aren't supported by available indicators, mention this limitation.",
-  "timeframe": "Selected timeframe from available options based on user description or strategy type",
+  "description": "Strategy description that explains how it implements the user's request",
+  "timeframe": "Selected timeframe from available options",
   "targetAsset": "${selectedAsset}",
   "entryRules": [
     {
       "id": 1,
-      "logic": "Determined based on user description (AND/OR)",
+      "logic": "AND or OR based on user description analysis",
+      "requiredConditions": "Only include if logic is OR - number between 1 and total conditions",
       "inequalities": [
         {
           "id": 1,
-          "left": {"type": "INDICATOR", "indicator": "IndicatorChosenBasedOnUserRequest", "parameters": {"period": "DeterminedFromUserDescriptionOrAppropriateDefault"}, "value": "", "valueType": "number"},
-          "condition": "Use ONLY the exact condition values listed above (GREATER_THAN, LESS_THAN, etc.)",
-          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "ThresholdBasedOnUserDescriptionOrIndicatorDefaults", "valueType": "number"},
-          "explanation": "Clear explanation of this condition based on user's strategy intent"
+          "left": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"},
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "condition": "Use ONLY the exact condition values listed above",
+          "right": {
+            "type": "INDICATOR|PRICE|VALUE", 
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"},
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation of this condition"
         }
       ]
     }
@@ -203,22 +227,34 @@ Return ONLY this JSON structure:
   "exitRules": [
     {
       "id": 1,
-      "logic": "DeterminedBasedOnUserDescription (typically OR for exits)",
-      "requiredConditions": "DeterminedBasedOnUserIntent (1 for typical exits, higher for complex requirements)",
+      "logic": "AND or OR based on user description analysis",
+      "requiredConditions": "Only include if logic is OR - number between 1 and total conditions",
       "inequalities": [
         {
           "id": 1,
-          "left": {"type": "INDICATOR", "indicator": "IndicatorChosenBasedOnUserRequest", "parameters": {"period": "DeterminedFromUserDescriptionOrAppropriateDefault"}, "value": "", "valueType": "number"},
-          "condition": "Use ONLY the exact condition values listed above (GREATER_THAN, LESS_THAN, etc.)",
-          "right": {"type": "VALUE", "indicator": "", "parameters": {}, "value": "ThresholdBasedOnUserDescriptionOrIndicatorDefaults", "valueType": "number"},
-          "explanation": "Clear explanation of this exit condition based on user's strategy intent"
+          "left": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list", 
+            "parameters": {"period": "NumberAsString"},
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "condition": "Use ONLY the exact condition values listed above",
+          "right": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"}, 
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "explanation": "Clear explanation of this exit condition"
         }
       ]
     }
   ]
 }
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures, parameters, conditions, and thresholds rather than following a rigid template. Remember to use ONLY the exact condition values specified above.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), and accurate parameters. Remember to use ONLY the exact condition values and type specifications provided.`;
 
     console.log('Calling OpenAI API...');
     
@@ -231,7 +267,7 @@ Carefully analyze the user's description to create a strategy that truly reflect
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies. Return only valid JSON that matches the specified structure exactly. Use ONLY the exact condition values provided in the prompt.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping and correct condition types (INDICATOR/PRICE/VALUE). Return only valid JSON that matches the specified structure exactly. Use ONLY the exact condition values and type specifications provided in the prompt.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

@@ -112,70 +112,50 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate Signal Success Rate from trading signals
-  const calculateSignalSuccessRate = async (strategies: any[]) => {
+  // Calculate total conditions count from user's strategies
+  const calculateConditionsCount = async (strategies: any[]) => {
     try {
       const userStrategyIds = strategies.map(s => s.id);
       
       if (userStrategyIds.length === 0) {
-        return "0%";
+        return 0;
       }
 
-      // Get date range filter based on timeRange
-      const now = new Date();
-      let query = supabase
-        .from("trading_signals")
-        .select("signal_type, signal_data")
-        .in("strategy_id", userStrategyIds)
-        .eq("processed", true)
-        .eq("signal_type", "exit"); // Only consider sell/exit signals
+      // Get all rule groups for user's strategies
+      const { data: ruleGroups, error: ruleGroupsError } = await supabase
+        .from("rule_groups")
+        .select("id")
+        .in("strategy_id", userStrategyIds);
 
-      // Apply date filter if not "all"
-      if (timeRange === "7d") {
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        query = query.gte("created_at", sevenDaysAgo.toISOString());
-      } else if (timeRange === "30d") {
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        query = query.gte("created_at", thirtyDaysAgo.toISOString());
+      if (ruleGroupsError) {
+        console.error('Error fetching rule groups:', ruleGroupsError);
+        return 0;
       }
 
-      const { data: sellSignals, error } = await query;
-
-      if (error) {
-        console.error('Error fetching sell signals:', error);
-        return "0%";
+      if (!ruleGroups || ruleGroups.length === 0) {
+        return 0;
       }
 
-      if (!sellSignals || sellSignals.length === 0) {
-        console.log('No sell signals found');
-        return "0%";
+      const ruleGroupIds = ruleGroups.map(rg => rg.id);
+
+      // Get all trading rules (conditions) for these rule groups
+      const { data: tradingRules, error: tradingRulesError } = await supabase
+        .from("trading_rules")
+        .select("id")
+        .in("rule_group_id", ruleGroupIds);
+
+      if (tradingRulesError) {
+        console.error('Error fetching trading rules:', tradingRulesError);
+        return 0;
       }
 
-      // Count profitable sell trades
-      let profitableSells = 0;
-      let totalSells = 0;
-
-      sellSignals.forEach(signal => {
-        const signalData = (signal.signal_data as any) || {};
-        if (signalData.profit !== null && signalData.profit !== undefined) {
-          totalSells++;
-          if (signalData.profit > 0) {
-            profitableSells++;
-          }
-        }
-      });
-
-      console.log(`Signal Success Rate calculation: ${profitableSells} profitable sells out of ${totalSells} total sells`);
-
-      if (totalSells === 0) {
-        return "0%";
-      }
-
-      const successRate = (profitableSells / totalSells) * 100;
-      return `${successRate.toFixed(1)}%`;
+      const conditionsCount = tradingRules?.length || 0;
+      console.log(`Dashboard: Found ${conditionsCount} conditions across ${strategies.length} strategies`);
+      
+      return conditionsCount;
     } catch (error) {
-      console.error('Error calculating signal success rate:', error);
-      return "0%";
+      console.error('Error calculating conditions count:', error);
+      return 0;
     }
   };
 
@@ -225,10 +205,10 @@ const Dashboard = () => {
       // Fetch all trade history from trading_signals table
       const allTradeHistory = await fetchAllTradeHistory(strategies);
 
-      // Calculate Signal Success Rate
-      const signalSuccessRate = await calculateSignalSuccessRate(strategies);
+      // Calculate total conditions count
+      const conditionsCount = await calculateConditionsCount(strategies);
 
-      // Update metrics with real strategy counts and Signal Success Rate
+      // Update metrics with real strategy counts and conditions count
       const updatedMetrics = {
         ...portfolioMetrics,
         strategiesCount: totalStrategies.toString(),
@@ -246,8 +226,8 @@ const Dashboard = () => {
           value: "+0",
           positive: false
         },
-        signalSuccessRate: signalSuccessRate,
-        signalSuccessRateChange: {
+        conditionsCount: conditionsCount.toString(),
+        conditionsChange: {
           value: "+0",
           positive: false
         }
@@ -277,8 +257,8 @@ const Dashboard = () => {
           value: "+0",
           positive: false
         },
-        signalSuccessRate: "0%",
-        signalSuccessRateChange: {
+        conditionsCount: "0",
+        conditionsChange: {
           value: "+0",
           positive: false
         }
@@ -382,7 +362,7 @@ const Dashboard = () => {
               <MetricCard title="Total Strategies" value={metrics.strategiesCount} change={metrics.strategiesChange} />
               <MetricCard title="Active Strategies" value={metrics.activeStrategies} change={metrics.activeChange} />
               <MetricCard title="Signal Amount" value={metrics.signalAmount} change={metrics.signalChange} />
-              <MetricCard title="Signal Success Rate" value={metrics.signalSuccessRate} change={metrics.signalSuccessRateChange} />
+              <MetricCard title="Conditions" value={metrics.conditionsCount} change={metrics.conditionsChange} />
             </div>
           )}
 

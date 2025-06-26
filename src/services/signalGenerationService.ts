@@ -55,66 +55,94 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       throw error;
     }
 
-    // Fetch RSI (14-period) - Required for strategy evaluation
+    // Fetch RSI (14-period) - Required for strategy evaluation with proper timeout
     console.log(`[SignalGen] Fetching RSI data for ${symbol}...`);
-    const rsiResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'TradingApp/1.0'
-        },
-        timeout: 15000
-      }
-    );
     
-    if (!rsiResponse.ok) {
-      if (rsiResponse.status === 429) {
-        console.error('[SignalGen] FMP API rate limit reached for RSI');
-        throw new Error('FMP API rate limit reached');
-      } else if (rsiResponse.status === 401 || rsiResponse.status === 403) {
-        console.error('[SignalGen] FMP API authentication failed for RSI');
-        throw new Error('FMP API authentication failed');
-      }
-      console.error(`[SignalGen] RSI API error: ${rsiResponse.status}`);
-      throw new Error(`RSI API error: ${rsiResponse.status}`);
-    }
+    const rsiController = new AbortController();
+    const rsiTimeoutId = setTimeout(() => rsiController.abort(), 15000); // 15 second timeout
     
-    const rsiData = await rsiResponse.json();
-    console.log(`[SignalGen] Raw RSI data for ${symbol}:`, rsiData);
-    
-    if (!Array.isArray(rsiData) || rsiData.length === 0) {
-      console.error(`[SignalGen] No RSI data found for ${symbol}`);
-      throw new Error(`No RSI data found for ${symbol}`);
-    }
-    
-    let indicators: Record<string, number> = {
-      rsi: rsiData[0].rsi
-    };
-    
-    console.log(`[SignalGen] Successfully retrieved RSI for ${symbol}: ${indicators.rsi}`);
-    
-    // Fetch additional indicators (SMA, EMA) for comprehensive analysis
     try {
-      console.log(`[SignalGen] Fetching SMA data for ${symbol}...`);
-      const smaResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=sma&apikey=${fmpApiKey}`,
+      const rsiResponse = await fetch(
+        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`,
         {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'TradingApp/1.0'
           },
-          timeout: 10000
+          signal: rsiController.signal
         }
       );
       
-      if (smaResponse.ok) {
-        const smaData = await smaResponse.json();
-        if (Array.isArray(smaData) && smaData.length > 0) {
-          indicators.sma = smaData[0].sma;
-          console.log(`[SignalGen] Retrieved SMA for ${symbol}: ${indicators.sma}`);
+      clearTimeout(rsiTimeoutId);
+      
+      if (!rsiResponse.ok) {
+        if (rsiResponse.status === 429) {
+          console.error('[SignalGen] FMP API rate limit reached for RSI');
+          throw new Error('FMP API rate limit reached');
+        } else if (rsiResponse.status === 401 || rsiResponse.status === 403) {
+          console.error('[SignalGen] FMP API authentication failed for RSI');
+          throw new Error('FMP API authentication failed');
+        }
+        console.error(`[SignalGen] RSI API error: ${rsiResponse.status}`);
+        throw new Error(`RSI API error: ${rsiResponse.status}`);
+      }
+      
+      const rsiData = await rsiResponse.json();
+      console.log(`[SignalGen] Raw RSI data for ${symbol}:`, rsiData);
+      
+      if (!Array.isArray(rsiData) || rsiData.length === 0) {
+        console.error(`[SignalGen] No RSI data found for ${symbol}`);
+        throw new Error(`No RSI data found for ${symbol}`);
+      }
+      
+      let indicators: Record<string, number> = {
+        rsi: rsiData[0].rsi
+      };
+      
+      console.log(`[SignalGen] Successfully retrieved RSI for ${symbol}: ${indicators.rsi}`);
+      
+    } catch (error) {
+      clearTimeout(rsiTimeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('RSI request timeout - FMP API took too long to respond');
+      }
+      throw error;
+    }
+    
+    // Fetch additional indicators (SMA, EMA) for comprehensive analysis
+    try {
+      console.log(`[SignalGen] Fetching SMA data for ${symbol}...`);
+      
+      const smaController = new AbortController();
+      const smaTimeoutId = setTimeout(() => smaController.abort(), 10000); // 10 second timeout
+      
+      try {
+        const smaResponse = await fetch(
+          `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=sma&apikey=${fmpApiKey}`,
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TradingApp/1.0'
+            },
+            signal: smaController.signal
+          }
+        );
+        
+        clearTimeout(smaTimeoutId);
+        
+        if (smaResponse.ok) {
+          const smaData = await smaResponse.json();
+          if (Array.isArray(smaData) && smaData.length > 0) {
+            indicators.sma = smaData[0].sma;
+            console.log(`[SignalGen] Retrieved SMA for ${symbol}: ${indicators.sma}`);
+          }
+        }
+      } catch (error) {
+        clearTimeout(smaTimeoutId);
+        if (error.name !== 'AbortError') {
+          console.warn(`[SignalGen] Failed to fetch SMA for ${symbol}:`, error);
         }
       }
     } catch (error) {
@@ -123,23 +151,36 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
     
     try {
       console.log(`[SignalGen] Fetching EMA data for ${symbol}...`);
-      const emaResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=ema&apikey=${fmpApiKey}`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'TradingApp/1.0'
-          },
-          timeout: 10000
-        }
-      );
       
-      if (emaResponse.ok) {
-        const emaData = await emaResponse.json();
-        if (Array.isArray(emaData) && emaData.length > 0) {
-          indicators.ema = emaData[0].ema;
-          console.log(`[SignalGen] Retrieved EMA for ${symbol}: ${indicators.ema}`);
+      const emaController = new AbortController();
+      const emaTimeoutId = setTimeout(() => emaController.abort(), 10000); // 10 second timeout
+      
+      try {
+        const emaResponse = await fetch(
+          `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=20&type=ema&apikey=${fmpApiKey}`,
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TradingApp/1.0'
+            },
+            signal: emaController.signal
+          }
+        );
+        
+        clearTimeout(emaTimeoutId);
+        
+        if (emaResponse.ok) {
+          const emaData = await emaResponse.json();
+          if (Array.isArray(emaData) && emaData.length > 0) {
+            indicators.ema = emaData[0].ema;
+            console.log(`[SignalGen] Retrieved EMA for ${symbol}: ${indicators.ema}`);
+          }
+        }
+      } catch (error) {
+        clearTimeout(emaTimeoutId);
+        if (error.name !== 'AbortError') {
+          console.warn(`[SignalGen] Failed to fetch EMA for ${symbol}:`, error);
         }
       }
     } catch (error) {
@@ -173,52 +214,66 @@ const getRealMarketData = async (symbol: string) => {
       throw new Error('FMP API key not available');
     }
 
-    const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'TradingApp/1.0'
-        },
-        timeout: 10000
-      }
-    );
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('FMP API rate limit reached');
-      } else if (response.status === 401 || response.status === 403) {
-        throw new Error('FMP API authentication failed');
-      }
-      throw new Error(`FMP API error: ${response.status}`);
-    }
-
-    const quotes = await response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    if (!Array.isArray(quotes) || quotes.length === 0) {
-      throw new Error(`No price data found for ${symbol}`);
+    try {
+      const response = await fetch(
+        `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('FMP API rate limit reached');
+        } else if (response.status === 401 || response.status === 403) {
+          throw new Error('FMP API authentication failed');
+        }
+        throw new Error(`FMP API error: ${response.status}`);
+      }
+
+      const quotes = await response.json();
+      
+      if (!Array.isArray(quotes) || quotes.length === 0) {
+        throw new Error(`No price data found for ${symbol}`);
+      }
+
+      const quote = quotes[0];
+      
+      if (!quote.price || quote.price === 0) {
+        throw new Error(`Invalid price data for ${symbol}`);
+      }
+
+      console.log(`[SignalGen] Real market data for ${symbol}:`, {
+        price: quote.price,
+        change: quote.change,
+        changePercent: quote.changesPercentage
+      });
+
+      return {
+        price: quote.price,
+        change: quote.change || 0,
+        changePercent: quote.changesPercentage || 0,
+        timestamp: new Date().toISOString(),
+        volume: quote.volume || 0
+      };
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Market data request timeout - FMP API took too long to respond');
+      }
+      throw error;
     }
-
-    const quote = quotes[0];
-    
-    if (!quote.price || quote.price === 0) {
-      throw new Error(`Invalid price data for ${symbol}`);
-    }
-
-    console.log(`[SignalGen] Real market data for ${symbol}:`, {
-      price: quote.price,
-      change: quote.change,
-      changePercent: quote.changesPercentage
-    });
-
-    return {
-      price: quote.price,
-      change: quote.change || 0,
-      changePercent: quote.changesPercentage || 0,
-      timestamp: new Date().toISOString(),
-      volume: quote.volume || 0
-    };
 
   } catch (error) {
     console.error(`[SignalGen] Error fetching real market data for ${symbol}:`, error);

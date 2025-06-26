@@ -64,58 +64,73 @@ export const getStockPrice = async (symbol: string): Promise<StockPrice | null> 
       throw new Error(`API key retrieval failed: ${error.message}`);
     }
 
-    // Test FMP API connectivity with a simple validation call first
+    // Test FMP API connectivity with proper timeout handling
     console.log(`[MarketData] Testing FMP API connectivity for ${symbol}...`);
-    const testResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'TradingApp/1.0'
-        },
-        timeout: 10000
-      }
-    );
-
-    if (!testResponse.ok) {
-      if (testResponse.status === 429) {
-        console.error('[MarketData] FMP API rate limit reached');
-        throw new Error('FMP API rate limit reached - please try again later');
-      } else if (testResponse.status === 401 || testResponse.status === 403) {
-        console.error('[MarketData] FMP API authentication failed');
-        throw new Error('FMP API authentication failed - please check API key');
-      } else {
-        console.error(`[MarketData] FMP API error: ${testResponse.status} ${testResponse.statusText}`);
-        throw new Error(`FMP API error: ${testResponse.status} - ${testResponse.statusText}`);
-      }
-    }
-
-    const quotes = await testResponse.json();
-    console.log(`[MarketData] Raw FMP API response for ${symbol}:`, quotes);
     
-    if (!Array.isArray(quotes) || quotes.length === 0) {
-      console.error(`[MarketData] No price data found for ${symbol}:`, quotes);
-      throw new Error(`No price data found for ${symbol} - symbol may not exist or market may be closed`);
-    }
-
-    const quote = quotes[0];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    if (!quote.price || quote.price === 0) {
-      console.error(`[MarketData] Invalid price data for ${symbol}:`, quote);
-      throw new Error(`Invalid price data for ${symbol} - price is zero or null`);
+    try {
+      const testResponse = await fetch(
+        `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!testResponse.ok) {
+        if (testResponse.status === 429) {
+          console.error('[MarketData] FMP API rate limit reached');
+          throw new Error('FMP API rate limit reached - please try again later');
+        } else if (testResponse.status === 401 || testResponse.status === 403) {
+          console.error('[MarketData] FMP API authentication failed');
+          throw new Error('FMP API authentication failed - please check API key');
+        } else {
+          console.error(`[MarketData] FMP API error: ${testResponse.status} ${testResponse.statusText}`);
+          throw new Error(`FMP API error: ${testResponse.status} - ${testResponse.statusText}`);
+        }
+      }
+
+      const quotes = await testResponse.json();
+      console.log(`[MarketData] Raw FMP API response for ${symbol}:`, quotes);
+      
+      if (!Array.isArray(quotes) || quotes.length === 0) {
+        console.error(`[MarketData] No price data found for ${symbol}:`, quotes);
+        throw new Error(`No price data found for ${symbol} - symbol may not exist or market may be closed`);
+      }
+
+      const quote = quotes[0];
+      
+      if (!quote.price || quote.price === 0) {
+        console.error(`[MarketData] Invalid price data for ${symbol}:`, quote);
+        throw new Error(`Invalid price data for ${symbol} - price is zero or null`);
+      }
+
+      const stockPrice = {
+        symbol: quote.symbol,
+        price: quote.price,
+        change: quote.change || 0,
+        changePercent: quote.changesPercentage || 0,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log(`[MarketData] Successfully retrieved real price data for ${symbol}:`, stockPrice);
+      return stockPrice;
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - FMP API took too long to respond');
+      }
+      throw error;
     }
-
-    const stockPrice = {
-      symbol: quote.symbol,
-      price: quote.price,
-      change: quote.change || 0,
-      changePercent: quote.changesPercentage || 0,
-      timestamp: new Date().toISOString()
-    };
-
-    console.log(`[MarketData] Successfully retrieved real price data for ${symbol}:`, stockPrice);
-    return stockPrice;
 
   } catch (error) {
     console.error(`[MarketData] Error fetching real price for ${symbol}:`, error);

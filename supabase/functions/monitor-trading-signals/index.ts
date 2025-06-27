@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -110,34 +109,67 @@ function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date
 function shouldEvaluateStrategy(timeframe: string, lastEvaluated: Date | null, nextDue: Date | null): boolean {
   const now = new Date();
   
-  // If never evaluated, evaluate now
-  if (!lastEvaluated || !nextDue) {
-    return true;
-  }
+  console.log(`[Monitor] Checking if strategy should be evaluated - Timeframe: ${timeframe}, Last: ${lastEvaluated?.toISOString()}, Next Due: ${nextDue?.toISOString()}, Now: ${now.toISOString()}`);
   
-  // Check if it's time for next evaluation
-  if (now >= nextDue) {
+  // If never evaluated, evaluate now only if it's the right time for this timeframe
+  if (!lastEvaluated || !nextDue) {
+    console.log(`[Monitor] Strategy never evaluated, checking if it's time for ${timeframe} evaluation`);
+    
     // For daily strategies, only evaluate at market close
     if (timeframe === 'Daily') {
-      return isMarketCloseTime();
+      const shouldEvaluate = isMarketCloseTime();
+      console.log(`[Monitor] Daily strategy - Market close time: ${shouldEvaluate}`);
+      return shouldEvaluate;
     }
     
     // For weekly strategies, only evaluate on Friday at market close
     if (timeframe === 'Weekly') {
       const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      return easternTime.getDay() === 5 && isMarketCloseTime();
+      const shouldEvaluate = easternTime.getDay() === 5 && isMarketCloseTime();
+      console.log(`[Monitor] Weekly strategy - Friday market close: ${shouldEvaluate}`);
+      return shouldEvaluate;
     }
     
     // For intraday strategies, evaluate if market is open
-    return isMarketOpen();
+    const shouldEvaluate = isMarketOpen();
+    console.log(`[Monitor] Intraday strategy (${timeframe}) - Market open: ${shouldEvaluate}`);
+    return shouldEvaluate;
   }
   
+  // Check if it's time for next evaluation
+  if (now >= nextDue) {
+    console.log(`[Monitor] Strategy is due for evaluation (now >= nextDue)`);
+    
+    // For daily strategies, only evaluate at market close
+    if (timeframe === 'Daily') {
+      const shouldEvaluate = isMarketCloseTime();
+      console.log(`[Monitor] Daily strategy due - Market close time: ${shouldEvaluate}`);
+      return shouldEvaluate;
+    }
+    
+    // For weekly strategies, only evaluate on Friday at market close
+    if (timeframe === 'Weekly') {
+      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const shouldEvaluate = easternTime.getDay() === 5 && isMarketCloseTime();
+      console.log(`[Monitor] Weekly strategy due - Friday market close: ${shouldEvaluate}`);
+      return shouldEvaluate;
+    }
+    
+    // For intraday strategies, evaluate if market is open
+    const shouldEvaluate = isMarketOpen();
+    console.log(`[Monitor] Intraday strategy (${timeframe}) due - Market open: ${shouldEvaluate}`);
+    return shouldEvaluate;
+  }
+  
+  console.log(`[Monitor] Strategy not due for evaluation yet`);
   return false;
 }
 
-// Get strategies that need evaluation based on timeframe
+// Get strategies that need evaluation based on timeframe - CRITICAL FIX
 async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: string[]) {
   try {
+    console.log(`[Monitor] Fetching strategies for evaluation, requested timeframes: ${requestedTimeframes?.join(', ') || 'all'}`);
+    
     let query = supabase
       .from('strategies')
       .select(`
@@ -167,7 +199,9 @@ async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: s
       return [];
     }
     
-    // Filter strategies that need evaluation
+    console.log(`[Monitor] Found ${strategies?.length || 0} active strategies total`);
+    
+    // CRITICAL: Filter strategies that actually need evaluation based on their timeframe
     const strategiesForEvaluation = strategies?.filter(strategy => {
       const evaluation = strategy.strategy_evaluations?.[0];
       const lastEvaluated = evaluation?.last_evaluated_at ? new Date(evaluation.last_evaluated_at) : null;
@@ -175,9 +209,7 @@ async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: s
       
       const shouldEvaluate = shouldEvaluateStrategy(strategy.timeframe, lastEvaluated, nextDue);
       
-      if (shouldEvaluate) {
-        console.log(`[Monitor] Strategy ${strategy.id} (${strategy.timeframe}) is due for evaluation`);
-      }
+      console.log(`[Monitor] Strategy ${strategy.id} (${strategy.name}) - Timeframe: ${strategy.timeframe}, Should evaluate: ${shouldEvaluate}`);
       
       return shouldEvaluate;
     }) || [];
@@ -191,11 +223,13 @@ async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: s
   }
 }
 
-// Update strategy evaluation record
+// Update strategy evaluation record with proper next evaluation time
 async function updateStrategyEvaluation(supabase: any, strategyId: string, timeframe: string) {
   try {
     const now = new Date();
     const nextEvaluation = calculateNextEvaluationTime(timeframe, now);
+    
+    console.log(`[Monitor] Updating evaluation record for strategy ${strategyId}, timeframe: ${timeframe}, next due: ${nextEvaluation.toISOString()}`);
     
     const { error } = await supabase
       .from('strategy_evaluations')
@@ -822,7 +856,7 @@ Deno.serve(async (req) => {
 
     console.log('[Monitor] Starting timeframe-based signal monitoring with REAL market data only...');
     
-    // Get strategies that need evaluation based on timeframe
+    // Get strategies that need evaluation based on timeframe - THIS IS THE KEY FIX
     const strategies = await getStrategiesForEvaluation(supabase, requestedTimeframes);
 
     if (!strategies || strategies.length === 0) {

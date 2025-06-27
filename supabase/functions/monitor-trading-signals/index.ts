@@ -10,11 +10,12 @@ const TIMEFRAME_CONFIG = {
   '1m': { intervalMinutes: 1, name: '1 minute' },
   '5m': { intervalMinutes: 5, name: '5 minutes' },
   '15m': { intervalMinutes: 15, name: '15 minutes' },
+  '30m': { intervalMinutes: 30, name: '30 minutes' },
   '1h': { intervalMinutes: 60, name: '1 hour' },
   '4h': { intervalMinutes: 240, name: '4 hours' },
-  'Daily': { intervalMinutes: 1440, name: 'Daily' }, // 24 hours
-  'Weekly': { intervalMinutes: 10080, name: 'Weekly' }, // 7 days
-  'Monthly': { intervalMinutes: 43200, name: 'Monthly' } // 30 days
+  'Daily': { intervalMinutes: 1440, name: 'Daily' },
+  'Weekly': { intervalMinutes: 10080, name: 'Weekly' },
+  'Monthly': { intervalMinutes: 43200, name: 'Monthly' }
 };
 
 // Check if market is open with proper timezone handling
@@ -53,6 +54,22 @@ function isMarketCloseTime(): boolean {
   return easternHour === 16 && easternMinutes >= 0 && easternMinutes < 5; // 5-minute window
 }
 
+// Helper function to check if it's the last trading day of the month
+function isLastTradingDayOfMonth(date: Date): boolean {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  
+  // Get last day of current month
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // Find last weekday of the month
+  while (lastDay.getDay() === 0 || lastDay.getDay() === 6) {
+    lastDay.setDate(lastDay.getDate() - 1);
+  }
+  
+  return date.getDate() === lastDay.getDate();
+}
+
 // Calculate next evaluation time based on timeframe
 function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date {
   const easternTime = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
@@ -70,6 +87,11 @@ function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date
     case '15m':
       const next15Min = Math.ceil(nextEval.getMinutes() / 15) * 15;
       nextEval.setMinutes(next15Min);
+      nextEval.setSeconds(0);
+      break;
+    case '30m':
+      const next30Min = Math.ceil(nextEval.getMinutes() / 30) * 30;
+      nextEval.setMinutes(next30Min);
       nextEval.setSeconds(0);
       break;
     case '1h':
@@ -96,6 +118,17 @@ function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date
       // Next Friday at 4:00 PM ET
       const daysUntilFriday = (5 - nextEval.getDay() + 7) % 7 || 7;
       nextEval.setDate(nextEval.getDate() + daysUntilFriday);
+      nextEval.setHours(16, 0, 0, 0);
+      break;
+    case 'Monthly':
+      // Last trading day of next month at 4:00 PM ET
+      nextEval.setMonth(nextEval.getMonth() + 1);
+      nextEval.setDate(1); // First day of next month
+      nextEval.setDate(0); // Last day of current month (which is now next month)
+      // Find last weekday
+      while (nextEval.getDay() === 0 || nextEval.getDay() === 6) {
+        nextEval.setDate(nextEval.getDate() - 1);
+      }
       nextEval.setHours(16, 0, 0, 0);
       break;
     default:
@@ -130,6 +163,15 @@ function shouldEvaluateStrategy(timeframe: string, lastEvaluated: Date | null, n
       return shouldEvaluate;
     }
     
+    // For monthly strategies, only evaluate on last trading day at market close
+    if (timeframe === 'Monthly') {
+      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const isLastTradingDay = isLastTradingDayOfMonth(easternTime);
+      const shouldEvaluate = isLastTradingDay && isMarketCloseTime();
+      console.log(`[Monitor] Monthly strategy - Last trading day market close: ${shouldEvaluate}`);
+      return shouldEvaluate;
+    }
+    
     // For intraday strategies, evaluate if market is open
     const shouldEvaluate = isMarketOpen();
     console.log(`[Monitor] Intraday strategy (${timeframe}) - Market open: ${shouldEvaluate}`);
@@ -155,6 +197,15 @@ function shouldEvaluateStrategy(timeframe: string, lastEvaluated: Date | null, n
       return shouldEvaluate;
     }
     
+    // For monthly strategies, only evaluate on last trading day at market close
+    if (timeframe === 'Monthly') {
+      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const isLastTradingDay = isLastTradingDayOfMonth(easternTime);
+      const shouldEvaluate = isLastTradingDay && isMarketCloseTime();
+      console.log(`[Monitor] Monthly strategy due - Last trading day market close: ${shouldEvaluate}`);
+      return shouldEvaluate;
+    }
+    
     // For intraday strategies, evaluate if market is open
     const shouldEvaluate = isMarketOpen();
     console.log(`[Monitor] Intraday strategy (${timeframe}) due - Market open: ${shouldEvaluate}`);
@@ -165,7 +216,7 @@ function shouldEvaluateStrategy(timeframe: string, lastEvaluated: Date | null, n
   return false;
 }
 
-// Get strategies that need evaluation based on timeframe - CRITICAL FIX
+// Get strategies that need evaluation based on timeframe - FIXED LOGIC
 async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: string[]) {
   try {
     console.log(`[Monitor] Fetching strategies for evaluation, requested timeframes: ${requestedTimeframes?.join(', ') || 'all'}`);
@@ -223,13 +274,27 @@ async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: s
   }
 }
 
-// Update strategy evaluation record with proper next evaluation time
+// Update strategy evaluation record with proper next evaluation time - FIXED
 async function updateStrategyEvaluation(supabase: any, strategyId: string, timeframe: string) {
   try {
     const now = new Date();
     const nextEvaluation = calculateNextEvaluationTime(timeframe, now);
     
     console.log(`[Monitor] Updating evaluation record for strategy ${strategyId}, timeframe: ${timeframe}, next due: ${nextEvaluation.toISOString()}`);
+    
+    // First, try to update existing record
+    const { data: existingRecord, error: fetchError } = await supabase
+      .from('strategy_evaluations')
+      .select('evaluation_count')
+      .eq('strategy_id', strategyId)
+      .single();
+    
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error(`[Monitor] Error fetching existing evaluation record for strategy ${strategyId}:`, fetchError);
+      return;
+    }
+    
+    const currentCount = existingRecord?.evaluation_count || 0;
     
     const { error } = await supabase
       .from('strategy_evaluations')
@@ -238,7 +303,7 @@ async function updateStrategyEvaluation(supabase: any, strategyId: string, timef
         timeframe: timeframe,
         last_evaluated_at: now.toISOString(),
         next_evaluation_due: nextEvaluation.toISOString(),
-        evaluation_count: supabase.raw('COALESCE(evaluation_count, 0) + 1')
+        evaluation_count: currentCount + 1
       }, {
         onConflict: 'strategy_id'
       });
@@ -832,10 +897,14 @@ Deno.serve(async (req) => {
     if (!isManual) {
       console.log('[Monitor] Checking market status...');
       if (!isMarketOpen()) {
-        // For daily strategies, still check at market close even if market is "closed"
+        // For daily/weekly/monthly strategies, still check at specific times even if market is "closed"
         const isDailyCloseTime = isMarketCloseTime();
-        if (!isDailyCloseTime) {
-          console.log('[Monitor] Market is closed and not market close time - no signal monitoring needed');
+        const easternTime = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
+        const isFridayClose = easternTime.getDay() === 5 && isDailyCloseTime;
+        const isMonthlyClose = isLastTradingDayOfMonth(easternTime) && isDailyCloseTime;
+        
+        if (!isDailyCloseTime && !isFridayClose && !isMonthlyClose) {
+          console.log('[Monitor] Market is closed and not a special evaluation time - no signal monitoring needed');
           return new Response(
             JSON.stringify({ 
               success: true, 
@@ -848,8 +917,10 @@ Deno.serve(async (req) => {
             }
           );
         } else {
-          console.log('[Monitor] Market close time detected - checking daily strategies');
-          requestedTimeframes = ['Daily'];
+          console.log('[Monitor] Special evaluation time detected - checking appropriate strategies');
+          if (isDailyCloseTime) requestedTimeframes = ['Daily'];
+          if (isFridayClose) requestedTimeframes = ['Weekly'];
+          if (isMonthlyClose) requestedTimeframes = ['Monthly'];
         }
       }
     }

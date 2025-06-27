@@ -11,6 +11,7 @@ export const TIMEFRAME_CONFIGS: Record<string, TimeframeConfig> = {
   '1m': { intervalMinutes: 1, name: '1 Minute', description: 'Checked every minute during market hours' },
   '5m': { intervalMinutes: 5, name: '5 Minutes', description: 'Checked every 5 minutes during market hours' },
   '15m': { intervalMinutes: 15, name: '15 Minutes', description: 'Checked every 15 minutes during market hours' },
+  '30m': { intervalMinutes: 30, name: '30 Minutes', description: 'Checked every 30 minutes during market hours' },
   '1h': { intervalMinutes: 60, name: '1 Hour', description: 'Checked every hour during market hours' },
   '4h': { intervalMinutes: 240, name: '4 Hours', description: 'Checked every 4 hours during market hours' },
   'Daily': { intervalMinutes: 1440, name: 'Daily', description: 'Checked once per day at market close (4:00 PM ET)' },
@@ -99,6 +100,11 @@ export const getNextEvaluationTime = (timeframe: string, currentTime: Date = new
       nextEval.setMinutes(next15Min);
       nextEval.setSeconds(0, 0);
       break;
+    case '30m':
+      const next30Min = Math.ceil(nextEval.getMinutes() / 30) * 30;
+      nextEval.setMinutes(next30Min);
+      nextEval.setSeconds(0, 0);
+      break;
     case '1h':
       nextEval.setHours(nextEval.getHours() + 1);
       nextEval.setMinutes(0, 0, 0);
@@ -121,6 +127,17 @@ export const getNextEvaluationTime = (timeframe: string, currentTime: Date = new
       // Next Friday at 4:00 PM ET
       const daysUntilFriday = (5 - nextEval.getDay() + 7) % 7 || 7;
       nextEval.setDate(nextEval.getDate() + daysUntilFriday);
+      nextEval.setHours(16, 0, 0, 0);
+      break;
+    case 'Monthly':
+      // Last trading day of next month at 4:00 PM ET
+      nextEval.setMonth(nextEval.getMonth() + 1);
+      nextEval.setDate(1); // First day of next month
+      nextEval.setDate(0); // Last day of current month (which is now next month)
+      // Find last weekday
+      while (nextEval.getDay() === 0 || nextEval.getDay() === 6) {
+        nextEval.setDate(nextEval.getDate() - 1);
+      }
       nextEval.setHours(16, 0, 0, 0);
       break;
     default:
@@ -161,11 +178,36 @@ export const shouldEvaluateNow = (
       return easternTime.getDay() === 5 && hour === 16 && minute >= 0 && minute < 5;
     }
     
+    // For monthly strategies, only on last trading day during market close
+    if (timeframe === 'Monthly') {
+      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const hour = easternTime.getHours();
+      const minute = easternTime.getMinutes();
+      const isLastTradingDay = isLastTradingDayOfMonth(easternTime);
+      return isLastTradingDay && hour === 16 && minute >= 0 && minute < 5;
+    }
+    
     // For intraday strategies, check during market hours
     return isMarketOpen();
   }
   
   return false;
+};
+
+// Helper function to check if it's the last trading day of the month
+const isLastTradingDayOfMonth = (date: Date): boolean => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  
+  // Get last day of current month
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // Find last weekday of the month
+  while (lastDay.getDay() === 0 || lastDay.getDay() === 6) {
+    lastDay.setDate(lastDay.getDate() - 1);
+  }
+  
+  return date.getDate() === lastDay.getDate();
 };
 
 // Market hours check

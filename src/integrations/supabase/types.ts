@@ -447,6 +447,47 @@ export type Database = {
           },
         ]
       }
+      strategy_evaluations: {
+        Row: {
+          created_at: string | null
+          evaluation_count: number | null
+          id: string
+          last_evaluated_at: string | null
+          next_evaluation_due: string | null
+          strategy_id: string | null
+          timeframe: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          evaluation_count?: number | null
+          id?: string
+          last_evaluated_at?: string | null
+          next_evaluation_due?: string | null
+          strategy_id?: string | null
+          timeframe: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          evaluation_count?: number | null
+          id?: string
+          last_evaluated_at?: string | null
+          next_evaluation_due?: string | null
+          strategy_id?: string | null
+          timeframe?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_evaluations_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategy_recommendations: {
         Row: {
           created_at: string

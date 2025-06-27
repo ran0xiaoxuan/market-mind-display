@@ -6,6 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Timeframe configuration for evaluation intervals
+const TIMEFRAME_CONFIG = {
+  '1m': { intervalMinutes: 1, name: '1 minute' },
+  '5m': { intervalMinutes: 5, name: '5 minutes' },
+  '15m': { intervalMinutes: 15, name: '15 minutes' },
+  '1h': { intervalMinutes: 60, name: '1 hour' },
+  '4h': { intervalMinutes: 240, name: '4 hours' },
+  'Daily': { intervalMinutes: 1440, name: 'Daily' }, // 24 hours
+  'Weekly': { intervalMinutes: 10080, name: 'Weekly' }, // 7 days
+  'Monthly': { intervalMinutes: 43200, name: 'Monthly' } // 30 days
+};
+
 // Check if market is open with proper timezone handling
 function isMarketOpen(): boolean {
   const now = new Date();
@@ -29,6 +41,182 @@ function isMarketOpen(): boolean {
   console.log(`Market status - Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Time in minutes: ${timeInMinutes}`);
   
   return isWeekday && isMarketHours;
+}
+
+// Check if it's market close time (for daily strategies)
+function isMarketCloseTime(): boolean {
+  const now = new Date();
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const easternHour = easternTime.getHours();
+  const easternMinutes = easternTime.getMinutes();
+  
+  // Market closes at 4:00 PM ET (16:00)
+  return easternHour === 16 && easternMinutes >= 0 && easternMinutes < 5; // 5-minute window
+}
+
+// Calculate next evaluation time based on timeframe
+function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date {
+  const easternTime = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const nextEval = new Date(easternTime);
+  
+  switch (timeframe) {
+    case '1m':
+      nextEval.setMinutes(nextEval.getMinutes() + 1);
+      break;
+    case '5m':
+      const next5Min = Math.ceil(nextEval.getMinutes() / 5) * 5;
+      nextEval.setMinutes(next5Min);
+      nextEval.setSeconds(0);
+      break;
+    case '15m':
+      const next15Min = Math.ceil(nextEval.getMinutes() / 15) * 15;
+      nextEval.setMinutes(next15Min);
+      nextEval.setSeconds(0);
+      break;
+    case '1h':
+      nextEval.setHours(nextEval.getHours() + 1);
+      nextEval.setMinutes(0);
+      nextEval.setSeconds(0);
+      break;
+    case '4h':
+      const next4Hour = Math.ceil(nextEval.getHours() / 4) * 4;
+      nextEval.setHours(next4Hour);
+      nextEval.setMinutes(0);
+      nextEval.setSeconds(0);
+      break;
+    case 'Daily':
+      // Next trading day at 4:00 PM ET
+      nextEval.setDate(nextEval.getDate() + 1);
+      nextEval.setHours(16, 0, 0, 0);
+      // Skip weekends
+      while (nextEval.getDay() === 0 || nextEval.getDay() === 6) {
+        nextEval.setDate(nextEval.getDate() + 1);
+      }
+      break;
+    case 'Weekly':
+      // Next Friday at 4:00 PM ET
+      const daysUntilFriday = (5 - nextEval.getDay() + 7) % 7 || 7;
+      nextEval.setDate(nextEval.getDate() + daysUntilFriday);
+      nextEval.setHours(16, 0, 0, 0);
+      break;
+    default:
+      nextEval.setHours(nextEval.getHours() + 1);
+  }
+  
+  return nextEval;
+}
+
+// Check if strategy should be evaluated based on timeframe and timing
+function shouldEvaluateStrategy(timeframe: string, lastEvaluated: Date | null, nextDue: Date | null): boolean {
+  const now = new Date();
+  
+  // If never evaluated, evaluate now
+  if (!lastEvaluated || !nextDue) {
+    return true;
+  }
+  
+  // Check if it's time for next evaluation
+  if (now >= nextDue) {
+    // For daily strategies, only evaluate at market close
+    if (timeframe === 'Daily') {
+      return isMarketCloseTime();
+    }
+    
+    // For weekly strategies, only evaluate on Friday at market close
+    if (timeframe === 'Weekly') {
+      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      return easternTime.getDay() === 5 && isMarketCloseTime();
+    }
+    
+    // For intraday strategies, evaluate if market is open
+    return isMarketOpen();
+  }
+  
+  return false;
+}
+
+// Get strategies that need evaluation based on timeframe
+async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: string[]) {
+  try {
+    let query = supabase
+      .from('strategies')
+      .select(`
+        id,
+        name,
+        target_asset,
+        user_id,
+        is_active,
+        timeframe,
+        strategy_evaluations!inner (
+          last_evaluated_at,
+          next_evaluation_due,
+          evaluation_count
+        )
+      `)
+      .eq('is_active', true);
+    
+    // Filter by specific timeframes if provided
+    if (requestedTimeframes && requestedTimeframes.length > 0) {
+      query = query.in('timeframe', requestedTimeframes);
+    }
+    
+    const { data: strategies, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('[Monitor] Error fetching strategies:', error);
+      return [];
+    }
+    
+    // Filter strategies that need evaluation
+    const strategiesForEvaluation = strategies?.filter(strategy => {
+      const evaluation = strategy.strategy_evaluations?.[0];
+      const lastEvaluated = evaluation?.last_evaluated_at ? new Date(evaluation.last_evaluated_at) : null;
+      const nextDue = evaluation?.next_evaluation_due ? new Date(evaluation.next_evaluation_due) : null;
+      
+      const shouldEvaluate = shouldEvaluateStrategy(strategy.timeframe, lastEvaluated, nextDue);
+      
+      if (shouldEvaluate) {
+        console.log(`[Monitor] Strategy ${strategy.id} (${strategy.timeframe}) is due for evaluation`);
+      }
+      
+      return shouldEvaluate;
+    }) || [];
+    
+    console.log(`[Monitor] Found ${strategiesForEvaluation.length} strategies needing evaluation out of ${strategies?.length || 0} total active strategies`);
+    
+    return strategiesForEvaluation;
+  } catch (error) {
+    console.error('[Monitor] Error in getStrategiesForEvaluation:', error);
+    return [];
+  }
+}
+
+// Update strategy evaluation record
+async function updateStrategyEvaluation(supabase: any, strategyId: string, timeframe: string) {
+  try {
+    const now = new Date();
+    const nextEvaluation = calculateNextEvaluationTime(timeframe, now);
+    
+    const { error } = await supabase
+      .from('strategy_evaluations')
+      .upsert({
+        strategy_id: strategyId,
+        timeframe: timeframe,
+        last_evaluated_at: now.toISOString(),
+        next_evaluation_due: nextEvaluation.toISOString(),
+        evaluation_count: supabase.raw('COALESCE(evaluation_count, 0) + 1')
+      }, {
+        onConflict: 'strategy_id'
+      });
+    
+    if (error) {
+      console.error(`[Monitor] Error updating evaluation record for strategy ${strategyId}:`, error);
+    } else {
+      console.log(`[Monitor] Updated evaluation record for strategy ${strategyId}, next due: ${nextEvaluation.toISOString()}`);
+    }
+  } catch (error) {
+    console.error(`[Monitor] Error in updateStrategyEvaluation for strategy ${strategyId}:`, error);
+  }
 }
 
 // Get real market data from FMP API - ONLY REAL DATA
@@ -121,9 +309,12 @@ async function getRealMarketData(symbol: string, fmpApiKey: string) {
 // Enhanced strategy evaluation - ONLY REAL DATA
 async function evaluateStrategy(supabase: any, strategyId: string, strategy: any) {
   try {
-    console.log(`[Monitor] Evaluating strategy ${strategyId}: ${strategy.name} for ${strategy.target_asset}`);
+    console.log(`[Monitor] Evaluating strategy ${strategyId}: ${strategy.name} for ${strategy.target_asset} (${strategy.timeframe})`);
     
-    // Get FMP API key - REQUIRED (using corrected format)
+    // Update evaluation record first
+    await updateStrategyEvaluation(supabase, strategyId, strategy.timeframe);
+    
+    // Get FMP API key - REQUIRED
     const { data: keyData, error: keyError } = await supabase.functions.invoke('get-fmp-key', {
       method: 'POST',
       headers: {
@@ -185,7 +376,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       return 0;
     }
     
-    // Get user profile to check Pro status - FIXED Pro user detection
+    // Get user profile to check Pro status
     const { data: user } = await supabase
       .from('strategies')
       .select('user_id')
@@ -203,7 +394,6 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       .eq('id', user.user_id)
       .single();
 
-    // FIXED: Check subscription_tier instead of is_pro
     const isPro = profile?.subscription_tier === 'pro';
     console.log(`[Monitor] User ${user.user_id} Pro status: ${isPro} (subscription_tier: ${profile?.subscription_tier})`);
     
@@ -220,7 +410,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
     // Evaluate entry rules
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     if (await shouldGenerateSignal(entryRules, indicators, marketData.price)) {
-      const entryReason = `Entry signal (real market data) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}`;
+      const entryReason = `Entry signal (${strategy.timeframe}) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}`;
       
       const { error } = await supabase
         .from('trading_signals')
@@ -231,6 +421,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
             reason: entryReason,
             price: marketData.price,
             timestamp: currentTime,
+            timeframe: strategy.timeframe,
             indicators: indicators,
             marketData: {
               change: marketData.change,
@@ -244,7 +435,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
 
       if (!error) {
         signalsGenerated++;
-        console.log(`[Monitor] Generated entry signal for strategy ${strategyId}: ${entryReason}`);
+        console.log(`[Monitor] Generated entry signal for strategy ${strategyId} (${strategy.timeframe}): ${entryReason}`);
         
         // Send notification only if strategy is active
         if (strategy.is_active) {
@@ -252,6 +443,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
             reason: entryReason,
             price: marketData.price,
             timestamp: currentTime,
+            timeframe: strategy.timeframe,
             strategyName: strategy.name,
             targetAsset: strategy.target_asset,
             userId: user.user_id,
@@ -284,7 +476,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
         const profit = marketData.price - entryPrice;
         const profitPercentage = entryPrice > 0 ? (profit / entryPrice) * 100 : 0;
         
-        const exitReason = `Exit signal (real market data) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}, P&L: ${profitPercentage.toFixed(2)}%`;
+        const exitReason = `Exit signal (${strategy.timeframe}) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}, P&L: ${profitPercentage.toFixed(2)}%`;
 
         const { error } = await supabase
           .from('trading_signals')
@@ -295,6 +487,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
               reason: exitReason,
               price: marketData.price,
               timestamp: currentTime,
+              timeframe: strategy.timeframe,
               profit: profit,
               profitPercentage: profitPercentage,
               indicators: indicators,
@@ -310,7 +503,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
 
         if (!error) {
           signalsGenerated++;
-          console.log(`[Monitor] Generated exit signal for strategy ${strategyId}: ${exitReason}`);
+          console.log(`[Monitor] Generated exit signal for strategy ${strategyId} (${strategy.timeframe}): ${exitReason}`);
           
           // Send notification only if strategy is active
           if (strategy.is_active) {
@@ -318,6 +511,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
               reason: exitReason,
               price: marketData.price,
               timestamp: currentTime,
+              timeframe: strategy.timeframe,
               profit: profit,
               profitPercentage: profitPercentage,
               strategyName: strategy.name,
@@ -584,65 +778,62 @@ Deno.serve(async (req) => {
   );
 
   try {
-    // Parse request body to check if this is a manual trigger
+    // Parse request body
     let isManual = false;
+    let requestedTimeframes: string[] = [];
+    
     try {
       if (req.body) {
         const body = await req.json();
         isManual = body.manual === true;
+        requestedTimeframes = body.timeframes || [];
       }
     } catch (e) {
       // Body parsing failed, assume it's a cron job
     }
 
-    console.log(`[Monitor] Signal monitoring triggered by: ${isManual ? 'manual' : 'cron_job'}, manual: ${isManual}`);
+    console.log(`[Monitor] Signal monitoring triggered by: ${isManual ? 'manual' : 'cron_job'}, timeframes: ${requestedTimeframes.length > 0 ? requestedTimeframes.join(', ') : 'all'}`);
 
-    // Check market status for regular cron jobs (allow manual triggers anytime)
+    // Check market status for regular cron jobs (allow manual triggers anytime for testing)
     if (!isManual) {
       console.log('[Monitor] Checking market status...');
       if (!isMarketOpen()) {
-        console.log('[Monitor] Market is closed - no signal monitoring needed');
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Market closed - no monitoring performed',
-            timestamp: new Date().toISOString()
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200 
-          }
-        );
+        // For daily strategies, still check at market close even if market is "closed"
+        const isDailyCloseTime = isMarketCloseTime();
+        if (!isDailyCloseTime) {
+          console.log('[Monitor] Market is closed and not market close time - no signal monitoring needed');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Market closed - no monitoring performed',
+              timestamp: new Date().toISOString()
+            }), 
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200 
+            }
+          );
+        } else {
+          console.log('[Monitor] Market close time detected - checking daily strategies');
+          requestedTimeframes = ['Daily'];
+        }
       }
     }
 
-    console.log('[Monitor] Starting signal monitoring with REAL market data only...');
+    console.log('[Monitor] Starting timeframe-based signal monitoring with REAL market data only...');
     
-    // Get ALL active strategies with their target assets
-    const { data: strategies, error: strategiesError } = await supabase
-      .from('strategies')
-      .select(`
-        id,
-        name,
-        target_asset,
-        user_id,
-        is_active
-      `)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
-    if (strategiesError) {
-      console.error('[Monitor] Error fetching strategies:', strategiesError);
-      throw strategiesError;
-    }
-
-    console.log(`[Monitor] Found ${strategies?.length || 0} active strategies to monitor`);
+    // Get strategies that need evaluation based on timeframe
+    const strategies = await getStrategiesForEvaluation(supabase, requestedTimeframes);
 
     if (!strategies || strategies.length === 0) {
+      const message = requestedTimeframes.length > 0 
+        ? `No strategies found for timeframes: ${requestedTimeframes.join(', ')}`
+        : 'No strategies need evaluation at this time';
+        
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'No active strategies found for monitoring',
+          message: message,
           signalsGenerated: 0,
           timestamp: new Date().toISOString()
         }), 
@@ -653,41 +844,64 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Process strategies in batches to respect API rate limits
-    const BATCH_SIZE = 3;
+    // Group strategies by timeframe for optimized processing
+    const strategiesByTimeframe = strategies.reduce((acc, strategy) => {
+      const timeframe = strategy.timeframe;
+      if (!acc[timeframe]) acc[timeframe] = [];
+      acc[timeframe].push(strategy);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    console.log(`[Monitor] Processing strategies by timeframe:`, 
+      Object.entries(strategiesByTimeframe).map(([tf, strats]) => `${tf}: ${strats.length}`).join(', ')
+    );
+
+    // Process strategies in smaller batches to respect API rate limits
+    const BATCH_SIZE = 2; // Reduced batch size for better rate limit management
     let totalSignalsGenerated = 0;
     let strategiesProcessed = 0;
     let strategiesSkipped = 0;
     
-    for (let i = 0; i < strategies.length; i += BATCH_SIZE) {
-      const batch = strategies.slice(i, i + BATCH_SIZE);
-      const batchPromises = batch.map(strategy => 
-        evaluateStrategy(supabase, strategy.id, strategy)
-      );
+    // Process each timeframe separately
+    for (const [timeframe, timeframeStrategies] of Object.entries(strategiesByTimeframe)) {
+      console.log(`[Monitor] Processing ${timeframeStrategies.length} strategies for timeframe: ${timeframe}`);
       
-      const batchResults = await Promise.allSettled(batchPromises);
-      
-      batchResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          if (result.value > 0) {
-            totalSignalsGenerated += result.value;
-            strategiesProcessed++;
+      for (let i = 0; i < timeframeStrategies.length; i += BATCH_SIZE) {
+        const batch = timeframeStrategies.slice(i, i + BATCH_SIZE);
+        const batchPromises = batch.map(strategy => 
+          evaluateStrategy(supabase, strategy.id, strategy)
+        );
+        
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        batchResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            if (result.value > 0) {
+              totalSignalsGenerated += result.value;
+              strategiesProcessed++;
+            } else {
+              strategiesSkipped++;
+            }
           } else {
+            console.error(`[Monitor] Error processing strategy ${batch[index].id}:`, result.reason);
             strategiesSkipped++;
           }
-        } else {
-          console.error(`[Monitor] Error processing strategy ${batch[index].id}:`, result.reason);
-          strategiesSkipped++;
+        });
+        
+        // Add delay between batches to respect API rate limits (increased delay)
+        if (i + BATCH_SIZE < timeframeStrategies.length) {
+          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
         }
-      });
+      }
       
-      // Add delay between batches to respect API rate limits
-      if (i + BATCH_SIZE < strategies.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Add delay between timeframes
+      const timeframeKeys = Object.keys(strategiesByTimeframe);
+      if (timeframe !== timeframeKeys[timeframeKeys.length - 1]) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between timeframes
       }
     }
 
-    const message = `Signal monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped).`;
+    const message = `Timeframe-based monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped).`;
     console.log(`[Monitor] ${message}`);
 
     return new Response(
@@ -697,6 +911,7 @@ Deno.serve(async (req) => {
         strategiesProcessed: strategiesProcessed,
         strategiesSkipped: strategiesSkipped,
         signalsGenerated: totalSignalsGenerated,
+        timeframesProcessed: Object.keys(strategiesByTimeframe),
         timestamp: new Date().toISOString()
       }), 
       { 

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface TradingSignal {
@@ -593,11 +594,15 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
 
     if (!strategy) return;
 
-    // Check if user is Pro
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    // FIXED: Check Pro status using subscription_tier instead of is_pro
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', strategy.user_id)
+      .single();
 
-    const isPro = user.user_metadata?.is_pro === true;
+    const isPro = profile?.subscription_tier === 'pro';
+    console.log(`[SignalGen] User ${strategy.user_id} Pro status: ${isPro} (subscription_tier: ${profile?.subscription_tier})`);
     
     if (!isPro) {
       console.log(`User ${strategy.user_id} is not Pro, skipping external notifications`);
@@ -620,26 +625,52 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
       userId: strategy.user_id
     };
 
-    // Send Discord notification if enabled
+    console.log(`[SignalGen] Sending notifications for Pro user ${strategy.user_id}:`, {
+      discord_enabled: settings.discord_enabled,
+      telegram_enabled: settings.telegram_enabled,
+      email_enabled: settings.email_enabled
+    });
+
+    // Send Discord notification if enabled with retry logic
     if (settings.discord_enabled && settings.discord_webhook_url) {
       try {
-        await supabase.functions.invoke('send-discord-notification', {
+        const { error: discordError } = await supabase.functions.invoke('send-discord-notification', {
           body: {
             webhookUrl: settings.discord_webhook_url,
             signalData: notificationData,
             signalType: signalType
           }
         });
-        console.log(`Discord notification sent for strategy ${strategyId}`);
+        
+        if (discordError) {
+          console.error(`[SignalGen] Discord notification error, retrying:`, discordError);
+          // Retry once
+          setTimeout(async () => {
+            const { error: retryError } = await supabase.functions.invoke('send-discord-notification', {
+              body: {
+                webhookUrl: settings.discord_webhook_url,
+                signalData: notificationData,
+                signalType: signalType
+              }
+            });
+            if (retryError) {
+              console.error(`[SignalGen] Discord notification retry failed:`, retryError);
+            } else {
+              console.log(`[SignalGen] Discord notification sent successfully on retry for strategy ${strategyId}`);
+            }
+          }, 2000);
+        } else {
+          console.log(`[SignalGen] Discord notification sent for strategy ${strategyId}`);
+        }
       } catch (error) {
-        console.error(`Failed to send Discord notification:`, error);
+        console.error(`[SignalGen] Failed to send Discord notification:`, error);
       }
     }
 
-    // Send Telegram notification if enabled
+    // Send Telegram notification if enabled with retry logic
     if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
       try {
-        await supabase.functions.invoke('send-telegram-notification', {
+        const { error: telegramError } = await supabase.functions.invoke('send-telegram-notification', {
           body: {
             botToken: settings.telegram_bot_token,
             chatId: settings.telegram_chat_id,
@@ -647,28 +678,49 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
             signalType: signalType
           }
         });
-        console.log(`Telegram notification sent for strategy ${strategyId}`);
+        
+        if (telegramError) {
+          console.error(`[SignalGen] Telegram notification error, retrying:`, telegramError);
+          // Retry once
+          setTimeout(async () => {
+            const { error: retryError } = await supabase.functions.invoke('send-telegram-notification', {
+              body: {
+                botToken: settings.telegram_bot_token,
+                chatId: settings.telegram_chat_id,
+                signalData: notificationData,
+                signalType: signalType
+              }
+            });
+            if (retryError) {
+              console.error(`[SignalGen] Telegram notification retry failed:`, retryError);
+            } else {
+              console.log(`[SignalGen] Telegram notification sent successfully on retry for strategy ${strategyId}`);
+            }
+          }, 2000);
+        } else {
+          console.log(`[SignalGen] Telegram notification sent for strategy ${strategyId}`);
+        }
       } catch (error) {
-        console.error(`Failed to send Telegram notification:`, error);
+        console.error(`[SignalGen] Failed to send Telegram notification:`, error);
       }
     }
 
     // Send Email notification if enabled
     if (settings.email_enabled) {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser?.email) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
           await supabase.functions.invoke('send-email-notification', {
             body: {
-              userEmail: authUser.email,
+              userEmail: user.email,
               signalData: notificationData,
               signalType: signalType
             }
           });
-          console.log(`Email notification sent for strategy ${strategyId}`);
+          console.log(`[SignalGen] Email notification sent for strategy ${strategyId}`);
         }
       } catch (error) {
-        console.error(`Failed to send Email notification:`, error);
+        console.error(`[SignalGen] Failed to send Email notification:`, error);
       }
     }
 

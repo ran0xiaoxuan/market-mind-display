@@ -185,7 +185,7 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
       return 0;
     }
     
-    // Get user profile to check Pro status
+    // Get user profile to check Pro status - FIXED Pro user detection
     const { data: user } = await supabase
       .from('strategies')
       .select('user_id')
@@ -199,12 +199,13 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('subscription_tier')
       .eq('id', user.user_id)
       .single();
 
-    const isPro = profile?.is_pro === true;
-    console.log(`[Monitor] User ${user.user_id} Pro status: ${isPro}`);
+    // FIXED: Check subscription_tier instead of is_pro
+    const isPro = profile?.subscription_tier === 'pro';
+    console.log(`[Monitor] User ${user.user_id} Pro status: ${isPro} (subscription_tier: ${profile?.subscription_tier})`);
     
     // Proceed with signal generation using real data
     const indicators = {
@@ -426,7 +427,7 @@ function evaluateRule(rule: any, indicators: any, currentPrice: number): boolean
   }
 }
 
-// Send notifications with Pro user check
+// Enhanced notification sending with retry logic and better error handling
 async function sendNotification(supabase: any, strategyId: string, signalType: string, signalData: any) {
   try {
     console.log(`[Monitor] Processing notification for ${signalType} signal on strategy ${strategyId}`);
@@ -453,26 +454,56 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
       return;
     }
 
-    // Send Discord notification if enabled
+    console.log(`[Monitor] Notification settings for user ${userId}:`, {
+      discord_enabled: settings.discord_enabled,
+      telegram_enabled: settings.telegram_enabled,
+      email_enabled: settings.email_enabled,
+      has_discord_webhook: !!settings.discord_webhook_url,
+      has_telegram_token: !!settings.telegram_bot_token,
+      has_telegram_chat: !!settings.telegram_chat_id
+    });
+
+    // Send Discord notification if enabled with retry logic
     if (settings.discord_enabled && settings.discord_webhook_url) {
       try {
-        await supabase.functions.invoke('send-discord-notification', {
+        console.log(`[Monitor] Sending Discord notification for strategy ${strategyId}`);
+        const { data: discordResult, error: discordError } = await supabase.functions.invoke('send-discord-notification', {
           body: {
             webhookUrl: settings.discord_webhook_url,
             signalData: signalData,
             signalType: signalType
           }
         });
-        console.log(`[Monitor] Discord notification sent for strategy ${strategyId}`);
+        
+        if (discordError) {
+          console.error(`[Monitor] Discord notification error:`, discordError);
+          // Retry once after a delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const { error: retryError } = await supabase.functions.invoke('send-discord-notification', {
+            body: {
+              webhookUrl: settings.discord_webhook_url,
+              signalData: signalData,
+              signalType: signalType
+            }
+          });
+          if (retryError) {
+            console.error(`[Monitor] Discord notification retry failed:`, retryError);
+          } else {
+            console.log(`[Monitor] Discord notification sent successfully on retry for strategy ${strategyId}`);
+          }
+        } else {
+          console.log(`[Monitor] Discord notification sent successfully for strategy ${strategyId}`);
+        }
       } catch (error) {
         console.error(`[Monitor] Failed to send Discord notification:`, error);
       }
     }
 
-    // Send Telegram notification if enabled
+    // Send Telegram notification if enabled with retry logic
     if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
       try {
-        await supabase.functions.invoke('send-telegram-notification', {
+        console.log(`[Monitor] Sending Telegram notification for strategy ${strategyId}`);
+        const { data: telegramResult, error: telegramError } = await supabase.functions.invoke('send-telegram-notification', {
           body: {
             botToken: settings.telegram_bot_token,
             chatId: settings.telegram_chat_id,
@@ -480,7 +511,27 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
             signalType: signalType
           }
         });
-        console.log(`[Monitor] Telegram notification sent for strategy ${strategyId}`);
+        
+        if (telegramError) {
+          console.error(`[Monitor] Telegram notification error:`, telegramError);
+          // Retry once after a delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const { error: retryError } = await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              botToken: settings.telegram_bot_token,
+              chatId: settings.telegram_chat_id,
+              signalData: signalData,
+              signalType: signalType
+            }
+          });
+          if (retryError) {
+            console.error(`[Monitor] Telegram notification retry failed:`, retryError);
+          } else {
+            console.log(`[Monitor] Telegram notification sent successfully on retry for strategy ${strategyId}`);
+          }
+        } else {
+          console.log(`[Monitor] Telegram notification sent successfully for strategy ${strategyId}`);
+        }
       } catch (error) {
         console.error(`[Monitor] Failed to send Telegram notification:`, error);
       }
@@ -492,14 +543,20 @@ async function sendNotification(supabase: any, strategyId: string, signalType: s
         // Get user email
         const { data: authUser } = await supabase.auth.admin.getUserById(userId);
         if (authUser?.user?.email) {
-          await supabase.functions.invoke('send-email-notification', {
+          console.log(`[Monitor] Sending Email notification for strategy ${strategyId}`);
+          const { error: emailError } = await supabase.functions.invoke('send-email-notification', {
             body: {
               userEmail: authUser.user.email,
               signalData: signalData,
               signalType: signalType
             }
           });
-          console.log(`[Monitor] Email notification sent for strategy ${strategyId}`);
+          
+          if (emailError) {
+            console.error(`[Monitor] Email notification error:`, emailError);
+          } else {
+            console.log(`[Monitor] Email notification sent successfully for strategy ${strategyId}`);
+          }
         }
       } catch (error) {
         console.error(`[Monitor] Failed to send Email notification:`, error);

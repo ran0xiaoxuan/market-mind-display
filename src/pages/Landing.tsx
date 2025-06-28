@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -10,10 +9,8 @@ import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
 import { PricingSection } from "@/components/PricingSection";
 import { usePageTitle } from "@/hooks/usePageTitle";
-
 const Landing = () => {
   usePageTitle("StratAIge - AI-Powered Trading Strategy Platform");
-
   const features = [{
     icon: Brain,
     title: "AI-Powered Strategy Creation",
@@ -39,16 +36,7 @@ const Landing = () => {
     delay: "300ms",
     gradient: "from-orange-500 to-red-500"
   }];
-
-  const benefits = [
-    "Create unlimited AI-powered trading strategies", 
-    "Receive real-time trading signals", 
-    "Multi-platform notification delivery", 
-    "Natural language strategy description", 
-    "No coding required", 
-    "Instant strategy activation"
-  ];
-
+  const benefits = ["Create unlimited AI-powered trading strategies", "Receive real-time trading signals", "Multi-platform notification delivery", "Natural language strategy description", "No coding required", "Instant strategy activation"];
   const stats = [{
     label: "Active Strategies",
     value: "10,000+",
@@ -65,7 +53,6 @@ const Landing = () => {
     icon: Users,
     color: "text-green-600"
   }];
-
   const faqs = [{
     question: "How do I open a StratAIge account?",
     answer: "Click the 'Get Started' button and create an account. You can create a StratAIge account via Google or Email."
@@ -82,7 +69,6 @@ const Landing = () => {
     question: "How can I contact customer support for help?",
     answer: "If you have any questions or need assistance, please join our Discord community for support: https://discord.com/invite/EEEnGUwDEF"
   }];
-
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault();
     const section = document.getElementById(targetId);
@@ -111,7 +97,6 @@ const Landing = () => {
     };
     requestAnimationFrame(animateScroll);
   };
-
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
@@ -228,19 +213,7 @@ const Landing = () => {
             </div>
 
             {/* Enhanced Stats with Bright Colors */}
-            <div className="grid grid-cols-3 gap-8 pt-12 animate-fade-in" style={{
-            animationDelay: '1400ms'
-          }}>
-              {stats.map((stat, index) => <div key={stat.label} className="text-center group cursor-pointer hover:scale-105 transition-all duration-300" style={{
-              animationDelay: `${1500 + index * 100}ms`
-            }}>
-                  <div className={`${stat.color} font-bold text-2xl md:text-3xl group-hover:scale-110 transition-transform duration-200 flex items-center justify-center gap-2`}>
-                    <stat.icon className="h-6 w-6 md:h-8 md:w-8" />
-                    {stat.value}
-                  </div>
-                  <div className="text-gray-600 text-sm mt-1 group-hover:text-gray-800 transition-colors duration-200">{stat.label}</div>
-                </div>)}
-            </div>
+            
 
             {/* Enhanced Floating Action Hint */}
             <div className="pt-8 animate-fade-in" style={{

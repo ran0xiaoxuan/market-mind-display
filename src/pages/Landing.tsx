@@ -1,9 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
-import { TrendingUp, BarChart3, Brain, Shield, PlayIcon, Users, Target, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
+import { Brain, Zap, MessageSquare, Bell, Users, CheckCircle, ArrowRight, Sparkles } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
@@ -16,57 +17,55 @@ const Landing = () => {
   const features = [{
     icon: Brain,
     title: "AI-Powered Strategy Creation",
-    description: "Generate sophisticated trading strategies using advanced AI algorithms and market analysis.",
+    description: "Generate sophisticated trading strategies using advanced AI algorithms that understand your trading requirements and market preferences.",
     delay: "0ms",
     gradient: "from-blue-500 to-cyan-500"
   }, {
-    icon: PlayIcon,
-    title: "Advanced Backtesting",
-    description: "Test your strategies with real market data and optimize performance with detailed analytics.",
+    icon: Bell,
+    title: "Multi-Platform Notifications",
+    description: "Receive trading signals via Email, Discord, and Telegram to stay updated on your strategy performance wherever you are.",
     delay: "100ms",
     gradient: "from-green-500 to-emerald-500"
   }, {
-    icon: BarChart3,
-    title: "Performance Analytics",
-    description: "Track returns, Sharpe ratios, drawdowns, and other key metrics to optimize your trading.",
+    icon: MessageSquare,
+    title: "Natural Language Processing",
+    description: "Describe your trading ideas in plain English and let our AI translate them into actionable trading strategies.",
     delay: "200ms",
     gradient: "from-purple-500 to-violet-500"
   }, {
-    icon: Shield,
-    title: "Risk Management",
-    description: "Built-in risk controls and position sizing to protect your capital.",
+    icon: Zap,
+    title: "Real-Time Signal Generation",
+    description: "Get instant notifications when your AI-generated strategies identify trading opportunities in the market.",
     delay: "300ms",
     gradient: "from-orange-500 to-red-500"
-  }, {
-    icon: Target,
-    title: "Multi-Asset Support",
-    description: "Trade stocks, ETFs, and other assets with strategies tailored to market.",
-    delay: "400ms",
-    gradient: "from-teal-500 to-blue-500"
-  }, {
-    icon: Users,
-    title: "Strategy Recommendations",
-    description: "Get strategy suggestions based on market conditions.",
-    delay: "500ms",
-    gradient: "from-pink-500 to-rose-500"
   }];
-  const benefits = ["Create unlimited trading strategies", "Backtest with historical market data", "AI-powered strategy optimization", "Real-time performance monitoring", "Risk management tools", "Multi-asset trading support"];
+
+  const benefits = [
+    "Create unlimited AI-powered trading strategies", 
+    "Receive real-time trading signals", 
+    "Multi-platform notification delivery", 
+    "Natural language strategy description", 
+    "No coding required", 
+    "Instant strategy activation"
+  ];
+
   const stats = [{
     label: "Active Strategies",
     value: "10,000+",
-    icon: Target,
+    icon: Brain,
     color: "text-blue-600"
-  }, {
-    label: "Backtests Run",
-    value: "50K+",
-    icon: PlayIcon,
-    color: "text-green-600"
   }, {
     label: "Signals Sent",
     value: "1M+",
     icon: Zap,
     color: "text-yellow-600"
+  }, {
+    label: "Happy Users",
+    value: "5K+",
+    icon: Users,
+    color: "text-green-600"
   }];
+
   const faqs = [{
     question: "How do I open a StratAIge account?",
     answer: "Click the 'Get Started' button and create an account. You can create a StratAIge account via Google or Email."
@@ -83,6 +82,7 @@ const Landing = () => {
     question: "How can I contact customer support for help?",
     answer: "If you have any questions or need assistance, please join our Discord community for support: https://discord.com/invite/EEEnGUwDEF"
   }];
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault();
     const section = document.getElementById(targetId);
@@ -90,7 +90,7 @@ const Landing = () => {
     const targetPosition = section.getBoundingClientRect().top + window.pageYOffset;
     const startPosition = window.pageYOffset;
     const distance = targetPosition - startPosition;
-    const duration = 1000; // Slower scroll: 1000ms
+    const duration = 1000;
     let startTime: number | null = null;
     const easeInOutQuad = (t: number, b: number, c: number, d: number) => {
       t /= d / 2;
@@ -111,6 +111,7 @@ const Landing = () => {
     };
     requestAnimationFrame(animateScroll);
   };
+
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
@@ -191,22 +192,22 @@ const Landing = () => {
               <h1 className="text-4xl md:text-6xl font-bold leading-tight group">
                 <span style={{
                 animationDelay: '200ms'
-              }} className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500 my-0 py-[10px]">Build, Optimize and Monitor</span>
+              }} className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent animate-fade-in group-hover:scale-105 transition-all duration-500 my-0 py-[10px]">Create AI-Powered</span>
                 <span style={{
                 animationDelay: '400ms'
-              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">Excellent Trading Strategies with AI</span>
+              }} className="block animate-fade-in group-hover:scale-105 transition-transform duration-500 text-gray-900 py-[5px]">Trading Strategies in Seconds</span>
               </h1>
               
               {/* Enhanced Description */}
               <p style={{
               animationDelay: '600ms'
             }} className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300 my-[20px]">
-                Create, backtest, and optimize trading strategies using advanced AI algorithms. 
+                Describe your trading ideas in plain English and get AI-generated strategies with real-time notifications.
                 <br className="hidden md:block" />
                 <span className="animate-fade-in inline-block" style={{
                 animationDelay: '800ms'
               }}>
-                  Turn market data into profitable trading decisions with StratAlge.
+                  No coding required, just smart trading made simple.
                 </span>
               </p>
             </div>
@@ -218,19 +219,28 @@ const Landing = () => {
               <Link to="/signup">
                 <Button size="lg" className="px-8 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl group relative overflow-hidden">
                   <span className="relative z-10 flex items-center">
-                    Start Building Strategies
+                    Start Creating Strategies
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-300" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
                 </Button>
               </Link>
-              <Link to="/login">
-                
-              </Link>
             </div>
 
             {/* Enhanced Stats with Bright Colors */}
-            
+            <div className="grid grid-cols-3 gap-8 pt-12 animate-fade-in" style={{
+            animationDelay: '1400ms'
+          }}>
+              {stats.map((stat, index) => <div key={stat.label} className="text-center group cursor-pointer hover:scale-105 transition-all duration-300" style={{
+              animationDelay: `${1500 + index * 100}ms`
+            }}>
+                  <div className={`${stat.color} font-bold text-2xl md:text-3xl group-hover:scale-110 transition-transform duration-200 flex items-center justify-center gap-2`}>
+                    <stat.icon className="h-6 w-6 md:h-8 md:w-8" />
+                    {stat.value}
+                  </div>
+                  <div className="text-gray-600 text-sm mt-1 group-hover:text-gray-800 transition-colors duration-200">{stat.label}</div>
+                </div>)}
+            </div>
 
             {/* Enhanced Floating Action Hint */}
             <div className="pt-8 animate-fade-in" style={{
@@ -255,17 +265,16 @@ const Landing = () => {
         
         <Container className="relative z-10">
           <div className="text-center mb-16 animate-fade-in">
-            
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              Everything You Need to Trade Successfully
+              Everything You Need for AI-Powered Trading
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From AI-powered strategy creation to advanced backtesting, 
-              we provide all the tools you need to build profitable trading strategies.
+              From natural language strategy creation to multi-platform notifications, 
+              we provide all the tools you need to build and monitor trading strategies.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             {features.map((feature, index) => <Card key={index} className="border-0 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-fade-in hover:scale-105 bg-white/80 backdrop-blur" style={{
             animationDelay: feature.delay
           }}>
@@ -292,28 +301,28 @@ const Landing = () => {
         <Container>
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              How StratAlge Works
+              How StratAIge Works
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Three simple steps to start building profitable trading strategies
+              Three simple steps to start creating AI-powered trading strategies
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[{
             step: 1,
-            title: "Create Your Strategy",
-            description: "Use our AI-powered tools or build custom strategies with technical indicators and trading rules.",
+            title: "Describe Your Strategy",
+            description: "Tell our AI what kind of trading strategy you want using plain English. No technical knowledge required.",
             color: "from-blue-500 to-cyan-500"
           }, {
             step: 2,
-            title: "Backtest & Optimize",
-            description: "Test your strategies against historical data and optimize parameters for better performance.",
+            title: "AI Creates Your Strategy",
+            description: "Our advanced AI processes your requirements and generates a sophisticated trading strategy tailored to your needs.",
             color: "from-green-500 to-emerald-500"
           }, {
             step: 3,
-            title: "Deploy & Monitor",
-            description: "Monitor your strategies' performance in real-time and make data-driven adjustments.",
+            title: "Receive Real-Time Signals",
+            description: "Get instant notifications via Email, Discord, or Telegram when your strategy identifies trading opportunities.",
             color: "from-purple-500 to-violet-500"
           }].map((item, index) => <div key={item.step} className="text-center space-y-4 group animate-fade-in hover:scale-105 transition-all duration-300" style={{
             animationDelay: `${index * 200}ms`
@@ -322,7 +331,6 @@ const Landing = () => {
                   <div className={`w-16 h-16 bg-gradient-to-br ${item.color} text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                     {item.step}
                   </div>
-                  {index < 2}
                 </div>
                 <h3 className="text-xl font-semibold group-hover:text-blue-600 transition-colors duration-200 text-gray-900">
                   {item.title}
@@ -343,9 +351,9 @@ const Landing = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-in">
               <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-                Why Choose StratAlge?
+                Why Choose StratAIge?
               </h2>
-              <p className="text-lg text-gray-600 mb-8">Join us using StratAlge to build and optimize trading strategies with cutting-edge AI technology.</p>
+              <p className="text-lg text-gray-600 mb-8">Join thousands of traders using StratAIge to create and monitor AI-powered trading strategies with cutting-edge technology.</p>
               
               <div className="space-y-4">
                 {benefits.map((benefit, index) => <div key={index} className="flex items-center gap-3 group animate-fade-in hover:translate-x-2 transition-all duration-300" style={{
@@ -378,33 +386,33 @@ const Landing = () => {
                   animationDelay: '400ms'
                 }}>
                     <div className="p-2 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100">
-                      <TrendingUp className="h-8 w-8 text-green-600" />
+                      <Bell className="h-8 w-8 text-green-600" />
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">RSI Strategy</div>
-                      <div className="text-sm text-gray-500">Active • AAPL</div>
+                      <div className="font-semibold text-gray-900">AI Strategy Alert</div>
+                      <div className="text-sm text-gray-500">Active • AAPL Signal</div>
                     </div>
-                    <div className="ml-auto text-green-600 font-semibold text-xl animate-pulse">+12.5%</div>
+                    <div className="ml-auto text-green-600 font-semibold text-xl animate-pulse">BUY</div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {[{
-                    label: "Sharpe Ratio",
-                    value: "1.85"
+                    label: "Signal Type",
+                    value: "Long Entry"
                   }, {
-                    label: "Max Drawdown",
-                    value: "-4.1%"
+                    label: "Confidence",
+                    value: "High"
                   }, {
-                    label: "Win Rate",
-                    value: "68%"
+                    label: "Notification",
+                    value: "Email + Discord"
                   }, {
-                    label: "Total Trades",
-                    value: "156"
+                    label: "Time",
+                    value: "2 min ago"
                   }].map((metric, index) => <div key={metric.label} className="animate-fade-in hover:scale-105 transition-all duration-200 p-2 rounded-lg hover:bg-blue-50/50" style={{
                     animationDelay: `${600 + index * 100}ms`
                   }}>
                         <div className="text-gray-500">{metric.label}</div>
-                        <div className={`font-semibold text-lg ${metric.value.startsWith('-') ? 'text-red-600' : 'text-gray-900'}`}>{metric.value}</div>
+                        <div className="font-semibold text-lg text-gray-900">{metric.value}</div>
                       </div>)}
                   </div>
                 </div>
@@ -422,14 +430,14 @@ const Landing = () => {
               What Our Users Say
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Don't just take our word for it – here's what our users think about StratAlge.
+              Don't just take our word for it – here's what our users think about StratAIge.
             </p>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
             <div className="bg-white rounded-xl shadow-lg py-8 px-6 flex flex-col items-center animate-fade-in">
               <img src="/lovable-uploads/b0c24627-b719-457c-bdd7-e5a78effba37.png" alt="Thomas Brown testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-blue-400" />
               <div className="font-semibold text-gray-900 mb-2">Thomas Brown</div>
-              <div className="text-gray-600 text-center mb-2">"As someone without a coding background, StratAIge's no-code platform has been a game-changer. I can easily turn my trading ideas into strategies without any technical hurdles. It's incredibly user-friendly!"</div>
+              <div className="text-gray-600 text-center mb-2">"As someone without a coding background, StratAIge's AI-powered platform has been a game-changer. I can easily turn my trading ideas into strategies without any technical hurdles. It's incredibly user-friendly!"</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -443,7 +451,7 @@ const Landing = () => {
           }}>
               <img src="/lovable-uploads/efffc395-e026-4d17-a2bd-bc05cf2b3235.png" alt="Daniel Kim testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-green-400" />
               <div className="font-semibold text-gray-900 mb-2">Daniel Kim</div>
-              <div className="text-gray-600 text-center mb-2">"Running a business leaves me little time for trading. StratAIge's efficiency is remarkable—it executes strategies quickly and lets me manage trading alongside my daily tasks without stress."</div>
+              <div className="text-gray-600 text-center mb-2">"Running a business leaves me little time for trading. StratAIge's efficiency is remarkable—it creates strategies quickly and sends me notifications so I can manage trading alongside my daily tasks without stress."</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>
@@ -457,7 +465,7 @@ const Landing = () => {
           }}>
               <img src="/lovable-uploads/e1ba2654-83c2-4e67-b3b6-822ae2901951.png" alt="Maria Rodriguez testimonial" className="w-16 h-16 rounded-full object-cover mb-4 ring-2 ring-cyan-400" />
               <div className="font-semibold text-gray-900 mb-2">Maria Rodriguez</div>
-              <div className="text-gray-600 text-center mb-2">"The backtesting tools in StratAIge are top-notch. They provide detailed, accurate performance insights that boost my confidence in every strategy. It's a rigorous yet efficient way to refine my trading."</div>
+              <div className="text-gray-600 text-center mb-2">"The AI-powered strategy creation in StratAIge is top-notch. It provides detailed, accurate strategies that boost my confidence in every trade. It's a smart and efficient way to enhance my trading."</div>
               <div className="flex gap-1 mt-2">
                 <span className="text-yellow-400">&#9733;</span>
                 <span className="text-yellow-400">&#9733;</span>

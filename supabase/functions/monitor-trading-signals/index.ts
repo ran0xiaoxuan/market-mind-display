@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -5,73 +6,326 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Timeframe configuration for evaluation intervals
-const TIMEFRAME_CONFIG = {
-  '1m': { intervalMinutes: 1, name: '1 minute' },
-  '5m': { intervalMinutes: 5, name: '5 minutes' },
-  '15m': { intervalMinutes: 15, name: '15 minutes' },
-  '30m': { intervalMinutes: 30, name: '30 minutes' },
-  '1h': { intervalMinutes: 60, name: '1 hour' },
-  '4h': { intervalMinutes: 240, name: '4 hours' },
-  'Daily': { intervalMinutes: 1440, name: 'Daily' },
-  'Weekly': { intervalMinutes: 10080, name: 'Weekly' },
-  'Monthly': { intervalMinutes: 43200, name: 'Monthly' }
-};
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-// Check if market is open with proper timezone handling
-function isMarketOpen(): boolean {
-  const now = new Date();
-  
-  // Convert to Eastern Time (market timezone)
-  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-  const utcDay = easternTime.getUTCDay();
-  const easternHour = easternTime.getHours();
-  const easternMinutes = easternTime.getMinutes();
-  
-  console.log(`Market check - Eastern Time: ${easternTime.toLocaleString()}, Hour: ${easternHour}, Minutes: ${easternMinutes}`);
-  
-  // Market is open Monday-Friday, 9:30 AM - 4:00 PM Eastern Time
-  const isWeekday = utcDay >= 1 && utcDay <= 5;
-  const timeInMinutes = easternHour * 60 + easternMinutes;
-  const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM
-  const marketCloseMinutes = 16 * 60; // 4:00 PM
-  
-  const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
-  
-  console.log(`Market status - Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Time in minutes: ${timeInMinutes}`);
-  
-  return isWeekday && isMarketHours;
+  console.log('=== Trading Signal Monitor Started ===');
+  console.log('Request method:', req.method);
+  console.log('Current time:', new Date().toISOString());
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const body = await req.json().catch(() => ({}));
+    const { manual = false, timeframes = [], source = 'cron_job' } = body;
+
+    console.log(`[Monitor] Signal monitoring triggered by: ${source}, timeframes: ${timeframes.length > 0 ? timeframes.join(',') : 'all'}`);
+
+    // Check market status
+    console.log('[Monitor] Checking market status...');
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    console.log(`Market check - Eastern Time: ${easternTime.toLocaleString()}, Hour: ${easternTime.getHours()}, Minutes: ${easternTime.getMinutes()}`);
+    
+    const dayOfWeek = easternTime.getDay();
+    const hour = easternTime.getHours();
+    const minute = easternTime.getMinutes();
+    const timeInMinutes = hour * 60 + minute;
+    
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+    const isMarketHours = timeInMinutes >= 570 && timeInMinutes < 960; // 9:30 AM to 4:00 PM EST
+    
+    console.log(`Market status - Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Time in minutes: ${timeInMinutes}`);
+
+    // Get ALL active strategies regardless of market hours for debugging
+    console.log('[Monitor] Fetching ALL active strategies for analysis...');
+    const { data: allStrategies, error: strategiesError } = await supabase
+      .from('strategies')
+      .select(`
+        id,
+        name,
+        user_id,
+        target_asset,
+        timeframe,
+        is_active,
+        created_at,
+        updated_at
+      `)
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false });
+
+    if (strategiesError) {
+      console.error('[Monitor] Error fetching strategies:', strategiesError);
+      throw strategiesError;
+    }
+
+    console.log(`[Monitor] Found ${allStrategies?.length || 0} active strategies total`);
+    
+    // Log each strategy for debugging
+    if (allStrategies) {
+      for (const strategy of allStrategies) {
+        console.log(`[Strategy Debug] ID: ${strategy.id}, Name: "${strategy.name}", Asset: ${strategy.target_asset}, Timeframe: ${strategy.timeframe}, User: ${strategy.user_id}`);
+        
+        // Check if this strategy has evaluation records
+        const { data: evalData } = await supabase
+          .from('strategy_evaluations')
+          .select('*')
+          .eq('strategy_id', strategy.id)
+          .single();
+        
+        console.log(`[Strategy Debug] Evaluation record exists: ${!!evalData}, Last evaluated: ${evalData?.last_evaluated_at || 'Never'}, Next due: ${evalData?.next_evaluation_due || 'Not set'}`);
+        
+        // Check if this strategy has rule groups
+        const { data: ruleGroups } = await supabase
+          .from('rule_groups')
+          .select('id, rule_type, logic')
+          .eq('strategy_id', strategy.id);
+        
+        console.log(`[Strategy Debug] Rule groups: ${ruleGroups?.length || 0}`);
+        
+        if (ruleGroups) {
+          for (const group of ruleGroups) {
+            const { data: rules } = await supabase
+              .from('trading_rules')
+              .select('id, left_type, left_indicator, condition, right_type, right_value')
+              .eq('rule_group_id', group.id);
+            
+            console.log(`[Strategy Debug] Group ${group.id} (${group.rule_type}): ${rules?.length || 0} rules`);
+          }
+        }
+      }
+    }
+
+    if (!manual && (!isWeekday || !isMarketHours)) {
+      // Special handling for daily/weekly/monthly strategies during market close
+      const isMarketCloseWindow = hour === 16 && minute >= 0 && minute < 5; // 4:00-4:05 PM ET
+      const isFridayClose = dayOfWeek === 5 && isMarketCloseWindow;
+      
+      if (!isMarketCloseWindow && !isFridayClose) {
+        console.log('[Monitor] Market is closed and not a special evaluation time - no signal monitoring needed');
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Market closed - no monitoring needed',
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Get strategies that need evaluation
+    const strategiesForEvaluation = await getStrategiesForEvaluation(supabase, timeframes, manual);
+    console.log(`[Monitor] Strategies selected for evaluation: ${strategiesForEvaluation.length}`);
+
+    if (strategiesForEvaluation.length === 0) {
+      console.log('[Monitor] No strategies need evaluation at this time');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'No strategies due for evaluation',
+          timestamp: new Date().toISOString(),
+          totalStrategies: allStrategies?.length || 0,
+          strategiesEvaluated: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Process each strategy
+    let evaluatedCount = 0;
+    let signalsGenerated = 0;
+    const results = [];
+
+    for (const strategy of strategiesForEvaluation) {
+      try {
+        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id})`);
+        
+        const result = await evaluateStrategy(supabase, strategy);
+        results.push(result);
+        evaluatedCount++;
+        
+        if (result.signalGenerated) {
+          signalsGenerated++;
+          console.log(`[Monitor] ✅ Signal generated for strategy: ${strategy.name}`);
+        } else {
+          console.log(`[Monitor] ❌ No signal for strategy: ${strategy.name} - ${result.reason}`);
+        }
+
+        // Update strategy evaluation record
+        await updateStrategyEvaluation(supabase, strategy);
+        
+        // Small delay between API calls to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        console.error(`[Monitor] Error processing strategy ${strategy.name}:`, error);
+        results.push({
+          strategyId: strategy.id,
+          strategyName: strategy.name,
+          signalGenerated: false,
+          error: error.message,
+          reason: 'Processing error'
+        });
+      }
+    }
+
+    console.log(`[Monitor] Evaluation complete - Processed: ${evaluatedCount}, Signals: ${signalsGenerated}`);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: `Evaluated ${evaluatedCount} strategies, generated ${signalsGenerated} signals`,
+        timestamp: new Date().toISOString(),
+        totalStrategies: allStrategies?.length || 0,
+        strategiesEvaluated: evaluatedCount,
+        signalsGenerated,
+        results
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Monitor] Error in signal monitoring:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
+
+async function getStrategiesForEvaluation(supabase: any, specificTimeframes: string[] = [], manual: boolean = false) {
+  try {
+    console.log('[Monitor] Getting strategies for evaluation...');
+    
+    // Get all active strategies with their evaluation data
+    let query = supabase
+      .from('strategies')
+      .select(`
+        id,
+        name,
+        user_id,
+        target_asset,
+        timeframe,
+        is_active,
+        strategy_evaluations!left (
+          last_evaluated_at,
+          next_evaluation_due,
+          evaluation_count
+        )
+      `)
+      .eq('is_active', true);
+
+    if (specificTimeframes.length > 0) {
+      query = query.in('timeframe', specificTimeframes);
+    }
+
+    const { data: strategies, error } = await query;
+
+    if (error) {
+      console.error('[Monitor] Error fetching strategies:', error);
+      throw error;
+    }
+
+    if (!strategies || strategies.length === 0) {
+      console.log('[Monitor] No active strategies found');
+      return [];
+    }
+
+    console.log(`[Monitor] Found ${strategies.length} active strategies, filtering for evaluation...`);
+
+    const strategiesForEvaluation = [];
+    const now = new Date();
+
+    for (const strategy of strategies) {
+      const evaluation = strategy.strategy_evaluations?.[0];
+      
+      console.log(`[Monitor] Checking strategy "${strategy.name}" (${strategy.timeframe})`);
+      console.log(`[Monitor] Last evaluated: ${evaluation?.last_evaluated_at || 'Never'}`);
+      console.log(`[Monitor] Next due: ${evaluation?.next_evaluation_due || 'Not set'}`);
+      console.log(`[Monitor] Manual trigger: ${manual}`);
+
+      if (manual) {
+        console.log(`[Monitor] ✅ Including strategy "${strategy.name}" - manual trigger`);
+        strategiesForEvaluation.push(strategy);
+        continue;
+      }
+
+      // Check if strategy should be evaluated based on timeframe
+      const shouldEvaluate = shouldEvaluateStrategy(
+        strategy.timeframe,
+        evaluation?.last_evaluated_at ? new Date(evaluation.last_evaluated_at) : null,
+        evaluation?.next_evaluation_due ? new Date(evaluation.next_evaluation_due) : null
+      );
+
+      if (shouldEvaluate) {
+        console.log(`[Monitor] ✅ Including strategy "${strategy.name}" - due for evaluation`);
+        strategiesForEvaluation.push(strategy);
+      } else {
+        console.log(`[Monitor] ⏭️ Skipping strategy "${strategy.name}" - not due yet`);
+      }
+    }
+
+    console.log(`[Monitor] Selected ${strategiesForEvaluation.length} strategies for evaluation`);
+    return strategiesForEvaluation;
+
+  } catch (error) {
+    console.error('[Monitor] Error in getStrategiesForEvaluation:', error);
+    throw error;
+  }
 }
 
-// Check if it's market close time (for daily strategies)
-function isMarketCloseTime(): boolean {
+function shouldEvaluateStrategy(
+  timeframe: string,
+  lastEvaluated: Date | null,
+  nextDue: Date | null
+): boolean {
   const now = new Date();
   const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-  const easternHour = easternTime.getHours();
-  const easternMinutes = easternTime.getMinutes();
   
-  // Market closes at 4:00 PM ET (16:00)
-  return easternHour === 16 && easternMinutes >= 0 && easternMinutes < 5; // 5-minute window
-}
-
-// Helper function to check if it's the last trading day of the month
-function isLastTradingDayOfMonth(date: Date): boolean {
-  const year = date.getFullYear();
-  const month = date.getMonth();
+  console.log(`[Evaluation Check] Timeframe: ${timeframe}, Now: ${easternTime.toISOString()}`);
   
-  // Get last day of current month
-  const lastDay = new Date(year, month + 1, 0);
-  
-  // Find last weekday of the month
-  while (lastDay.getDay() === 0 || lastDay.getDay() === 6) {
-    lastDay.setDate(lastDay.getDate() - 1);
+  // If never evaluated, evaluate now
+  if (!lastEvaluated) {
+    console.log('[Evaluation Check] Never evaluated - should evaluate');
+    return true;
   }
   
-  return date.getDate() === lastDay.getDate();
+  // If we have a next due date and it's past due, evaluate
+  if (nextDue && now >= nextDue) {
+    console.log('[Evaluation Check] Past due date - should evaluate');
+    return true;
+  }
+  
+  // If no next due date, calculate based on timeframe and last evaluation
+  if (!nextDue) {
+    const nextEvalTime = getNextEvaluationTime(timeframe, lastEvaluated);
+    console.log(`[Evaluation Check] Calculated next eval time: ${nextEvalTime.toISOString()}`);
+    
+    if (now >= nextEvalTime) {
+      console.log('[Evaluation Check] Past calculated time - should evaluate');
+      return true;
+    }
+  }
+  
+  console.log('[Evaluation Check] Not due for evaluation');
+  return false;
 }
 
-// Calculate next evaluation time based on timeframe
-function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date {
+function getNextEvaluationTime(timeframe: string, currentTime: Date = new Date()): Date {
   const easternTime = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
   const nextEval = new Date(easternTime);
   
@@ -82,28 +336,26 @@ function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date
     case '5m':
       const next5Min = Math.ceil(nextEval.getMinutes() / 5) * 5;
       nextEval.setMinutes(next5Min);
-      nextEval.setSeconds(0);
+      nextEval.setSeconds(0, 0);
       break;
     case '15m':
       const next15Min = Math.ceil(nextEval.getMinutes() / 15) * 15;
       nextEval.setMinutes(next15Min);
-      nextEval.setSeconds(0);
+      nextEval.setSeconds(0, 0);
       break;
     case '30m':
       const next30Min = Math.ceil(nextEval.getMinutes() / 30) * 30;
       nextEval.setMinutes(next30Min);
-      nextEval.setSeconds(0);
+      nextEval.setSeconds(0, 0);
       break;
     case '1h':
       nextEval.setHours(nextEval.getHours() + 1);
-      nextEval.setMinutes(0);
-      nextEval.setSeconds(0);
+      nextEval.setMinutes(0, 0, 0);
       break;
     case '4h':
       const next4Hour = Math.ceil(nextEval.getHours() / 4) * 4;
       nextEval.setHours(next4Hour);
-      nextEval.setMinutes(0);
-      nextEval.setSeconds(0);
+      nextEval.setMinutes(0, 0, 0);
       break;
     case 'Daily':
       // Next trading day at 4:00 PM ET
@@ -138,303 +390,11 @@ function calculateNextEvaluationTime(timeframe: string, currentTime: Date): Date
   return nextEval;
 }
 
-// Check if strategy should be evaluated based on timeframe and timing
-function shouldEvaluateStrategy(timeframe: string, lastEvaluated: Date | null, nextDue: Date | null): boolean {
-  const now = new Date();
+async function evaluateStrategy(supabase: any, strategy: any) {
+  console.log(`[Evaluation] Starting evaluation for strategy: ${strategy.name}`);
   
-  console.log(`[Monitor] Checking if strategy should be evaluated - Timeframe: ${timeframe}, Last: ${lastEvaluated?.toISOString()}, Next Due: ${nextDue?.toISOString()}, Now: ${now.toISOString()}`);
-  
-  // If never evaluated, evaluate now only if it's the right time for this timeframe
-  if (!lastEvaluated || !nextDue) {
-    console.log(`[Monitor] Strategy never evaluated, checking if it's time for ${timeframe} evaluation`);
-    
-    // For daily strategies, only evaluate at market close
-    if (timeframe === 'Daily') {
-      const shouldEvaluate = isMarketCloseTime();
-      console.log(`[Monitor] Daily strategy - Market close time: ${shouldEvaluate}`);
-      return shouldEvaluate;
-    }
-    
-    // For weekly strategies, only evaluate on Friday at market close
-    if (timeframe === 'Weekly') {
-      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      const shouldEvaluate = easternTime.getDay() === 5 && isMarketCloseTime();
-      console.log(`[Monitor] Weekly strategy - Friday market close: ${shouldEvaluate}`);
-      return shouldEvaluate;
-    }
-    
-    // For monthly strategies, only evaluate on last trading day at market close
-    if (timeframe === 'Monthly') {
-      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      const isLastTradingDay = isLastTradingDayOfMonth(easternTime);
-      const shouldEvaluate = isLastTradingDay && isMarketCloseTime();
-      console.log(`[Monitor] Monthly strategy - Last trading day market close: ${shouldEvaluate}`);
-      return shouldEvaluate;
-    }
-    
-    // For intraday strategies, evaluate if market is open
-    const shouldEvaluate = isMarketOpen();
-    console.log(`[Monitor] Intraday strategy (${timeframe}) - Market open: ${shouldEvaluate}`);
-    return shouldEvaluate;
-  }
-  
-  // Check if it's time for next evaluation
-  if (now >= nextDue) {
-    console.log(`[Monitor] Strategy is due for evaluation (now >= nextDue)`);
-    
-    // For daily strategies, only evaluate at market close
-    if (timeframe === 'Daily') {
-      const shouldEvaluate = isMarketCloseTime();
-      console.log(`[Monitor] Daily strategy due - Market close time: ${shouldEvaluate}`);
-      return shouldEvaluate;
-    }
-    
-    // For weekly strategies, only evaluate on Friday at market close
-    if (timeframe === 'Weekly') {
-      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      const shouldEvaluate = easternTime.getDay() === 5 && isMarketCloseTime();
-      console.log(`[Monitor] Weekly strategy due - Friday market close: ${shouldEvaluate}`);
-      return shouldEvaluate;
-    }
-    
-    // For monthly strategies, only evaluate on last trading day at market close
-    if (timeframe === 'Monthly') {
-      const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      const isLastTradingDay = isLastTradingDayOfMonth(easternTime);
-      const shouldEvaluate = isLastTradingDay && isMarketCloseTime();
-      console.log(`[Monitor] Monthly strategy due - Last trading day market close: ${shouldEvaluate}`);
-      return shouldEvaluate;
-    }
-    
-    // For intraday strategies, evaluate if market is open
-    const shouldEvaluate = isMarketOpen();
-    console.log(`[Monitor] Intraday strategy (${timeframe}) due - Market open: ${shouldEvaluate}`);
-    return shouldEvaluate;
-  }
-  
-  console.log(`[Monitor] Strategy not due for evaluation yet`);
-  return false;
-}
-
-// Get strategies that need evaluation based on timeframe - FIXED LOGIC
-async function getStrategiesForEvaluation(supabase: any, requestedTimeframes?: string[]) {
   try {
-    console.log(`[Monitor] Fetching strategies for evaluation, requested timeframes: ${requestedTimeframes?.join(', ') || 'all'}`);
-    
-    let query = supabase
-      .from('strategies')
-      .select(`
-        id,
-        name,
-        target_asset,
-        user_id,
-        is_active,
-        timeframe,
-        strategy_evaluations!inner (
-          last_evaluated_at,
-          next_evaluation_due,
-          evaluation_count
-        )
-      `)
-      .eq('is_active', true);
-    
-    // Filter by specific timeframes if provided
-    if (requestedTimeframes && requestedTimeframes.length > 0) {
-      query = query.in('timeframe', requestedTimeframes);
-    }
-    
-    const { data: strategies, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('[Monitor] Error fetching strategies:', error);
-      return [];
-    }
-    
-    console.log(`[Monitor] Found ${strategies?.length || 0} active strategies total`);
-    
-    // CRITICAL: Filter strategies that actually need evaluation based on their timeframe
-    const strategiesForEvaluation = strategies?.filter(strategy => {
-      const evaluation = strategy.strategy_evaluations?.[0];
-      const lastEvaluated = evaluation?.last_evaluated_at ? new Date(evaluation.last_evaluated_at) : null;
-      const nextDue = evaluation?.next_evaluation_due ? new Date(evaluation.next_evaluation_due) : null;
-      
-      const shouldEvaluate = shouldEvaluateStrategy(strategy.timeframe, lastEvaluated, nextDue);
-      
-      console.log(`[Monitor] Strategy ${strategy.id} (${strategy.name}) - Timeframe: ${strategy.timeframe}, Should evaluate: ${shouldEvaluate}`);
-      
-      return shouldEvaluate;
-    }) || [];
-    
-    console.log(`[Monitor] Found ${strategiesForEvaluation.length} strategies needing evaluation out of ${strategies?.length || 0} total active strategies`);
-    
-    return strategiesForEvaluation;
-  } catch (error) {
-    console.error('[Monitor] Error in getStrategiesForEvaluation:', error);
-    return [];
-  }
-}
-
-// Update strategy evaluation record with proper next evaluation time - FIXED
-async function updateStrategyEvaluation(supabase: any, strategyId: string, timeframe: string) {
-  try {
-    const now = new Date();
-    const nextEvaluation = calculateNextEvaluationTime(timeframe, now);
-    
-    console.log(`[Monitor] Updating evaluation record for strategy ${strategyId}, timeframe: ${timeframe}, next due: ${nextEvaluation.toISOString()}`);
-    
-    // First, try to update existing record
-    const { data: existingRecord, error: fetchError } = await supabase
-      .from('strategy_evaluations')
-      .select('evaluation_count')
-      .eq('strategy_id', strategyId)
-      .single();
-    
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error(`[Monitor] Error fetching existing evaluation record for strategy ${strategyId}:`, fetchError);
-      return;
-    }
-    
-    const currentCount = existingRecord?.evaluation_count || 0;
-    
-    const { error } = await supabase
-      .from('strategy_evaluations')
-      .upsert({
-        strategy_id: strategyId,
-        timeframe: timeframe,
-        last_evaluated_at: now.toISOString(),
-        next_evaluation_due: nextEvaluation.toISOString(),
-        evaluation_count: currentCount + 1
-      }, {
-        onConflict: 'strategy_id'
-      });
-    
-    if (error) {
-      console.error(`[Monitor] Error updating evaluation record for strategy ${strategyId}:`, error);
-    } else {
-      console.log(`[Monitor] Updated evaluation record for strategy ${strategyId}, next due: ${nextEvaluation.toISOString()}`);
-    }
-  } catch (error) {
-    console.error(`[Monitor] Error in updateStrategyEvaluation for strategy ${strategyId}:`, error);
-  }
-}
-
-// Get real market data from FMP API - ONLY REAL DATA
-async function getRealMarketData(symbol: string, fmpApiKey: string) {
-  try {
-    console.log(`[Monitor] Fetching real market data for ${symbol}`);
-    
-    // Get current quote
-    const quoteResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'TradingApp/1.0'
-        }
-      }
-    );
-    
-    if (!quoteResponse.ok) {
-      if (quoteResponse.status === 429) {
-        throw new Error('FMP API rate limit reached');
-      } else if (quoteResponse.status === 401 || quoteResponse.status === 403) {
-        throw new Error('FMP API authentication failed');
-      }
-      throw new Error(`Quote API error: ${quoteResponse.status}`);
-    }
-    
-    const quotes = await quoteResponse.json();
-    if (!Array.isArray(quotes) || quotes.length === 0) {
-      throw new Error(`No quote data found for ${symbol}`);
-    }
-    
-    const quote = quotes[0];
-    const currentPrice = quote.price || 0;
-    
-    if (currentPrice === 0) {
-      throw new Error(`Invalid price data for ${symbol}`);
-    }
-    
-    // Get technical indicators (RSI) from FMP - REQUIRED
-    console.log(`[Monitor] Fetching RSI data for ${symbol}...`);
-    const rsiResponse = await fetch(
-      `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${fmpApiKey}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'TradingApp/1.0'
-        }
-      }
-    );
-    
-    if (!rsiResponse.ok) {
-      throw new Error(`RSI API error: ${rsiResponse.status}`);
-    }
-    
-    const rsiData = await rsiResponse.json();
-    if (!Array.isArray(rsiData) || rsiData.length === 0) {
-      throw new Error(`No RSI data found for ${symbol}`);
-    }
-    
-    const rsiValue = rsiData[0].rsi;
-    if (rsiValue === null || rsiValue === undefined) {
-      throw new Error(`Invalid RSI data for ${symbol}`);
-    }
-    
-    console.log(`[Monitor] Real market data for ${symbol}:`, {
-      price: currentPrice,
-      rsi: rsiValue,
-      change: quote.change,
-      changePercent: quote.changesPercentage
-    });
-    
-    return {
-      price: currentPrice,
-      change: quote.change || 0,
-      changePercent: quote.changesPercentage || 0,
-      rsi: rsiValue,
-      timestamp: new Date().toISOString(),
-      volume: quote.volume || 0
-    };
-    
-  } catch (error) {
-    console.error(`[Monitor] Error fetching real market data for ${symbol}:`, error);
-    throw error;
-  }
-}
-
-// Enhanced strategy evaluation - ONLY REAL DATA
-async function evaluateStrategy(supabase: any, strategyId: string, strategy: any) {
-  try {
-    console.log(`[Monitor] Evaluating strategy ${strategyId}: ${strategy.name} for ${strategy.target_asset} (${strategy.timeframe})`);
-    
-    // Update evaluation record first
-    await updateStrategyEvaluation(supabase, strategyId, strategy.timeframe);
-    
-    // Get FMP API key - REQUIRED
-    const { data: keyData, error: keyError } = await supabase.functions.invoke('get-fmp-key', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    if (keyError) {
-      console.error(`[Monitor] Error getting FMP API key for strategy ${strategyId}:`, keyError);
-      return 0;
-    }
-    
-    if (!keyData?.key) {
-      console.error(`[Monitor] No FMP API key available for strategy ${strategyId}, cannot generate signals`);
-      return 0;
-    }
-    
-    const fmpApiKey = keyData.key;
-    console.log(`[Monitor] Successfully retrieved FMP API key for strategy ${strategyId}`);
-    
-    // Get trading rules for this strategy
+    // Get rule groups for this strategy
     const { data: ruleGroups, error: rulesError } = await supabase
       .from('rule_groups')
       .select(`
@@ -454,244 +414,250 @@ async function evaluateStrategy(supabase: any, strategyId: string, strategy: any
           explanation
         )
       `)
-      .eq('strategy_id', strategyId)
+      .eq('strategy_id', strategy.id)
       .order('group_order');
 
     if (rulesError || !ruleGroups || ruleGroups.length === 0) {
-      console.log(`[Monitor] No trading rules found for strategy ${strategyId}`);
-      return 0;
+      console.log(`[Evaluation] No trading rules found for strategy ${strategy.name}`);
+      return {
+        strategyId: strategy.id,
+        strategyName: strategy.name,
+        signalGenerated: false,
+        reason: 'No trading rules configured'
+      };
     }
-    
-    console.log(`[Monitor] Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
-    
-    // Get ONLY real market data - NO FALLBACK
-    let marketData;
+
+    console.log(`[Evaluation] Found ${ruleGroups.length} rule groups for strategy ${strategy.name}`);
+
+    // Get real market data
+    let priceData;
+    let indicators = {};
+
     try {
-      marketData = await getRealMarketData(strategy.target_asset, fmpApiKey);
-      console.log(`[Monitor] Successfully fetched real market data for ${strategy.target_asset}`);
+      priceData = await getRealMarketData(supabase, strategy.target_asset);
+      if (!priceData || priceData.price === 0) {
+        console.error(`[Evaluation] No price data available for ${strategy.target_asset}`);
+        return {
+          strategyId: strategy.id,
+          strategyName: strategy.name,
+          signalGenerated: false,
+          reason: 'No price data available'
+        };
+      }
+
+      indicators = await getRealTechnicalIndicators(supabase, strategy.target_asset);
+      if (!indicators || Object.keys(indicators).length === 0) {
+        console.error(`[Evaluation] No technical indicators available for ${strategy.target_asset}`);
+        return {
+          strategyId: strategy.id,
+          strategyName: strategy.name,
+          signalGenerated: false,
+          reason: 'No technical indicators available'
+        };
+      }
+
+      console.log(`[Evaluation] Market data for ${strategy.target_asset}: Price $${priceData.price}, RSI: ${indicators.rsi}`);
+
     } catch (error) {
-      console.error(`[Monitor] Failed to get real market data for ${strategy.target_asset}:`, error);
-      console.error(`[Monitor] Cannot generate signals without real market data for strategy ${strategyId}`);
-      return 0;
-    }
-    
-    // Get user profile to check Pro status
-    const { data: user } = await supabase
-      .from('strategies')
-      .select('user_id')
-      .eq('id', strategyId)
-      .single();
-
-    if (!user) {
-      console.error(`[Monitor] No user found for strategy ${strategyId}`);
-      return 0;
+      console.error(`[Evaluation] Failed to get market data for ${strategy.target_asset}:`, error);
+      return {
+        strategyId: strategy.id,
+        strategyName: strategy.name,
+        signalGenerated: false,
+        reason: `Market data error: ${error.message}`
+      };
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.user_id)
-      .single();
+    const currentPrice = priceData.price;
 
-    const isPro = profile?.subscription_tier === 'pro';
-    console.log(`[Monitor] User ${user.user_id} Pro status: ${isPro} (subscription_tier: ${profile?.subscription_tier})`);
-    
-    // Proceed with signal generation using real data
-    const indicators = {
-      rsi: marketData.rsi,
-      price: marketData.price,
-      volume: marketData.volume
-    };
-    
-    let signalsGenerated = 0;
-    const currentTime = new Date().toISOString();
-    
-    // Evaluate entry rules
+    // Evaluate entry and exit rules
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
-    if (await shouldGenerateSignal(entryRules, indicators, marketData.price)) {
-      const entryReason = `Entry signal (${strategy.timeframe}) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}`;
-      
-      const { error } = await supabase
-        .from('trading_signals')
-        .insert({
-          strategy_id: strategyId,
-          signal_type: 'entry',
-          signal_data: {
-            reason: entryReason,
-            price: marketData.price,
-            timestamp: currentTime,
-            timeframe: strategy.timeframe,
-            indicators: indicators,
-            marketData: {
-              change: marketData.change,
-              changePercent: marketData.changePercent,
-              volume: marketData.volume
-            }
-          },
-          processed: true,
-          created_at: currentTime
-        });
-
-      if (!error) {
-        signalsGenerated++;
-        console.log(`[Monitor] Generated entry signal for strategy ${strategyId} (${strategy.timeframe}): ${entryReason}`);
-        
-        // Send notification only if strategy is active
-        if (strategy.is_active) {
-          await sendNotification(supabase, strategyId, 'entry', {
-            reason: entryReason,
-            price: marketData.price,
-            timestamp: currentTime,
-            timeframe: strategy.timeframe,
-            strategyName: strategy.name,
-            targetAsset: strategy.target_asset,
-            userId: user.user_id,
-            isPro: isPro
-          });
-        }
-      } else {
-        console.error(`[Monitor] Error inserting entry signal for strategy ${strategyId}:`, error);
-      }
-    }
-    
-    // Evaluate exit rules
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
-    if (exitRules.length > 0) {
-      // Check for open positions
-      const { data: openPositions } = await supabase
-        .from('trading_signals')
-        .select('*')
-        .eq('strategy_id', strategyId)
-        .eq('signal_type', 'entry')
-        .eq('processed', true)
-        .order('created_at', { ascending: false })
-        .limit(1);
 
-      if (openPositions && openPositions.length > 0 && 
-          await shouldGenerateSignal(exitRules, indicators, marketData.price)) {
-        
-        const entryData = openPositions[0].signal_data;
-        const entryPrice = entryData?.price || marketData.price;
-        const profit = marketData.price - entryPrice;
-        const profitPercentage = entryPrice > 0 ? (profit / entryPrice) * 100 : 0;
-        
-        const exitReason = `Exit signal (${strategy.timeframe}) - RSI: ${marketData.rsi.toFixed(2)}, Price: $${marketData.price.toFixed(2)}, P&L: ${profitPercentage.toFixed(2)}%`;
+    console.log(`[Evaluation] Entry rules: ${entryRules.length}, Exit rules: ${exitRules.length}`);
 
-        const { error } = await supabase
-          .from('trading_signals')
-          .insert({
-            strategy_id: strategyId,
-            signal_type: 'exit',
-            signal_data: {
-              reason: exitReason,
-              price: marketData.price,
-              timestamp: currentTime,
-              timeframe: strategy.timeframe,
-              profit: profit,
-              profitPercentage: profitPercentage,
-              indicators: indicators,
-              marketData: {
-                change: marketData.change,
-                changePercent: marketData.changePercent,
-                volume: marketData.volume
-              }
-            },
-            processed: true,
-            created_at: currentTime
-          });
-
-        if (!error) {
-          signalsGenerated++;
-          console.log(`[Monitor] Generated exit signal for strategy ${strategyId} (${strategy.timeframe}): ${exitReason}`);
-          
-          // Send notification only if strategy is active
-          if (strategy.is_active) {
-            await sendNotification(supabase, strategyId, 'exit', {
-              reason: exitReason,
-              price: marketData.price,
-              timestamp: currentTime,
-              timeframe: strategy.timeframe,
-              profit: profit,
-              profitPercentage: profitPercentage,
-              strategyName: strategy.name,
-              targetAsset: strategy.target_asset,
-              userId: user.user_id,
-              isPro: isPro
-            });
-          }
-        } else {
-          console.error(`[Monitor] Error inserting exit signal for strategy ${strategyId}:`, error);
+    // Check for entry signals
+    const entrySignal = await shouldGenerateEntrySignal(entryRules, indicators, currentPrice);
+    if (entrySignal.shouldGenerate) {
+      const entryReason = `Entry signal - ${entrySignal.reason}`;
+      console.log(`[Evaluation] Generating entry signal: ${entryReason}`);
+      
+      await generateTradingSignal(supabase, strategy.id, 'entry', {
+        reason: entryReason,
+        price: currentPrice,
+        timestamp: new Date().toISOString(),
+        indicators,
+        marketData: {
+          change: priceData.change,
+          changePercent: priceData.changePercent,
+          volume: priceData.volume
         }
-      }
+      });
+
+      return {
+        strategyId: strategy.id,
+        strategyName: strategy.name,
+        signalGenerated: true,
+        signalType: 'entry',
+        reason: entryReason
+      };
     }
-    
-    return signalsGenerated;
+
+    // Check for exit signals
+    const exitSignal = await shouldGenerateExitSignal(exitRules, indicators, currentPrice, strategy.id, supabase);
+    if (exitSignal.shouldGenerate) {
+      const exitReason = `Exit signal - ${exitSignal.reason}`;
+      console.log(`[Evaluation] Generating exit signal: ${exitReason}`);
+      
+      await generateTradingSignal(supabase, strategy.id, 'exit', {
+        reason: exitReason,
+        price: currentPrice,
+        timestamp: new Date().toISOString(),
+        indicators,
+        marketData: {
+          change: priceData.change,
+          changePercent: priceData.changePercent,
+          volume: priceData.volume
+        }
+      });
+
+      return {
+        strategyId: strategy.id,
+        strategyName: strategy.name,
+        signalGenerated: true,
+        signalType: 'exit',
+        reason: exitReason
+      };
+    }
+
+    return {
+      strategyId: strategy.id,
+      strategyName: strategy.name,
+      signalGenerated: false,
+      reason: 'No entry or exit conditions met'
+    };
+
   } catch (error) {
-    console.error(`[Monitor] Error evaluating strategy ${strategyId}:`, error);
-    return 0;
+    console.error(`[Evaluation] Error evaluating strategy ${strategy.name}:`, error);
+    return {
+      strategyId: strategy.id,
+      strategyName: strategy.name,
+      signalGenerated: false,
+      reason: `Evaluation error: ${error.message}`
+    };
   }
 }
 
-// Improved signal generation logic with better rule evaluation
-async function shouldGenerateSignal(ruleGroups: any[], indicators: any, currentPrice: number): Promise<boolean> {
-  if (!ruleGroups || ruleGroups.length === 0) return false;
+async function shouldGenerateEntrySignal(entryRules: any[], indicators: any, currentPrice: number) {
+  if (!entryRules.length) {
+    return { shouldGenerate: false, reason: 'No entry rules configured' };
+  }
 
-  for (const group of ruleGroups) {
-    const rules = group.trading_rules || [];
-    if (!rules.length) continue;
-
-    const results: boolean[] = [];
-
-    for (const rule of rules) {
-      const result = evaluateRule(rule, indicators, currentPrice);
-      results.push(result);
-      
-      console.log(`[Monitor] Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
-    }
-
-    // Apply group logic with improved handling
-    let groupResult = false;
-    if (group.logic === 'AND') {
-      groupResult = results.every(result => result);
-    } else if (group.logic === 'OR') {
-      const requiredConditions = group.required_conditions || 1;
-      const trueCount = results.filter(result => result).length;
-      groupResult = trueCount >= requiredConditions;
-    }
-    
-    console.log(`[Monitor] Group ${group.rule_type} result: ${groupResult} (logic: ${group.logic})`);
-    
-    if (groupResult) {
-      return true;
+  for (const group of entryRules) {
+    const result = await evaluateRuleGroup(group, indicators, currentPrice);
+    if (result.conditionsMet) {
+      return { 
+        shouldGenerate: true, 
+        reason: `${result.description} (${result.metConditions}/${result.totalConditions} conditions met)`
+      };
     }
   }
   
-  return false;
+  return { shouldGenerate: false, reason: 'Entry conditions not met' };
 }
 
-// Fixed rule evaluation with proper condition mapping
+async function shouldGenerateExitSignal(exitRules: any[], indicators: any, currentPrice: number, strategyId: string, supabase: any) {
+  if (!exitRules.length) {
+    return { shouldGenerate: false, reason: 'No exit rules configured' };
+  }
+
+  // Check if there are open positions first
+  const { data: openPositions } = await supabase
+    .from('trading_signals')
+    .select('*')
+    .eq('strategy_id', strategyId)
+    .eq('signal_type', 'entry')
+    .eq('processed', true)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (!openPositions || openPositions.length === 0) {
+    return { shouldGenerate: false, reason: 'No open positions to exit' };
+  }
+
+  for (const group of exitRules) {
+    const result = await evaluateRuleGroup(group, indicators, currentPrice);
+    if (result.conditionsMet) {
+      return { 
+        shouldGenerate: true, 
+        reason: `${result.description} (${result.metConditions}/${result.totalConditions} conditions met)`
+      };
+    }
+  }
+  
+  return { shouldGenerate: false, reason: 'Exit conditions not met' };
+}
+
+async function evaluateRuleGroup(group: any, indicators: any, currentPrice: number) {
+  const rules = group.trading_rules || [];
+  if (!rules.length) {
+    return { conditionsMet: false, description: 'No rules in group', metConditions: 0, totalConditions: 0 };
+  }
+
+  const results = [];
+  let metConditions = 0;
+
+  for (const rule of rules) {
+    const result = evaluateRule(rule, indicators, currentPrice);
+    results.push(result);
+    if (result) metConditions++;
+    
+    console.log(`[Rule Evaluation] ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
+  }
+
+  let conditionsMet = false;
+  let description = '';
+
+  // Apply group logic
+  if (group.logic === 'AND') {
+    conditionsMet = metConditions === rules.length;
+    description = `AND group - all conditions must be met`;
+  } else if (group.logic === 'OR') {
+    const requiredConditions = group.required_conditions || 1;
+    conditionsMet = metConditions >= requiredConditions;
+    description = `OR group - ${requiredConditions} conditions required`;
+  }
+
+  return { 
+    conditionsMet, 
+    description, 
+    metConditions, 
+    totalConditions: rules.length 
+  };
+}
+
 function evaluateRule(rule: any, indicators: any, currentPrice: number): boolean {
   try {
-    let leftValue: number = 0;
-    let rightValue: number = 0;
+    let leftValue = 0;
+    let rightValue = 0;
 
     // Get left side value
     if (rule.left_type === 'indicator' || rule.left_type === 'INDICATOR') {
-      const indicatorName = rule.left_indicator?.toLowerCase();
-      leftValue = indicators[indicatorName] || 0;
+      const indicatorKey = rule.left_indicator?.toLowerCase();
+      leftValue = indicators[indicatorKey] || 0;
     } else if (rule.left_type === 'price' || rule.left_type === 'PRICE') {
       leftValue = currentPrice;
     }
 
-    // Get right side value  
+    // Get right side value
     if (rule.right_type === 'value' || rule.right_type === 'VALUE') {
       rightValue = parseFloat(rule.right_value) || 0;
     } else if (rule.right_type === 'indicator' || rule.right_type === 'INDICATOR') {
-      const indicatorName = rule.right_indicator?.toLowerCase();
-      rightValue = indicators[indicatorName] || 0;
+      const indicatorKey = rule.right_indicator?.toLowerCase();
+      rightValue = indicators[indicatorKey] || 0;
     }
 
-    // Map different condition formats and evaluate
+    // Evaluate condition
     const condition = rule.condition?.toUpperCase();
     switch (condition) {
       case '>':
@@ -711,332 +677,280 @@ function evaluateRule(rule: any, indicators: any, currentPrice: number): boolean
       case 'EQUAL':
         return Math.abs(leftValue - rightValue) < 0.01;
       default:
-        console.warn(`[Monitor] Unknown condition: ${condition}`);
+        console.warn(`Unknown condition: ${condition}`);
         return false;
     }
   } catch (error) {
-    console.error('[Monitor] Error evaluating rule:', error);
+    console.error('Error evaluating rule:', error);
     return false;
   }
 }
 
-// Enhanced notification sending with retry logic and better error handling
-async function sendNotification(supabase: any, strategyId: string, signalType: string, signalData: any) {
+async function getRealMarketData(supabase: any, symbol: string) {
+  console.log(`[Market Data] Fetching real market data for ${symbol}`);
+  
   try {
-    console.log(`[Monitor] Processing notification for ${signalType} signal on strategy ${strategyId}`);
-    
-    const isPro = signalData.isPro;
-    const userId = signalData.userId;
-    
-    if (!isPro) {
-      console.log(`[Monitor] User ${userId} is not Pro, notifications will only appear in app`);
-      return;
-    }
-    
-    console.log(`[Monitor] Sending external notifications for Pro user ${userId}`);
-    
-    // Get user notification settings
-    const { data: settings } = await supabase
-      .from('notification_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (!settings) {
-      console.log(`[Monitor] No notification settings found for user ${userId}`);
-      return;
-    }
-
-    console.log(`[Monitor] Notification settings for user ${userId}:`, {
-      discord_enabled: settings.discord_enabled,
-      telegram_enabled: settings.telegram_enabled,
-      email_enabled: settings.email_enabled,
-      has_discord_webhook: !!settings.discord_webhook_url,
-      has_telegram_token: !!settings.telegram_bot_token,
-      has_telegram_chat: !!settings.telegram_chat_id
+    const { data, error } = await supabase.functions.invoke('get-fmp-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
     });
-
-    // Send Discord notification if enabled with retry logic
-    if (settings.discord_enabled && settings.discord_webhook_url) {
-      try {
-        console.log(`[Monitor] Sending Discord notification for strategy ${strategyId}`);
-        const { data: discordResult, error: discordError } = await supabase.functions.invoke('send-discord-notification', {
-          body: {
-            webhookUrl: settings.discord_webhook_url,
-            signalData: signalData,
-            signalType: signalType
-          }
-        });
-        
-        if (discordError) {
-          console.error(`[Monitor] Discord notification error:`, discordError);
-          // Retry once after a delay
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const { error: retryError } = await supabase.functions.invoke('send-discord-notification', {
-            body: {
-              webhookUrl: settings.discord_webhook_url,
-              signalData: signalData,
-              signalType: signalType
-            }
-          });
-          if (retryError) {
-            console.error(`[Monitor] Discord notification retry failed:`, retryError);
-          } else {
-            console.log(`[Monitor] Discord notification sent successfully on retry for strategy ${strategyId}`);
-          }
-        } else {
-          console.log(`[Monitor] Discord notification sent successfully for strategy ${strategyId}`);
-        }
-      } catch (error) {
-        console.error(`[Monitor] Failed to send Discord notification:`, error);
-      }
-    }
-
-    // Send Telegram notification if enabled with retry logic
-    if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
-      try {
-        console.log(`[Monitor] Sending Telegram notification for strategy ${strategyId}`);
-        const { data: telegramResult, error: telegramError } = await supabase.functions.invoke('send-telegram-notification', {
-          body: {
-            botToken: settings.telegram_bot_token,
-            chatId: settings.telegram_chat_id,
-            signalData: signalData,
-            signalType: signalType
-          }
-        });
-        
-        if (telegramError) {
-          console.error(`[Monitor] Telegram notification error:`, telegramError);
-          // Retry once after a delay
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const { error: retryError } = await supabase.functions.invoke('send-telegram-notification', {
-            body: {
-              botToken: settings.telegram_bot_token,
-              chatId: settings.telegram_chat_id,
-              signalData: signalData,
-              signalType: signalType
-            }
-          });
-          if (retryError) {
-            console.error(`[Monitor] Telegram notification retry failed:`, retryError);
-          } else {
-            console.log(`[Monitor] Telegram notification sent successfully on retry for strategy ${strategyId}`);
-          }
-        } else {
-          console.log(`[Monitor] Telegram notification sent successfully for strategy ${strategyId}`);
-        }
-      } catch (error) {
-        console.error(`[Monitor] Failed to send Telegram notification:`, error);
-      }
-    }
-
-    // Send Email notification if enabled  
-    if (settings.email_enabled) {
-      try {
-        // Get user email
-        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-        if (authUser?.user?.email) {
-          console.log(`[Monitor] Sending Email notification for strategy ${strategyId}`);
-          const { error: emailError } = await supabase.functions.invoke('send-email-notification', {
-            body: {
-              userEmail: authUser.user.email,
-              signalData: signalData,
-              signalType: signalType
-            }
-          });
-          
-          if (emailError) {
-            console.error(`[Monitor] Email notification error:`, emailError);
-          } else {
-            console.log(`[Monitor] Email notification sent successfully for strategy ${strategyId}`);
-          }
-        }
-      } catch (error) {
-        console.error(`[Monitor] Failed to send Email notification:`, error);
-      }
-    }
     
+    if (error || !data?.key) {
+      throw new Error('FMP API key not available');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    try {
+      const response = await fetch(
+        `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${data.key}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`FMP API error: ${response.status}`);
+      }
+
+      const quotes = await response.json();
+      
+      if (!Array.isArray(quotes) || quotes.length === 0) {
+        throw new Error(`No price data found for ${symbol}`);
+      }
+
+      const quote = quotes[0];
+      
+      if (!quote.price || quote.price === 0) {
+        throw new Error(`Invalid price data for ${symbol}`);
+      }
+
+      return {
+        price: quote.price,
+        change: quote.change || 0,
+        changePercent: quote.changesPercentage || 0,
+        timestamp: new Date().toISOString(),
+        volume: quote.volume || 0
+      };
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Market data request timeout');
+      }
+      throw error;
+    }
+
   } catch (error) {
-    console.error(`[Monitor] Error sending notification for strategy ${strategyId}:`, error);
+    console.error(`[Market Data] Error fetching market data for ${symbol}:`, error);
+    throw error;
   }
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  console.log('=== Trading Signal Monitor Started ===');
-  console.log('Request method:', req.method);
-  console.log('Current time:', new Date().toISOString());
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
+async function getRealTechnicalIndicators(supabase: any, symbol: string) {
+  console.log(`[Indicators] Fetching technical indicators for ${symbol}`);
+  
   try {
-    // Parse request body
-    let isManual = false;
-    let requestedTimeframes: string[] = [];
+    const { data, error } = await supabase.functions.invoke('get-fmp-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
     
+    if (error || !data?.key) {
+      throw new Error('FMP API key not available');
+    }
+
+    const indicators = {};
+
+    // Fetch RSI
     try {
-      if (req.body) {
-        const body = await req.json();
-        isManual = body.manual === true;
-        requestedTimeframes = body.timeframes || [];
-      }
-    } catch (e) {
-      // Body parsing failed, assume it's a cron job
-    }
-
-    console.log(`[Monitor] Signal monitoring triggered by: ${isManual ? 'manual' : 'cron_job'}, timeframes: ${requestedTimeframes.length > 0 ? requestedTimeframes.join(', ') : 'all'}`);
-
-    // Check market status for regular cron jobs (allow manual triggers anytime for testing)
-    if (!isManual) {
-      console.log('[Monitor] Checking market status...');
-      if (!isMarketOpen()) {
-        // For daily/weekly/monthly strategies, still check at specific times even if market is "closed"
-        const isDailyCloseTime = isMarketCloseTime();
-        const easternTime = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
-        const isFridayClose = easternTime.getDay() === 5 && isDailyCloseTime;
-        const isMonthlyClose = isLastTradingDayOfMonth(easternTime) && isDailyCloseTime;
-        
-        if (!isDailyCloseTime && !isFridayClose && !isMonthlyClose) {
-          console.log('[Monitor] Market is closed and not a special evaluation time - no signal monitoring needed');
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: 'Market closed - no monitoring performed',
-              timestamp: new Date().toISOString()
-            }), 
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200 
-            }
-          );
-        } else {
-          console.log('[Monitor] Special evaluation time detected - checking appropriate strategies');
-          if (isDailyCloseTime) requestedTimeframes = ['Daily'];
-          if (isFridayClose) requestedTimeframes = ['Weekly'];
-          if (isMonthlyClose) requestedTimeframes = ['Monthly'];
-        }
-      }
-    }
-
-    console.log('[Monitor] Starting timeframe-based signal monitoring with REAL market data only...');
-    
-    // Get strategies that need evaluation based on timeframe - THIS IS THE KEY FIX
-    const strategies = await getStrategiesForEvaluation(supabase, requestedTimeframes);
-
-    if (!strategies || strategies.length === 0) {
-      const message = requestedTimeframes.length > 0 
-        ? `No strategies found for timeframes: ${requestedTimeframes.join(', ')}`
-        : 'No strategies need evaluation at this time';
-        
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: message,
-          signalsGenerated: 0,
-          timestamp: new Date().toISOString()
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+      const rsiController = new AbortController();
+      const rsiTimeoutId = setTimeout(() => rsiController.abort(), 15000);
+      
+      const rsiResponse = await fetch(
+        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${data.key}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          signal: rsiController.signal
         }
       );
-    }
-
-    // Group strategies by timeframe for optimized processing
-    const strategiesByTimeframe = strategies.reduce((acc, strategy) => {
-      const timeframe = strategy.timeframe;
-      if (!acc[timeframe]) acc[timeframe] = [];
-      acc[timeframe].push(strategy);
-      return acc;
-    }, {} as Record<string, any[]>);
-
-    console.log(`[Monitor] Processing strategies by timeframe:`, 
-      Object.entries(strategiesByTimeframe).map(([tf, strats]) => `${tf}: ${strats.length}`).join(', ')
-    );
-
-    // Process strategies in smaller batches to respect API rate limits
-    const BATCH_SIZE = 2; // Reduced batch size for better rate limit management
-    let totalSignalsGenerated = 0;
-    let strategiesProcessed = 0;
-    let strategiesSkipped = 0;
-    
-    // Process each timeframe separately
-    for (const [timeframe, timeframeStrategies] of Object.entries(strategiesByTimeframe)) {
-      console.log(`[Monitor] Processing ${timeframeStrategies.length} strategies for timeframe: ${timeframe}`);
       
-      for (let i = 0; i < timeframeStrategies.length; i += BATCH_SIZE) {
-        const batch = timeframeStrategies.slice(i, i + BATCH_SIZE);
-        const batchPromises = batch.map(strategy => 
-          evaluateStrategy(supabase, strategy.id, strategy)
-        );
-        
-        const batchResults = await Promise.allSettled(batchPromises);
-        
-        batchResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            if (result.value > 0) {
-              totalSignalsGenerated += result.value;
-              strategiesProcessed++;
-            } else {
-              strategiesSkipped++;
-            }
-          } else {
-            console.error(`[Monitor] Error processing strategy ${batch[index].id}:`, result.reason);
-            strategiesSkipped++;
-          }
-        });
-        
-        // Add delay between batches to respect API rate limits (increased delay)
-        if (i + BATCH_SIZE < timeframeStrategies.length) {
-          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+      clearTimeout(rsiTimeoutId);
+      
+      if (rsiResponse.ok) {
+        const rsiData = await rsiResponse.json();
+        if (Array.isArray(rsiData) && rsiData.length > 0) {
+          indicators.rsi = rsiData[0].rsi;
+          console.log(`[Indicators] RSI for ${symbol}: ${indicators.rsi}`);
         }
       }
-      
-      // Add delay between timeframes
-      const timeframeKeys = Object.keys(strategiesByTimeframe);
-      if (timeframe !== timeframeKeys[timeframeKeys.length - 1]) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between timeframes
+    } catch (error) {
+      console.warn(`[Indicators] Failed to fetch RSI for ${symbol}:`, error);
+    }
+
+    return indicators;
+    
+  } catch (error) {
+    console.error(`[Indicators] Error fetching indicators for ${symbol}:`, error);
+    throw error;
+  }
+}
+
+async function generateTradingSignal(supabase: any, strategyId: string, signalType: string, signalData: any) {
+  try {
+    console.log(`[Signal Generation] Creating ${signalType} signal for strategy ${strategyId}`);
+    
+    const { data: signal, error } = await supabase
+      .from('trading_signals')
+      .insert({
+        strategy_id: strategyId,
+        signal_type: signalType,
+        signal_data: signalData,
+        processed: true,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Signal Generation] Error inserting trading signal:', error);
+      return;
+    }
+
+    console.log(`[Signal Generation] Generated ${signalType} signal for strategy ${strategyId}`);
+
+    // Send notifications
+    await sendNotificationsForSignal(supabase, strategyId, signalType, signalData);
+
+  } catch (error) {
+    console.error('[Signal Generation] Error generating signal:', error);
+  }
+}
+
+async function sendNotificationsForSignal(supabase: any, strategyId: string, signalType: string, signalData: any) {
+  try {
+    console.log(`[Notifications] Sending notifications for strategy ${strategyId}`);
+    
+    // Get strategy and user info
+    const { data: strategy } = await supabase
+      .from('strategies')
+      .select('user_id, name, target_asset')
+      .eq('id', strategyId)
+      .single();
+
+    if (!strategy) {
+      console.error('[Notifications] Strategy not found');
+      return;
+    }
+
+    // Check Pro status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', strategy.user_id)
+      .single();
+
+    const isPro = profile?.subscription_tier === 'pro';
+    console.log(`[Notifications] User ${strategy.user_id} Pro status: ${isPro}`);
+    
+    if (!isPro) {
+      console.log(`[Notifications] User is not Pro, skipping external notifications`);
+      return;
+    }
+
+    // Get notification settings
+    const { data: settings } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', strategy.user_id)
+      .single();
+
+    if (!settings) {
+      console.log('[Notifications] No notification settings found');
+      return;
+    }
+
+    const notificationData = {
+      ...signalData,
+      strategyName: strategy.name,
+      targetAsset: strategy.target_asset,
+      userId: strategy.user_id
+    };
+
+    // Send Discord notification if enabled
+    if (settings.discord_enabled && settings.discord_webhook_url) {
+      try {
+        await supabase.functions.invoke('send-discord-notification', {
+          body: {
+            webhookUrl: settings.discord_webhook_url,
+            signalData: notificationData,
+            signalType: signalType
+          }
+        });
+        console.log(`[Notifications] Discord notification sent`);
+      } catch (error) {
+        console.error(`[Notifications] Discord notification failed:`, error);
       }
     }
 
-    const message = `Timeframe-based monitoring completed. Generated ${totalSignalsGenerated} signals from ${strategiesProcessed} strategies (${strategiesSkipped} skipped).`;
-    console.log(`[Monitor] ${message}`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message,
-        strategiesProcessed: strategiesProcessed,
-        strategiesSkipped: strategiesSkipped,
-        signalsGenerated: totalSignalsGenerated,
-        timeframesProcessed: Object.keys(strategiesByTimeframe),
-        timestamp: new Date().toISOString()
-      }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+    // Send Telegram notification if enabled
+    if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            botToken: settings.telegram_bot_token,
+            chatId: settings.telegram_chat_id,
+            signalData: notificationData,
+            signalType: signalType
+          }
+        });
+        console.log(`[Notifications] Telegram notification sent`);
+      } catch (error) {
+        console.error(`[Notifications] Telegram notification failed:`, error);
       }
-    );
+    }
 
   } catch (error) {
-    console.error('[Monitor] Error in signal monitoring:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    );
+    console.error(`[Notifications] Error sending notifications:`, error);
   }
-});
+}
+
+async function updateStrategyEvaluation(supabase: any, strategy: any) {
+  try {
+    const now = new Date();
+    const nextEvaluationTime = getNextEvaluationTime(strategy.timeframe, now);
+
+    const { error } = await supabase
+      .from('strategy_evaluations')
+      .upsert({
+        strategy_id: strategy.id,
+        timeframe: strategy.timeframe,
+        last_evaluated_at: now.toISOString(),
+        next_evaluation_due: nextEvaluationTime.toISOString(),
+        evaluation_count: (strategy.strategy_evaluations?.[0]?.evaluation_count || 0) + 1,
+        updated_at: now.toISOString()
+      }, {
+        onConflict: 'strategy_id'
+      });
+
+    if (error) {
+      console.error('[Update Evaluation] Error updating strategy evaluation:', error);
+    } else {
+      console.log(`[Update Evaluation] Updated evaluation record for strategy ${strategy.id}`);
+    }
+  } catch (error) {
+    console.error('[Update Evaluation] Error in updateStrategyEvaluation:', error);
+  }
+}

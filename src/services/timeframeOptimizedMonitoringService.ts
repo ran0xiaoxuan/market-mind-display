@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface TimeframeConfig {
@@ -283,6 +282,70 @@ export const getTimeframeStats = async () => {
     return Object.values(grouped || {});
   } catch (error) {
     console.error('Error getting timeframe stats:', error);
+    throw error;
+  }
+};
+
+// Initialize strategy evaluation records for all active strategies
+export const initializeStrategyEvaluations = async () => {
+  try {
+    console.log('Initializing strategy evaluation records...');
+    
+    // Get all active strategies that don't have evaluation records
+    const { data: strategies, error: strategiesError } = await supabase
+      .from('strategies')
+      .select(`
+        id,
+        timeframe,
+        name,
+        strategy_evaluations!left (id)
+      `)
+      .eq('is_active', true);
+
+    if (strategiesError) {
+      console.error('Error fetching strategies for initialization:', strategiesError);
+      throw strategiesError;
+    }
+
+    if (!strategies || strategies.length === 0) {
+      console.log('No strategies found for initialization');
+      return;
+    }
+
+    const strategiesNeedingInit = strategies.filter(s => !s.strategy_evaluations || s.strategy_evaluations.length === 0);
+    
+    console.log(`Found ${strategiesNeedingInit.length} strategies needing evaluation record initialization`);
+
+    for (const strategy of strategiesNeedingInit) {
+      try {
+        const now = new Date();
+        const nextEvaluationTime = getNextEvaluationTime(strategy.timeframe, now);
+
+        const { error } = await supabase
+          .from('strategy_evaluations')
+          .insert({
+            strategy_id: strategy.id,
+            timeframe: strategy.timeframe,
+            last_evaluated_at: null, // Never evaluated before
+            next_evaluation_due: nextEvaluationTime.toISOString(),
+            evaluation_count: 0,
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          });
+
+        if (error) {
+          console.error(`Error initializing evaluation record for strategy ${strategy.id}:`, error);
+        } else {
+          console.log(`Initialized evaluation record for strategy "${strategy.name}" (${strategy.id})`);
+        }
+      } catch (error) {
+        console.error(`Error processing strategy ${strategy.id}:`, error);
+      }
+    }
+
+    console.log('Strategy evaluation initialization completed');
+  } catch (error) {
+    console.error('Error in initializeStrategyEvaluations:', error);
     throw error;
   }
 };

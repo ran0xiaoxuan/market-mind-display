@@ -30,6 +30,32 @@ serve(async (req) => {
 
     console.log('Processing Telegram notification for signal type:', signalType)
 
+    // Get strategy details to include timeframe
+    let timeframe = 'Unknown';
+    if (signalData.strategyId) {
+      const { data: strategy } = await supabaseClient
+        .from('strategies')
+        .select('timeframe')
+        .eq('id', signalData.strategyId)
+        .single();
+      
+      if (strategy) {
+        timeframe = strategy.timeframe;
+      }
+    }
+
+    // Create user-friendly time in Eastern timezone
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const timeString = easternTime.toLocaleString("en-US", {
+      timeZone: "America/New_York",
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+
     // Create Telegram message with improved formatting
     const telegramMessage = `
 🚨 *StratAIge Trading Signal*
@@ -38,9 +64,9 @@ serve(async (req) => {
 📈 *Strategy:* ${signalData.strategyName || 'Trading Strategy'}
 💰 *Asset:* ${signalData.targetAsset || signalData.asset || 'Unknown'}
 💵 *Price:* $${signalData.price || 'N/A'}
-⏰ *Time:* ${new Date().toLocaleString()}
+⏰ *Timeframe:* ${timeframe}
+🕐 *Time:* ${timeString}
 
-${signalData.reason ? `📋 *Reason:* ${signalData.reason}` : ''}
 ${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%` : ''}
     `.trim()
 

@@ -29,6 +29,20 @@ serve(async (req) => {
 
     console.log('Processing Discord notification for signal type:', signalType)
 
+    // Get strategy details to include timeframe
+    let timeframe = 'Unknown';
+    if (signalData.strategyId) {
+      const { data: strategy } = await supabaseClient
+        .from('strategies')
+        .select('timeframe')
+        .eq('id', signalData.strategyId)
+        .single();
+      
+      if (strategy) {
+        timeframe = strategy.timeframe;
+      }
+    }
+
     // Create Discord embed message with improved formatting
     const discordMessage = {
       embeds: [{
@@ -49,9 +63,13 @@ serve(async (req) => {
             name: "Price",
             value: `$${signalData.price || 'N/A'}`,
             inline: true
+          },
+          {
+            name: "Timeframe",
+            value: timeframe,
+            inline: true
           }
         ],
-        description: signalData.reason || `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated`,
         timestamp: new Date().toISOString(),
         footer: {
           text: "StratAIge Trading Platform"

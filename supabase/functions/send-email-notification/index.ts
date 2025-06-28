@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Resend } from 'npm:resend@2.0.0'
+import { Resend } from "npm:resend@2.0.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,352 +9,317 @@ const corsHeaders = {
 }
 
 interface EmailNotificationRequest {
-  signalId: string;
   userEmail: string;
   signalData: any;
   signalType: string;
 }
 
-serve(async (req) => {
-  console.log('=== Email Notification Function Started ===');
-  console.log('Request method:', req.method);
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
 
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
-    return new Response('ok', { 
-      headers: corsHeaders,
-      status: 200
-    });
-  }
-
-  if (req.method !== 'POST') {
-    console.log('Invalid method:', req.method);
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 405 
-      }
-    );
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Processing email notification request...');
-    
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY not found in environment variables');
-      return new Response(
-        JSON.stringify({ error: 'Email service not configured - missing RESEND_API_KEY' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
+    const { userEmail, signalData, signalType }: EmailNotificationRequest = await req.json()
 
-    // Parse request body
-    let requestBody: EmailNotificationRequest;
-    try {
-      const bodyText = await req.text();
-      console.log('Raw request body length:', bodyText.length);
+    console.log('Processing email notification for signal type:', signalType)
+
+    // Get strategy details to include timeframe
+    let timeframe = 'Unknown';
+    if (signalData.strategyId) {
+      const { data: strategy } = await supabaseClient
+        .from('strategies')
+        .select('timeframe')
+        .eq('id', signalData.strategyId)
+        .single();
       
-      if (!bodyText || bodyText.trim() === '') {
-        throw new Error('Request body is empty');
+      if (strategy) {
+        timeframe = strategy.timeframe;
       }
-      
-      requestBody = JSON.parse(bodyText);
-      console.log('Parsed request body successfully');
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid JSON in request body', 
-          details: parseError.message 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-    
-    // Validate required fields
-    const { signalId, userEmail, signalData, signalType } = requestBody;
-
-    console.log('Validating request fields:');
-    console.log('- signalId:', signalId);
-    console.log('- userEmail:', userEmail);
-    console.log('- signalType:', signalType);
-
-    if (!userEmail) {
-      console.error('User email is required but not provided');
-      return new Response(
-        JSON.stringify({ error: 'userEmail is required' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
     }
 
-    if (!signalData) {
-      console.error('Signal data is required but not provided');
-      return new Response(
-        JSON.stringify({ error: 'signalData is required' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
+    // Create user-friendly time in Eastern timezone
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const timeString = easternTime.toLocaleString("en-US", {
+      timeZone: "America/New_York",
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
 
-    // Initialize Resend
-    console.log('Initializing Resend with API key...');
-    const resend = new Resend(resendApiKey);
-
-    // Create email content with improved deliverability
-    const getSignalTitle = (type: string) => {
-      switch (type) {
-        case 'entry': return '🎯 New Entry Signal';
-        case 'exit': return '🔄 Exit Signal';
-        case 'stop_loss': return '🛑 Stop Loss Alert';
-        case 'take_profit': return '💰 Take Profit Alert';
-        default: return '📊 Trading Signal';
-      }
-    };
-
-    const signalTitle = getSignalTitle(signalType || 'entry');
-    const emailSubject = `${signalTitle} - ${signalData.asset || 'Test Signal'}`;
-    
-    // Use a proper sender name and email (will use default until custom domain is set up)
-    const fromEmail = 'Strataige <notifications@resend.dev>';
-    const replyToEmail = 'noreply@resend.dev';
-
-    // Create professional email HTML with improved deliverability
+    // Create the email HTML content
     const emailHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${signalTitle}</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            max-width: 600px; 
-            margin: 0 auto; 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StratAIge Trading Signal</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #f8f9fa;
-          }
-          .container { 
-            background-color: white; 
-            padding: 30px; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header { 
-            text-align: center; 
-            border-bottom: 2px solid #e9ecef; 
-            padding-bottom: 20px; 
+            background-color: #f8fafc;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 180px;
+            height: auto;
             margin-bottom: 20px;
-          }
-          .signal-data { 
-            background-color: #f8f9fa; 
-            padding: 20px; 
-            border-radius: 6px; 
-            margin: 20px 0;
-            border-left: 4px solid #007bff;
-          }
-          .footer { 
-            text-align: center; 
-            margin-top: 30px; 
-            padding-top: 20px; 
-            border-top: 1px solid #e9ecef; 
-            font-size: 12px; 
-            color: #6c757d;
-          }
-          .button {
+        }
+        .signal-alert {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .signal-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .signal-type {
+            font-size: 18px;
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        .signal-details {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .detail-value {
+            color: #2d3748;
+        }
+        .profit-positive {
+            color: #38a169;
+            font-weight: bold;
+        }
+        .profit-negative {
+            color: #e53e3e;
+            font-weight: bold;
+        }
+        .community-section {
+            background-color: #f7fafc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .community-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        .community-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .community-link {
             display: inline-block;
             padding: 12px 24px;
-            background-color: #007bff;
-            color: white;
+            border-radius: 6px;
             text-decoration: none;
-            border-radius: 4px;
-            margin: 10px 0;
-          }
-          .signal-meta {
-            font-size: 11px;
-            color: #6c757d;
-            margin-top: 20px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="color: #1f2937; margin: 0;">${signalTitle}</h1>
-            <p style="margin: 5px 0 0 0; color: #6c757d;">Strataige Trading Platform</p>
-          </div>
-          
-          <div class="signal-data">
-            <h3 style="margin-top: 0; color: #495057;">Signal Details</h3>
-            <p><strong>Strategy:</strong> ${signalData.strategyName || 'Test Strategy'}</p>
-            <p><strong>Asset:</strong> ${signalData.asset || 'Unknown'}</p>
-            <p><strong>Price:</strong> $${signalData.price || 'N/A'}</p>
-            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-            <p><strong>Signal Type:</strong> ${signalType || 'entry'}</p>
-          </div>
-
-          <p>This trading signal was generated by your Strataige strategy. Please review the signal details and take appropriate action based on your trading plan.</p>
-          
-          <div style="text-align: center;">
-            <a href="https://app.strataige.com/dashboard" class="button">View Dashboard</a>
-          </div>
-
-          <div class="signal-meta">
-            <p><strong>Signal ID:</strong> ${signalId}</p>
-            <p><strong>Generated:</strong> ${new Date().toISOString()}</p>
-          </div>
-
-          <div class="footer">
-            <p><strong>Strataige Trading Platform</strong></p>
-            <p>This email was sent to ${userEmail} because you have notifications enabled for your trading strategies.</p>
-            <p>
-              <a href="https://app.strataige.com/settings" style="color: #007bff;">Manage Notifications</a> | 
-              <a href="mailto:support@strataige.com" style="color: #007bff;">Contact Support</a>
-            </p>
-            <p style="margin-top: 15px;">
-              © ${new Date().getFullYear()} Strataige. All rights reserved.<br>
-              If you no longer wish to receive these emails, you can 
-              <a href="https://app.strataige.com/settings" style="color: #007bff;">update your notification preferences</a>.
-            </p>
-          </div>
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .discord-link {
+            background-color: #5865f2;
+            color: white;
+        }
+        .x-link {
+            background-color: #000000;
+            color: white;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+            font-size: 14px;
+        }
+        .footer-links {
+            margin-top: 10px;
+        }
+        .footer-link {
+            color: #4299e1;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+            .community-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            .community-link {
+                width: 200px;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://fjbdvtlfgqbvgamomixo.supabase.co/storage/v1/object/public/avatars/strataige-logo.png" alt="StratAIge Logo" class="logo" />
         </div>
-      </body>
-      </html>
+        
+        <div class="signal-alert">
+            <h1 class="signal-title">🚨 Trading Signal Alert</h1>
+            <p class="signal-type">${signalType.toUpperCase()} Signal</p>
+        </div>
+        
+        <div class="signal-details">
+            <div class="detail-row">
+                <span class="detail-label">Strategy:</span>
+                <span class="detail-value">${signalData.strategyName || 'Trading Strategy'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Asset:</span>
+                <span class="detail-value">${signalData.targetAsset || signalData.asset || 'Unknown'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Price:</span>
+                <span class="detail-value">$${signalData.price || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Timeframe:</span>
+                <span class="detail-value">${timeframe}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Time:</span>
+                <span class="detail-value">${timeString}</span>
+            </div>
+            ${signalData.profitPercentage ? `
+            <div class="detail-row">
+                <span class="detail-label">P&L:</span>
+                <span class="detail-value ${signalData.profitPercentage >= 0 ? 'profit-positive' : 'profit-negative'}">
+                    ${signalData.profitPercentage.toFixed(2)}%
+                </span>
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="community-section">
+            <h3 class="community-title">Join Our Community</h3>
+            <div class="community-links">
+                <a href="https://discord.com/invite/EEEnGUwDEF" class="community-link discord-link">
+                    Join Discord
+                </a>
+                <a href="https://x.com/StratAIge_cc" class="community-link x-link">
+                    Follow on X
+                </a>
+            </div>
+            <p style="margin: 0; color: #718096; font-size: 14px;">
+                Connect with other traders and get the latest updates
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>This signal was generated by your StratAIge trading strategy.</p>
+            <div class="footer-links">
+                <a href="https://strataige.lovable.app/terms" class="footer-link">Terms of Service</a>
+                <a href="https://strataige.lovable.app/privacy" class="footer-link">Privacy Policy</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 12px;">
+                © 2024 StratAIge. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
     `;
 
-    // Create plain text version for better deliverability
-    const emailText = `
-${signalTitle}
+    // Send email using Resend
+    const emailResponse = await resend.emails.send({
+      from: 'StratAIge <notifications@strataige.cc>',
+      to: [userEmail],
+      subject: `🚨 StratAIge ${signalType.toUpperCase()} Signal - ${signalData.strategyName || 'Trading Strategy'}`,
+      html: emailHtml
+    });
 
-Strategy: ${signalData.strategyName || 'Test Strategy'}
-Asset: ${signalData.asset || 'Unknown'}
-Price: $${signalData.price || 'N/A'}
-Time: ${new Date().toLocaleString()}
-Signal Type: ${signalType || 'entry'}
+    const status = emailResponse.error ? 'failed' : 'sent';
+    const errorMessage = emailResponse.error ? `Email API error: ${emailResponse.error.message}` : null;
 
-This trading signal was generated by your Strataige strategy.
-
-View your dashboard: https://app.strataige.com/dashboard
-
-Signal ID: ${signalId}
-Generated: ${new Date().toISOString()}
-
----
-Strataige Trading Platform
-© ${new Date().getFullYear()} Strataige. All rights reserved.
-
-Manage your notifications: https://app.strataige.com/settings
-    `;
-
-    console.log('Email details:');
-    console.log('- From:', fromEmail);
-    console.log('- Reply-To:', replyToEmail);
-    console.log('- To:', userEmail);
-    console.log('- Subject:', emailSubject);
-
-    try {
-      console.log('Calling Resend API with improved deliverability settings...');
-      const emailResponse = await resend.emails.send({
-        from: fromEmail,
-        to: [userEmail],
-        replyTo: replyToEmail,
-        subject: emailSubject,
-        html: emailHtml,
-        text: emailText,
-        headers: {
-          'X-Entity-Ref-ID': signalId,
-          'X-Mailer': 'Strataige-Platform',
-          'List-Unsubscribe': '<https://app.strataige.com/settings>',
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        },
-        tags: [
-          {
-            name: 'category',
-            value: 'trading-signal'
-          },
-          {
-            name: 'signal-type',
-            value: signalType || 'entry'
-          }
-        ]
+    // Log the notification attempt
+    const { error: logError } = await supabaseClient
+      .from('notification_logs')
+      .insert({
+        user_id: signalData.userId,
+        signal_id: 'email-' + Date.now(),
+        notification_type: 'email',
+        status: status,
+        error_message: errorMessage
       });
 
-      console.log('Resend API response:', JSON.stringify(emailResponse, null, 2));
-
-      if (emailResponse.error) {
-        console.error('Resend API returned error:', emailResponse.error);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to send email via Resend', 
-            details: emailResponse.error
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500 
-          }
-        );
-      }
-
-      console.log('Email sent successfully! Email ID:', emailResponse.data?.id);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Email sent successfully',
-          emailId: emailResponse.data?.id,
-          deliverabilityFeatures: {
-            hasTextVersion: true,
-            hasUnsubscribeHeader: true,
-            hasProfessionalFormatting: true,
-            hasReplyTo: true,
-            hasEmailTags: true
-          }
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
-      );
-
-    } catch (resendError) {
-      console.error('Error calling Resend API:', resendError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to send email', 
-          details: resendError.message
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+    if (logError) {
+      console.error('Error logging email notification:', logError);
     }
 
-  } catch (error) {
-    console.error('Unexpected error in email notification function:', error);
-    
+    if (emailResponse.error) {
+      throw new Error(`Email API error: ${emailResponse.error.message}`);
+    }
+
+    console.log('Email notification sent successfully');
+
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        details: error.message
-      }),
+      JSON.stringify({ success: true, message: 'Email notification sent successfully' }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+
+  } catch (error) {
+    console.error('Error sending email notification:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

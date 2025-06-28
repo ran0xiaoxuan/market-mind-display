@@ -620,6 +620,7 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
 
     const notificationData = {
       ...signalData,
+      strategyId: strategyId,
       strategyName: strategy.name,
       targetAsset: strategy.target_asset,
       userId: strategy.user_id
@@ -710,14 +711,19 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email) {
-          await supabase.functions.invoke('send-email-notification', {
+          const { error: emailError } = await supabase.functions.invoke('send-email-notification', {
             body: {
               userEmail: user.email,
               signalData: notificationData,
               signalType: signalType
             }
           });
-          console.log(`[SignalGen] Email notification sent for strategy ${strategyId}`);
+          
+          if (emailError) {
+            console.error(`[SignalGen] Email notification error:`, emailError);
+          } else {
+            console.log(`[SignalGen] Email notification sent for strategy ${strategyId}`);
+          }
         }
       } catch (error) {
         console.error(`[SignalGen] Failed to send Email notification:`, error);

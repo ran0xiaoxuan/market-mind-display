@@ -884,10 +884,17 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
 
     const notificationData = {
       ...signalData,
+      strategyId: strategyId,
       strategyName: strategy.name,
       targetAsset: strategy.target_asset,
       userId: strategy.user_id
     };
+
+    console.log(`[Notifications] Sending notifications for Pro user ${strategy.user_id}:`, {
+      discord_enabled: settings.discord_enabled,
+      telegram_enabled: settings.telegram_enabled,
+      email_enabled: settings.email_enabled
+    });
 
     // Send Discord notification if enabled
     if (settings.discord_enabled && settings.discord_webhook_url) {
@@ -919,6 +926,28 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
         console.log(`[Notifications] Telegram notification sent`);
       } catch (error) {
         console.error(`[Notifications] Telegram notification failed:`, error);
+      }
+    }
+
+    // Send Email notification if enabled
+    if (settings.email_enabled) {
+      try {
+        // Get user email
+        const { data: { user } } = await supabase.auth.admin.getUserById(strategy.user_id);
+        if (user?.email) {
+          await supabase.functions.invoke('send-email-notification', {
+            body: {
+              userEmail: user.email,
+              signalData: notificationData,
+              signalType: signalType
+            }
+          });
+          console.log(`[Notifications] Email notification sent`);
+        } else {
+          console.error(`[Notifications] No email found for user ${strategy.user_id}`);
+        }
+      } catch (error) {
+        console.error(`[Notifications] Email notification failed:`, error);
       }
     }
 

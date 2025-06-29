@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -152,7 +151,27 @@ serve(async (req) => {
 
     const prompt = `You are an expert trading strategy generator. Create a trading strategy for ${selectedAsset} (${assetType}) based STRICTLY on this user request: "${strategyDescription}"
 
-CRITICAL LOGIC GROUPING ANALYSIS:
+CRITICAL: CONDITION CONTENT MUST MATCH EXPLANATION EXACTLY
+
+The most important rule is that every condition you create must do EXACTLY what its explanation says. For example:
+- If explanation says "RSI below 30", the condition must be: RSI < 30 (not RSI < some other indicator)
+- If explanation says "RSI below 30 AND CCI below -100", you need TWO separate conditions: RSI < 30 AND CCI < -100
+- If explanation says "MACD crosses above signal line", the condition must involve MACD crossing above its signal line
+- If explanation says "price above 50-day SMA", the condition must be: Price > SMA(50)
+
+EXPLANATION WRITING RULES:
+1. Write explanations that are specific, accurate, and implementable
+2. Use exact threshold values (like 30, 70, -100, etc.) not vague terms
+3. Mention specific indicator parameters when relevant
+4. Each explanation must correspond to exactly one implementable condition
+
+CONDITION IMPLEMENTATION RULES:
+1. Every condition must implement exactly what its explanation describes
+2. Use specific numeric thresholds that match the explanation
+3. Compare indicators to fixed values, not to each other (unless explicitly described)
+4. Ensure indicator parameters match what's mentioned in the explanation
+
+LOGIC GROUPING ANALYSIS:
 Before generating the strategy, analyze the user's description for these key logic patterns:
 
 1. AND LOGIC INDICATORS (use AND group):
@@ -176,6 +195,7 @@ IMPORTANT RULES:
 3. Make the strategy name and description specific to the user's request
 4. Carefully analyze the user's language to determine proper AND/OR grouping
 5. Always create BOTH AND and OR groups for each rule type (entry/exit), even if one is empty initially
+6. CRITICAL: Every explanation must accurately describe what the condition actually does
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
@@ -198,12 +218,28 @@ When building conditions, strictly distinguish between:
 2. PRICE: Use "type": "PRICE" and specify "value" as one of: "Open", "High", "Low", "Close" (default to "Close" unless user specifies otherwise)
 3. VALUE: Use "type": "VALUE" and provide a numeric string like "30", "70", "2.5", etc. Never use text descriptions like "Current Price"
 
+EXAMPLES OF CORRECT EXPLANATION-TO-CONDITION MAPPING:
+
+Example 1: "Enter when RSI is below 30"
+- Explanation: "Enter when RSI(14) is below 30, indicating oversold conditions"
+- Condition: left: RSI(14), condition: LESS_THAN, right: VALUE "30"
+
+Example 2: "Exit when RSI above 70 OR price drops 5%"
+- Two separate conditions in OR group:
+  - Explanation 1: "Exit when RSI(14) rises above 70, indicating overbought conditions"
+  - Condition 1: left: RSI(14), condition: GREATER_THAN, right: VALUE "70"
+  - Explanation 2: "Exit when price drops significantly as a stop-loss measure"
+  - Condition 2: [implement stop-loss logic appropriately]
+
+Example 3: "Buy when MACD crosses above signal line"
+- Explanation: "Enter when MACD line crosses above its signal line, indicating bullish momentum"
+- Condition: left: MACD (MACD Line), condition: CROSSES_ABOVE, right: MACD (Signal Line)
+
 LOGIC GROUPING EXAMPLES:
-- "RSI below 30 AND MACD positive" → Single AND group
-- "RSI below 30 OR price under $20" → Single OR group with requiredConditions: 1
+- "RSI below 30 AND MACD positive" → Single AND group with two conditions
+- "RSI below 30 OR price under support" → Single OR group with requiredConditions: 1
 - "RSI oversold AND volume high, OR price breaks support" → AND group + OR group with requiredConditions: 1
 - "Enter when at least 2 of: RSI < 30, MACD > 0, price > SMA" → OR group with requiredConditions: 2
-- "Exit when RSI > 70 OR stop loss OR take profit" → OR group with requiredConditions: 1
 
 Return ONLY this JSON structure:
 {
@@ -233,7 +269,7 @@ Return ONLY this JSON structure:
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
             "valueType": "number"
           },
-          "explanation": "Clear explanation of this condition"
+          "explanation": "CRITICAL: Must accurately describe exactly what this condition does - be specific about thresholds and logic"
         }
       ]
     },
@@ -259,7 +295,7 @@ Return ONLY this JSON structure:
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
             "valueType": "number"
           },
-          "explanation": "Clear explanation of this OR condition"
+          "explanation": "CRITICAL: Must accurately describe exactly what this OR condition does - be specific about thresholds and logic"
         }
       ]
     }
@@ -286,7 +322,7 @@ Return ONLY this JSON structure:
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
             "valueType": "number"
           },
-          "explanation": "Clear explanation of this exit condition"
+          "explanation": "CRITICAL: Must accurately describe exactly what this exit condition does - be specific about thresholds and logic"
         }
       ]
     },
@@ -312,12 +348,21 @@ Return ONLY this JSON structure:
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
             "valueType": "number"
           },
-          "explanation": "Clear explanation of this OR exit condition"
+          "explanation": "CRITICAL: Must accurately describe exactly what this OR exit condition does - be specific about thresholds and logic"
         }
       ]
     }
   ]
 }
+
+FINAL VERIFICATION CHECKLIST:
+Before returning the JSON, verify that:
+1. Every explanation accurately describes what its corresponding condition actually implements
+2. Numeric thresholds in explanations match the actual condition values
+3. Indicator comparisons in explanations match the actual left/right sides of conditions
+4. Logic grouping (AND/OR) matches the user's described intent
+5. No condition compares indicators to each other unless explicitly described in user request
+6. All explanations are specific and implementable, not vague or generic
 
 CRITICAL: 
 - Always create both AND and OR groups (id: 1 for AND, id: 2 for OR)
@@ -325,8 +370,9 @@ CRITICAL:
 - If no conditions belong to a group, leave its inequalities array empty
 - For OR groups, set requiredConditions appropriately (1 for "any", 2+ for "at least X")
 - Ensure all condition types (INDICATOR/PRICE/VALUE) are properly specified
+- MOST IMPORTANT: Every explanation must accurately describe what the condition actually does
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), and accurate parameters.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, and explanations that match the actual implementation exactly.`;
 
     console.log('Calling OpenAI API...');
     

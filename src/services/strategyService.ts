@@ -16,54 +16,36 @@ export interface Strategy {
   sourceStrategyId?: string;
 }
 
+export interface GeneratedStrategyRule {
+  logic: string;
+  inequalities: {
+    left: {
+      type: string;
+      indicator?: string;
+      parameters?: Record<string, any>;
+      value?: string;
+      valueType?: string;
+    };
+    condition: string;
+    right: {
+      type: string;
+      indicator?: string;
+      parameters?: Record<string, any>;
+      value?: string;
+      valueType?: string;
+    };
+    explanation?: string;
+  }[];
+  requiredConditions?: number; // Add this property
+}
+
 export interface GeneratedStrategy {
   name: string;
   description: string;
   timeframe: string;
   targetAsset: string;
-  targetAssetName?: string;
-  entryRules: Array<{
-    logic: string;
-    inequalities: Array<{
-      left: {
-        type: string;
-        indicator?: string;
-        parameters?: Record<string, any>;
-        value?: string;
-        valueType?: string;
-      };
-      condition: string;
-      right: {
-        type: string;
-        indicator?: string;
-        parameters?: Record<string, any>;
-        value?: string;
-        valueType?: string;
-      };
-      explanation?: string;
-    }>;
-  }>;
-  exitRules: Array<{
-    logic: string;
-    inequalities: Array<{
-      left: {
-        type: string;
-        indicator?: string;
-        parameters?: Record<string, any>;
-        value?: string;
-        valueType?: string;
-      };
-      condition: string;
-      right: {
-        type: string;
-        indicator?: string;
-        parameters?: Record<string, any>;
-        value?: string;
-        valueType?: string;
-      };
-      explanation?: string;
-    }>;
-  }>;
+  entryRules: GeneratedStrategyRule[];
+  exitRules: GeneratedStrategyRule[];
 }
 
 export interface ServiceError {

@@ -109,6 +109,20 @@ const StrategyPreview = () => {
                   <p className="whitespace-pre-line text-sm">
                     {generatedStrategy.description}
                   </p>
+                  
+                  {/* Show OR group conditions information */}
+                  <div className="mt-4 space-y-2">
+                    {generatedStrategy.entryRules?.some(rule => rule.logic === 'OR' && rule.inequalities.length > 0) && (
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Entry OR Group:</strong> At least {generatedStrategy.entryRules.find(rule => rule.logic === 'OR')?.requiredConditions || 1} of {generatedStrategy.entryRules.find(rule => rule.logic === 'OR')?.inequalities.length || 0} conditions must be met for entry confirmation.
+                      </div>
+                    )}
+                    {generatedStrategy.exitRules?.some(rule => rule.logic === 'OR' && rule.inequalities.length > 0) && (
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Exit OR Group:</strong> At least {generatedStrategy.exitRules.find(rule => rule.logic === 'OR')?.requiredConditions || 1} of {generatedStrategy.exitRules.find(rule => rule.logic === 'OR')?.inequalities.length || 0} conditions must be met for exit confirmation.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

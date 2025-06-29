@@ -26,7 +26,7 @@ const Landing = () => {
   }, {
     icon: MessageSquare,
     title: "Natural Language Processing",
-    description: "Describe your trading ideas in plain English and let our AI translate them into actionable trading strategies.",
+    description: "Describe your trading ideas in natural language and let our AI translate them into actionable trading strategies.",
     delay: "200ms",
     gradient: "from-purple-500 to-violet-500"
   }, {

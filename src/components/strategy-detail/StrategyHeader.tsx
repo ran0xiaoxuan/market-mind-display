@@ -1,6 +1,6 @@
 
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, PlayIcon, Edit } from "lucide-react";
+import { ArrowLeft, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
@@ -68,14 +68,6 @@ export const StrategyHeader = ({
     }
   };
 
-  const handleBacktestClick = () => {
-    // Navigate to backtest page with strategy ID in URL search params
-    navigate(`/backtest?strategyId=${strategyId}`);
-    toast("Backtest preparation", {
-      description: "Loading backtest page for this strategy..."
-    });
-  };
-
   return (
     <div className="mb-6">
       <Link to="/strategies" className="text-sm flex items-center mb-4 text-muted-foreground hover:text-foreground">
@@ -96,15 +88,6 @@ export const StrategyHeader = ({
           >
             <Edit className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Edit</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="h-9 px-2.5 border border-input" 
-            onClick={handleBacktestClick}
-          >
-            <PlayIcon className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Backtest</span>
           </Button>
           
           <Button 

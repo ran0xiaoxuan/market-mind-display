@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -27,12 +26,9 @@ Deno.serve(async (req) => {
 
     console.log(`[Monitor] Signal monitoring triggered by: ${source}, timeframes: ${timeframes.length > 0 ? timeframes.join(',') : 'all'}`);
 
-    // Check market status
-    console.log('[Monitor] Checking market status...');
+    // Check market status with proper Eastern Time conversion
     const now = new Date();
     const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    console.log(`Market check - Eastern Time: ${easternTime.toLocaleString()}, Hour: ${easternTime.getHours()}, Minutes: ${easternTime.getMinutes()}`);
-    
     const dayOfWeek = easternTime.getDay();
     const hour = easternTime.getHours();
     const minute = easternTime.getMinutes();
@@ -40,88 +36,13 @@ Deno.serve(async (req) => {
     
     const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
     const isMarketHours = timeInMinutes >= 570 && timeInMinutes < 960; // 9:30 AM to 4:00 PM EST
+    const isMarketCloseWindow = hour === 16 && minute >= 0 && minute < 5; // 4:00-4:05 PM ET
+    const isFridayClose = dayOfWeek === 5 && isMarketCloseWindow;
     
-    console.log(`Market status - Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Time in minutes: ${timeInMinutes}`);
+    console.log(`[Monitor] Market check - Eastern Time: ${easternTime.toLocaleString()}, Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Close window: ${isMarketCloseWindow}`);
 
-    // Get ALL active strategies regardless of market hours for debugging
-    console.log('[Monitor] Fetching ALL active strategies for analysis...');
-    const { data: allStrategies, error: strategiesError } = await supabase
-      .from('strategies')
-      .select(`
-        id,
-        name,
-        user_id,
-        target_asset,
-        timeframe,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .eq('is_active', true)
-      .order('updated_at', { ascending: false });
-
-    if (strategiesError) {
-      console.error('[Monitor] Error fetching strategies:', strategiesError);
-      throw strategiesError;
-    }
-
-    console.log(`[Monitor] Found ${allStrategies?.length || 0} active strategies total`);
-    
-    // Log each strategy for debugging
-    if (allStrategies) {
-      for (const strategy of allStrategies) {
-        console.log(`[Strategy Debug] ID: ${strategy.id}, Name: "${strategy.name}", Asset: ${strategy.target_asset}, Timeframe: ${strategy.timeframe}, User: ${strategy.user_id}`);
-        
-        // Check if this strategy has evaluation records
-        const { data: evalData } = await supabase
-          .from('strategy_evaluations')
-          .select('*')
-          .eq('strategy_id', strategy.id)
-          .single();
-        
-        console.log(`[Strategy Debug] Evaluation record exists: ${!!evalData}, Last evaluated: ${evalData?.last_evaluated_at || 'Never'}, Next due: ${evalData?.next_evaluation_due || 'Not set'}`);
-        
-        // Check if this strategy has rule groups
-        const { data: ruleGroups } = await supabase
-          .from('rule_groups')
-          .select('id, rule_type, logic')
-          .eq('strategy_id', strategy.id);
-        
-        console.log(`[Strategy Debug] Rule groups: ${ruleGroups?.length || 0}`);
-        
-        if (ruleGroups) {
-          for (const group of ruleGroups) {
-            const { data: rules } = await supabase
-              .from('trading_rules')
-              .select('id, left_type, left_indicator, condition, right_type, right_value')
-              .eq('rule_group_id', group.id);
-            
-            console.log(`[Strategy Debug] Group ${group.id} (${group.rule_type}): ${rules?.length || 0} rules`);
-          }
-        }
-      }
-    }
-
-    if (!manual && (!isWeekday || !isMarketHours)) {
-      // Special handling for daily/weekly/monthly strategies during market close
-      const isMarketCloseWindow = hour === 16 && minute >= 0 && minute < 5; // 4:00-4:05 PM ET
-      const isFridayClose = dayOfWeek === 5 && isMarketCloseWindow;
-      
-      if (!isMarketCloseWindow && !isFridayClose) {
-        console.log('[Monitor] Market is closed and not a special evaluation time - no signal monitoring needed');
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Market closed - no monitoring needed',
-            timestamp: new Date().toISOString()
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
-    // Get strategies that need evaluation
-    const strategiesForEvaluation = await getStrategiesForEvaluation(supabase, timeframes, manual);
+    // Get strategies that need evaluation based on proper timeframe logic
+    const strategiesForEvaluation = await getStrategiesForEvaluation(supabase, timeframes, manual, easternTime, isWeekday, isMarketHours, isMarketCloseWindow, isFridayClose);
     console.log(`[Monitor] Strategies selected for evaluation: ${strategiesForEvaluation.length}`);
 
     if (strategiesForEvaluation.length === 0) {
@@ -131,7 +52,6 @@ Deno.serve(async (req) => {
           success: true, 
           message: 'No strategies due for evaluation',
           timestamp: new Date().toISOString(),
-          totalStrategies: allStrategies?.length || 0,
           strategiesEvaluated: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -145,7 +65,7 @@ Deno.serve(async (req) => {
 
     for (const strategy of strategiesForEvaluation) {
       try {
-        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id})`);
+        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id}) - Timeframe: ${strategy.timeframe}`);
         
         const result = await evaluateStrategy(supabase, strategy);
         results.push(result);
@@ -158,8 +78,8 @@ Deno.serve(async (req) => {
           console.log(`[Monitor] ❌ No signal for strategy: ${strategy.name} - ${result.reason}`);
         }
 
-        // Update strategy evaluation record
-        await updateStrategyEvaluation(supabase, strategy);
+        // Update strategy evaluation record with proper next evaluation time
+        await updateStrategyEvaluation(supabase, strategy, easternTime);
         
         // Small delay between API calls to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -183,7 +103,6 @@ Deno.serve(async (req) => {
         success: true, 
         message: `Evaluated ${evaluatedCount} strategies, generated ${signalsGenerated} signals`,
         timestamp: new Date().toISOString(),
-        totalStrategies: allStrategies?.length || 0,
         strategiesEvaluated: evaluatedCount,
         signalsGenerated,
         results
@@ -207,9 +126,9 @@ Deno.serve(async (req) => {
   }
 });
 
-async function getStrategiesForEvaluation(supabase: any, specificTimeframes: string[] = [], manual: boolean = false) {
+async function getStrategiesForEvaluation(supabase: any, specificTimeframes: string[] = [], manual: boolean = false, easternTime: Date, isWeekday: boolean, isMarketHours: boolean, isMarketCloseWindow: boolean, isFridayClose: boolean) {
   try {
-    console.log('[Monitor] Getting strategies for evaluation...');
+    console.log('[Monitor] Getting strategies for evaluation with timeframe filtering...');
     
     // Get all active strategies with their evaluation data
     let query = supabase
@@ -245,7 +164,7 @@ async function getStrategiesForEvaluation(supabase: any, specificTimeframes: str
       return [];
     }
 
-    console.log(`[Monitor] Found ${strategies.length} active strategies, filtering for evaluation...`);
+    console.log(`[Monitor] Found ${strategies.length} active strategies, filtering for timeframe evaluation...`);
 
     const strategiesForEvaluation = [];
     const now = new Date();
@@ -256,7 +175,6 @@ async function getStrategiesForEvaluation(supabase: any, specificTimeframes: str
       console.log(`[Monitor] Checking strategy "${strategy.name}" (${strategy.timeframe})`);
       console.log(`[Monitor] Last evaluated: ${evaluation?.last_evaluated_at || 'Never'}`);
       console.log(`[Monitor] Next due: ${evaluation?.next_evaluation_due || 'Not set'}`);
-      console.log(`[Monitor] Manual trigger: ${manual}`);
 
       if (manual) {
         console.log(`[Monitor] ✅ Including strategy "${strategy.name}" - manual trigger`);
@@ -264,18 +182,23 @@ async function getStrategiesForEvaluation(supabase: any, specificTimeframes: str
         continue;
       }
 
-      // Check if strategy should be evaluated based on timeframe
-      const shouldEvaluate = shouldEvaluateStrategy(
+      // Check if strategy should be evaluated based on timeframe and market conditions
+      const shouldEvaluate = shouldEvaluateStrategyWithTimeframe(
         strategy.timeframe,
         evaluation?.last_evaluated_at ? new Date(evaluation.last_evaluated_at) : null,
-        evaluation?.next_evaluation_due ? new Date(evaluation.next_evaluation_due) : null
+        evaluation?.next_evaluation_due ? new Date(evaluation.next_evaluation_due) : null,
+        easternTime,
+        isWeekday,
+        isMarketHours,
+        isMarketCloseWindow,
+        isFridayClose
       );
 
       if (shouldEvaluate) {
-        console.log(`[Monitor] ✅ Including strategy "${strategy.name}" - due for evaluation`);
+        console.log(`[Monitor] ✅ Including strategy "${strategy.name}" - due for ${strategy.timeframe} evaluation`);
         strategiesForEvaluation.push(strategy);
       } else {
-        console.log(`[Monitor] ⏭️ Skipping strategy "${strategy.name}" - not due yet`);
+        console.log(`[Monitor] ⏭️ Skipping strategy "${strategy.name}" - not due for ${strategy.timeframe} evaluation yet`);
       }
     }
 
@@ -288,63 +211,103 @@ async function getStrategiesForEvaluation(supabase: any, specificTimeframes: str
   }
 }
 
-function shouldEvaluateStrategy(
+function shouldEvaluateStrategyWithTimeframe(
   timeframe: string,
   lastEvaluated: Date | null,
-  nextDue: Date | null
+  nextDue: Date | null,
+  easternTime: Date,
+  isWeekday: boolean,
+  isMarketHours: boolean,
+  isMarketCloseWindow: boolean,
+  isFridayClose: boolean
 ): boolean {
-  const now = new Date();
-  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
   
-  console.log(`[Evaluation Check] Timeframe: ${timeframe}, Now: ${easternTime.toISOString()}`);
+  console.log(`[Evaluation Check] Timeframe: ${timeframe}, Eastern Time: ${easternTime.toISOString()}, Market Hours: ${isMarketHours}`);
   
-  // If never evaluated, evaluate now
+  // If never evaluated, evaluate now (but respect market hours for intraday timeframes)
   if (!lastEvaluated) {
-    console.log('[Evaluation Check] Never evaluated - should evaluate');
-    return true;
+    console.log('[Evaluation Check] Never evaluated - checking market conditions');
+    return shouldEvaluateBasedOnMarketConditions(timeframe, isWeekday, isMarketHours, isMarketCloseWindow, isFridayClose);
   }
   
-  // If we have a next due date and it's past due, evaluate
-  if (nextDue && now >= nextDue) {
-    console.log('[Evaluation Check] Past due date - should evaluate');
-    return true;
+  // Calculate next evaluation time based on timeframe
+  const nextEvalTime = getNextEvaluationTime(timeframe, lastEvaluated);
+  console.log(`[Evaluation Check] Calculated next eval time: ${nextEvalTime.toISOString()}, Current: ${easternTime.toISOString()}`);
+  
+  // Use nextDue if available and more recent than calculated time
+  const effectiveNextDue = nextDue && nextDue > nextEvalTime ? nextDue : nextEvalTime;
+  
+  // Check if it's time for evaluation
+  if (easternTime >= effectiveNextDue) {
+    console.log('[Evaluation Check] Time reached - checking market conditions');
+    return shouldEvaluateBasedOnMarketConditions(timeframe, isWeekday, isMarketHours, isMarketCloseWindow, isFridayClose);
   }
   
-  // If no next due date, calculate based on timeframe and last evaluation
-  if (!nextDue) {
-    const nextEvalTime = getNextEvaluationTime(timeframe, lastEvaluated);
-    console.log(`[Evaluation Check] Calculated next eval time: ${nextEvalTime.toISOString()}`);
-    
-    if (now >= nextEvalTime) {
-      console.log('[Evaluation Check] Past calculated time - should evaluate');
-      return true;
-    }
-  }
-  
-  console.log('[Evaluation Check] Not due for evaluation');
+  console.log('[Evaluation Check] Not due for evaluation yet');
   return false;
 }
 
-function getNextEvaluationTime(timeframe: string, currentTime: Date = new Date()): Date {
-  const easternTime = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
-  const nextEval = new Date(easternTime);
+function shouldEvaluateBasedOnMarketConditions(
+  timeframe: string,
+  isWeekday: boolean,
+  isMarketHours: boolean,
+  isMarketCloseWindow: boolean,
+  isFridayClose: boolean
+): boolean {
+  
+  // Daily strategies: only during market close window on weekdays
+  if (timeframe === 'Daily') {
+    const shouldEval = isWeekday && isMarketCloseWindow;
+    console.log(`[Market Check] Daily strategy - Weekday: ${isWeekday}, Close window: ${isMarketCloseWindow}, Should eval: ${shouldEval}`);
+    return shouldEval;
+  }
+  
+  // Weekly strategies: only on Friday during market close
+  if (timeframe === 'Weekly') {
+    const shouldEval = isFridayClose;
+    console.log(`[Market Check] Weekly strategy - Friday close: ${isFridayClose}, Should eval: ${shouldEval}`);
+    return shouldEval;
+  }
+  
+  // Monthly strategies: only on last trading day during market close
+  if (timeframe === 'Monthly') {
+    const isLastTradingDay = isLastTradingDayOfMonth(new Date());
+    const shouldEval = isLastTradingDay && isMarketCloseWindow;
+    console.log(`[Market Check] Monthly strategy - Last trading day: ${isLastTradingDay}, Close window: ${isMarketCloseWindow}, Should eval: ${shouldEval}`);
+    return shouldEval;
+  }
+  
+  // Intraday strategies (1m, 5m, 15m, 30m, 1h, 4h): only during market hours on weekdays
+  const shouldEval = isWeekday && isMarketHours;
+  console.log(`[Market Check] Intraday strategy (${timeframe}) - Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Should eval: ${shouldEval}`);
+  return shouldEval;
+}
+
+function getNextEvaluationTime(timeframe: string, lastEvaluated: Date): Date {
+  const nextEval = new Date(lastEvaluated);
   
   switch (timeframe) {
     case '1m':
       nextEval.setMinutes(nextEval.getMinutes() + 1);
       break;
     case '5m':
-      const next5Min = Math.ceil(nextEval.getMinutes() / 5) * 5;
+      // Round up to next 5-minute interval
+      const currentMinutes = nextEval.getMinutes();
+      const next5Min = Math.ceil((currentMinutes + 1) / 5) * 5;
       nextEval.setMinutes(next5Min);
       nextEval.setSeconds(0, 0);
       break;
     case '15m':
-      const next15Min = Math.ceil(nextEval.getMinutes() / 15) * 15;
+      // Round up to next 15-minute interval
+      const current15Min = nextEval.getMinutes();
+      const next15Min = Math.ceil((current15Min + 1) / 15) * 15;
       nextEval.setMinutes(next15Min);
       nextEval.setSeconds(0, 0);
       break;
     case '30m':
-      const next30Min = Math.ceil(nextEval.getMinutes() / 30) * 30;
+      // Round up to next 30-minute interval
+      const current30Min = nextEval.getMinutes();
+      const next30Min = Math.ceil((current30Min + 1) / 30) * 30;
       nextEval.setMinutes(next30Min);
       nextEval.setSeconds(0, 0);
       break;
@@ -353,7 +316,9 @@ function getNextEvaluationTime(timeframe: string, currentTime: Date = new Date()
       nextEval.setMinutes(0, 0, 0);
       break;
     case '4h':
-      const next4Hour = Math.ceil(nextEval.getHours() / 4) * 4;
+      // Round up to next 4-hour interval
+      const current4Hour = nextEval.getHours();
+      const next4Hour = Math.ceil((current4Hour + 1) / 4) * 4;
       nextEval.setHours(next4Hour);
       nextEval.setMinutes(0, 0, 0);
       break;
@@ -388,6 +353,21 @@ function getNextEvaluationTime(timeframe: string, currentTime: Date = new Date()
   }
   
   return nextEval;
+}
+
+function isLastTradingDayOfMonth(date: Date): boolean {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  
+  // Get last day of current month
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // Find last weekday of the month
+  while (lastDay.getDay() === 0 || lastDay.getDay() === 6) {
+    lastDay.setDate(lastDay.getDate() - 1);
+  }
+  
+  return date.getDate() === lastDay.getDate();
 }
 
 async function evaluateStrategy(supabase: any, strategy: any) {
@@ -956,10 +936,12 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
   }
 }
 
-async function updateStrategyEvaluation(supabase: any, strategy: any) {
+async function updateStrategyEvaluation(supabase: any, strategy: any, easternTime: Date) {
   try {
     const now = new Date();
-    const nextEvaluationTime = getNextEvaluationTime(strategy.timeframe, now);
+    const nextEvaluationTime = getNextEvaluationTime(strategy.timeframe, easternTime);
+
+    console.log(`[Update Evaluation] Strategy ${strategy.name} (${strategy.timeframe}) - Next evaluation: ${nextEvaluationTime.toISOString()}`);
 
     const { error } = await supabase
       .from('strategy_evaluations')

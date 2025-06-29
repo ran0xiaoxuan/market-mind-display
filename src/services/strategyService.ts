@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Strategy {
@@ -36,7 +37,7 @@ export interface GeneratedStrategyRule {
     };
     explanation?: string;
   }[];
-  requiredConditions?: number; // Add this property
+  requiredConditions?: number;
 }
 
 export interface GeneratedStrategy {
@@ -44,6 +45,7 @@ export interface GeneratedStrategy {
   description: string;
   timeframe: string;
   targetAsset: string;
+  targetAssetName?: string;
   entryRules: GeneratedStrategyRule[];
   exitRules: GeneratedStrategyRule[];
 }

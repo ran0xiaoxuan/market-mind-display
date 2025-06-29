@@ -22,7 +22,7 @@ export const PricingSection = ({
     annualPrice: "$0",
     priceDescription: isAnnual ? "/year" : "/month",
     description: "Access StratAIge's core features at no cost.",
-    features: ["Unlimited strategy generation", "Unlimited strategy backtest and modification", "Strategy management"],
+    features: ["Unlimited strategy generation", "Unlimited strategy modification", "Strategy management"],
     buttonText: "Get Started Free",
     buttonLink: "/signup",
     isFeatured: false

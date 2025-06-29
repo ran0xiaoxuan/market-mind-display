@@ -285,7 +285,7 @@ const Landing = () => {
             {[{
             step: 1,
             title: "Describe Your Strategy",
-            description: "Tell our AI what kind of trading strategy you want using plain English. No technical knowledge required.",
+            description: "Tell our AI what kind of trading strategy you want using natural language. No technical knowledge required.",
             color: "from-blue-500 to-cyan-500"
           }, {
             step: 2,

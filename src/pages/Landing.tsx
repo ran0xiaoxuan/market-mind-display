@@ -187,7 +187,7 @@ const Landing = () => {
               <p style={{
               animationDelay: '600ms'
             }} className="text-xl text-gray-600 max-w-3xl mx-auto animate-fade-in hover:text-gray-800 transition-colors duration-300 my-[20px]">
-                Describe your trading ideas in plain English and get AI-generated strategies with real-time notifications.
+                Describe your trading ideas in natural language and get AI-generated strategies with real-time notifications.
                 <br className="hidden md:block" />
                 <span className="animate-fade-in inline-block" style={{
                 animationDelay: '800ms'

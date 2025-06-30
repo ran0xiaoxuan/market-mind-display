@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -189,6 +190,14 @@ Before generating the strategy, analyze the user's description for these key log
    - Example: "Buy when RSI < 30 AND (MACD > 0 OR volume > average)" → AND group + OR group
    - Example: "Entry: RSI oversold AND volume high. Exit: RSI overbought OR stop loss" → Separate logic for entry/exit
 
+CRITICAL OR GROUP RULE:
+- OR groups MUST contain at least 2 conditions (inequalities)
+- If you create an OR group, it must have a minimum of 2 inequalities in the inequalities array
+- This applies to both Entry Rules and Exit Rules
+- If the user's description only suggests one condition for an OR scenario, either:
+  1. Convert it to an AND group instead, OR
+  2. Add a complementary logical condition to make it a proper OR group with 2+ conditions
+
 IMPORTANT RULES:
 1. Generate strategy based ONLY on the user's description - do not default to RSI/MACD unless specifically requested
 2. Use indicators that are relevant to the user's request from this list: ${validIndicators.join(", ")}
@@ -196,6 +205,7 @@ IMPORTANT RULES:
 4. Carefully analyze the user's language to determine proper AND/OR grouping
 5. Always create BOTH AND and OR groups for each rule type (entry/exit), even if one is empty initially
 6. CRITICAL: Every explanation must accurately describe what the condition actually does
+7. MANDATORY: OR groups must have at least 2 conditions - never create an OR group with only 1 condition
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
@@ -237,9 +247,9 @@ Example 3: "Buy when MACD crosses above signal line"
 
 LOGIC GROUPING EXAMPLES:
 - "RSI below 30 AND MACD positive" → Single AND group with two conditions
-- "RSI below 30 OR price under support" → Single OR group with requiredConditions: 1
+- "RSI below 30 OR price under support" → Single OR group with requiredConditions: 1 (minimum 2 conditions required)
 - "RSI oversold AND volume high, OR price breaks support" → AND group + OR group with requiredConditions: 1
-- "Enter when at least 2 of: RSI < 30, MACD > 0, price > SMA" → OR group with requiredConditions: 2
+- "Enter when at least 2 of: RSI < 30, MACD > 0, price > SMA" → OR group with requiredConditions: 2 (minimum 2 conditions satisfied)
 
 Return ONLY this JSON structure:
 {
@@ -296,6 +306,25 @@ Return ONLY this JSON structure:
             "valueType": "number"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this OR condition does - be specific about thresholds and logic"
+        },
+        {
+          "id": 2,
+          "left": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"},
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "condition": "Use ONLY the exact condition values listed above",
+          "right": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"}, 
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "explanation": "CRITICAL: Must accurately describe exactly what this second OR condition does - be specific about thresholds and logic"
         }
       ]
     }
@@ -349,6 +378,25 @@ Return ONLY this JSON structure:
             "valueType": "number"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this OR exit condition does - be specific about thresholds and logic"
+        },
+        {
+          "id": 2,
+          "left": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"},
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "condition": "Use ONLY the exact condition values listed above",
+          "right": {
+            "type": "INDICATOR|PRICE|VALUE",
+            "indicator": "Only if type is INDICATOR - from validIndicators list",
+            "parameters": {"period": "NumberAsString"},
+            "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
+            "valueType": "number"
+          },
+          "explanation": "CRITICAL: Must accurately describe exactly what this second OR exit condition does - be specific about thresholds and logic"
         }
       ]
     }
@@ -363,6 +411,8 @@ Before returning the JSON, verify that:
 4. Logic grouping (AND/OR) matches the user's described intent
 5. No condition compares indicators to each other unless explicitly described in user request
 6. All explanations are specific and implementable, not vague or generic
+7. MANDATORY: Every OR group contains at least 2 conditions in its inequalities array
+8. OR groups with only 1 condition have been converted to AND groups or expanded with additional logical conditions
 
 CRITICAL: 
 - Always create both AND and OR groups (id: 1 for AND, id: 2 for OR)
@@ -371,8 +421,9 @@ CRITICAL:
 - For OR groups, set requiredConditions appropriately (1 for "any", 2+ for "at least X")
 - Ensure all condition types (INDICATOR/PRICE/VALUE) are properly specified
 - MOST IMPORTANT: Every explanation must accurately describe what the condition actually does
+- MANDATORY: OR groups MUST have at least 2 conditions - never create an OR group with fewer than 2 inequalities
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, and explanations that match the actual implementation exactly.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions.`;
 
     console.log('Calling OpenAI API...');
     
@@ -385,7 +436,7 @@ Carefully analyze the user's description to create a strategy that truly reflect
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping based on the user\'s language. Use OR groups when the user indicates alternative conditions with words like "or", "either", "any of". Always create both AND and OR groups even if one is empty. Return only valid JSON that matches the specified structure exactly.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping based on the user\'s language. Use OR groups when the user indicates alternative conditions with words like "or", "either", "any of". Always create both AND and OR groups even if one is empty. CRITICAL: OR groups must contain at least 2 conditions - never create an OR group with only 1 condition. Return only valid JSON that matches the specified structure exactly.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

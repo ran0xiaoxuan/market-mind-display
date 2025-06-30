@@ -110,11 +110,18 @@ export const RuleGroup = ({
     <div className={`rounded-lg p-4 ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
-          <h3 className="text-lg font-semibold">{title}</h3>
+          <h3 className="text-lg font-semibold">
+            {title}
+            {isOrGroup && requiredConditions !== undefined && inequalities.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                (Required: {requiredConditions} of {inequalities.length})
+              </span>
+            )}
+          </h3>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                
+                <Info className="h-4 w-4 ml-2 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="w-80 p-4">
                 <p className="text-sm">

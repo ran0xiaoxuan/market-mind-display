@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -160,6 +159,43 @@ The most important rule is that every condition you create must do EXACTLY what 
 - If explanation says "MACD crosses above signal line", the condition must involve MACD crossing above its signal line
 - If explanation says "price above 50-day SMA", the condition must be: Price > SMA(50)
 
+TRADING LOGIC AND CONDITION PLACEMENT RULES:
+CRITICAL: You must understand standard trading logic when placing conditions in Entry vs Exit Rules:
+
+ENTRY RULES - Conditions that signal when to ENTER a position:
+- OVERSOLD conditions (RSI < 30, CCI < -100, Stochastic < 20, etc.) - These indicate potential buying opportunities
+- BULLISH momentum signals (MACD crosses above signal, price breaks above resistance, etc.)
+- SUPPORT level breaks or bounces
+- Volume confirmation for entry signals
+- Trend continuation signals (price above moving averages for long positions)
+
+EXIT RULES - Conditions that signal when to EXIT a position:
+- OVERBOUGHT conditions (RSI > 70, CCI > 100, Stochastic > 80, etc.) - These indicate potential selling opportunities
+- BEARISH momentum signals (MACD crosses below signal, price breaks below support, etc.)
+- RESISTANCE level tests or breaks
+- Stop-loss conditions (price drops below certain level)
+- Take-profit conditions (price reaches target level)
+- Trend reversal signals
+
+EXAMPLES OF CORRECT PLACEMENT:
+✅ CORRECT Entry: "RSI below 30" (oversold, good for entry)
+✅ CORRECT Exit: "RSI above 70" (overbought, good for exit)
+❌ WRONG: Putting "RSI above 70" in Entry Rules (this would mean buying when overbought)
+❌ WRONG: Putting "RSI below 30" in Exit Rules (this would mean selling when oversold)
+
+✅ CORRECT Entry: "Price breaks above 50-day SMA" (bullish signal for entry)
+✅ CORRECT Exit: "Price drops below 50-day SMA" (bearish signal for exit)
+
+✅ CORRECT Entry: "MACD crosses above signal line" (bullish momentum for entry)
+✅ CORRECT Exit: "MACD crosses below signal line" (bearish momentum for exit)
+
+ALWAYS ANALYZE THE USER'S INTENT:
+- If user says "buy when RSI is oversold", put RSI < 30 in ENTRY RULES
+- If user says "sell when RSI is overbought", put RSI > 70 in EXIT RULES
+- If user mentions "entry" or "buy" signals, analyze what they describe and place in ENTRY RULES
+- If user mentions "exit" or "sell" signals, analyze what they describe and place in EXIT RULES
+- If user doesn't specify entry/exit clearly, use standard trading logic to determine proper placement
+
 EXPLANATION WRITING RULES:
 1. Write explanations that are specific, accurate, and implementable
 2. Use exact threshold values (like 30, 70, -100, etc.) not vague terms
@@ -206,6 +242,7 @@ IMPORTANT RULES:
 5. Always create BOTH AND and OR groups for each rule type (entry/exit), even if one is empty initially
 6. CRITICAL: Every explanation must accurately describe what the condition actually does
 7. MANDATORY: OR groups must have at least 2 conditions - never create an OR group with only 1 condition
+8. CRITICAL: Use proper trading logic to place conditions in correct Entry/Exit Rules based on market behavior
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
@@ -421,9 +458,10 @@ CRITICAL:
 - For OR groups, set requiredConditions appropriately (1 for "any", 2+ for "at least X")
 - Ensure all condition types (INDICATOR/PRICE/VALUE) are properly specified
 - MOST IMPORTANT: Every explanation must accurately describe what the condition actually does
-- MANDATORY: OR groups MUST have at least 2 conditions - never create an OR group with fewer than 2 inequalities
+- MANDATORY: OR groups must have at least 2 conditions - never create an OR group with fewer than 2 inequalities
+- CRITICAL: Use standard trading logic to place conditions correctly - oversold in Entry, overbought in Exit
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, proper trading logic for Entry/Exit placement, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions, and trading conditions must be placed logically based on market behavior.`;
 
     console.log('Calling OpenAI API...');
     

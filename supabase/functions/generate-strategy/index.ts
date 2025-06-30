@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -159,6 +160,45 @@ The most important rule is that every condition you create must do EXACTLY what 
 - If explanation says "MACD crosses above signal line", the condition must involve MACD crossing above its signal line
 - If explanation says "price above 50-day SMA", the condition must be: Price > SMA(50)
 
+CRITICAL: PREVENT IDENTICAL LEFT AND RIGHT SIDES IN CONDITIONS
+
+NEVER create conditions where the left and right sides are exactly the same. This creates meaningless comparisons that cannot be evaluated:
+
+❌ WRONG EXAMPLES TO AVOID:
+- MACD(12,26,9) crosses above MACD(12,26,9) - identical indicators with same parameters
+- RSI(14) > RSI(14) - same indicator comparing to itself
+- SMA(50) crosses below SMA(50) - identical moving averages
+- Price > Price - price comparing to itself
+
+✅ CORRECT EXAMPLES:
+- MACD Line crosses above MACD Signal Line - different components of MACD
+- MACD(12,26,9) crosses above 0 - MACD crossing zero line
+- RSI(14) < 30 - RSI compared to fixed threshold
+- Price > SMA(50) - price compared to moving average
+- EMA(20) crosses above SMA(50) - different moving averages with different periods
+
+VALIDATION RULES FOR CONDITION SIDES:
+1. If both sides use the same indicator (e.g., MACD), they MUST have different components:
+   - MACD Line vs MACD Signal Line vs MACD Histogram
+   - Fast Stochastic vs Slow Stochastic
+   - Different Bollinger Band lines (Upper, Middle, Lower)
+
+2. If both sides use moving averages, they MUST have different periods or types:
+   - SMA(20) vs SMA(50) ✅
+   - EMA(12) vs SMA(26) ✅
+   - SMA(20) vs SMA(20) ❌
+
+3. For crossover conditions (CROSSES_ABOVE, CROSSES_BELOW):
+   - Always ensure meaningful crossovers between different lines/levels
+   - MACD Line vs Signal Line ✅
+   - Stochastic %K vs %D ✅
+   - Price vs Moving Average ✅
+
+4. When using multi-component indicators:
+   - MACD: Use "MACD Line", "MACD Signal Line", or "MACD Histogram" as specific components
+   - Stochastic: Use "%K" or "%D" components
+   - Bollinger Bands: Use "Upper Band", "Middle Band", or "Lower Band"
+
 TRADING LOGIC AND CONDITION PLACEMENT RULES:
 CRITICAL: You must understand standard trading logic when placing conditions in Entry vs Exit Rules:
 
@@ -201,12 +241,14 @@ EXPLANATION WRITING RULES:
 2. Use exact threshold values (like 30, 70, -100, etc.) not vague terms
 3. Mention specific indicator parameters when relevant
 4. Each explanation must correspond to exactly one implementable condition
+5. For multi-component indicators, specify which component is being used
 
 CONDITION IMPLEMENTATION RULES:
 1. Every condition must implement exactly what its explanation describes
 2. Use specific numeric thresholds that match the explanation
 3. Compare indicators to fixed values, not to each other (unless explicitly described)
 4. Ensure indicator parameters match what's mentioned in the explanation
+5. CRITICAL: Verify that left and right sides are different and create meaningful comparisons
 
 LOGIC GROUPING ANALYSIS:
 Before generating the strategy, analyze the user's description for these key logic patterns:
@@ -243,6 +285,7 @@ IMPORTANT RULES:
 6. CRITICAL: Every explanation must accurately describe what the condition actually does
 7. MANDATORY: OR groups must have at least 2 conditions - never create an OR group with only 1 condition
 8. CRITICAL: Use proper trading logic to place conditions in correct Entry/Exit Rules based on market behavior
+9. CRITICAL: Never create conditions with identical left and right sides - always verify meaningful comparisons
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
@@ -450,6 +493,8 @@ Before returning the JSON, verify that:
 6. All explanations are specific and implementable, not vague or generic
 7. MANDATORY: Every OR group contains at least 2 conditions in its inequalities array
 8. OR groups with only 1 condition have been converted to AND groups or expanded with additional logical conditions
+9. CRITICAL: No condition has identical left and right sides - all comparisons are meaningful
+10. For multi-component indicators (MACD, Stochastic, etc.), different components are used when comparing within the same indicator family
 
 CRITICAL: 
 - Always create both AND and OR groups (id: 1 for AND, id: 2 for OR)
@@ -460,8 +505,9 @@ CRITICAL:
 - MOST IMPORTANT: Every explanation must accurately describe what the condition actually does
 - MANDATORY: OR groups must have at least 2 conditions - never create an OR group with fewer than 2 inequalities
 - CRITICAL: Use standard trading logic to place conditions correctly - oversold in Entry, overbought in Exit
+- CRITICAL: Never create conditions where left and right sides are identical - always ensure meaningful comparisons
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, proper trading logic for Entry/Exit placement, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions, and trading conditions must be placed logically based on market behavior.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, proper trading logic for Entry/Exit placement, meaningful condition comparisons that avoid identical left/right sides, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions, trading conditions must be placed logically based on market behavior, and all condition comparisons must be meaningful and avoid identical sides.`;
 
     console.log('Calling OpenAI API...');
     
@@ -474,7 +520,7 @@ Carefully analyze the user's description to create a strategy that truly reflect
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping based on the user\'s language. Use OR groups when the user indicates alternative conditions with words like "or", "either", "any of". Always create both AND and OR groups even if one is empty. CRITICAL: OR groups must contain at least 2 conditions - never create an OR group with only 1 condition. Return only valid JSON that matches the specified structure exactly.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping based on the user\'s language. Use OR groups when the user indicates alternative conditions with words like "or", "either", "any of". Always create both AND and OR groups even if one is empty. CRITICAL: OR groups must contain at least 2 conditions - never create an OR group with only 1 condition. CRITICAL: Never create conditions where left and right sides are identical - ensure all comparisons are meaningful. Return only valid JSON that matches the specified structure exactly.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

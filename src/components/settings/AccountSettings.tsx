@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { Upload, Undo } from "lucide-react";
+import { Upload, Undo, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,13 +14,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { Switch } from "@/components/ui/switch";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
+import { passwordSchema } from "@/services/securityService";
 
 // Max file size: 1MB
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
 export function AccountSettings() {
   const {
-    user
+    user,
+    validatePassword
   } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState("");
@@ -34,9 +36,26 @@ export function AccountSettings() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
+  // Password validation states
+  const [passwordValidation, setPasswordValidation] = useState({
+    isValid: false,
+    errors: [] as string[]
+  });
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
   const initialsForAvatar = username.charAt(0).toUpperCase();
+
+  // Validate new password in real-time
+  useEffect(() => {
+    if (newPassword) {
+      const validation = validatePassword(newPassword);
+      setPasswordValidation(validation);
+    } else {
+      setPasswordValidation({ isValid: false, errors: [] });
+    }
+  }, [newPassword, validatePassword]);
 
   // Load user profile and subscription status
   useEffect(() => {
@@ -122,6 +141,7 @@ export function AccountSettings() {
       console.error('Error syncing Pro status:', error);
     }
   };
+  
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(""); // Clear any previous errors
@@ -146,6 +166,7 @@ export function AccountSettings() {
       await uploadAvatar(file);
     }
   };
+  
   const uploadAvatar = async (file: File) => {
     setIsUpdating(true);
     try {
@@ -197,6 +218,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+  
   const handleResetAvatar = async () => {
     setIsUpdating(true);
     try {
@@ -224,6 +246,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+  
   const handleSaveProfile = async () => {
     if (!user) return;
     setIsUpdating(true);
@@ -264,10 +287,11 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   const handleUpdatePassword = async () => {
     if (!user) return;
 
-    // Validate inputs
+    // Validate current password
     if (!currentPassword) {
       toast({
         title: "Current password required",
@@ -276,6 +300,8 @@ export function AccountSettings() {
       });
       return;
     }
+
+    // Validate new password
     if (!newPassword) {
       toast({
         title: "New password required",
@@ -284,14 +310,18 @@ export function AccountSettings() {
       });
       return;
     }
-    if (newPassword.length < 8) {
+
+    // Check password complexity
+    if (!passwordValidation.isValid) {
       toast({
-        title: "Password too short",
-        description: "New password must be at least 8 characters long.",
+        title: "Password requirements not met",
+        description: "Please ensure your password meets all the requirements.",
         variant: "destructive"
       });
       return;
     }
+
+    // Check password confirmation
     if (newPassword !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -300,26 +330,31 @@ export function AccountSettings() {
       });
       return;
     }
+
     setIsUpdating(true);
     try {
-      // First verify the current password by attempting to sign in
-      const {
-        error: signInError
-      } = await supabase.auth.signInWithPassword({
+      // Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user.email!,
         password: currentPassword
       });
+
       if (signInError) {
-        throw new Error("Current password is incorrect");
+        toast({
+          title: "Incorrect current password",
+          description: "The current password you entered is incorrect. Please try again.",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // If current password is correct, update to new password
-      const {
-        error: updateError
-      } = await supabase.auth.updateUser({
+      // Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword
       });
+
       if (updateError) throw updateError;
+
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully."
@@ -340,6 +375,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   const toggleSubscriptionStatus = async () => {
     setIsUpdating(true);
     try {
@@ -381,6 +417,7 @@ export function AccountSettings() {
       setIsUpdating(false);
     }
   };
+
   if (isLoadingProfile) {
     return <div className="space-y-12">
         <div className="animate-pulse">
@@ -390,6 +427,7 @@ export function AccountSettings() {
         </div>
       </div>;
   }
+
   return <div className="space-y-12">
       {/* Subscription Plan */}
       <div>
@@ -440,9 +478,7 @@ export function AccountSettings() {
         </Card>
       </div>
       
-      {/* Profile */}
-      
-      
+      {/* Password */}
       <div>
         <h2 className="text-xl font-medium">Password</h2>
         <p className="text-sm text-muted-foreground mb-4">Change your password</p>
@@ -450,28 +486,112 @@ export function AccountSettings() {
         <div className="grid gap-4">
           <div>
             <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
-            <Input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Enter your current password" />
+            <Input 
+              id="current-password" 
+              type="password" 
+              value={currentPassword} 
+              onChange={e => setCurrentPassword(e.target.value)} 
+              placeholder="Enter your current password" 
+            />
           </div>
           
           <div>
             <label htmlFor="new-password" className="block text-sm mb-2">New Password</label>
-            <Input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter your new password (min 8 characters)" />
+            <Input 
+              id="new-password" 
+              type="password" 
+              value={newPassword} 
+              onChange={e => setNewPassword(e.target.value)} 
+              onFocus={() => setShowPasswordRequirements(true)}
+              placeholder="Enter your new password"
+            />
+            
+            {/* Password Requirements */}
+            {showPasswordRequirements && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border">
+                <p className="text-sm font-medium mb-2">Password Requirements:</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    {newPassword.length >= 8 ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={newPassword.length >= 8 ? "text-green-600" : "text-red-600"}>
+                      At least 8 characters
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {/[A-Z]/.test(newPassword) ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={/[A-Z]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
+                      At least one uppercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {/[a-z]/.test(newPassword) ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={/[a-z]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
+                      At least one lowercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {/\d/.test(newPassword) ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={/\d/.test(newPassword) ? "text-green-600" : "text-red-600"}>
+                      At least one number
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(newPassword) ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
+                      At least one special character
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div>
             <label htmlFor="confirm-password" className="block text-sm mb-2">Confirm New Password</label>
-            <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your new password" />
+            <Input 
+              id="confirm-password" 
+              type="password" 
+              value={confirmPassword} 
+              onChange={e => setConfirmPassword(e.target.value)} 
+              placeholder="Confirm your new password" 
+            />
+            {confirmPassword && newPassword !== confirmPassword && (
+              <p className="text-sm text-red-600 mt-1">Passwords do not match</p>
+            )}
           </div>
           
           <div>
-            <Button variant="default" className="bg-black text-white mt-2" onClick={handleUpdatePassword} disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}>
+            <Button 
+              variant="default" 
+              className="bg-black text-white mt-2" 
+              onClick={handleUpdatePassword} 
+              disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword || !passwordValidation.isValid || newPassword !== confirmPassword}
+            >
               {isUpdating ? "Updating..." : "Update Password"}
             </Button>
           </div>
         </div>
       </div>
-      
-      
       
       <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>;

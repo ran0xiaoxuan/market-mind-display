@@ -1,3 +1,4 @@
+
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Turnstile } from "@/components/Turnstile";
 
@@ -24,8 +25,24 @@ const Signup = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState({
+    isValid: false,
+    errors: [] as string[]
+  });
+  
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, validatePassword } = useAuth();
+
+  // Validate password in real-time
+  useEffect(() => {
+    if (password) {
+      const validation = validatePassword(password);
+      setPasswordValidation(validation);
+    } else {
+      setPasswordValidation({ isValid: false, errors: [] });
+    }
+  }, [password, validatePassword]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +57,13 @@ const Signup = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+    if (!passwordValidation.isValid) {
+      toast.error("Password does not meet the requirements");
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -124,6 +141,7 @@ const Signup = () => {
                   placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setShowPasswordRequirements(true)}
                   disabled={isLoading}
                   required
                 />
@@ -142,6 +160,65 @@ const Signup = () => {
                   )}
                 </Button>
               </div>
+              
+              {/* Password Requirements */}
+              {showPasswordRequirements && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-md border">
+                  <p className="text-sm font-medium mb-2">Password Requirements:</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      {password.length >= 8 ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={password.length >= 8 ? "text-green-600" : "text-red-600"}>
+                        At least 8 characters
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      {/[A-Z]/.test(password) ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={/[A-Z]/.test(password) ? "text-green-600" : "text-red-600"}>
+                        At least one uppercase letter
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      {/[a-z]/.test(password) ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={/[a-z]/.test(password) ? "text-green-600" : "text-red-600"}>
+                        At least one lowercase letter
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      {/\d/.test(password) ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={/\d/.test(password) ? "text-green-600" : "text-red-600"}>
+                        At least one number
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(password) ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(password) ? "text-green-600" : "text-red-600"}>
+                        At least one special character
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -170,6 +247,9 @@ const Signup = () => {
                   )}
                 </Button>
               </div>
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-sm text-red-600 mt-1">Passwords do not match</p>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -195,7 +275,11 @@ const Signup = () => {
               <Turnstile onVerify={setTurnstileToken} />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || !acceptedTerms}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading || !turnstileToken || !acceptedTerms || !passwordValidation.isValid || password !== confirmPassword}
+            >
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>

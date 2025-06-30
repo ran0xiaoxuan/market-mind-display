@@ -165,98 +165,72 @@ CRITICAL: MULTI-COMPONENT INDICATOR SPECIFICATION
 When using indicators that have multiple components, you MUST specify which exact component is being used:
 
 1. MACD Indicator Components:
-   - "MACD Line" (the main MACD line)
-   - "MACD Signal Line" (the signal line)
-   - "MACD Histogram" (the histogram bars)
-   - NEVER use generic "MACD" without specifying the component
+   - "MACD" (the main MACD line) - use indicator: "MACD", valueType: "MACD Value"
+   - "MACD Signal" (the signal line) - use indicator: "MACD", valueType: "Signal Value"  
+   - "MACD Histogram" (the histogram bars) - use indicator: "MACD", valueType: "Histogram Value"
 
 2. Stochastic Indicator Components:
-   - "%K" (fast stochastic line)
-   - "%D" (slow stochastic line)
-   - NEVER use generic "Stochastic" without specifying %K or %D
+   - "%K" (fast stochastic line) - use indicator: "Stochastic", valueType: "K Value"
+   - "%D" (slow stochastic line) - use indicator: "Stochastic", valueType: "D Value"
 
 3. Bollinger Bands Components:
-   - "Upper Band"
-   - "Middle Band" (same as SMA)
-   - "Lower Band"
-   - NEVER use generic "Bollinger Bands" without specifying which band
+   - "Upper Band" - use indicator: "Bollinger Bands", valueType: "Upper Band"
+   - "Middle Band" - use indicator: "Bollinger Bands", valueType: "Middle Band"
+   - "Lower Band" - use indicator: "Bollinger Bands", valueType: "Lower Band"
 
 4. Ichimoku Cloud Components:
-   - "Tenkan Sen"
-   - "Kijun Sen"
-   - "Senkou Span A"
-   - "Senkou Span B"
-   - "Chikou Span"
+   - "Conversion Line" - use indicator: "Ichimoku Cloud", valueType: "Conversion Line"
+   - "Base Line" - use indicator: "Ichimoku Cloud", valueType: "Base Line"
+   - And other components as needed
 
 EXAMPLES OF CORRECT MULTI-COMPONENT USAGE:
 ✅ CORRECT: "MACD Line crosses above MACD Signal Line"
+- Left: indicator: "MACD", valueType: "MACD Value"
+- Right: indicator: "MACD", valueType: "Signal Value"
+
 ✅ CORRECT: "Price crosses above Bollinger Bands Upper Band"
+- Left: type: "PRICE", value: "Close"
+- Right: indicator: "Bollinger Bands", valueType: "Upper Band"
+
 ✅ CORRECT: "Stochastic %K crosses below Stochastic %D"
-✅ CORRECT: "MACD Histogram crosses above 0"
+- Left: indicator: "Stochastic", valueType: "K Value"
+- Right: indicator: "Stochastic", valueType: "D Value"
 
 ❌ WRONG: "MACD crosses above MACD" (identical and non-specific)
 ❌ WRONG: "MACD(12,26,9) crosses above MACD(12,26,9)" (identical components)
 ❌ WRONG: "Stochastic crosses above Stochastic" (non-specific components)
-❌ WRONG: "Bollinger Bands crosses above Bollinger Bands" (non-specific bands)
 
 CRITICAL: PREVENT IDENTICAL LEFT AND RIGHT SIDES IN CONDITIONS
 
-NEVER create conditions where the left and right sides are exactly the same. This creates meaningless comparisons that cannot be evaluated:
+NEVER create conditions where the left AND right sides are exactly the same indicator with the same valueType and parameters. This creates meaningless comparisons that cannot be evaluated:
 
 ❌ WRONG EXAMPLES TO AVOID:
-- MACD(12,26,9) crosses above MACD(12,26,9) - identical indicators with same parameters
+- MACD(12,26,9) with valueType "MACD Value" crosses above MACD(12,26,9) with valueType "MACD Value"
 - RSI(14) > RSI(14) - same indicator comparing to itself
 - SMA(50) crosses below SMA(50) - identical moving averages
-- Price > Price - price comparing to itself
-- Stochastic crosses above Stochastic - same indicator without component specification
+- CCI(14) < CCI(14) - same CCI comparing to itself
 
 ✅ CORRECT EXAMPLES:
-- MACD Line crosses above MACD Signal Line - different components of MACD
-- MACD Line crosses above 0 - MACD compared to zero line
+- MACD with valueType "MACD Value" crosses above MACD with valueType "Signal Value"
 - RSI(14) < 30 - RSI compared to fixed threshold
 - Price > SMA(50) - price compared to moving average
+- CCI(14) < -100 - CCI compared to fixed threshold
 - EMA(20) crosses above SMA(50) - different moving averages with different periods
-- Stochastic %K crosses above Stochastic %D - different stochastic components
 
-VALIDATION RULES FOR CONDITION SIDES:
-1. If both sides use the same indicator family (e.g., MACD), they MUST use different components:
-   - MACD Line vs MACD Signal Line vs MACD Histogram ✅
-   - Fast Stochastic (%K) vs Slow Stochastic (%D) ✅
-   - Different Bollinger Band lines (Upper, Middle, Lower) ✅
+CRITICAL: OR GROUP REQUIRED CONDITIONS RULE
 
-2. If both sides use moving averages, they MUST have different periods or types:
-   - SMA(20) vs SMA(50) ✅
-   - EMA(12) vs SMA(26) ✅
-   - SMA(20) vs SMA(20) ❌
+When creating OR groups, the requiredConditions MUST be LESS than the total number of inequalities in that group:
+- If OR group has 2 conditions → requiredConditions can be 1 (not 2)
+- If OR group has 3 conditions → requiredConditions can be 1 or 2 (not 3)
+- If OR group has 4 conditions → requiredConditions can be 1, 2, or 3 (not 4)
 
-3. For crossover conditions (CROSSES_ABOVE, CROSSES_BELOW):
-   - Always ensure meaningful crossovers between different lines/levels
-   - MACD Line vs MACD Signal Line ✅
-   - Stochastic %K vs %D ✅
-   - Price vs Moving Average ✅
+Setting requiredConditions equal to the total number of conditions defeats the purpose of using an OR group (it becomes equivalent to an AND group).
 
-4. When using multi-component indicators:
-   - ALWAYS specify the exact component in the indicator field
-   - Use component names like "MACD Line", "MACD Signal Line", "MACD Histogram"
-   - Use component names like "Stochastic %K", "Stochastic %D"
-   - Use component names like "Bollinger Bands Upper Band", "Bollinger Bands Lower Band"
-
-INDICATOR FIELD SPECIFICATION RULES:
-When type is "INDICATOR", the indicator field must contain the EXACT component name:
-
-For MACD family:
-- indicator: "MACD Line" (for the main MACD line)
-- indicator: "MACD Signal Line" (for the signal line)
-- indicator: "MACD Histogram" (for the histogram)
-
-For Stochastic family:
-- indicator: "Stochastic %K" (for %K line)
-- indicator: "Stochastic %D" (for %D line)
-
-For Bollinger Bands family:
-- indicator: "Bollinger Bands Upper Band"
-- indicator: "Bollinger Bands Middle Band"
-- indicator: "Bollinger Bands Lower Band"
+EXAMPLES:
+✅ CORRECT: OR group with 3 conditions, requiredConditions: 2 (any 2 of 3 must be true)
+✅ CORRECT: OR group with 2 conditions, requiredConditions: 1 (either condition can be true)
+❌ WRONG: OR group with 2 conditions, requiredConditions: 2 (both must be true = AND logic)
+❌ WRONG: OR group with 3 conditions, requiredConditions: 3 (all must be true = AND logic)
 
 TRADING LOGIC AND CONDITION PLACEMENT RULES:
 CRITICAL: You must understand standard trading logic when placing conditions in Entry vs Exit Rules:
@@ -302,6 +276,7 @@ EXPLANATION WRITING RULES:
 4. Each explanation must correspond to exactly one implementable condition
 5. For multi-component indicators, specify which component is being used
 6. ALWAYS specify the exact component when using MACD, Stochastic, Bollinger Bands, etc.
+7. CRITICAL: Make sure the explanation matches the actual condition being implemented
 
 CONDITION IMPLEMENTATION RULES:
 1. Every condition must implement exactly what its explanation describes
@@ -309,7 +284,8 @@ CONDITION IMPLEMENTATION RULES:
 3. Compare indicators to fixed values, not to each other (unless explicitly described)
 4. Ensure indicator parameters match what's mentioned in the explanation
 5. CRITICAL: Verify that left and right sides are different and create meaningful comparisons
-6. MANDATORY: For multi-component indicators, always specify the exact component in the indicator field
+6. MANDATORY: For multi-component indicators, always specify the exact component using proper valueType
+7. CRITICAL: Ensure explanation content matches the actual condition values and logic
 
 LOGIC GROUPING ANALYSIS:
 Before generating the strategy, analyze the user's description for these key logic patterns:
@@ -331,11 +307,9 @@ Before generating the strategy, analyze the user's description for these key log
 
 CRITICAL OR GROUP RULE:
 - OR groups MUST contain at least 2 conditions (inequalities)
+- OR groups MUST have requiredConditions LESS THAN the total number of inequalities
 - If you create an OR group, it must have a minimum of 2 inequalities in the inequalities array
-- This applies to both Entry Rules and Exit Rules
-- If the user's description only suggests one condition for an OR scenario, either:
-  1. Convert it to an AND group instead, OR
-  2. Add a complementary logical condition to make it a proper OR group with 2+ conditions
+- requiredConditions must be between 1 and (total_inequalities - 1)
 
 IMPORTANT RULES:
 1. Generate strategy based ONLY on the user's description - do not default to RSI/MACD unless specifically requested
@@ -345,9 +319,11 @@ IMPORTANT RULES:
 5. Always create BOTH AND and OR groups for each rule type (entry/exit), even if one is empty initially
 6. CRITICAL: Every explanation must accurately describe what the condition actually does
 7. MANDATORY: OR groups must have at least 2 conditions - never create an OR group with only 1 condition
-8. CRITICAL: Use proper trading logic to place conditions in correct Entry/Exit Rules based on market behavior
-9. CRITICAL: Never create conditions with identical left and right sides - always verify meaningful comparisons
-10. MANDATORY: For multi-component indicators (MACD, Stochastic, Bollinger Bands), ALWAYS specify the exact component
+8. CRITICAL: OR groups must have requiredConditions LESS than total conditions to maintain OR logic
+9. CRITICAL: Use proper trading logic to place conditions in correct Entry/Exit Rules based on market behavior
+10. CRITICAL: Never create conditions with identical left and right sides - always verify meaningful comparisons
+11. MANDATORY: For multi-component indicators, ALWAYS specify the exact component using proper valueType
+12. CRITICAL: Ensure explanations match the actual condition implementation exactly
 
 TIMEFRAME SELECTION:
 Available timeframes: "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "4 hours", "Daily", "Weekly", "Monthly"
@@ -366,7 +342,7 @@ You MUST use these EXACT condition values (these are the only valid options):
 
 CONDITION SIDE TYPES:
 When building conditions, strictly distinguish between:
-1. INDICATOR: Use "type": "INDICATOR" with proper indicator name (including component specification for multi-component indicators)
+1. INDICATOR: Use "type": "INDICATOR" with proper indicator name and valueType for multi-component indicators
 2. PRICE: Use "type": "PRICE" and specify "value" as one of: "Open", "High", "Low", "Close" (default to "Close" unless user specifies otherwise)
 3. VALUE: Use "type": "VALUE" and provide a numeric string like "30", "70", "2.5", etc. Never use text descriptions like "Current Price"
 
@@ -376,22 +352,22 @@ Example 1: "Enter when RSI is below 30"
 - Explanation: "Enter when RSI(14) is below 30, indicating oversold conditions"
 - Condition: left: RSI(14), condition: LESS_THAN, right: VALUE "30"
 
-Example 2: "Exit when RSI above 70 OR price drops 5%"
-- Two separate conditions in OR group:
+Example 2: "Exit when RSI above 70 OR CCI above 100"
+- Two separate conditions in OR group with requiredConditions: 1:
   - Explanation 1: "Exit when RSI(14) rises above 70, indicating overbought conditions"
   - Condition 1: left: RSI(14), condition: GREATER_THAN, right: VALUE "70"
-  - Explanation 2: "Exit when price drops significantly as a stop-loss measure"
-  - Condition 2: [implement stop-loss logic appropriately]
+  - Explanation 2: "Exit when CCI(14) rises above 100, indicating overbought conditions"
+  - Condition 2: left: CCI(14), condition: GREATER_THAN, right: VALUE "100"
 
 Example 3: "Buy when MACD crosses above signal line"
 - Explanation: "Enter when MACD Line crosses above MACD Signal Line, indicating bullish momentum"
-- Condition: left: MACD Line, condition: CROSSES_ABOVE, right: MACD Signal Line
+- Condition: left: MACD with valueType "MACD Value", condition: CROSSES_ABOVE, right: MACD with valueType "Signal Value"
 
 LOGIC GROUPING EXAMPLES:
 - "RSI below 30 AND MACD positive" → Single AND group with two conditions
-- "RSI below 30 OR price under support" → Single OR group with requiredConditions: 1 (minimum 2 conditions required)
+- "RSI below 30 OR CCI below -100" → Single OR group with requiredConditions: 1 (minimum 2 conditions required)
 - "RSI oversold AND volume high, OR price breaks support" → AND group + OR group with requiredConditions: 1
-- "Enter when at least 2 of: RSI < 30, MACD > 0, price > SMA" → OR group with requiredConditions: 2 (minimum 2 conditions satisfied)
+- "Enter when at least 2 of: RSI < 30, MACD > 0, CCI < -100" → OR group with requiredConditions: 2 (minimum 2 conditions satisfied)
 
 Return ONLY this JSON structure:
 {
@@ -408,18 +384,18 @@ Return ONLY this JSON structure:
           "id": 1,
           "left": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators (e.g., 'MACD Line', 'MACD Signal Line', 'Stochastic %K')",
+            "indicator": "Only if type is INDICATOR - base indicator name (e.g., 'MACD', 'Stochastic')",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and indicator has multiple components (e.g., 'MACD Value', 'Signal Value', 'K Value', 'D Value', 'Upper Band')"
           },
           "condition": "Use ONLY the exact condition values listed above",
           "right": {
             "type": "INDICATOR|PRICE|VALUE", 
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators (e.g., 'MACD Signal Line', 'Stochastic %D')",
+            "indicator": "Only if type is INDICATOR - base indicator name (e.g., 'MACD', 'Stochastic')",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and indicator has multiple components (e.g., 'Signal Value', 'D Value', 'Lower Band')"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this condition does - be specific about thresholds and logic, include component names for multi-component indicators"
         }
@@ -428,24 +404,24 @@ Return ONLY this JSON structure:
     {
       "id": 2,
       "logic": "OR",
-      "requiredConditions": "Number between 1 and total conditions in this group",
+      "requiredConditions": "Number between 1 and (total_conditions - 1) - MUST be less than total inequalities",
       "inequalities": [
         {
           "id": 1,
           "left": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "condition": "Use ONLY the exact condition values listed above",
           "right": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"}, 
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this OR condition does - be specific about thresholds and logic, include component names"
         },
@@ -453,18 +429,18 @@ Return ONLY this JSON structure:
           "id": 2,
           "left": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "condition": "Use ONLY the exact condition values listed above",
           "right": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"}, 
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this second OR condition does - be specific about thresholds and logic, include component names"
         }
@@ -480,18 +456,18 @@ Return ONLY this JSON structure:
           "id": 1,
           "left": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators", 
+            "indicator": "Only if type is INDICATOR - base indicator name", 
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "condition": "Use ONLY the exact condition values listed above",
           "right": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"}, 
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this exit condition does - be specific about thresholds and logic, include component names"
         }
@@ -500,24 +476,24 @@ Return ONLY this JSON structure:
     {
       "id": 2,
       "logic": "OR",
-      "requiredConditions": "Number between 1 and total conditions in this group",
+      "requiredConditions": "Number between 1 and (total_conditions - 1) - MUST be less than total inequalities",
       "inequalities": [
         {
           "id": 1,
           "left": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "condition": "Use ONLY the exact condition values listed above",
           "right": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this OR exit condition does - be specific about thresholds and logic, include component names"
         },
@@ -525,18 +501,18 @@ Return ONLY this JSON structure:
           "id": 2,
           "left": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "condition": "Use ONLY the exact condition values listed above",
           "right": {
             "type": "INDICATOR|PRICE|VALUE",
-            "indicator": "Only if type is INDICATOR - MUST include component specification for multi-component indicators",
+            "indicator": "Only if type is INDICATOR - base indicator name",
             "parameters": {"period": "NumberAsString"},
             "value": "Only if type is PRICE (Open/High/Low/Close) or VALUE (numeric string)",
-            "valueType": "number"
+            "valueType": "Only if type is INDICATOR and has multiple components"
           },
           "explanation": "CRITICAL: Must accurately describe exactly what this second OR exit condition does - be specific about thresholds and logic, include component names"
         }
@@ -554,25 +530,28 @@ Before returning the JSON, verify that:
 5. No condition compares indicators to each other unless explicitly described in user request
 6. All explanations are specific and implementable, not vague or generic
 7. MANDATORY: Every OR group contains at least 2 conditions in its inequalities array
-8. OR groups with only 1 condition have been converted to AND groups or expanded with additional logical conditions
-9. CRITICAL: No condition has identical left and right sides - all comparisons are meaningful
-10. For multi-component indicators (MACD, Stochastic, etc.), different components are used when comparing within the same indicator family
-11. MANDATORY: All multi-component indicators specify exact components (e.g., 'MACD Line', 'MACD Signal Line', 'Stochastic %K', 'Stochastic %D')
-12. CRITICAL: Never use generic indicator names like 'MACD' or 'Stochastic' without component specification
+8. CRITICAL: Every OR group has requiredConditions LESS than total conditions
+9. OR groups with only 1 condition have been converted to AND groups or expanded with additional logical conditions
+10. CRITICAL: No condition has identical left and right sides - all comparisons are meaningful
+11. For multi-component indicators (MACD, Stochastic, etc.), different components are used when comparing within the same indicator family
+12. MANDATORY: All multi-component indicators specify exact components using proper valueType
+13. CRITICAL: Never use generic indicator names without proper valueType specification for multi-component indicators
+14. CRITICAL: Explanations exactly match the condition values, thresholds, and logic being implemented
 
 CRITICAL: 
 - Always create both AND and OR groups (id: 1 for AND, id: 2 for OR)
 - Put conditions in the appropriate group based on the user's language analysis
 - If no conditions belong to a group, leave its inequalities array empty
-- For OR groups, set requiredConditions appropriately (1 for "any", 2+ for "at least X")
+- For OR groups, set requiredConditions appropriately but ALWAYS less than total conditions
 - Ensure all condition types (INDICATOR/PRICE/VALUE) are properly specified
 - MOST IMPORTANT: Every explanation must accurately describe what the condition actually does
-- MANDATORY: OR groups must have at least 2 conditions - never create an OR group with fewer than 2 inequalities
+- MANDATORY: OR groups must have at least 2 conditions and requiredConditions less than total
 - CRITICAL: Use standard trading logic to place conditions correctly - oversold in Entry, overbought in Exit
 - CRITICAL: Never create conditions where left and right sides are identical - always ensure meaningful comparisons
-- MANDATORY: For all multi-component indicators, ALWAYS specify the exact component name in the indicator field
+- MANDATORY: For all multi-component indicators, ALWAYS specify the exact component using proper valueType
+- CRITICAL: Ensure explanations match actual condition implementation exactly
 
-Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, proper trading logic for Entry/Exit placement, meaningful condition comparisons that avoid identical left/right sides, exact component specification for multi-component indicators, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions, trading conditions must be placed logically based on market behavior, all condition comparisons must be meaningful and avoid identical sides, and multi-component indicators must always specify the exact component being used.`;
+Carefully analyze the user's description to create a strategy that truly reflects their intent, using appropriate logic structures (AND/OR), proper condition types (INDICATOR/PRICE/VALUE), accurate parameters, proper trading logic for Entry/Exit placement, meaningful condition comparisons that avoid identical left/right sides, exact component specification for multi-component indicators using proper valueType, correct OR group logic with requiredConditions less than total conditions, and explanations that match the actual implementation exactly. Remember: OR groups must always contain at least 2 conditions with requiredConditions less than total, trading conditions must be placed logically based on market behavior, all condition comparisons must be meaningful and avoid identical sides, multi-component indicators must always specify the exact component using proper valueType, and explanations must exactly match the condition implementation.`;
 
     console.log('Calling OpenAI API...');
     
@@ -585,7 +564,7 @@ Carefully analyze the user's description to create a strategy that truly reflect
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping based on the user\'s language. Use OR groups when the user indicates alternative conditions with words like "or", "either", "any of". Always create both AND and OR groups even if one is empty. CRITICAL: OR groups must contain at least 2 conditions - never create an OR group with only 1 condition. CRITICAL: Never create conditions where left and right sides are identical - ensure all comparisons are meaningful. MANDATORY: For multi-component indicators (MACD, Stochastic, Bollinger Bands), always specify the exact component (e.g., "MACD Line", "MACD Signal Line", "Stochastic %K", "Stochastic %D"). Return only valid JSON that matches the specified structure exactly.' },
+          { role: 'system', content: 'You are a trading strategy generator. Analyze user requests carefully and create appropriate strategies with proper AND/OR logic grouping based on the user\'s language. Use OR groups when the user indicates alternative conditions with words like "or", "either", "any of". Always create both AND and OR groups even if one is empty. CRITICAL: OR groups must contain at least 2 conditions with requiredConditions LESS than total conditions to maintain proper OR logic. CRITICAL: Never create conditions where left and right sides are identical - ensure all comparisons are meaningful. MANDATORY: For multi-component indicators (MACD, Stochastic, Bollinger Bands), always specify the exact component using proper valueType (e.g., MACD with valueType "MACD Value" vs "Signal Value"). CRITICAL: Ensure explanations exactly match the condition implementation. Return only valid JSON that matches the specified structure exactly.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,

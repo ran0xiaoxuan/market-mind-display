@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AvailableIndicators } from "./AvailableIndicators";
@@ -12,6 +12,8 @@ import { Plus, AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { v4 as uuidv4 } from "uuid";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { validateTradingRules } from "@/services/ruleValidationService";
+import { RuleValidationDisplay } from "./RuleValidationDisplay";
 
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
@@ -67,6 +69,9 @@ export const TradingRules = ({
   // Apply validation to both rule sets
   const validatedEntryRules = validateRuleGroups(safeEntryRules);
   const validatedExitRules = validateRuleGroups(safeExitRules);
+
+  // Validate rules for logical consistency
+  const ruleValidation = validateTradingRules(validatedEntryRules, validatedExitRules);
 
   // Count total rules for badges
   const entryRuleCount = validatedEntryRules.reduce((total, group) => total + (Array.isArray(group.inequalities) ? group.inequalities.length : 0), 0);
@@ -238,6 +243,13 @@ export const TradingRules = ({
             No trading rules have been defined for this strategy yet.
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Rule Validation Display */}
+      {(showValidation || editable) && !hasNoRules && (
+        <div className="mb-6">
+          <RuleValidationDisplay validationResult={ruleValidation} />
+        </div>
       )}
       
       <Tabs defaultValue="entry" value={activeTab} onValueChange={setActiveTab} className="w-full">

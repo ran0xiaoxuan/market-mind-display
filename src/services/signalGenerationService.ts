@@ -22,6 +22,74 @@ export interface TradingSignal {
   processed: boolean;
 }
 
+// Enhanced market hours validation
+const isMarketHours = (timeframe: string): boolean => {
+  const now = new Date();
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const dayOfWeek = easternTime.getDay(); // 0 = Sunday, 6 = Saturday
+  const hour = easternTime.getHours();
+  const minute = easternTime.getMinutes();
+  
+  // Skip weekends
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    console.log(`[Market Hours] Weekend detected, market closed`);
+    return false;
+  }
+  
+  // Enhanced validation based on timeframe
+  if (timeframe === 'Daily' || timeframe === '1d') {
+    // Daily strategies: only between 4:00-4:05 PM ET
+    const isCloseWindow = hour === 16 && minute >= 0 && minute <= 5;
+    console.log(`[Market Hours] Daily strategy - Hour: ${hour}, Minute: ${minute}, Close window: ${isCloseWindow}`);
+    return isCloseWindow;
+  } else {
+    // Intraday strategies: regular market hours 9:30 AM - 4:00 PM ET
+    const isRegularHours = (hour === 9 && minute >= 30) || (hour >= 10 && hour < 16);
+    console.log(`[Market Hours] Intraday strategy - Hour: ${hour}, Minute: ${minute}, Regular hours: ${isRegularHours}`);
+    return isRegularHours;
+  }
+};
+
+// Validate signal conditions before generation
+const validateSignalConditions = (ruleGroups: any[], indicators: Record<string, number>, signalType: 'entry' | 'exit'): { isValid: boolean; reason: string } => {
+  console.log(`[Signal Validation] Validating ${signalType} signal conditions`);
+  
+  for (const group of ruleGroups) {
+    const rules = group.trading_rules || [];
+    
+    for (const rule of rules) {
+      // Check for contradictory RSI conditions in the same strategy
+      if (rule.left_indicator === 'RSI' && rule.condition && rule.right_value) {
+        const condition = rule.condition.toUpperCase();
+        const threshold = parseFloat(rule.right_value);
+        
+        // Flag potentially problematic RSI conditions
+        if (signalType === 'entry') {
+          if (condition === 'GREATER_THAN' && threshold > 60) {
+            console.warn(`[Signal Validation] Suspicious RSI entry condition: RSI > ${threshold} (overbought entry)`);
+          }
+          if (condition === 'LESS_THAN' && threshold < 40) {
+            console.log(`[Signal Validation] Valid RSI oversold entry: RSI < ${threshold}`);
+          }
+        }
+      }
+      
+      // Validate that indicator values exist
+      if (rule.left_type === 'indicator' || rule.left_type === 'INDICATOR') {
+        const indicatorKey = rule.left_indicator?.toLowerCase();
+        if (!indicators[indicatorKey]) {
+          return { 
+            isValid: false, 
+            reason: `Missing indicator data for ${rule.left_indicator}` 
+          };
+        }
+      }
+    }
+  }
+  
+  return { isValid: true, reason: 'All conditions validated' };
+};
+
 // Get real technical indicators from FMP API with improved error handling
 const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string, number> | null> => {
   try {
@@ -111,7 +179,7 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       throw error;
     }
     
-    // Fetch additional indicators (SMA, EMA) for comprehensive analysis
+    // Fetch additional indicators (SMA, EMA, CCI) for comprehensive analysis
     try {
       console.log(`[SignalGen] Fetching SMA data for ${symbol}...`);
       
@@ -186,6 +254,45 @@ const getRealTechnicalIndicators = async (symbol: string): Promise<Record<string
       }
     } catch (error) {
       console.warn(`[SignalGen] Failed to fetch EMA for ${symbol}:`, error);
+    }
+
+    // Fetch CCI data for AMD strategy
+    try {
+      console.log(`[SignalGen] Fetching CCI data for ${symbol}...`);
+      
+      const cciController = new AbortController();
+      const cciTimeoutId = setTimeout(() => cciController.abort(), 10000);
+      
+      try {
+        const cciResponse = await fetch(
+          `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=cci&apikey=${fmpApiKey}`,
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TradingApp/1.0'
+            },
+            signal: cciController.signal
+          }
+        );
+        
+        clearTimeout(cciTimeoutId);
+        
+        if (cciResponse.ok) {
+          const cciData = await cciResponse.json();
+          if (Array.isArray(cciData) && cciData.length > 0) {
+            indicators.cci = cciData[0].cci;
+            console.log(`[SignalGen] Retrieved CCI for ${symbol}: ${indicators.cci}`);
+          }
+        }
+      } catch (error) {
+        clearTimeout(cciTimeoutId);
+        if (error.name !== 'AbortError') {
+          console.warn(`[SignalGen] Failed to fetch CCI for ${symbol}:`, error);
+        }
+      }
+    } catch (error) {
+      console.warn(`[SignalGen] Failed to fetch CCI for ${symbol}:`, error);
     }
     
     console.log(`[SignalGen] Real indicators for ${symbol}:`, indicators);
@@ -283,7 +390,7 @@ const getRealMarketData = async (symbol: string) => {
 };
 
 export const evaluateStrategy = async (strategyId: string) => {
-  console.log(`Evaluating strategy ${strategyId} for signal generation`);
+  console.log(`[SignalGen] Evaluating strategy ${strategyId} for signal generation`);
   
   try {
     // Get strategy details
@@ -294,11 +401,17 @@ export const evaluateStrategy = async (strategyId: string) => {
       .single();
 
     if (strategyError || !strategy) {
-      console.log(`Strategy ${strategyId} not found:`, strategyError);
+      console.log(`[SignalGen] Strategy ${strategyId} not found:`, strategyError);
       return;
     }
 
-    console.log(`Strategy found: ${strategy.name} for ${strategy.target_asset}`);
+    console.log(`[SignalGen] Strategy found: ${strategy.name} for ${strategy.target_asset}, timeframe: ${strategy.timeframe}`);
+
+    // Enhanced market hours validation
+    if (!isMarketHours(strategy.timeframe)) {
+      console.log(`[SignalGen] Market is closed for ${strategy.timeframe} timeframe, skipping evaluation`);
+      return;
+    }
 
     // Get trading rules for this strategy
     const { data: ruleGroups, error: rulesError } = await supabase
@@ -324,11 +437,11 @@ export const evaluateStrategy = async (strategyId: string) => {
       .order('group_order');
 
     if (rulesError || !ruleGroups || ruleGroups.length === 0) {
-      console.log(`No trading rules found for strategy ${strategyId}`);
+      console.log(`[SignalGen] No trading rules found for strategy ${strategyId}`);
       return;
     }
 
-    console.log(`Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
+    console.log(`[SignalGen] Found ${ruleGroups.length} rule groups for strategy ${strategyId}`);
 
     // Get real market data - MUST use real data
     let priceData;
@@ -338,18 +451,18 @@ export const evaluateStrategy = async (strategyId: string) => {
       // Get real price data
       priceData = await getRealMarketData(strategy.target_asset);
       if (!priceData || priceData.price === 0) {
-        console.error(`No real price data available for ${strategy.target_asset}, skipping signal generation`);
+        console.error(`[SignalGen] No real price data available for ${strategy.target_asset}, skipping signal generation`);
         return;
       }
 
       // Get real technical indicators
       indicators = await getRealTechnicalIndicators(strategy.target_asset);
       if (!indicators || Object.keys(indicators).length === 0) {
-        console.error(`No real technical indicators available for ${strategy.target_asset}, skipping signal generation`);
+        console.error(`[SignalGen] No real technical indicators available for ${strategy.target_asset}, skipping signal generation`);
         return;
       }
 
-      console.log(`Using real market data for ${strategy.target_asset}:`, {
+      console.log(`[SignalGen] Using real market data for ${strategy.target_asset}:`, {
         price: priceData.price,
         change: priceData.change,
         changePercent: priceData.changePercent,
@@ -357,7 +470,7 @@ export const evaluateStrategy = async (strategyId: string) => {
       });
 
     } catch (error) {
-      console.error(`Failed to get real market data for ${strategy.target_asset}:`, error);
+      console.error(`[SignalGen] Failed to get real market data for ${strategy.target_asset}:`, error);
       return;
     }
 
@@ -367,13 +480,20 @@ export const evaluateStrategy = async (strategyId: string) => {
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
 
-    console.log(`Entry rules: ${entryRules.length}, Exit rules: ${exitRules.length}`);
+    console.log(`[SignalGen] Entry rules: ${entryRules.length}, Exit rules: ${exitRules.length}`);
 
-    // Check for entry signals
+    // Check for entry signals with validation
     if (await shouldGenerateEntrySignal(entryRules, indicators, currentPrice)) {
-      const entryReason = `Entry signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      const validation = validateSignalConditions(entryRules, indicators, 'entry');
       
-      console.log(`Generating entry signal: ${entryReason}`);
+      if (!validation.isValid) {
+        console.warn(`[SignalGen] Entry signal validation failed: ${validation.reason}`);
+        return;
+      }
+
+      const entryReason = `Entry signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, CCI: ${indicators.cci?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      
+      console.log(`[SignalGen] Generating validated entry signal: ${entryReason}`);
       
       await generateTradingSignal(strategyId, 'entry', {
         reason: entryReason,
@@ -388,11 +508,18 @@ export const evaluateStrategy = async (strategyId: string) => {
       });
     }
 
-    // Check for exit signals
+    // Check for exit signals with validation
     if (await shouldGenerateExitSignal(exitRules, indicators, currentPrice, strategyId)) {
-      const exitReason = `Exit signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      const validation = validateSignalConditions(exitRules, indicators, 'exit');
       
-      console.log(`Generating exit signal: ${exitReason}`);
+      if (!validation.isValid) {
+        console.warn(`[SignalGen] Exit signal validation failed: ${validation.reason}`);
+        return;
+      }
+
+      const exitReason = `Exit signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, CCI: ${indicators.cci?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      
+      console.log(`[SignalGen] Generating validated exit signal: ${exitReason}`);
       
       await generateTradingSignal(strategyId, 'exit', {
         reason: exitReason,
@@ -408,7 +535,7 @@ export const evaluateStrategy = async (strategyId: string) => {
     }
 
   } catch (error) {
-    console.error(`Error evaluating strategy ${strategyId}:`, error);
+    console.error(`[SignalGen] Error evaluating strategy ${strategyId}:`, error);
   }
 };
 
@@ -418,6 +545,8 @@ const shouldGenerateEntrySignal = async (
   currentPrice: number
 ): Promise<boolean> => {
   if (!entryRules.length) return false;
+
+  console.log(`[SignalGen] Evaluating entry conditions with indicators:`, indicators);
 
   for (const group of entryRules) {
     if (await evaluateRuleGroup(group, indicators, currentPrice)) {
@@ -449,6 +578,8 @@ const shouldGenerateExitSignal = async (
     return false;
   }
 
+  console.log(`[SignalGen] Evaluating exit conditions with indicators:`, indicators);
+
   for (const group of exitRules) {
     if (await evaluateRuleGroup(group, indicators, currentPrice)) {
       return true;
@@ -467,20 +598,26 @@ const evaluateRuleGroup = async (
 
   const results: boolean[] = [];
 
+  console.log(`[SignalGen] Evaluating ${group.logic} group with ${rules.length} rules`);
+
   for (const rule of rules) {
     const result = evaluateRule(rule, indicators, currentPrice);
     results.push(result);
     
-    console.log(`Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result}`);
+    console.log(`[SignalGen] Rule evaluation: ${rule.left_indicator || rule.left_type} ${rule.condition} ${rule.right_value} = ${result} (Indicator value: ${rule.left_indicator ? indicators[rule.left_indicator.toLowerCase()] : 'N/A'})`);
   }
 
   // Apply group logic
   if (group.logic === 'AND') {
-    return results.every(result => result);
+    const allMet = results.every(result => result);
+    console.log(`[SignalGen] AND group result: ${allMet} (${results.filter(r => r).length}/${results.length} conditions met)`);
+    return allMet;
   } else if (group.logic === 'OR') {
     const requiredConditions = group.required_conditions || 1;
     const trueCount = results.filter(result => result).length;
-    return trueCount >= requiredConditions;
+    const orMet = trueCount >= requiredConditions;
+    console.log(`[SignalGen] OR group result: ${orMet} (${trueCount}/${results.length} conditions met, required: ${requiredConditions})`);
+    return orMet;
   }
 
   return false;
@@ -499,43 +636,58 @@ const evaluateRule = (
     if (rule.left_type === 'indicator' || rule.left_type === 'INDICATOR') {
       const indicatorKey = rule.left_indicator?.toLowerCase();
       leftValue = indicators[indicatorKey] || 0;
+      console.log(`[SignalGen] Left indicator ${rule.left_indicator}: ${leftValue}`);
     } else if (rule.left_type === 'price' || rule.left_type === 'PRICE') {
       leftValue = currentPrice;
+      console.log(`[SignalGen] Left price: ${leftValue}`);
     }
 
     // Get right side value
     if (rule.right_type === 'value' || rule.right_type === 'VALUE') {
       rightValue = parseFloat(rule.right_value) || 0;
+      console.log(`[SignalGen] Right value: ${rightValue}`);
     } else if (rule.right_type === 'indicator' || rule.right_type === 'INDICATOR') {
       const indicatorKey = rule.right_indicator?.toLowerCase();
       rightValue = indicators[indicatorKey] || 0;
+      console.log(`[SignalGen] Right indicator ${rule.right_indicator}: ${rightValue}`);
     }
 
     // Evaluate condition with improved mapping
     const condition = rule.condition?.toUpperCase();
+    let conditionResult = false;
+
     switch (condition) {
       case '>':
       case 'GREATER_THAN':
-        return leftValue > rightValue;
+        conditionResult = leftValue > rightValue;
+        break;
       case '<':
       case 'LESS_THAN':
-        return leftValue < rightValue;
+        conditionResult = leftValue < rightValue;
+        break;
       case '>=':
       case 'GREATER_THAN_OR_EQUAL':
-        return leftValue >= rightValue;
+        conditionResult = leftValue >= rightValue;
+        break;
       case '<=':
       case 'LESS_THAN_OR_EQUAL':
-        return leftValue <= rightValue;
+        conditionResult = leftValue <= rightValue;
+        break;
       case '==':
       case '=':
       case 'EQUAL':
-        return Math.abs(leftValue - rightValue) < 0.01;
+        conditionResult = Math.abs(leftValue - rightValue) < 0.01;
+        break;
       default:
-        console.warn(`Unknown condition: ${condition}`);
+        console.warn(`[SignalGen] Unknown condition: ${condition}`);
         return false;
     }
+
+    console.log(`[SignalGen] Detailed evaluation: ${leftValue} ${condition} ${rightValue} = ${conditionResult}`);
+    return conditionResult;
+
   } catch (error) {
-    console.error('Error evaluating rule:', error);
+    console.error('[SignalGen] Error evaluating rule:', error);
     return false;
   }
 };
@@ -569,17 +721,17 @@ const generateTradingSignal = async (
       .single();
 
     if (error) {
-      console.error('Error inserting trading signal:', error);
+      console.error('[SignalGen] Error inserting trading signal:', error);
       return;
     }
 
-    console.log(`Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
+    console.log(`[SignalGen] Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
 
     // Send notifications
     await sendNotificationsForSignal(strategyId, signalType, signalData);
 
   } catch (error) {
-    console.error('Error generating trading signal:', error);
+    console.error('[SignalGen] Error generating trading signal:', error);
   }
 };
 
@@ -605,7 +757,7 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
     console.log(`[SignalGen] User ${strategy.user_id} Pro status: ${isPro} (subscription_tier: ${profile?.subscription_tier})`);
     
     if (!isPro) {
-      console.log(`User ${strategy.user_id} is not Pro, skipping external notifications`);
+      console.log(`[SignalGen] User ${strategy.user_id} is not Pro, skipping external notifications`);
       return;
     }
 
@@ -731,7 +883,7 @@ const sendNotificationsForSignal = async (strategyId: string, signalType: string
     }
 
   } catch (error) {
-    console.error(`Error sending notifications for strategy ${strategyId}:`, error);
+    console.error(`[SignalGen] Error sending notifications for strategy ${strategyId}:`, error);
   }
 };
 
@@ -765,14 +917,14 @@ const calculateExitProfit = async (strategyId: string, exitPrice: number) => {
 
     return null;
   } catch (error) {
-    console.error('Error calculating exit profit:', error);
+    console.error('[SignalGen] Error calculating exit profit:', error);
     return null;
   }
 };
 
 export const cleanupInvalidSignals = async () => {
   try {
-    console.log('Starting cleanup of invalid signals...');
+    console.log('[SignalGen] Starting cleanup of invalid signals...');
 
     // First get all valid strategy IDs
     const { data: validStrategies, error: strategiesError } = await supabase
@@ -780,12 +932,12 @@ export const cleanupInvalidSignals = async () => {
       .select('id');
 
     if (strategiesError) {
-      console.error('Error fetching valid strategies:', strategiesError);
+      console.error('[SignalGen] Error fetching valid strategies:', strategiesError);
       throw strategiesError;
     }
 
     if (!validStrategies || validStrategies.length === 0) {
-      console.log('No valid strategies found, skipping cleanup');
+      console.log('[SignalGen] No valid strategies found, skipping cleanup');
       return;
     }
 
@@ -798,13 +950,57 @@ export const cleanupInvalidSignals = async () => {
       .not('strategy_id', 'in', `(${validStrategyIds.join(',')})`);
 
     if (deleteError) {
-      console.error('Error cleaning up invalid signals:', deleteError);
+      console.error('[SignalGen] Error cleaning up invalid signals:', deleteError);
       throw deleteError;
     }
 
-    console.log('Invalid signals cleanup completed');
+    console.log('[SignalGen] Invalid signals cleanup completed');
   } catch (error) {
-    console.error('Cleanup failed:', error);
+    console.error('[SignalGen] Cleanup failed:', error);
     throw error;
+  }
+};
+
+// Clean up problematic signals from yesterday
+export const cleanupYesterdaySignals = async () => {
+  try {
+    console.log('[SignalGen] Cleaning up problematic signals from yesterday...');
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    const yesterdayEnd = new Date(yesterdayStart);
+    yesterdayEnd.setDate(yesterdayEnd.getDate() + 1);
+
+    // Delete AMD strategy signals that were generated incorrectly
+    const { error: amdCleanupError } = await supabase
+      .from('trading_signals')
+      .delete()
+      .gte('created_at', yesterdayStart.toISOString())
+      .lt('created_at', yesterdayEnd.toISOString())
+      .in('strategy_id', ['349b30bb-1cc0-4a89-9159-27a62ce5966a']); // AMD strategy ID
+
+    if (amdCleanupError) {
+      console.error('[SignalGen] Error cleaning up AMD signals:', amdCleanupError);
+    } else {
+      console.log('[SignalGen] Cleaned up AMD strategy signals from yesterday');
+    }
+
+    // Delete any signals generated outside market hours
+    const { error: afterHoursError } = await supabase
+      .from('trading_signals')
+      .delete()
+      .gte('created_at', yesterdayStart.toISOString())
+      .lt('created_at', yesterdayEnd.toISOString())
+      .like('signal_data->reason', '%after market close%');
+
+    if (afterHoursError) {
+      console.error('[SignalGen] Error cleaning up after-hours signals:', afterHoursError);
+    } else {
+      console.log('[SignalGen] Cleaned up after-hours signals from yesterday');
+    }
+
+  } catch (error) {
+    console.error('[SignalGen] Error during yesterday cleanup:', error);
   }
 };

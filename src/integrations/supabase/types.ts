@@ -130,6 +130,44 @@ export type Database = {
           },
         ]
       }
+      daily_signal_counts: {
+        Row: {
+          created_at: string
+          id: string
+          notification_count: number
+          signal_date: string
+          strategy_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_count?: number
+          signal_date?: string
+          strategy_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_count?: number
+          signal_date?: string
+          strategy_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_signal_counts_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           created_at: string
@@ -329,11 +367,13 @@ export type Database = {
         Row: {
           can_be_deleted: boolean
           created_at: string
+          daily_signal_limit: number | null
           description: string | null
           id: string
           is_active: boolean
           is_recommended_copy: boolean
           name: string
+          signal_notifications_enabled: boolean | null
           source_strategy_id: string | null
           target_asset: string | null
           target_asset_name: string | null
@@ -344,11 +384,13 @@ export type Database = {
         Insert: {
           can_be_deleted?: boolean
           created_at?: string
+          daily_signal_limit?: number | null
           description?: string | null
           id?: string
           is_active?: boolean
           is_recommended_copy?: boolean
           name: string
+          signal_notifications_enabled?: boolean | null
           source_strategy_id?: string | null
           target_asset?: string | null
           target_asset_name?: string | null
@@ -359,11 +401,13 @@ export type Database = {
         Update: {
           can_be_deleted?: boolean
           created_at?: string
+          daily_signal_limit?: number | null
           description?: string | null
           id?: string
           is_active?: boolean
           is_recommended_copy?: boolean
           name?: string
+          signal_notifications_enabled?: boolean | null
           source_strategy_id?: string | null
           target_asset?: string | null
           target_asset_name?: string | null

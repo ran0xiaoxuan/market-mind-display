@@ -41,6 +41,12 @@ Deno.serve(async (req) => {
     
     console.log(`[Monitor] Market check - Eastern Time: ${easternTime.toLocaleString()}, Weekday: ${isWeekday}, Market hours: ${isMarketHours}, Close window: ${isMarketCloseWindow}`);
 
+    // Reset daily signal counts at market open (9:30 AM ET)
+    if (isWeekday && hour === 9 && minute === 30) {
+      console.log('[Monitor] Market open - resetting daily signal counts');
+      await resetDailySignalCounts(supabase);
+    }
+
     // Get strategies that need evaluation based on proper timeframe logic
     const strategiesForEvaluation = await getStrategiesForEvaluation(supabase, timeframes, manual, easternTime, isWeekday, isMarketHours, isMarketCloseWindow, isFridayClose);
     console.log(`[Monitor] Strategies selected for evaluation: ${strategiesForEvaluation.length}`);
@@ -462,7 +468,7 @@ async function evaluateStrategy(supabase: any, strategy: any) {
       const entryReason = `Entry signal - ${entrySignal.reason}`;
       console.log(`[Evaluation] Generating entry signal: ${entryReason}`);
       
-      await generateTradingSignal(supabase, strategy.id, 'entry', {
+      await generateTradingSignal(supabase, strategy, 'entry', {
         reason: entryReason,
         price: currentPrice,
         timestamp: new Date().toISOString(),
@@ -489,7 +495,7 @@ async function evaluateStrategy(supabase: any, strategy: any) {
       const exitReason = `Exit signal - ${exitSignal.reason}`;
       console.log(`[Evaluation] Generating exit signal: ${exitReason}`);
       
-      await generateTradingSignal(supabase, strategy.id, 'exit', {
+      await generateTradingSignal(supabase, strategy, 'exit', {
         reason: exitReason,
         price: currentPrice,
         timestamp: new Date().toISOString(),
@@ -788,14 +794,15 @@ async function getRealTechnicalIndicators(supabase: any, symbol: string) {
   }
 }
 
-async function generateTradingSignal(supabase: any, strategyId: string, signalType: string, signalData: any) {
+async function generateTradingSignal(supabase: any, strategy: any, signalType: string, signalData: any) {
   try {
-    console.log(`[Signal Generation] Creating ${signalType} signal for strategy ${strategyId}`);
+    console.log(`[Signal Generation] Creating ${signalType} signal for strategy ${strategy.id}`);
     
+    // ALWAYS create the signal in the app first
     const { data: signal, error } = await supabase
       .from('trading_signals')
       .insert({
-        strategy_id: strategyId,
+        strategy_id: strategy.id,
         signal_type: signalType,
         signal_data: signalData,
         processed: true,
@@ -809,32 +816,25 @@ async function generateTradingSignal(supabase: any, strategyId: string, signalTy
       return;
     }
 
-    console.log(`[Signal Generation] Generated ${signalType} signal for strategy ${strategyId}`);
+    console.log(`[Signal Generation] Generated ${signalType} signal for strategy ${strategy.id}`);
 
-    // Send notifications
-    await sendNotificationsForSignal(supabase, strategyId, signalType, signalData);
+    // Check if signal notifications are enabled for this strategy
+    if (strategy.signal_notifications_enabled) {
+      // Check Pro status and daily limits before sending notifications
+      await sendNotificationsForSignal(supabase, strategy, signalType, signalData);
+    } else {
+      console.log(`[Signal Generation] Signal notifications disabled for strategy ${strategy.id}`);
+    }
 
   } catch (error) {
     console.error('[Signal Generation] Error generating signal:', error);
   }
 }
 
-async function sendNotificationsForSignal(supabase: any, strategyId: string, signalType: string, signalData: any) {
+async function sendNotificationsForSignal(supabase: any, strategy: any, signalType: string, signalData: any) {
   try {
-    console.log(`[Notifications] Sending notifications for strategy ${strategyId}`);
+    console.log(`[Notifications] Checking notification eligibility for strategy ${strategy.id}`);
     
-    // Get strategy and user info
-    const { data: strategy } = await supabase
-      .from('strategies')
-      .select('user_id, name, target_asset')
-      .eq('id', strategyId)
-      .single();
-
-    if (!strategy) {
-      console.error('[Notifications] Strategy not found');
-      return;
-    }
-
     // Check Pro status
     const { data: profile } = await supabase
       .from('profiles')
@@ -847,6 +847,25 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
     
     if (!isPro) {
       console.log(`[Notifications] User is not Pro, skipping external notifications`);
+      return;
+    }
+
+    // Check daily signal limit
+    const today = new Date().toISOString().split('T')[0];
+    const dailyLimit = strategy.daily_signal_limit || 5;
+
+    // Get current daily count
+    const { data: dailyCount, error: countError } = await supabase
+      .from('daily_signal_counts')
+      .select('notification_count')
+      .eq('strategy_id', strategy.id)
+      .eq('signal_date', today)
+      .single();
+
+    const currentCount = dailyCount?.notification_count || 0;
+
+    if (currentCount >= dailyLimit) {
+      console.log(`[Notifications] Daily limit reached (${currentCount}/${dailyLimit}) for strategy ${strategy.id}`);
       return;
     }
 
@@ -864,7 +883,7 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
 
     const notificationData = {
       ...signalData,
-      strategyId: strategyId,
+      strategyId: strategy.id,
       strategyName: strategy.name,
       targetAsset: strategy.target_asset,
       userId: strategy.user_id
@@ -875,6 +894,8 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
       telegram_enabled: settings.telegram_enabled,
       email_enabled: settings.email_enabled
     });
+
+    let notificationsSent = false;
 
     // Send Discord notification if enabled
     if (settings.discord_enabled && settings.discord_webhook_url) {
@@ -887,6 +908,7 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
           }
         });
         console.log(`[Notifications] Discord notification sent`);
+        notificationsSent = true;
       } catch (error) {
         console.error(`[Notifications] Discord notification failed:`, error);
       }
@@ -904,6 +926,7 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
           }
         });
         console.log(`[Notifications] Telegram notification sent`);
+        notificationsSent = true;
       } catch (error) {
         console.error(`[Notifications] Telegram notification failed:`, error);
       }
@@ -923,6 +946,7 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
             }
           });
           console.log(`[Notifications] Email notification sent`);
+          notificationsSent = true;
         } else {
           console.error(`[Notifications] No email found for user ${strategy.user_id}`);
         }
@@ -931,8 +955,89 @@ async function sendNotificationsForSignal(supabase: any, strategyId: string, sig
       }
     }
 
+    // If any notifications were sent, increment the daily count
+    if (notificationsSent) {
+      await incrementDailySignalCount(supabase, strategy.id, strategy.user_id);
+    }
+
   } catch (error) {
     console.error(`[Notifications] Error sending notifications:`, error);
+  }
+}
+
+async function incrementDailySignalCount(supabase: any, strategyId: string, userId: string) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Try to increment existing count
+    const { data: existingCount, error: fetchError } = await supabase
+      .from('daily_signal_counts')
+      .select('*')
+      .eq('strategy_id', strategyId)
+      .eq('signal_date', today)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Error fetching daily signal count:', fetchError);
+      return;
+    }
+
+    if (existingCount) {
+      // Update existing count
+      const { error: updateError } = await supabase
+        .from('daily_signal_counts')
+        .update({ 
+          notification_count: existingCount.notification_count + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingCount.id);
+
+      if (updateError) {
+        console.error('Error updating daily signal count:', updateError);
+      } else {
+        console.log(`[Daily Count] Incremented to ${existingCount.notification_count + 1} for strategy ${strategyId}`);
+      }
+    } else {
+      // Create new count record
+      const { error: insertError } = await supabase
+        .from('daily_signal_counts')
+        .insert({
+          strategy_id: strategyId,
+          user_id: userId,
+          signal_date: today,
+          notification_count: 1
+        });
+
+      if (insertError) {
+        console.error('Error creating daily signal count:', insertError);
+      } else {
+        console.log(`[Daily Count] Created new count record for strategy ${strategyId}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error incrementing daily signal count:', error);
+  }
+}
+
+async function resetDailySignalCounts(supabase: any) {
+  try {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // Delete old counts (older than yesterday)
+    const { error } = await supabase
+      .from('daily_signal_counts')
+      .delete()
+      .lt('signal_date', yesterdayStr);
+
+    if (error) {
+      console.error('Error resetting daily signal counts:', error);
+    } else {
+      console.log('Successfully reset daily signal counts');
+    }
+  } catch (error) {
+    console.error('Error in resetDailySignalCounts:', error);
   }
 }
 

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Strategy {
@@ -15,6 +14,7 @@ export interface Strategy {
   canBeDeleted: boolean;
   isRecommendedCopy: boolean;
   sourceStrategyId?: string;
+  dailySignalLimit: number;
 }
 
 export interface GeneratedStrategyRule {
@@ -81,7 +81,8 @@ export const getStrategies = async () => {
       userId: strategy.user_id,
       canBeDeleted: strategy.can_be_deleted,
       isRecommendedCopy: strategy.is_recommended_copy,
-      sourceStrategyId: strategy.source_strategy_id
+      sourceStrategyId: strategy.source_strategy_id,
+      dailySignalLimit: strategy.daily_signal_limit || 5
     })) || [];
   } catch (error) {
     console.error('Error fetching strategies:', error);
@@ -121,7 +122,8 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
       userId: strategy.user_id,
       canBeDeleted: strategy.can_be_deleted,
       isRecommendedCopy: strategy.is_recommended_copy,
-      sourceStrategyId: strategy.source_strategy_id
+      sourceStrategyId: strategy.source_strategy_id,
+      dailySignalLimit: strategy.daily_signal_limit || 5
     };
   } catch (error) {
     console.error(`Error fetching strategy ${id}:`, error);

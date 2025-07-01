@@ -205,6 +205,9 @@ const EditStrategy = () => {
         setTargetAssetName(strategy.targetAssetName || "");
         setIsActive(strategy.isActive);
 
+        // Set daily signal limit from the strategy data
+        setDailySignalLimit(strategy.dailySignalLimit || 5);
+
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(id);
 

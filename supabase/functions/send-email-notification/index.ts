@@ -46,21 +46,16 @@ serve(async (req) => {
       }
     }
 
-    // Create user-friendly time in market timezone (EST/EDT)
+    // Use the current timestamp in a user-friendly format
+    // This will be displayed in the user's local timezone when they view the email
     const now = new Date();
-    const marketTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    
-    // Determine if we're in EST or EDT
-    const isEST = marketTime.getTimezoneOffset() === 300; // EST is UTC-5 (300 minutes)
-    const timezoneAbbr = isEST ? 'EST' : 'EDT';
-    
-    const timeString = marketTime.toLocaleString("en-US", {
-      timeZone: "America/New_York",
+    const timeString = now.toLocaleString("en-US", {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
-      minute: '2-digit'
-    }) + ` ${timezoneAbbr}`;
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
 
     // Create the email HTML content
     const emailHtml = `
@@ -89,11 +84,6 @@ serve(async (req) => {
         .header {
             text-align: center;
             margin-bottom: 30px;
-        }
-        .logo {
-            max-width: 180px;
-            height: auto;
-            margin-bottom: 20px;
         }
         .signal-alert {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -157,35 +147,26 @@ serve(async (req) => {
             color: #2d3748;
         }
         .community-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
+            display: block;
+            text-align: center;
             margin-bottom: 15px;
         }
         .community-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
+            margin: 10px;
             padding: 12px 20px;
             border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
-            transition: all 0.2s;
-            width: 120px;
-            height: 44px;
+            color: white;
+            min-width: 100px;
+            text-align: center;
         }
         .discord-link {
             background-color: #5865f2;
-            color: white;
         }
         .x-link {
             background-color: #000000;
-            color: white;
-        }
-        .social-icon {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
         }
         .footer {
             text-align: center;
@@ -205,26 +186,12 @@ serve(async (req) => {
         .footer-link:hover {
             text-decoration: underline;
         }
-        @media (max-width: 600px) {
-            .community-links {
-                flex-direction: column;
-                align-items: center;
-            }
-            .community-link {
-                width: 200px;
-                margin-bottom: 10px;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <img src="https://www.strataige.cc/wp-content/uploads/2024/12/strataige-logo.png" alt="StratAIge Logo" class="logo" />
-        </div>
-        
         <div class="signal-alert">
-            <h1 class="signal-title">🚨 Trading Signal Alert</h1>
+            <h1 class="signal-title">🚨 StratAIge Trading Signal Alert</h1>
             <p class="signal-type">${signalType.toUpperCase()} Signal</p>
         </div>
         
@@ -263,14 +230,10 @@ serve(async (req) => {
             <h3 class="community-title">Join Our Community</h3>
             <div class="community-links">
                 <a href="https://discord.com/invite/EEEnGUwDEF" class="community-link discord-link">
-                    <svg class="social-icon" viewBox="0 0 24 24">
-                        <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0002 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9554 2.4189-2.1568 2.4189z"/>
-                    </svg>
+                    Discord
                 </a>
                 <a href="https://x.com/StratAIge_cc" class="community-link x-link">
-                    <svg class="social-icon" viewBox="0 0 24 24">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
+                    X (Twitter)
                 </a>
             </div>
             <p style="margin: 0; color: #718096; font-size: 14px;">

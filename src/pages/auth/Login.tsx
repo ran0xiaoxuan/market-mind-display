@@ -1,3 +1,4 @@
+
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,9 +39,15 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      await signIn(email, password);
-      toast.success("Successfully signed in!");
-      navigate("/dashboard");
+      const result = await signIn(email, password);
+      
+      if (result.error) {
+        console.error("Login error:", result.error);
+        toast.error(result.error.message || "Failed to sign in");
+      } else {
+        toast.success("Successfully signed in!");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message || "Failed to sign in");
@@ -57,9 +64,15 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      await signInWithGoogle();
-      toast.success("Successfully signed in with Google!");
-      navigate("/dashboard");
+      const result = await signInWithGoogle();
+      
+      if (result.error) {
+        console.error("Google sign in error:", result.error);
+        toast.error(result.error.message || "Failed to sign in with Google");
+      } else {
+        toast.success("Successfully signed in with Google!");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       console.error("Google sign in error:", error);
       toast.error(error.message || "Failed to sign in with Google");

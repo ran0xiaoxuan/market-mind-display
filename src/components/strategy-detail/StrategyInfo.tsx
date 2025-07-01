@@ -284,7 +284,7 @@ export const StrategyInfo = ({
               <div className="space-y-2 pl-8 border-l-2 border-gray-200">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">
-                    Maximum Notifications Per Trading Day
+                    Maximum Notifications Per Trading Day (Edit in Strategy Settings)
                   </Label>
                   <TooltipProvider>
                     <Tooltip>
@@ -306,7 +306,7 @@ export const StrategyInfo = ({
                     {dailySignalLimit} notifications per day
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Today: {dailySignalCount.current} / {dailySignalCount.limit} notifications sent
+                    Today: {dailySignalCount.current} notification{dailySignalCount.current !== 1 ? 's' : ''} sent
                   </span>
                 </div>
                 

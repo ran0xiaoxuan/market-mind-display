@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -103,7 +102,7 @@ export const StrategyInfo = ({
 
   // Handle daily signal limit change
   const handleDailySignalLimitChange = async (value: number) => {
-    if (value < 1 || value > 10 || !strategyId) return;
+    if (value < 1 || !strategyId) return;
 
     setIsSaving(true);
     try {
@@ -342,11 +341,10 @@ export const StrategyInfo = ({
                     id="daily-signal-limit"
                     type="number"
                     min="1"
-                    max="10"
                     value={dailySignalLimit}
                     onChange={(e) => {
                       const value = parseInt(e.target.value);
-                      if (value >= 1 && value <= 10) {
+                      if (value >= 1) {
                         handleDailySignalLimitChange(value);
                       }
                     }}

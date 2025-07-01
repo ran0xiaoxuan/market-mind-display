@@ -100,41 +100,6 @@ export const StrategyInfo = ({
     }
   }, [strategy, strategyId]);
 
-  // Handle daily signal limit change
-  const handleDailySignalLimitChange = async (value: number) => {
-    if (value < 1 || !strategyId) return;
-
-    setIsSaving(true);
-    try {
-      console.log('Updating daily signal limit for strategy:', strategyId, 'to:', value);
-      
-      const { error } = await supabase
-        .from('strategies')
-        .update({ 
-          daily_signal_limit: value,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', strategyId);
-
-      if (error) {
-        console.error('Error updating daily signal limit:', error);
-        throw error;
-      }
-
-      setDailySignalLimit(value);
-      setDailySignalCount(prev => ({ ...prev, limit: value }));
-      
-      toast.success("Daily Signal Limit Updated", {
-        description: `Maximum signals per day set to ${value}`
-      });
-    } catch (error) {
-      console.error("Error updating daily signal limit:", error);
-      toast.error("Failed to update daily signal limit");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   // Handle the unified status change
   const handleStatusChange = async (checked: boolean) => {
     if (!strategyId) {
@@ -314,11 +279,11 @@ export const StrategyInfo = ({
               </div>
             </div>
 
-            {/* Daily Signal Limit Display/Edit - Show for Pro users with active strategy */}
+            {/* Daily Signal Limit Display - Show for Pro users with active strategy */}
             {isProUser && isActive && (
               <div className="space-y-2 pl-8 border-l-2 border-gray-200">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="daily-signal-limit" className="text-sm font-medium">
+                  <Label className="text-sm font-medium">
                     Maximum Notifications Per Trading Day
                   </Label>
                   <TooltipProvider>
@@ -337,20 +302,9 @@ export const StrategyInfo = ({
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <Input
-                    id="daily-signal-limit"
-                    type="number"
-                    min="1"
-                    value={dailySignalLimit}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      if (value >= 1) {
-                        handleDailySignalLimitChange(value);
-                      }
-                    }}
-                    className="w-20"
-                    disabled={isSaving}
-                  />
+                  <div className="text-sm font-medium text-foreground">
+                    {dailySignalLimit} notifications per day
+                  </div>
                   <span className="text-sm text-muted-foreground">
                     Today: {dailySignalCount.current} / {dailySignalCount.limit} notifications sent
                   </span>

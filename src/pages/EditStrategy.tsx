@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Loader2, AlertCircle, Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -18,6 +18,7 @@ import { getStrategyById, getTradingRulesForStrategy } from "@/services/strategy
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Define standard timeframe options to ensure consistency across the application
 export const TIMEFRAME_OPTIONS = [
@@ -46,6 +47,7 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("");
   const [targetAssetName, setTargetAssetName] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [dailySignalLimit, setDailySignalLimit] = useState(5);
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -375,7 +377,7 @@ const EditStrategy = () => {
       console.log('Current entry rules before save:', JSON.stringify(entryRules, null, 2));
       console.log('Current exit rules before save:', JSON.stringify(exitRules, null, 2));
 
-      // Update strategy information (removed risk management fields)
+      // Update strategy information (now includes daily_signal_limit)
       console.log('Updating basic strategy information...');
       const { error: strategyError } = await supabase.from('strategies').update({
         name: strategyName,
@@ -384,6 +386,7 @@ const EditStrategy = () => {
         target_asset: targetAsset,
         target_asset_name: targetAssetName,
         is_active: isActive,
+        daily_signal_limit: dailySignalLimit,
         updated_at: new Date().toISOString()
       }).eq('id', id);
       
@@ -718,6 +721,42 @@ const EditStrategy = () => {
                     </CommandGroup>
                   </CommandList>
                 </CommandDialog>
+              </div>
+
+              {/* Daily Signal Limit Setting */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor="daily-signal-limit">Maximum Notifications Per Trading Day</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">
+                          Limits the number of signal notifications sent to your external channels per trading day. 
+                          All signals are still recorded in the app regardless of this limit.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Input
+                  id="daily-signal-limit"
+                  type="number"
+                  min="1"
+                  value={dailySignalLimit}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value >= 1) {
+                      setDailySignalLimit(value);
+                    }
+                  }}
+                  className="w-32"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Set the maximum number of notifications per trading day
+                </p>
               </div>
             </div>
           </Card>

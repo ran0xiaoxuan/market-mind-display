@@ -362,11 +362,13 @@ const StrategyDetail = () => {
           
           <StrategyInfo 
             strategy={{
-              description: strategy.description,
-              createdAt: strategy.createdAt,
-              updatedAt: strategy.updatedAt,
-              timeframe: strategy.timeframe,
-              targetAsset: strategy.targetAsset
+              id: id, // Pass the strategy ID explicitly
+              description: strategy?.description,
+              createdAt: strategy?.createdAt,
+              updatedAt: strategy?.updatedAt,
+              timeframe: strategy?.timeframe,
+              targetAsset: strategy?.targetAsset,
+              daily_signal_limit: strategy?.daily_signal_limit
             }} 
             isActive={isActive} 
             onStatusChange={handleStatusChange} 

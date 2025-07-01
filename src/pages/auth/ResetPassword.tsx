@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface TokenParams {
   access_token?: string;
@@ -22,6 +23,8 @@ interface TokenParams {
 }
 
 export default function ResetPassword() {
+  usePageTitle("Reset Password - StratAIge");
+  
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { validatePassword } = useAuth();
@@ -35,6 +38,7 @@ export default function ResetPassword() {
   const [isValidToken, setIsValidToken] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
 
   // Function to extract tokens from URL parameters (query params and hash)
   const extractTokenParams = (): TokenParams => {
@@ -65,6 +69,17 @@ export default function ResetPassword() {
     return params;
   };
 
+  const getErrorMessage = (errorCode: string, errorDescription: string) => {
+    switch (errorCode) {
+      case 'otp_expired':
+        return "The password reset link has expired. Please request a new one.";
+      case 'access_denied':
+        return "Access denied. The reset link may be invalid or already used.";
+      default:
+        return errorDescription ? decodeURIComponent(errorDescription) : "The reset link is invalid or has expired.";
+    }
+  };
+
   useEffect(() => {
     const validateResetToken = async () => {
       console.log('Starting password reset validation...');
@@ -78,7 +93,17 @@ export default function ResetPassword() {
       // Check for error parameters first
       if (tokenParams.error) {
         console.error('URL contains error:', tokenParams.error, tokenParams.error_description);
-        setError(`Reset link error: ${tokenParams.error_description || tokenParams.error}`);
+        const errorMsg = getErrorMessage(tokenParams.error_code || '', tokenParams.error_description || '');
+        setTokenError(errorMsg);
+        setError(errorMsg);
+        setIsValidating(false);
+        return;
+      }
+
+      // If no tokens are present at all, show error
+      if (!tokenParams.access_token && !tokenParams.refresh_token && !tokenParams.token_hash) {
+        console.log('No tokens found in URL');
+        setError("No reset token found in the URL. Please use the link from your email or request a new password reset.");
         setIsValidating(false);
         return;
       }
@@ -94,7 +119,6 @@ export default function ResetPassword() {
 
           if (error) {
             console.error('Method 1 failed:', error);
-            // Try Method 2
             await tryTokenHashMethod(tokenParams);
           } else {
             console.log('Method 1 successful: Session set with tokens');
@@ -211,10 +235,8 @@ export default function ResetPassword() {
     }
   };
 
-  const handleRetryValidation = () => {
-    setIsValidating(true);
-    setError(null);
-    window.location.reload();
+  const handleRequestNewLink = () => {
+    navigate('/forgot-password');
   };
 
   if (isValidating) {
@@ -251,19 +273,31 @@ export default function ResetPassword() {
               <p className="text-sm text-muted-foreground">
                 {error || "The password reset link has expired or is invalid."}
               </p>
-              <p className="text-sm text-muted-foreground">
-                This can happen if the link was already used, expired, or if there's a configuration issue.
-              </p>
+              
+              {tokenError && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-left">
+                  <p className="text-sm text-red-600 font-medium">Technical Details:</p>
+                  <p className="text-xs text-red-500 mt-1">{tokenError}</p>
+                </div>
+              )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-left">
+                <p className="text-sm text-blue-800 font-medium">Common Solutions:</p>
+                <ul className="text-xs text-blue-700 mt-1 space-y-1">
+                  <li>• Reset links expire after 1 hour for security</li>
+                  <li>• Each link can only be used once</li>
+                  <li>• Make sure to click the link directly from your email</li>
+                  <li>• Check if you have multiple reset emails and use the latest one</li>
+                </ul>
+              </div>
+              
               <div className="space-y-2 pt-4">
-                <Button onClick={handleRetryValidation} variant="outline" className="w-full">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Try Again
+                <Button onClick={handleRequestNewLink} className="w-full">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Request New Reset Link
                 </Button>
-                <Button asChild className="w-full">
-                  <a href="/forgot-password">Request New Reset Link</a>
-                </Button>
-                <Button variant="outline" asChild className="w-full">
-                  <a href="/login">Back to Login</a>
+                <Button variant="outline" onClick={() => navigate('/login')} className="w-full">
+                  Back to Login
                 </Button>
               </div>
             </div>

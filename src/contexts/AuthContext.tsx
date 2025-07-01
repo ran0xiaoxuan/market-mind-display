@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -302,12 +303,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const resetPassword = async (email: string) => {
     try {
-      // Use multiple redirect URLs to handle different deployment environments
-      const baseUrl = window.location.origin;
-      const redirectUrl = `${baseUrl}/auth/reset-password`;
+      // Use the current origin to ensure redirect URL matches current environment
+      const currentOrigin = window.location.origin;
+      const redirectUrl = `${currentOrigin}/auth/reset-password`;
       
       console.log('Sending password reset email with redirect URL:', redirectUrl);
-      console.log('Current origin:', baseUrl);
+      console.log('Current origin:', currentOrigin);
       
       const result = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,

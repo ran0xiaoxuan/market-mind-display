@@ -31,6 +31,12 @@ export const StrategyInfo = ({
   const [dailySignalCount, setDailySignalCount] = useState({ current: 0, limit: 5 });
   const { user } = useAuth();
 
+  // Get the strategy ID - handle both possible field names
+  const strategyId = strategy?.id || strategy?.strategyId;
+
+  console.log('StrategyInfo - strategy object:', strategy);
+  console.log('StrategyInfo - strategyId:', strategyId);
+
   // Check user subscription status from profiles table
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
@@ -85,31 +91,36 @@ export const StrategyInfo = ({
 
   // Load strategy settings
   useEffect(() => {
-    if (strategy) {
+    if (strategy && strategyId) {
       setDailySignalLimit(strategy.daily_signal_limit || 5);
       
       // Load current daily signal count
-      dailySignalService.getDailySignalCount(strategy.id)
+      dailySignalService.getDailySignalCount(strategyId)
         .then(count => setDailySignalCount(count))
         .catch(error => console.error('Error loading daily signal count:', error));
     }
-  }, [strategy]);
+  }, [strategy, strategyId]);
 
   // Handle daily signal limit change
   const handleDailySignalLimitChange = async (value: number) => {
-    if (value < 1 || value > 10) return;
+    if (value < 1 || value > 10 || !strategyId) return;
 
     setIsSaving(true);
     try {
+      console.log('Updating daily signal limit for strategy:', strategyId, 'to:', value);
+      
       const { error } = await supabase
         .from('strategies')
         .update({ 
           daily_signal_limit: value,
           updated_at: new Date().toISOString()
         })
-        .eq('id', strategy.id);
+        .eq('id', strategyId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating daily signal limit:', error);
+        throw error;
+      }
 
       setDailySignalLimit(value);
       setDailySignalCount(prev => ({ ...prev, limit: value }));
@@ -127,6 +138,12 @@ export const StrategyInfo = ({
 
   // Handle the unified status change
   const handleStatusChange = async (checked: boolean) => {
+    if (!strategyId) {
+      console.error('No strategy ID available for status change');
+      toast.error("Unable to update strategy status - missing strategy ID");
+      return;
+    }
+
     // Only allow Pro users to activate strategies
     if (checked && !isProUser) {
       toast.error("Pro Feature Required", {
@@ -144,6 +161,8 @@ export const StrategyInfo = ({
 
     setIsSaving(true);
     try {
+      console.log('Updating strategy status for ID:', strategyId, 'to:', checked);
+      
       // Update both strategy activation and signal notifications
       const { error } = await supabase
         .from('strategies')
@@ -152,9 +171,12 @@ export const StrategyInfo = ({
           signal_notifications_enabled: checked && isProUser,
           updated_at: new Date().toISOString()
         })
-        .eq('id', strategy.id);
+        .eq('id', strategyId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error updating strategy status:', error);
+        throw error;
+      }
 
       // Call the parent component's handler
       onStatusChange(checked);
@@ -293,7 +315,7 @@ export const StrategyInfo = ({
               </div>
             </div>
 
-            {/* Daily Signal Limit - Only show for Pro users with active strategy */}
+            {/* Daily Signal Limit Display/Edit - Show for Pro users with active strategy */}
             {isProUser && isActive && (
               <div className="space-y-2 pl-8 border-l-2 border-gray-200">
                 <div className="flex items-center gap-2">

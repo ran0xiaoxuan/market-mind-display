@@ -11,7 +11,8 @@ export interface RuleEvaluation {
 export const evaluateTradingRules = async (
   ruleGroups: RuleGroupData[],
   asset: string,
-  currentPrice: number
+  currentPrice: number,
+  timeframe: string = '1d' // Add timeframe parameter with default
 ): Promise<RuleEvaluation> => {
   try {
     const evaluation: RuleEvaluation = {
@@ -45,7 +46,7 @@ export const evaluateTradingRules = async (
 
       for (const inequality of group.inequalities) {
         try {
-          const conditionMet = await evaluateInequality(inequality, asset, currentPrice);
+          const conditionMet = await evaluateInequality(inequality, asset, currentPrice, timeframe);
           
           if (conditionMet) {
             groupConditionsMet++;
@@ -123,14 +124,31 @@ const mapConditionToOperator = (condition: string): string => {
   return conditionMap[condition] || condition;
 };
 
-const evaluateInequality = async (inequality: any, asset: string, currentPrice: number): Promise<boolean> => {
+// Convert strategy timeframe to TAAPI format
+const mapTimeframeToTaapiInterval = (timeframe: string): string => {
+  const timeframeMap: { [key: string]: string } = {
+    '1m': '1m',
+    '5m': '5m',
+    '15m': '15m',
+    '30m': '30m',
+    '1h': '1h',
+    '4h': '4h',
+    'Daily': '1d',
+    'Weekly': '1w',
+    'Monthly': '1M'
+  };
+  
+  return timeframeMap[timeframe] || '1d';
+};
+
+const evaluateInequality = async (inequality: any, asset: string, currentPrice: number, timeframe: string): Promise<boolean> => {
   try {
     // Get left side value
-    const leftValue = await getValueFromSide(inequality.left, asset, currentPrice);
+    const leftValue = await getValueFromSide(inequality.left, asset, currentPrice, timeframe);
     if (leftValue === null) return false;
 
     // Get right side value
-    const rightValue = await getValueFromSide(inequality.right, asset, currentPrice);
+    const rightValue = await getValueFromSide(inequality.right, asset, currentPrice, timeframe);
     if (rightValue === null) return false;
 
     // Map condition to operator
@@ -166,7 +184,8 @@ const getIndicatorValueWithType = async (
   indicator: string, 
   asset: string, 
   parameters: any,
-  valueType?: string
+  valueType?: string,
+  timeframe: string = '1d'
 ): Promise<number | null> => {
   try {
     // Map indicator names to TAAPI indicator codes
@@ -212,8 +231,12 @@ const getIndicatorValueWithType = async (
       return null;
     }
 
-    // Get indicator data from TAAPI
-    const indicatorData = await getTaapiIndicator(taapiIndicator, asset, '1d', parameters);
+    // Convert timeframe to TAAPI format and use it instead of hardcoded '1d'
+    const taapiTimeframe = mapTimeframeToTaapiInterval(timeframe);
+    console.log(`Getting indicator ${indicator} for ${asset} with timeframe ${taapiTimeframe} (from strategy timeframe ${timeframe})`);
+
+    // Get indicator data from TAAPI with the correct timeframe
+    const indicatorData = await getTaapiIndicator(taapiIndicator, asset, taapiTimeframe, parameters);
     
     if (!indicatorData) {
       console.error('Failed to get indicator data for:', indicator);
@@ -228,7 +251,7 @@ const getIndicatorValueWithType = async (
   }
 };
 
-const getValueFromSide = async (side: any, asset: string, currentPrice: number): Promise<number | null> => {
+const getValueFromSide = async (side: any, asset: string, currentPrice: number, timeframe: string): Promise<number | null> => {
   try {
     switch (side.type) {
       case 'INDICATOR':
@@ -237,7 +260,8 @@ const getValueFromSide = async (side: any, asset: string, currentPrice: number):
           side.indicator, 
           asset, 
           side.parameters || {}, 
-          side.valueType
+          side.valueType,
+          timeframe
         );
       
       case 'PRICE':

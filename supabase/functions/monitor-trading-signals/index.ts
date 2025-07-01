@@ -132,6 +132,23 @@ Deno.serve(async (req) => {
   }
 });
 
+// Convert strategy timeframe to FMP API format
+function mapTimeframeToFMPInterval(timeframe: string): string {
+  const timeframeMap: { [key: string]: string } = {
+    '1m': '1min',
+    '5m': '5min',
+    '15m': '15min',
+    '30m': '30min',
+    '1h': '1hour',
+    '4h': '4hour',
+    'Daily': '1day',
+    'Weekly': '1day', // Use daily for weekly (will aggregate)
+    'Monthly': '1day' // Use daily for monthly (will aggregate)
+  };
+  
+  return timeframeMap[timeframe] || '1day';
+}
+
 async function getStrategiesForEvaluation(supabase: any, specificTimeframes: string[] = [], manual: boolean = false, easternTime: Date, isWeekday: boolean, isMarketHours: boolean, isMarketCloseWindow: boolean, isFridayClose: boolean) {
   try {
     console.log('[Monitor] Getting strategies for evaluation with timeframe filtering...');
@@ -377,7 +394,7 @@ function isLastTradingDayOfMonth(date: Date): boolean {
 }
 
 async function evaluateStrategy(supabase: any, strategy: any) {
-  console.log(`[Evaluation] Starting evaluation for strategy: ${strategy.name}`);
+  console.log(`[Evaluation] Starting evaluation for strategy: ${strategy.name} with timeframe: ${strategy.timeframe}`);
   
   try {
     // Get rule groups for this strategy
@@ -431,9 +448,10 @@ async function evaluateStrategy(supabase: any, strategy: any) {
         };
       }
 
-      indicators = await getRealTechnicalIndicators(supabase, strategy.target_asset);
+      // Pass the strategy timeframe to indicator calculation
+      indicators = await getRealTechnicalIndicators(supabase, strategy.target_asset, strategy.timeframe);
       if (!indicators || Object.keys(indicators).length === 0) {
-        console.error(`[Evaluation] No technical indicators available for ${strategy.target_asset}`);
+        console.error(`[Evaluation] No technical indicators available for ${strategy.target_asset} with timeframe ${strategy.timeframe}`);
         return {
           strategyId: strategy.id,
           strategyName: strategy.name,
@@ -442,7 +460,7 @@ async function evaluateStrategy(supabase: any, strategy: any) {
         };
       }
 
-      console.log(`[Evaluation] Market data for ${strategy.target_asset}: Price $${priceData.price}, RSI: ${indicators.rsi}`);
+      console.log(`[Evaluation] Market data for ${strategy.target_asset} (${strategy.timeframe}): Price $${priceData.price}, RSI: ${indicators.rsi}`);
 
     } catch (error) {
       console.error(`[Evaluation] Failed to get market data for ${strategy.target_asset}:`, error);
@@ -741,8 +759,8 @@ async function getRealMarketData(supabase: any, symbol: string) {
   }
 }
 
-async function getRealTechnicalIndicators(supabase: any, symbol: string) {
-  console.log(`[Indicators] Fetching technical indicators for ${symbol}`);
+async function getRealTechnicalIndicators(supabase: any, symbol: string, timeframe: string) {
+  console.log(`[Indicators] Fetching technical indicators for ${symbol} with timeframe ${timeframe}`);
   
   try {
     const { data, error } = await supabase.functions.invoke('get-fmp-key', {
@@ -755,23 +773,26 @@ async function getRealTechnicalIndicators(supabase: any, symbol: string) {
     }
 
     const indicators = {};
+    const fmpInterval = mapTimeframeToFMPInterval(timeframe);
+    console.log(`[Indicators] Using FMP interval: ${fmpInterval} for strategy timeframe: ${timeframe}`);
 
-    // Fetch RSI
+    // Fetch RSI with dynamic timeframe
     try {
       const rsiController = new AbortController();
       const rsiTimeoutId = setTimeout(() => rsiController.abort(), 15000);
       
-      const rsiResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/technical_indicator/daily/${symbol}?period=14&type=rsi&apikey=${data.key}`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'TradingApp/1.0'
-          },
-          signal: rsiController.signal
-        }
-      );
+      // Use the mapped interval instead of hardcoded 'daily'
+      const rsiUrl = `https://financialmodelingprep.com/api/v3/technical_indicator/${fmpInterval}/${symbol}?period=14&type=rsi&apikey=${data.key}`;
+      console.log(`[Indicators] Fetching RSI from URL: ${rsiUrl}`);
+      
+      const rsiResponse = await fetch(rsiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TradingApp/1.0'
+        },
+        signal: rsiController.signal
+      });
       
       clearTimeout(rsiTimeoutId);
       
@@ -779,17 +800,21 @@ async function getRealTechnicalIndicators(supabase: any, symbol: string) {
         const rsiData = await rsiResponse.json();
         if (Array.isArray(rsiData) && rsiData.length > 0) {
           indicators.rsi = rsiData[0].rsi;
-          console.log(`[Indicators] RSI for ${symbol}: ${indicators.rsi}`);
+          console.log(`[Indicators] RSI for ${symbol} (${timeframe}): ${indicators.rsi}`);
+        } else {
+          console.warn(`[Indicators] No RSI data returned for ${symbol} with ${fmpInterval} interval`);
         }
+      } else {
+        console.warn(`[Indicators] RSI API response not OK: ${rsiResponse.status}`);
       }
     } catch (error) {
-      console.warn(`[Indicators] Failed to fetch RSI for ${symbol}:`, error);
+      console.warn(`[Indicators] Failed to fetch RSI for ${symbol} with timeframe ${timeframe}:`, error);
     }
 
     return indicators;
     
   } catch (error) {
-    console.error(`[Indicators] Error fetching indicators for ${symbol}:`, error);
+    console.error(`[Indicators] Error fetching indicators for ${symbol} with timeframe ${timeframe}:`, error);
     throw error;
   }
 }

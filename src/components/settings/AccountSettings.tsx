@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Switch } from "@/components/ui/switch";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { passwordSchema } from "@/services/securityService";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Max file size: 1MB
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
@@ -42,6 +43,7 @@ export function AccountSettings() {
     errors: [] as string[]
   });
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
   // Extract initials for avatar fallback
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
@@ -291,41 +293,40 @@ export function AccountSettings() {
   const handleUpdatePassword = async () => {
     if (!user) return;
 
+    // Clear previous errors
+    setPasswordErrors([]);
+    const errors: string[] = [];
+
     // Validate current password
     if (!currentPassword) {
-      toast({
-        title: "Current password required",
-        description: "Please enter your current password to change it.",
-        variant: "destructive"
-      });
-      return;
+      errors.push("Please enter your current password");
     }
 
     // Validate new password
     if (!newPassword) {
-      toast({
-        title: "New password required",
-        description: "Please enter a new password.",
-        variant: "destructive"
-      });
-      return;
+      errors.push("Please enter a new password");
     }
 
     // Check password complexity
-    if (!passwordValidation.isValid) {
-      toast({
-        title: "Password requirements not met",
-        description: "Please ensure your password meets all the requirements.",
-        variant: "destructive"
-      });
-      return;
+    if (newPassword && !passwordValidation.isValid) {
+      errors.push("New password does not meet the security requirements");
     }
 
     // Check password confirmation
-    if (newPassword !== confirmPassword) {
+    if (!confirmPassword) {
+      errors.push("Please confirm your new password");
+    }
+
+    if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+      errors.push("New password and confirmation password do not match");
+    }
+
+    // Display errors if any
+    if (errors.length > 0) {
+      setPasswordErrors(errors);
       toast({
-        title: "Passwords don't match",
-        description: "New password and confirm password must match.",
+        title: "Password Update Failed",
+        description: "Please check the errors below and try again.",
         variant: "destructive"
       });
       return;
@@ -340,8 +341,9 @@ export function AccountSettings() {
       });
 
       if (signInError) {
+        setPasswordErrors(["The current password you entered is incorrect"]);
         toast({
-          title: "Incorrect current password",
+          title: "Incorrect Current Password",
           description: "The current password you entered is incorrect. Please try again.",
           variant: "destructive"
         });
@@ -356,18 +358,20 @@ export function AccountSettings() {
       if (updateError) throw updateError;
 
       toast({
-        title: "Password updated",
+        title: "Password Updated",
         description: "Your password has been updated successfully."
       });
 
-      // Clear password fields
+      // Clear password fields and errors
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setPasswordErrors([]);
     } catch (error: any) {
       console.error("Error updating password:", error);
+      setPasswordErrors([error.message || "Failed to update password"]);
       toast({
-        title: "Update failed",
+        title: "Update Failed",
         description: error.message || "Failed to update your password. Please try again.",
         variant: "destructive"
       });
@@ -483,6 +487,19 @@ export function AccountSettings() {
         <h2 className="text-xl font-medium">Password</h2>
         <p className="text-sm text-muted-foreground mb-4">Change your password</p>
         
+        {/* Display password errors */}
+        {passwordErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              <ul className="list-disc list-inside space-y-1">
+                {passwordErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid gap-4">
           <div>
             <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
@@ -492,6 +509,7 @@ export function AccountSettings() {
               value={currentPassword} 
               onChange={e => setCurrentPassword(e.target.value)} 
               placeholder="Enter your current password" 
+              className={passwordErrors.some(error => error.includes("current password")) ? "border-red-500" : ""}
             />
           </div>
           
@@ -504,6 +522,7 @@ export function AccountSettings() {
               onChange={e => setNewPassword(e.target.value)} 
               onFocus={() => setShowPasswordRequirements(true)}
               placeholder="Enter your new password"
+              className={passwordErrors.some(error => error.includes("New password")) ? "border-red-500" : ""}
             />
             
             {/* Password Requirements */}
@@ -574,6 +593,7 @@ export function AccountSettings() {
               value={confirmPassword} 
               onChange={e => setConfirmPassword(e.target.value)} 
               placeholder="Confirm your new password" 
+              className={passwordErrors.some(error => error.includes("confirmation")) ? "border-red-500" : ""}
             />
             {confirmPassword && newPassword !== confirmPassword && (
               <p className="text-sm text-red-600 mt-1">Passwords do not match</p>
@@ -585,7 +605,7 @@ export function AccountSettings() {
               variant="default" 
               className="bg-black text-white mt-2" 
               onClick={handleUpdatePassword} 
-              disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword || !passwordValidation.isValid || newPassword !== confirmPassword}
+              disabled={isUpdating}
             >
               {isUpdating ? "Updating..." : "Update Password"}
             </Button>

@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,6 @@ export const StrategyInfo = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isProUser, setIsProUser] = useState(false);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
-  const [signalNotificationsEnabled, setSignalNotificationsEnabled] = useState(false);
   const [dailySignalLimit, setDailySignalLimit] = useState(5);
   const [dailySignalCount, setDailySignalCount] = useState({ current: 0, limit: 5 });
   const { user } = useAuth();
@@ -83,10 +83,9 @@ export const StrategyInfo = ({
     }
   };
 
-  // Load strategy notification settings
+  // Load strategy settings
   useEffect(() => {
     if (strategy) {
-      setSignalNotificationsEnabled(strategy.signal_notifications_enabled || false);
       setDailySignalLimit(strategy.daily_signal_limit || 5);
       
       // Load current daily signal count
@@ -95,54 +94,6 @@ export const StrategyInfo = ({
         .catch(error => console.error('Error loading daily signal count:', error));
     }
   }, [strategy]);
-
-  // Handle signal notifications toggle
-  const handleSignalNotificationsChange = async (checked: boolean) => {
-    // Only allow Pro users to enable signal notifications
-    if (checked && !isProUser) {
-      toast.error("Pro Feature Required", {
-        description: "Signal notifications require a Pro subscription. Upgrade to activate strategies and receive real-time trading alerts.",
-        duration: 6000,
-        action: {
-          label: "Upgrade to Pro",
-          onClick: () => {
-            console.log("Navigate to upgrade page");
-          }
-        }
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('strategies')
-        .update({ 
-          signal_notifications_enabled: checked,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', strategy.id);
-
-      if (error) throw error;
-
-      setSignalNotificationsEnabled(checked);
-      
-      if (checked) {
-        toast.success("Signal Notifications Enabled", {
-          description: "You'll now receive trading signals via your configured notification channels."
-        });
-      } else {
-        toast.success("Signal Notifications Disabled", {
-          description: "Signals will be recorded in the app but no notifications will be sent."
-        });
-      }
-    } catch (error) {
-      console.error("Error updating signal notifications:", error);
-      toast.error("Failed to update signal notifications");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Handle daily signal limit change
   const handleDailySignalLimitChange = async (value: number) => {
@@ -174,17 +125,16 @@ export const StrategyInfo = ({
     }
   };
 
-  // Handle the status change and update it in the database
+  // Handle the unified status change
   const handleStatusChange = async (checked: boolean) => {
     // Only allow Pro users to activate strategies
     if (checked && !isProUser) {
       toast.error("Pro Feature Required", {
-        description: "Signal notifications require a Pro subscription. Upgrade to activate strategies and receive real-time trading alerts.",
+        description: "Strategy activation and signal notifications require a Pro subscription. Upgrade to activate strategies and receive real-time trading alerts.",
         duration: 6000,
         action: {
           label: "Upgrade to Pro",
           onClick: () => {
-            // Navigate to pricing/upgrade page
             console.log("Navigate to upgrade page");
           }
         }
@@ -194,20 +144,35 @@ export const StrategyInfo = ({
 
     setIsSaving(true);
     try {
-      // Call the parent component's handler to update the database and local state
+      // Update both strategy activation and signal notifications
+      const { error } = await supabase
+        .from('strategies')
+        .update({ 
+          is_active: checked,
+          signal_notifications_enabled: checked && isProUser,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', strategy.id);
+
+      if (error) throw error;
+
+      // Call the parent component's handler
       onStatusChange(checked);
       
       if (checked) {
         toast.success("Strategy Activated", {
-          description: "You'll now receive trading signals via your configured notification channels."
+          description: isProUser 
+            ? "Strategy is now active and will send notifications to your configured channels."
+            : "Strategy is now active and signals will be recorded in the app."
         });
       } else {
         toast.success("Strategy Deactivated", {
-          description: "Signals will be recorded in the app but no notifications will be sent."
+          description: "Strategy will not generate any signals."
         });
       }
     } catch (error) {
       console.error("Error in status change:", error);
+      toast.error("Failed to update strategy status");
     } finally {
       setIsSaving(false);
     }
@@ -255,10 +220,10 @@ export const StrategyInfo = ({
           <p className="font-medium">{strategy.targetAsset || "Unknown"}</p>
         </div>
         
-        {/* Strategy Active Status */}
+        {/* Unified Strategy Control */}
         <div className="md:col-span-2">
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-sm text-muted-foreground">Strategy Active</p>
+            <p className="text-sm text-muted-foreground">Strategy Status</p>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -266,47 +231,11 @@ export const StrategyInfo = ({
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">
                   <p className="text-sm">
-                    When active, the strategy will generate trading signals in the app during market hours.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Switch 
-              id="strategy-active" 
-              checked={isActive} 
-              onCheckedChange={onStatusChange} 
-              disabled={isSaving} 
-            />
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">
-                {isSaving ? 'Updating...' : isActive ? 'Active - Generating Signals' : 'Inactive - No Signals'}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {isActive 
-                  ? 'Strategy will generate trading signals in the app' 
-                  : 'Strategy will not generate any signals'
-                }
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Signal Notifications Section */}
-        <div className="md:col-span-2">
-          <div className="flex items-center gap-2 mb-2">
-            <p className="text-sm text-muted-foreground">Signal Notifications</p>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <p className="text-sm">
-                    When enabled, trading signals are sent to your configured notification channels (email, Discord, Telegram) 
-                    up to your daily limit. All signals are always recorded in the app.
+                    When active, the strategy generates trading signals in the app. 
+                    {isProUser 
+                      ? " Pro users can also send notifications to external channels."
+                      : " Pro subscription required for external notifications."
+                    }
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -323,7 +252,8 @@ export const StrategyInfo = ({
                 <div className="flex-1">
                   <h4 className="font-medium text-yellow-900 mb-1">Pro Feature Required</h4>
                   <p className="text-sm text-yellow-800 mb-3">
-                    Signal notifications require a Pro subscription. Upgrade to send trading alerts to your email, Discord, or Telegram.
+                    Strategy activation and external notifications require a Pro subscription. 
+                    Upgrade to activate strategies and send alerts to your email, Discord, or Telegram.
                   </p>
                   <Button 
                     size="sm" 
@@ -340,35 +270,35 @@ export const StrategyInfo = ({
           )}
 
           <div className="space-y-4">
-            {/* Signal Notifications Toggle */}
+            {/* Main Strategy Switch */}
             <div className="flex items-center gap-3">
               <Switch 
-                id="signal-notifications" 
-                checked={signalNotificationsEnabled} 
-                onCheckedChange={handleSignalNotificationsChange} 
-                disabled={isSaving || isFreeUser} 
+                id="strategy-status" 
+                checked={isActive} 
+                onCheckedChange={handleStatusChange} 
+                disabled={isSaving} 
               />
               <div className="flex flex-col">
                 <span className="text-sm font-medium">
-                  {isSaving ? 'Updating...' : signalNotificationsEnabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+                  {isSaving ? 'Updating...' : isActive ? 'Strategy Active' : 'Strategy Inactive'}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {isFreeUser 
-                    ? 'Pro subscription required for notifications'
-                    : signalNotificationsEnabled 
-                      ? 'Signals will be sent to your notification channels' 
-                      : 'Signals will only be recorded in the app'
+                    ? 'Pro subscription required for activation'
+                    : isActive 
+                      ? 'Generating signals and sending notifications to configured channels' 
+                      : 'Strategy will not generate any signals'
                   }
                 </span>
               </div>
             </div>
 
-            {/* Daily Signal Limit - Only show for Pro users with notifications enabled */}
-            {isProUser && signalNotificationsEnabled && (
-              <div className="space-y-2">
+            {/* Daily Signal Limit - Only show for Pro users with active strategy */}
+            {isProUser && isActive && (
+              <div className="space-y-2 pl-8 border-l-2 border-gray-200">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="daily-signal-limit" className="text-sm font-medium">
-                    Maximum Signals Per Trading Day
+                    Maximum Notifications Per Trading Day
                   </Label>
                   <TooltipProvider>
                     <Tooltip>
@@ -402,7 +332,7 @@ export const StrategyInfo = ({
                     disabled={isSaving}
                   />
                   <span className="text-sm text-muted-foreground">
-                    Today: {dailySignalCount.current} / {dailySignalCount.limit} signals sent
+                    Today: {dailySignalCount.current} / {dailySignalCount.limit} notifications sent
                   </span>
                 </div>
                 

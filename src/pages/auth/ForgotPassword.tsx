@@ -74,13 +74,16 @@ export default function ForgotPassword() {
                 We've sent a password reset link to <strong>{email}</strong>
               </p>
               <p className="text-sm text-muted-foreground">
-                Please check your email and click the link to reset your password. The link will expire in 24 hours.
+                Please check your email and click the "Reset Password" button. The link will open a new window where you can set your new password.
               </p>
               
               <Alert className="text-left">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Don't see the email?</strong> Check your spam or junk folder. Sometimes password reset emails can end up there.
+                  <div className="space-y-2">
+                    <p><strong>Don't see the email?</strong> Check your spam or junk folder.</p>
+                    <p><strong>Reset link not working?</strong> Make sure to click the button in the email, not copy the link. If it still doesn't work, try requesting a new link.</p>
+                  </div>
                 </AlertDescription>
               </Alert>
               

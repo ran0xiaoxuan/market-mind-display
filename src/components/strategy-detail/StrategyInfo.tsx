@@ -91,7 +91,9 @@ export const StrategyInfo = ({
   // Load strategy settings
   useEffect(() => {
     if (strategy && strategyId) {
-      setDailySignalLimit(strategy.daily_signal_limit || 5);
+      // Use the dailySignalLimit from the strategy prop, fallback to 5 if not available
+      const limit = strategy.dailySignalLimit || strategy.daily_signal_limit || 5;
+      setDailySignalLimit(limit);
       
       // Load current daily signal count
       dailySignalService.getDailySignalCount(strategyId)

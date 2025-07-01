@@ -368,7 +368,7 @@ const StrategyDetail = () => {
               updatedAt: strategy?.updatedAt,
               timeframe: strategy?.timeframe,
               targetAsset: strategy?.targetAsset,
-              daily_signal_limit: strategy?.daily_signal_limit
+              dailySignalLimit: strategy?.dailySignalLimit // Use the correct property name
             }} 
             isActive={isActive} 
             onStatusChange={handleStatusChange} 

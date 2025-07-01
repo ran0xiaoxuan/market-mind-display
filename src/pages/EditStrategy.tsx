@@ -67,8 +67,8 @@ const EditStrategy = () => {
     if (!description.trim()) errors.push("Description is required");
     if (!timeframe) errors.push("Timeframe is required");
     if (!targetAsset.trim()) errors.push("Target Asset is required");
-    if (dailySignalLimit < 1 || dailySignalLimit > 50) {
-      errors.push("Daily signal limit must be between 1 and 50");
+    if (dailySignalLimit < 1 || dailySignalLimit > 390) {
+      errors.push("Daily signal limit must be between 1 and 390");
     }
     return errors;
   };
@@ -751,18 +751,18 @@ const EditStrategy = () => {
                   id="daily-signal-limit"
                   type="number"
                   min="1"
-                  max="50"
+                  max="390"
                   value={dailySignalLimit}
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
-                    if (value >= 1 && value <= 50) {
+                    if (value >= 1 && value <= 390) {
                       setDailySignalLimit(value);
                     }
                   }}
-                  className={`w-32 ${(dailySignalLimit < 1 || dailySignalLimit > 50) && showValidation ? 'border-red-500' : ''}`}
+                  className={`w-32 ${(dailySignalLimit < 1 || dailySignalLimit > 390) && showValidation ? 'border-red-500' : ''}`}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Set the maximum number of notifications per trading day (1-50)
+                  Set the maximum number of notifications per trading day (1-390)
                 </p>
               </div>
             </div>

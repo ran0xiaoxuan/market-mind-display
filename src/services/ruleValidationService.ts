@@ -87,9 +87,6 @@ const validateRSIThreshold = (rule: any, ruleType: string, result: RuleValidatio
       result.warnings.push(
         `Entry condition "RSI > ${threshold}" may generate buy signals in overbought conditions. Consider using "RSI < 30" for oversold entries instead.`
       );
-      result.suggestions.push(
-        `For safer entry signals, consider changing "RSI > ${threshold}" to "RSI < 30" to buy when the asset is oversold.`
-      );
     }
   }
 

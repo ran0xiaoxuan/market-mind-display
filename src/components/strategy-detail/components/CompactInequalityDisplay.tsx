@@ -43,7 +43,16 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
       }
       return "Unknown indicator";
     } else if (side.type === "PRICE") {
-      return side.value || "Price";
+      // Format price display to show "Price" with the selected option below
+      const priceType = side.value || "close";
+      const formattedPriceType = priceType.charAt(0).toUpperCase() + priceType.slice(1).toLowerCase();
+      
+      return (
+        <div className="flex flex-col items-center">
+          <span className="font-medium text-center">Price</span>
+          <span className="text-xs text-muted-foreground">({formattedPriceType})</span>
+        </div>
+      );
     } else if (side.type === "VALUE") {
       return side.value || "0";
     } else {

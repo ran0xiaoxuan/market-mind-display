@@ -478,6 +478,7 @@ const EditStrategy = () => {
           console.log(`Processing entry inequality ${i + 1}:`, inequality);
           
           // Enhanced data validation and null safety with proper type handling
+          // Remove the 'CURRENT_PRICE' fallback to preserve actual price values
           const tradingRuleData = {
             rule_group_id: entryGroup.id,
             inequality_order: i + 1,
@@ -486,7 +487,7 @@ const EditStrategy = () => {
             left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
               JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
             left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
-              (inequality.left?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
+              inequality.left?.value : null, // Preserve actual value, don't default to 'CURRENT_PRICE'
             left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
             condition: inequality.condition || '',
             right_type: inequality.right?.type || '',
@@ -494,7 +495,7 @@ const EditStrategy = () => {
             right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
               JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
             right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
-              (inequality.right?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
+              inequality.right?.value : null, // Preserve actual value, don't default to 'CURRENT_PRICE'
             right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
             explanation: inequality.explanation || null
           };
@@ -550,6 +551,7 @@ const EditStrategy = () => {
           console.log(`Processing exit inequality ${i + 1}:`, inequality);
           
           // Enhanced data validation and null safety with proper type handling
+          // Remove the 'CURRENT_PRICE' fallback to preserve actual price values
           const tradingRuleData = {
             rule_group_id: exitGroup.id,
             inequality_order: i + 1,
@@ -558,7 +560,7 @@ const EditStrategy = () => {
             left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
               JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
             left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
-              (inequality.left?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
+              inequality.left?.value : null, // Preserve actual value, don't default to 'CURRENT_PRICE'
             left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
             condition: inequality.condition || '',
             right_type: inequality.right?.type || '',
@@ -566,7 +568,7 @@ const EditStrategy = () => {
             right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
               JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
             right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
-              (inequality.right?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
+              inequality.right?.value : null, // Preserve actual value, don't default to 'CURRENT_PRICE'
             right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
             explanation: inequality.explanation || null
           };

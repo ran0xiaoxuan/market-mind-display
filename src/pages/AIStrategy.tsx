@@ -233,52 +233,6 @@ const AIStrategy = () => {
           <p className="text-muted-foreground">
             Select your stock and describe your ideal trading strategy
           </p>
-          
-          <div className="flex items-center mt-2 gap-4 flex-wrap">
-            {isCheckingHealth ? (
-              <div className="flex items-center text-blue-600 text-sm">
-                <Activity className="h-3 w-3 mr-1 animate-spin" />
-                Checking service status...
-              </div>
-            ) : serviceHealth?.healthy ? (
-              <div className="flex items-center text-green-600 text-sm">
-                <Wifi className="h-3 w-3 mr-1" />
-                AI service is online
-                {serviceHealth.details?.method && (
-                  <span className="ml-2 text-xs bg-green-100 px-2 py-1 rounded">
-                    {serviceHealth.details.method}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center text-red-600 text-sm">
-                <WifiOff className="h-3 w-3 mr-1" />
-                AI service is offline
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={checkHealth}
-                  className="ml-2 h-6 px-2 text-xs"
-                >
-                  <RefreshCcw className="h-3 w-3 mr-1" />
-                  Check Status
-                </Button>
-              </div>
-            )}
-            
-            {isOnline && (
-              <div className="flex items-center text-green-600 text-sm">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Internet connected
-              </div>
-            )}
-
-            {lastHealthCheck && (
-              <div className="text-xs text-muted-foreground">
-                Last checked: {lastHealthCheck.toLocaleTimeString()}
-              </div>
-            )}
-          </div>
         </div>
 
         <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />

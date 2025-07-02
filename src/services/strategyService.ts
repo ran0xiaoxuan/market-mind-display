@@ -39,14 +39,6 @@ export type GeneratedStrategy = {
   }[];
 };
 
-// Define ServiceError type
-export type ServiceError = {
-  message: string;
-  type: string;
-  retryable?: boolean;
-  details?: string[];
-};
-
 export const getStrategies = async (): Promise<Strategy[]> => {
   try {
     const { data, error } = await supabase
@@ -411,7 +403,7 @@ export const generateFallbackStrategy = (
   };
 };
 
-class ServiceError extends Error {
+export class ServiceError extends Error {
   type: string;
   retryable?: boolean;
   details?: string[];

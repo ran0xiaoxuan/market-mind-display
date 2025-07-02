@@ -37,11 +37,11 @@ const AIStrategy = () => {
     
     const handleOffline = () => {
       setIsOnline(false);
-      setError({
-        message: "No internet connection. Please check your network.",
-        type: "connection_error",
-        retryable: true
-      });
+      setError(new ServiceError(
+        "No internet connection. Please check your network.",
+        "connection_error",
+        true
+      ));
       toast.error("Internet connection lost");
     };
 
@@ -66,12 +66,12 @@ const AIStrategy = () => {
       setLastHealthCheck(new Date());
       
       if (!health.healthy) {
-        setError({
-          message: "AI service is currently unavailable",
-          type: "service_unavailable",
-          retryable: true,
-          details: [health.error || "Service health check failed"]
-        });
+        setError(new ServiceError(
+          "AI service is currently unavailable",
+          "service_unavailable",
+          true,
+          [health.error || "Service health check failed"]
+        ));
       } else {
         setError(null);
         toast.success("AI service is online and ready");

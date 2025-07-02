@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
@@ -128,7 +127,31 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
     setLocalInequality(prev => {
       const updatedSide = { ...prev[side] };
       
-      if (field === 'indicator') {
+      if (field === 'type') {
+        // When type changes, clear all fields except the type itself
+        updatedSide.type = value;
+        
+        // Clear all other fields based on the new type
+        if (value === 'INDICATOR') {
+          // For INDICATOR: clear value, keep other fields undefined initially
+          updatedSide.value = undefined;
+          updatedSide.indicator = undefined;
+          updatedSide.parameters = undefined;
+          updatedSide.valueType = undefined;
+        } else if (value === 'PRICE') {
+          // For PRICE: clear indicator fields, keep value undefined initially
+          updatedSide.indicator = undefined;
+          updatedSide.parameters = undefined;
+          updatedSide.valueType = undefined;
+          updatedSide.value = undefined;
+        } else if (value === 'VALUE') {
+          // For VALUE: clear all indicator and price fields, keep value undefined initially
+          updatedSide.indicator = undefined;
+          updatedSide.parameters = undefined;
+          updatedSide.valueType = undefined;
+          updatedSide.value = undefined;
+        }
+      } else if (field === 'indicator') {
         // When indicator changes, reset parameters and valueType appropriately
         updatedSide.indicator = value;
         

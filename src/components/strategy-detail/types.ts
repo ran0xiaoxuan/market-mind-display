@@ -1,4 +1,3 @@
-
 export type IndicatorParameters = {
   // Basic parameters
   period?: string;
@@ -155,4 +154,23 @@ export type TradingRule = {
   explanation?: string;
   created_at: string;
   updated_at: string;
+};
+
+// Strategy type for the main strategy object
+export type Strategy = {
+  id: string;
+  name: string;
+  description?: string;
+  timeframe: string;
+  targetAsset?: string;
+  targetAssetName?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  canBeDeleted?: boolean;
+  dailySignalLimit?: number;
+  signalNotificationsEnabled?: boolean;
+  isRecommendedCopy?: boolean;
+  sourceStrategyId?: string;
 };

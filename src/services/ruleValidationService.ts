@@ -104,9 +104,10 @@ const validateORGroup = (group: any, result: RuleValidationResult) => {
   const requiredConditions = group.requiredConditions || 1;
 
   if (rules.length === 1) {
-    result.suggestions.push(
-      'OR groups work best with at least 2 conditions for confirmation. Consider adding another indicator or condition.'
-    );
+    const suggestion = 'OR groups work best with at least 2 conditions for confirmation. Consider adding another indicator or condition.';
+    if (!result.suggestions.includes(suggestion)) {
+      result.suggestions.push(suggestion);
+    }
   }
 
   if (requiredConditions >= rules.length && rules.length > 1) {

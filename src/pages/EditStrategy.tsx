@@ -486,7 +486,7 @@ const EditStrategy = () => {
             left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
               JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
             left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
-              (inequality.left?.value || null) : null,
+              (inequality.left?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
             left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
             condition: inequality.condition || '',
             right_type: inequality.right?.type || '',
@@ -494,7 +494,7 @@ const EditStrategy = () => {
             right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
               JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
             right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
-              (inequality.right?.value || null) : null,
+              (inequality.right?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
             right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
             explanation: inequality.explanation || null
           };
@@ -558,7 +558,7 @@ const EditStrategy = () => {
             left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
               JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
             left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
-              (inequality.left?.value || null) : null,
+              (inequality.left?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
             left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
             condition: inequality.condition || '',
             right_type: inequality.right?.type || '',
@@ -566,7 +566,7 @@ const EditStrategy = () => {
             right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
               JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
             right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
-              (inequality.right?.value || null) : null,
+              (inequality.right?.value || 'CURRENT_PRICE') : null, // Use 'CURRENT_PRICE' as default for PRICE type
             right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
             explanation: inequality.explanation || null
           };

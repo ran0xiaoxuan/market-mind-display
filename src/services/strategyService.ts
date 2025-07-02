@@ -407,16 +407,20 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy, userId:
             rule_group_id: entryGroup.id,
             inequality_order: i + 1,
             left_type: inequality.left.type,
-            left_indicator: inequality.left.indicator,
-            left_parameters: inequality.left.parameters,
-            left_value: inequality.left.value,
-            left_value_type: inequality.left.valueType,
+            left_indicator: inequality.left.type === 'INDICATOR' ? (inequality.left.indicator || null) : null,
+            left_parameters: inequality.left.type === 'INDICATOR' && inequality.left.parameters ? 
+              inequality.left.parameters : null,
+            left_value: (inequality.left.type === 'PRICE' || inequality.left.type === 'VALUE') ? 
+              (inequality.left.value || null) : null,
+            left_value_type: inequality.left.type === 'INDICATOR' ? (inequality.left.valueType || null) : null,
             condition: inequality.condition,
             right_type: inequality.right.type,
-            right_indicator: inequality.right.indicator,
-            right_parameters: inequality.right.parameters,
-            right_value: inequality.right.value,
-            right_value_type: inequality.right.valueType,
+            right_indicator: inequality.right.type === 'INDICATOR' ? (inequality.right.indicator || null) : null,
+            right_parameters: inequality.right.type === 'INDICATOR' && inequality.right.parameters ? 
+              inequality.right.parameters : null,
+            right_value: (inequality.right.type === 'PRICE' || inequality.right.type === 'VALUE') ? 
+              (inequality.right.value || null) : null,
+            right_value_type: inequality.right.type === 'INDICATOR' ? (inequality.right.valueType || null) : null,
             explanation: inequality.explanation
           });
 
@@ -461,16 +465,20 @@ export const saveGeneratedStrategy = async (strategy: GeneratedStrategy, userId:
             rule_group_id: exitGroup.id,
             inequality_order: i + 1,
             left_type: inequality.left.type,
-            left_indicator: inequality.left.indicator,
-            left_parameters: inequality.left.parameters,
-            left_value: inequality.left.value,
-            left_value_type: inequality.left.valueType,
+            left_indicator: inequality.left.type === 'INDICATOR' ? (inequality.left.indicator || null) : null,
+            left_parameters: inequality.left.type === 'INDICATOR' && inequality.left.parameters ? 
+              inequality.left.parameters : null,
+            left_value: (inequality.left.type === 'PRICE' || inequality.left.type === 'VALUE') ? 
+              (inequality.left.value || null) : null,
+            left_value_type: inequality.left.type === 'INDICATOR' ? (inequality.left.valueType || null) : null,
             condition: inequality.condition,
             right_type: inequality.right.type,
-            right_indicator: inequality.right.indicator,
-            right_parameters: inequality.right.parameters,
-            right_value: inequality.right.value,
-            right_value_type: inequality.right.valueType,
+            right_indicator: inequality.right.type === 'INDICATOR' ? (inequality.right.indicator || null) : null,
+            right_parameters: inequality.right.type === 'INDICATOR' && inequality.right.parameters ? 
+              inequality.right.parameters : null,
+            right_value: (inequality.right.type === 'PRICE' || inequality.right.type === 'VALUE') ? 
+              (inequality.right.value || null) : null,
+            right_value_type: inequality.right.type === 'INDICATOR' ? (inequality.right.valueType || null) : null,
             explanation: inequality.explanation
           });
 

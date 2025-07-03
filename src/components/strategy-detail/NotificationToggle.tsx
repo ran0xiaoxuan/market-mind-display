@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -21,9 +22,18 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
   onToggle
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [localEnabled, setLocalEnabled] = useState(isEnabled);
+
+  // Update local state when prop changes (e.g., from parent component refresh)
+  React.useEffect(() => {
+    setLocalEnabled(isEnabled);
+  }, [isEnabled]);
 
   const handleToggle = async (checked: boolean) => {
     setIsUpdating(true);
+    
+    // Immediately update local state for responsive UI
+    setLocalEnabled(checked);
     
     try {
       // When enabling notifications: set both is_active=true and signal_notifications_enabled=true
@@ -41,10 +51,13 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
 
       if (error) {
         console.error("Error updating notification settings:", error);
+        // Revert local state on error
+        setLocalEnabled(!checked);
         toast.error("Failed to update notification settings");
         return;
       }
 
+      // Call parent callback to update parent state
       onToggle(checked);
       toast.success(
         checked 
@@ -53,6 +66,8 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
       );
     } catch (err) {
       console.error("Error in handleToggle:", err);
+      // Revert local state on error
+      setLocalEnabled(!checked);
       toast.error("An error occurred while updating notification settings");
     } finally {
       setIsUpdating(false);
@@ -62,7 +77,7 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
   return (
     <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card">
       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-        {isEnabled ? (
+        {localEnabled ? (
           <Bell className="h-4 w-4 text-green-600" />
         ) : (
           <BellOff className="h-4 w-4 text-muted-foreground" />
@@ -77,7 +92,7 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
           <Crown className="h-3 w-3 text-amber-600" />
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {isEnabled 
+          {localEnabled 
             ? "Signals will be sent to your configured channels (Email/Discord/Telegram) and recorded in the app"
             : "Signals will only be recorded in the app - upgrade to PRO to enable external notifications"
           }
@@ -86,7 +101,7 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
       
       <Switch
         id={`notifications-${strategyId}`}
-        checked={isEnabled}
+        checked={localEnabled}
         onCheckedChange={handleToggle}
         disabled={isUpdating}
         aria-label={`Toggle external notifications for ${strategyName}`}

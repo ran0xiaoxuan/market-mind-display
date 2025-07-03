@@ -72,7 +72,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           .select('id, name, target_asset, is_active, updated_at, signal_notifications_enabled')
           .eq('user_id', user.id),
         
-        // Get ALL trading signals with strategy info (removed .limit(10))
+        // Get ALL trading signals with strategy info - remove any limits to get all 1113 records
         supabase
           .from('trading_signals')
           .select(`
@@ -88,7 +88,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           .gte('created_at', startDate.toISOString())
           .order('created_at', { ascending: false }),
         
-        // Get total rule count
+        // Get ALL trading rules count for all strategies of this user
         supabase
           .from('trading_rules')
           .select(`
@@ -105,13 +105,23 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       const signals = signalsResult.data || [];
       const rules = rulesResult.data || [];
 
+      console.log(`Total strategies: ${strategies.length}`);
+      console.log(`Total signals fetched: ${signals.length}`);
+      console.log(`Total rules: ${rules.length}`);
+
       // Calculate metrics
       const totalStrategies = strategies.length;
-      const activeStrategies = strategies.filter(s => s.is_active).length;
+      
+      // Active strategies are those with signal_notifications_enabled = true
+      const activeStrategies = strategies.filter(s => s.signal_notifications_enabled === true).length;
+      
       const totalSignals = signals.length;
       const totalRules = rules.length;
 
-      // Format recent trades - now includes ALL signals, not just first 10
+      console.log(`Active strategies (with notifications enabled): ${activeStrategies}`);
+      console.log(`Total conditions: ${totalRules}`);
+
+      // Format recent trades - includes ALL signals
       const recentTrades: DashboardTrade[] = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;

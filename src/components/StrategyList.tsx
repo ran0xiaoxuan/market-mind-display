@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -117,12 +116,6 @@ export function StrategyList() {
                     <span>{strategy.targetAsset || "Unknown"}</span>
                     <span>•</span>
                     <span>Updated {formatTimeAgo(strategy.updatedAt)}</span>
-                    {userIsPro && !strategy.signalNotificationsEnabled && (
-                      <>
-                        <span>•</span>
-                        <span className="text-amber-600">External notifications off</span>
-                      </>
-                    )}
                     {!userIsPro && (
                       <>
                         <span>•</span>

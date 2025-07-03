@@ -1,13 +1,12 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ChevronRight, Bell, BellOff } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { Switch } from "@/components/ui/switch";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 
 export function StrategyList() {
@@ -15,7 +14,6 @@ export function StrategyList() {
   const [filteredStrategies, setFilteredStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
   
   // Add subscription hook
   const { tier } = useUserSubscription();
@@ -27,7 +25,8 @@ export function StrategyList() {
       setError(null);
       const data = await getStrategies();
       setStrategies(data);
-      applyFilter(data, showActiveOnly);
+      // Show all strategies, limit to 6 for dashboard display
+      setFilteredStrategies(data.slice(0, 6));
     } catch (err) {
       console.error("Error fetching strategies:", err);
       setError("Failed to load strategies");
@@ -39,14 +38,6 @@ export function StrategyList() {
     }
   };
   
-  const applyFilter = (strategies: Strategy[], activeOnly: boolean) => {
-    if (activeOnly) {
-      setFilteredStrategies(strategies.filter(s => s.isActive).slice(0, 6));
-    } else {
-      setFilteredStrategies(strategies.slice(0, 6));
-    }
-  };
-
   useEffect(() => {
     fetchStrategies();
 
@@ -70,10 +61,6 @@ export function StrategyList() {
       window.removeEventListener('strategy-deleted', handleStrategyUpdate);
     };
   }, []);
-  
-  useEffect(() => {
-    applyFilter(strategies, showActiveOnly);
-  }, [showActiveOnly, strategies]);
 
   const formatTimeAgo = (dateString: string) => {
     try {
@@ -87,27 +74,11 @@ export function StrategyList() {
       return "Unknown";
     }
   };
-  
-  const toggleActiveFilter = () => {
-    setShowActiveOnly(!showActiveOnly);
-  };
 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">Your Strategies</CardTitle>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">
-              {showActiveOnly ? "Active only" : "All"}
-            </span>
-            <Switch
-              checked={showActiveOnly}
-              onCheckedChange={toggleActiveFilter}
-              aria-label="Toggle active strategies only"
-            />
-          </div>
-        </div>
+        <CardTitle className="text-xl">Your Strategies</CardTitle>
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <div className="divide-y">
@@ -131,9 +102,6 @@ export function StrategyList() {
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     <p className="font-medium">{strategy.name}</p>
-                    <Badge variant="default" className="bg-green-600">
-                      Active
-                    </Badge>
                     {/* Show notification status only for PRO users */}
                     {userIsPro && (
                       <div className="flex items-center">
@@ -172,7 +140,7 @@ export function StrategyList() {
             ))
           ) : (
             <div className="px-6 py-4 text-center text-muted-foreground">
-              {showActiveOnly ? "No active strategies available" : "No strategies available"}
+              No strategies available
             </div>
           )}
         </div>

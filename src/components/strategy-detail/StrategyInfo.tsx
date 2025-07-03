@@ -1,7 +1,6 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Clock, Target, Calendar, Crown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -20,20 +19,13 @@ interface StrategyInfoProps {
     dailySignalLimit?: number;
     signalNotificationsEnabled?: boolean;
   };
-  isActive: boolean;
-  onStatusChange: (checked: boolean) => void;
 }
 
 export const StrategyInfo: React.FC<StrategyInfoProps> = ({
-  strategy,
-  isActive,
-  onStatusChange
+  strategy
 }) => {
   const { tier, isLoading } = useUserSubscription();
   const userIsPro = isPro(tier);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
-    strategy.signalNotificationsEnabled || false
-  );
 
   const formatTimeAgo = (dateString?: string) => {
     if (!dateString) return "Unknown";
@@ -44,11 +36,6 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
       console.error("Error formatting date:", error);
       return "Unknown";
     }
-  };
-
-  const handleNotificationToggle = (enabled: boolean) => {
-    setNotificationsEnabled(enabled);
-    // The NotificationToggle component handles the backend update
   };
 
   if (isLoading) {
@@ -67,12 +54,7 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Strategy Information
-          <Badge variant="default" className="bg-green-600">
-            Active
-          </Badge>
-        </CardTitle>
+        <CardTitle>Strategy Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Strategy Description */}
@@ -124,9 +106,9 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
             <NotificationToggle
               strategyId={strategy.id}
               strategyName="Strategy"
-              isEnabled={notificationsEnabled}
+              isEnabled={strategy.signalNotificationsEnabled || false}
               isActive={true} // Always true since strategies are always active for signal recording
-              onToggle={handleNotificationToggle}
+              onToggle={() => {}} // Component handles its own state
             />
           )
         ) : (

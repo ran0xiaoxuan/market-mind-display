@@ -1,5 +1,5 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
@@ -7,6 +7,7 @@ import { Trash } from "lucide-react";
 import { deleteStrategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { useState } from "react";
+
 interface StrategyCardProps {
   id: string;
   name: string;
@@ -16,6 +17,7 @@ interface StrategyCardProps {
   status: "active" | "inactive";
   onDeleted?: () => void;
 }
+
 export function StrategyCard({
   id,
   name,
@@ -26,12 +28,15 @@ export function StrategyCard({
   onDeleted
 }: StrategyCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
     if (!confirm("Are you sure you want to delete this strategy? This action cannot be undone and will remove all associated trading signals and data.")) {
       return;
     }
+
     try {
       setIsDeleting(true);
       await deleteStrategy(id);
@@ -48,17 +53,13 @@ export function StrategyCard({
       setIsDeleting(false);
     }
   };
-  return <Link to={`/strategy/${id}`} className="block">
+
+  return (
+    <Link to={`/strategy/${id}`} className="block">
       <Card className="h-full hover:shadow-md transition-shadow cursor-pointer flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start">
             <CardTitle className="text-xl truncate pr-2">{name}</CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant={status === "active" ? "default" : "secondary"}>
-                {status}
-              </Badge>
-              
-            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1">
@@ -67,11 +68,10 @@ export function StrategyCard({
         <CardFooter className="pt-0 mt-auto">
           <div className="flex items-center justify-between text-sm text-muted-foreground w-full">
             <span>Asset: {asset}</span>
-            <span>Updated {formatDistanceToNow(updatedAt, {
-              addSuffix: true
-            })}</span>
+            <span>Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}</span>
           </div>
         </CardFooter>
       </Card>
-    </Link>;
+    </Link>
+  );
 }

@@ -133,9 +133,9 @@ export function StrategyList() {
                     {strategy.isActive && (
                       <div className="flex items-center">
                         {strategy.signalNotificationsEnabled ? (
-                          <Bell className="h-3 w-3 text-green-600" title="Notifications enabled" />
+                          <Bell className="h-3 w-3 text-green-600" />
                         ) : (
-                          <BellOff className="h-3 w-3 text-muted-foreground" title="Notifications disabled" />
+                          <BellOff className="h-3 w-3 text-muted-foreground" />
                         )}
                       </div>
                     )}

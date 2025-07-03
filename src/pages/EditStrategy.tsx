@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, AlertCircle, Info } from "lucide-react";
+import { ArrowLeft, Save, Loader2, AlertCircle, Info, Crown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { RuleGroupData } from "@/components/strategy-detail/types";
@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 
 // Define standard timeframe options to ensure consistency across the application
 export const TIMEFRAME_OPTIONS = [
@@ -59,6 +60,10 @@ const EditStrategy = () => {
   // Trading rules state
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([]);
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([]);
+
+  // Add subscription hook
+  const { tier, isLoading: subscriptionLoading } = useUserSubscription();
+  const userIsPro = isPro(tier);
 
   // Enhanced validation functions
   const validateBasicInfo = () => {
@@ -737,10 +742,11 @@ const EditStrategy = () => {
                 </CommandDialog>
               </div>
 
-              {/* Daily Signal Limit Setting */}
+              {/* Daily Signal Limit Setting - PRO only */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Label htmlFor="daily-signal-limit">Maximum Notifications Per Trading Day</Label>
+                  {userIsPro && <Crown className="h-4 w-4 text-amber-600" />}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -748,29 +754,57 @@ const EditStrategy = () => {
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
                         <p className="text-sm">
-                          Limits the number of signal notifications sent to your external channels per trading day. 
-                          All signals are still recorded in the app regardless of this limit.
+                          {userIsPro 
+                            ? "Limits the number of signal notifications sent to your external channels per trading day. All signals are still recorded in the app regardless of this limit."
+                            : "This is a PRO feature. Upgrade to customize your daily notification limit. FREE users are limited to 5 notifications per day."
+                          }
                         </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <Input
-                  id="daily-signal-limit"
-                  type="number"
-                  min="1"
-                  max="390"
-                  value={dailySignalLimit}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (value >= 1 && value <= 390) {
-                      setDailySignalLimit(value);
-                    }
-                  }}
-                  className={`w-32 ${(dailySignalLimit < 1 || dailySignalLimit > 390) && showValidation ? 'border-red-500' : ''}`}
-                />
+                
+                {userIsPro ? (
+                  <Input
+                    id="daily-signal-limit"
+                    type="number"
+                    min="1"
+                    max="390"
+                    value={dailySignalLimit}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value >= 1 && value <= 390) {
+                        setDailySignalLimit(value);
+                      }
+                    }}
+                    className={`w-32 ${(dailySignalLimit < 1 || dailySignalLimit > 390) && showValidation ? 'border-red-500' : ''}`}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      id="daily-signal-limit"
+                      type="number"
+                      value={5}
+                      disabled
+                      className="w-32 bg-muted"
+                    />
+                    <Alert className="border-amber-200 bg-amber-50">
+                      <Crown className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-700">
+                        <div className="font-medium mb-1">PRO Feature Required</div>
+                        <p className="text-sm">
+                          Upgrade to PRO to customize your daily notification limit. FREE users are limited to 5 notifications per day.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+                
                 <p className="text-xs text-muted-foreground mt-1">
-                  Set the maximum number of notifications per trading day (1-390)
+                  {userIsPro 
+                    ? "Set the maximum number of notifications per trading day (1-390)"
+                    : "FREE users are limited to 5 notifications per trading day"
+                  }
                 </p>
               </div>
             </div>

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Switch } from "@/components/ui/switch";
+import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 
 export function StrategyList() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
@@ -16,6 +16,10 @@ export function StrategyList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
+  
+  // Add subscription hook
+  const { tier } = useUserSubscription();
+  const userIsPro = isPro(tier);
   
   const fetchStrategies = async () => {
     try {
@@ -127,10 +131,11 @@ export function StrategyList() {
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     <p className="font-medium">{strategy.name}</p>
-                    <Badge variant={strategy.isActive ? "default" : "secondary"}>
-                      {strategy.isActive ? "Active" : "Inactive"}
+                    <Badge variant="default" className="bg-green-600">
+                      Active
                     </Badge>
-                    {strategy.isActive && (
+                    {/* Show notification status only for PRO users */}
+                    {userIsPro && (
                       <div className="flex items-center">
                         {strategy.signalNotificationsEnabled ? (
                           <Bell className="h-3 w-3 text-green-600" />
@@ -144,10 +149,16 @@ export function StrategyList() {
                     <span>{strategy.targetAsset || "Unknown"}</span>
                     <span>•</span>
                     <span>Updated {formatTimeAgo(strategy.updatedAt)}</span>
-                    {strategy.isActive && !strategy.signalNotificationsEnabled && (
+                    {userIsPro && !strategy.signalNotificationsEnabled && (
                       <>
                         <span>•</span>
-                        <span className="text-amber-600">No notifications</span>
+                        <span className="text-amber-600">External notifications off</span>
+                      </>
+                    )}
+                    {!userIsPro && (
+                      <>
+                        <span>•</span>
+                        <span className="text-blue-600">App-only signals</span>
                       </>
                     )}
                   </div>

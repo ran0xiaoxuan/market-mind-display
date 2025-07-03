@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Crown } from "lucide-react";
 
 interface NotificationToggleProps {
   strategyId: string;
@@ -24,22 +23,20 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleToggle = async (checked: boolean) => {
-    if (!isActive && checked) {
-      toast.error("Cannot enable notifications for inactive strategy", {
-        description: "Please activate the strategy first before enabling notifications."
-      });
-      return;
-    }
-
     setIsUpdating(true);
     
     try {
+      // When enabling notifications: set both is_active=true and signal_notifications_enabled=true
+      // When disabling notifications: set signal_notifications_enabled=false but keep is_active=true
+      const updateData = {
+        is_active: true, // Always keep strategy active for signal recording
+        signal_notifications_enabled: checked,
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('strategies')
-        .update({ 
-          signal_notifications_enabled: checked,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', strategyId);
 
       if (error) {
@@ -51,8 +48,8 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
       onToggle(checked);
       toast.success(
         checked 
-          ? "Notifications enabled for this strategy" 
-          : "Notifications disabled for this strategy"
+          ? "External notifications enabled - signals will be sent to your configured channels" 
+          : "External notifications disabled - signals will only be recorded in the app"
       );
     } catch (err) {
       console.error("Error in handleToggle:", err);
@@ -73,13 +70,16 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
       </div>
       
       <div className="flex-1">
-        <Label htmlFor={`notifications-${strategyId}`} className="text-sm font-medium">
-          Send Notifications
-        </Label>
+        <div className="flex items-center space-x-2">
+          <Label htmlFor={`notifications-${strategyId}`} className="text-sm font-medium">
+            Send External Notifications
+          </Label>
+          <Crown className="h-3 w-3 text-amber-600" />
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           {isEnabled 
-            ? "Signals will be sent to your configured channels (Email/Discord/Telegram)"
-            : "Signals will only be recorded in the app"
+            ? "Signals will be sent to your configured channels (Email/Discord/Telegram) and recorded in the app"
+            : "Signals will only be recorded in the app - upgrade to PRO to enable external notifications"
           }
         </p>
       </div>
@@ -88,8 +88,8 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
         id={`notifications-${strategyId}`}
         checked={isEnabled}
         onCheckedChange={handleToggle}
-        disabled={isUpdating || !isActive}
-        aria-label={`Toggle notifications for ${strategyName}`}
+        disabled={isUpdating}
+        aria-label={`Toggle external notifications for ${strategyName}`}
       />
     </div>
   );

@@ -2,11 +2,11 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Clock, Target, Calendar, AlertTriangle } from "lucide-react";
+import { Clock, Target, Calendar, Crown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { NotificationToggle } from "./NotificationToggle";
+import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface StrategyInfoProps {
@@ -29,6 +29,8 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
   isActive,
   onStatusChange
 }) => {
+  const { tier, isLoading } = useUserSubscription();
+  const userIsPro = isPro(tier);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     strategy.signalNotificationsEnabled || false
   );
@@ -46,15 +48,29 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
 
   const handleNotificationToggle = (enabled: boolean) => {
     setNotificationsEnabled(enabled);
+    // The NotificationToggle component handles the backend update
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Strategy Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">Loading subscription status...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Strategy Information
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "Active" : "Inactive"}
+          <Badge variant="default" className="bg-green-600">
+            Active
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -102,41 +118,26 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
           </div>
         </div>
 
-        {/* Strategy Status Toggle */}
-        <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-          <div className="space-y-1">
-            <Label htmlFor="strategy-status" className="text-sm font-medium">
-              Strategy Status
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              {isActive ? "Strategy is monitoring market conditions" : "Strategy is paused"}
-            </p>
-          </div>
-          <Switch
-            id="strategy-status"
-            checked={isActive}
-            onCheckedChange={onStatusChange}
-          />
-        </div>
-
-        {/* Notification Settings */}
-        {strategy.id && (
-          <NotificationToggle
-            strategyId={strategy.id}
-            strategyName="Strategy" // This could be passed as a prop if needed
-            isEnabled={notificationsEnabled}
-            isActive={isActive}
-            onToggle={handleNotificationToggle}
-          />
-        )}
-
-        {/* Warning for inactive strategy with notifications */}
-        {!isActive && notificationsEnabled && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              This strategy has notifications enabled but is currently inactive. 
-              Activate the strategy to start receiving notifications.
+        {/* PRO Notification Settings */}
+        {userIsPro ? (
+          strategy.id && (
+            <NotificationToggle
+              strategyId={strategy.id}
+              strategyName="Strategy"
+              isEnabled={notificationsEnabled}
+              isActive={true} // Always true since strategies are always active for signal recording
+              onToggle={handleNotificationToggle}
+            />
+          )
+        ) : (
+          <Alert className="border-amber-200 bg-amber-50">
+            <Crown className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700">
+              <div className="font-medium mb-1">PRO Feature: External Notifications</div>
+              <p className="text-sm">
+                Upgrade to PRO to send trading signals to your Email, Discord, or Telegram channels. 
+                All signals are still recorded in the app.
+              </p>
             </AlertDescription>
           </Alert>
         )}
@@ -146,6 +147,12 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
           <div className="text-sm">
             <span className="text-muted-foreground">Daily Signal Limit: </span>
             <span className="font-medium">{strategy.dailySignalLimit} signals per day</span>
+            {userIsPro && (
+              <span className="text-xs text-amber-600 ml-2">
+                <Crown className="h-3 w-3 inline mr-1" />
+                PRO Feature
+              </span>
+            )}
           </div>
         )}
       </CardContent>

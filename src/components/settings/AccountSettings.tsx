@@ -464,20 +464,6 @@ export function AccountSettings() {
                   </div>
                 </div>
               </div>}
-            
-            {/* Developer testing toggle - only visible in development */}
-            {process.env.NODE_ENV === 'development' && <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-sm">Developer Mode</h3>
-                    <p className="text-xs text-muted-foreground">Toggle between Free and Pro for testing</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">{isPro ? 'Pro' : 'Free'}</span>
-                    <Switch checked={isPro} onCheckedChange={toggleSubscriptionStatus} disabled={isUpdating} />
-                  </div>
-                </div>
-              </div>}
           </CardContent>
         </Card>
       </div>

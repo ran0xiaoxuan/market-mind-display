@@ -124,17 +124,15 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
           </Alert>
         )}
 
-        {/* Daily Signal Limit */}
-        {strategy.dailySignalLimit && (
+        {/* Daily Signal Limit - Only show for PRO users */}
+        {userIsPro && strategy.dailySignalLimit && (
           <div className="text-sm">
             <span className="text-muted-foreground">Daily Signal Limit: </span>
             <span className="font-medium">{strategy.dailySignalLimit} signals per day</span>
-            {userIsPro && (
-              <span className="text-xs text-amber-600 ml-2">
-                <Crown className="h-3 w-3 inline mr-1" />
-                PRO Feature
-              </span>
-            )}
+            <span className="text-xs text-amber-600 ml-2">
+              <Crown className="h-3 w-3 inline mr-1" />
+              PRO Feature
+            </span>
           </div>
         )}
       </CardContent>

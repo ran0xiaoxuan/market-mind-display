@@ -7,17 +7,17 @@ import { getStrategies, Strategy } from "@/services/strategyService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
-
 export function StrategyList() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [filteredStrategies, setFilteredStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Add subscription hook
-  const { tier } = useUserSubscription();
+  const {
+    tier
+  } = useUserSubscription();
   const userIsPro = isPro(tier);
-  
   const fetchStrategies = async () => {
     try {
       setLoading(true);
@@ -36,7 +36,6 @@ export function StrategyList() {
       setLoading(false);
     }
   };
-  
   useEffect(() => {
     fetchStrategies();
 
@@ -52,7 +51,6 @@ export function StrategyList() {
     // Listen for custom event that might be dispatched when strategies are updated or deleted
     window.addEventListener('strategy-updated', handleStrategyUpdate);
     window.addEventListener('strategy-deleted', handleStrategyUpdate);
-    
     return () => {
       window.removeEventListener('popstate', handleStrategyUpdate);
       window.removeEventListener('focus', handleStrategyUpdate);
@@ -60,7 +58,6 @@ export function StrategyList() {
       window.removeEventListener('strategy-deleted', handleStrategyUpdate);
     };
   }, []);
-
   const formatTimeAgo = (dateString: string) => {
     try {
       if (!dateString) return "Unknown";
@@ -73,67 +70,45 @@ export function StrategyList() {
       return "Unknown";
     }
   };
-
-  return (
-    <Card className="h-full flex flex-col">
+  return <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-xl">Your Strategies</CardTitle>
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <div className="divide-y">
-          {loading ? (
-            Array(6).fill(0).map((_, i) => (
-              <div key={i} className="flex items-center justify-between px-6 py-4">
+          {loading ? Array(6).fill(0).map((_, i) => <div key={i} className="flex items-center justify-between px-6 py-4">
                 <div className="animate-pulse w-2/3 h-6 rounded bg-muted"></div>
                 <div className="animate-pulse w-8 h-8 rounded-full bg-muted"></div>
-              </div>
-            ))
-          ) : error ? (
-            <div className="px-6 py-4 text-center text-destructive">
+              </div>) : error ? <div className="px-6 py-4 text-center text-destructive">
               {error}
               <Button variant="outline" size="sm" className="mt-2 mx-auto block" onClick={() => fetchStrategies()}>
                 Retry
               </Button>
-            </div>
-          ) : filteredStrategies.length > 0 ? (
-            filteredStrategies.map((strategy) => (
-              <Link key={strategy.id} to={`/strategy/${strategy.id}`} className="block hover:bg-muted/50 transition-colors">
+            </div> : filteredStrategies.length > 0 ? filteredStrategies.map(strategy => <Link key={strategy.id} to={`/strategy/${strategy.id}`} className="block hover:bg-muted/50 transition-colors">
                 <div className="flex items-center justify-between px-6 py-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <p className="font-medium">{strategy.name}</p>
                       {/* Show notification status only for PRO users */}
-                      {userIsPro && (
-                        <div className="flex items-center">
-                          {strategy.signalNotificationsEnabled ? (
-                            <Bell className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <BellOff className="h-3 w-3 text-muted-foreground" />
-                          )}
-                        </div>
-                      )}
+                      {userIsPro && <div className="flex items-center">
+                          {strategy.signalNotificationsEnabled ? <Bell className="h-3 w-3 text-green-600" /> : <BellOff className="h-3 w-3 text-muted-foreground" />}
+                        </div>}
                     </div>
                     <div className="flex items-center space-x-3 text-xs text-muted-foreground">
                       <span>{strategy.targetAsset || "Unknown"}</span>
                       <span>•</span>
                       <span>Updated {formatTimeAgo(strategy.updatedAt)}</span>
-                      {!userIsPro && (
-                        <>
+                      {!userIsPro && <>
                           <span>•</span>
                           <span className="text-blue-600">App-only signals</span>
-                        </>
-                      )}
+                        </>}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  
                 </div>
-              </Link>
-            ))
-          ) : (
-            <div className="px-6 py-4 text-center text-muted-foreground">
+              </Link>) : <div className="px-6 py-4 text-center text-muted-foreground">
               No strategies available
-            </div>
-          )}
+            </div>}
         </div>
       </CardContent>
       <CardFooter className="pt-2 pb-6">
@@ -143,6 +118,5 @@ export function StrategyList() {
           </Button>
         </Link>
       </CardFooter>
-    </Card>
-  );
+    </Card>;
 }

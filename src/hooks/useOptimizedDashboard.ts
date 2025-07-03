@@ -64,7 +64,28 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           break;
       }
 
-      // Build the trading signals query without any limits
+      // Get user's strategies first
+      const { data: strategies, error: strategiesError } = await supabase
+        .from('strategies')
+        .select('id, name, target_asset, is_active, updated_at, signal_notifications_enabled')
+        .eq('user_id', user.id);
+
+      if (strategiesError) throw strategiesError;
+      const userStrategies = strategies || [];
+      const userStrategyIds = userStrategies.map(s => s.id);
+
+      // Count ALL trading signals for the user's strategies based on time range
+      let signalCountQuery = supabase
+        .from('trading_signals')
+        .select('id', { count: 'exact', head: true })
+        .in('strategy_id', userStrategyIds.length > 0 ? userStrategyIds : ['']);
+
+      // Only apply date filter if not "all time"
+      if (timeRange !== 'all') {
+        signalCountQuery = signalCountQuery.gte('created_at', startDate.toISOString());
+      }
+
+      // Build the trading signals query for display (limited to recent trades)
       let signalsQuery = supabase
         .from('trading_signals')
         .select(`
@@ -85,14 +106,11 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       }
 
       // Parallel queries for better performance
-      const [strategiesResult, signalsResult, rulesResult] = await Promise.all([
-        // Get strategies with basic info
-        supabase
-          .from('strategies')
-          .select('id, name, target_asset, is_active, updated_at, signal_notifications_enabled')
-          .eq('user_id', user.id),
+      const [signalCountResult, signalsResult, rulesResult] = await Promise.all([
+        // Count all signals for metrics
+        signalCountQuery,
         
-        // Execute the signals query
+        // Get signals for display
         signalsQuery,
         
         // Get ALL trading rules count for all strategies of this user
@@ -108,29 +126,29 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           .eq('rule_groups.strategies.user_id', user.id)
       ]);
 
-      const strategies = strategiesResult.data || [];
+      const totalSignalCount = signalCountResult.count || 0;
       const signals = signalsResult.data || [];
       const rules = rulesResult.data || [];
 
-      console.log(`Total strategies: ${strategies.length}`);
-      console.log(`Total signals fetched: ${signals.length}`);
+      console.log(`Total strategies: ${userStrategies.length}`);
+      console.log(`Total signals count: ${totalSignalCount}`);
+      console.log(`Signals fetched for display: ${signals.length}`);
       console.log(`Total rules: ${rules.length}`);
       console.log(`Time range: ${timeRange}`);
       console.log(`Date filter applied: ${timeRange !== 'all' ? startDate.toISOString() : 'No date filter (all time)'}`);
 
       // Calculate metrics
-      const totalStrategies = strategies.length;
+      const totalStrategies = userStrategies.length;
       
       // Active strategies are those with signal_notifications_enabled = true
-      const activeStrategies = strategies.filter(s => s.signal_notifications_enabled === true).length;
+      const activeStrategies = userStrategies.filter(s => s.signal_notifications_enabled === true).length;
       
-      const totalSignals = signals.length;
       const totalRules = rules.length;
 
       console.log(`Active strategies (with notifications enabled): ${activeStrategies}`);
       console.log(`Total conditions: ${totalRules}`);
 
-      // Format recent trades - includes ALL signals
+      // Format recent trades - includes signals for display
       const recentTrades: DashboardTrade[] = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;
@@ -158,7 +176,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         metrics: {
           strategiesCount: totalStrategies.toString(),
           activeStrategies: activeStrategies.toString(),
-          signalAmount: totalSignals.toString(),
+          signalAmount: totalSignalCount.toString(),
           conditionsCount: totalRules.toString(),
           strategiesChange: { value: "+0", positive: false },
           activeChange: { value: "+0", positive: false },
@@ -166,7 +184,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           conditionsChange: { value: "+0", positive: false }
         },
         recentTrades,
-        strategies: strategies.map(s => ({
+        strategies: userStrategies.map(s => ({
           id: s.id,
           name: s.name,
           targetAsset: s.target_asset,

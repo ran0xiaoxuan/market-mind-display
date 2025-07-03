@@ -97,39 +97,37 @@ export function StrategyList() {
             </div>
           ) : filteredStrategies.length > 0 ? (
             filteredStrategies.map((strategy) => (
-              <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <p className="font-medium">{strategy.name}</p>
-                    {/* Show notification status only for PRO users */}
-                    {userIsPro && (
-                      <div className="flex items-center">
-                        {strategy.signalNotificationsEnabled ? (
-                          <Bell className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <BellOff className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </div>
-                    )}
+              <Link key={strategy.id} to={`/strategy/${strategy.id}`} className="block hover:bg-muted/50 transition-colors">
+                <div className="flex items-center justify-between px-6 py-4">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <p className="font-medium">{strategy.name}</p>
+                      {/* Show notification status only for PRO users */}
+                      {userIsPro && (
+                        <div className="flex items-center">
+                          {strategy.signalNotificationsEnabled ? (
+                            <Bell className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <BellOff className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+                      <span>{strategy.targetAsset || "Unknown"}</span>
+                      <span>•</span>
+                      <span>Updated {formatTimeAgo(strategy.updatedAt)}</span>
+                      {!userIsPro && (
+                        <>
+                          <span>•</span>
+                          <span className="text-blue-600">App-only signals</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3 text-xs text-muted-foreground">
-                    <span>{strategy.targetAsset || "Unknown"}</span>
-                    <span>•</span>
-                    <span>Updated {formatTimeAgo(strategy.updatedAt)}</span>
-                    {!userIsPro && (
-                      <>
-                        <span>•</span>
-                        <span className="text-blue-600">App-only signals</span>
-                      </>
-                    )}
-                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <Link to={`/strategy/${strategy.id}`}>
-                  <Button variant="ghost" size="icon">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
+              </Link>
             ))
           ) : (
             <div className="px-6 py-4 text-center text-muted-foreground">

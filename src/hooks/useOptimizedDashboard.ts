@@ -64,6 +64,26 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           break;
       }
 
+      // Build the trading signals query without any limits
+      let signalsQuery = supabase
+        .from('trading_signals')
+        .select(`
+          id,
+          created_at,
+          signal_type,
+          signal_data,
+          strategy_id,
+          strategies!inner(name, target_asset, user_id)
+        `)
+        .eq('strategies.user_id', user.id)
+        .eq('processed', true)
+        .order('created_at', { ascending: false });
+
+      // Only apply date filter if not "all time"
+      if (timeRange !== 'all') {
+        signalsQuery = signalsQuery.gte('created_at', startDate.toISOString());
+      }
+
       // Parallel queries for better performance
       const [strategiesResult, signalsResult, rulesResult] = await Promise.all([
         // Get strategies with basic info
@@ -72,21 +92,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           .select('id, name, target_asset, is_active, updated_at, signal_notifications_enabled')
           .eq('user_id', user.id),
         
-        // Get ALL trading signals with strategy info - remove any limits to get all 1113 records
-        supabase
-          .from('trading_signals')
-          .select(`
-            id,
-            created_at,
-            signal_type,
-            signal_data,
-            strategy_id,
-            strategies!inner(name, target_asset, user_id)
-          `)
-          .eq('strategies.user_id', user.id)
-          .eq('processed', true)
-          .gte('created_at', startDate.toISOString())
-          .order('created_at', { ascending: false }),
+        // Execute the signals query
+        signalsQuery,
         
         // Get ALL trading rules count for all strategies of this user
         supabase
@@ -108,6 +115,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       console.log(`Total strategies: ${strategies.length}`);
       console.log(`Total signals fetched: ${signals.length}`);
       console.log(`Total rules: ${rules.length}`);
+      console.log(`Time range: ${timeRange}`);
+      console.log(`Date filter applied: ${timeRange !== 'all' ? startDate.toISOString() : 'No date filter (all time)'}`);
 
       // Calculate metrics
       const totalStrategies = strategies.length;

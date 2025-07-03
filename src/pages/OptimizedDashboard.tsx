@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -32,7 +31,8 @@ const OptimizedDashboard = () => {
     }
   };
 
-  const MAX_VISIBLE_TRADES = 5;
+  // Show more trades by default - 50 instead of 5
+  const MAX_VISIBLE_TRADES = 50;
 
   const openTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(true);
@@ -146,14 +146,19 @@ const OptimizedDashboard = () => {
             <div className="space-y-6 lg:col-span-5">
               <Card>
                 <div className="p-6">
-                  <h2 className="text-xl font-bold">Trade History</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">Trade History</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Showing {Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of {recentTrades.length} trades
+                    </p>
+                  </div>
                 </div>
 
                 <div className="px-6 pb-6">
                   <TradeHistoryTable 
                     trades={recentTrades} 
                     maxRows={MAX_VISIBLE_TRADES} 
-                    showViewAllButton={true} 
+                    showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES} 
                     onViewAllClick={openTradeHistoryModal} 
                     enableRowClick={true} 
                   />

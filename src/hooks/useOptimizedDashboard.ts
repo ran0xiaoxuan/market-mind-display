@@ -72,7 +72,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           .select('id, name, target_asset, is_active, updated_at, signal_notifications_enabled')
           .eq('user_id', user.id),
         
-        // Get recent trading signals with strategy info
+        // Get ALL trading signals with strategy info (removed .limit(10))
         supabase
           .from('trading_signals')
           .select(`
@@ -86,8 +86,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           .eq('strategies.user_id', user.id)
           .eq('processed', true)
           .gte('created_at', startDate.toISOString())
-          .order('created_at', { ascending: false })
-          .limit(10),
+          .order('created_at', { ascending: false }),
         
         // Get total rule count
         supabase
@@ -112,7 +111,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       const totalSignals = signals.length;
       const totalRules = rules.length;
 
-      // Format recent trades
+      // Format recent trades - now includes ALL signals, not just first 10
       const recentTrades: DashboardTrade[] = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;

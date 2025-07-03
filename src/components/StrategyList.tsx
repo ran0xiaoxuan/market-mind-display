@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Bell, BellOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { getStrategies, Strategy } from "@/services/strategyService";
@@ -124,16 +124,33 @@ export function StrategyList() {
           ) : filteredStrategies.length > 0 ? (
             filteredStrategies.map((strategy) => (
               <div key={strategy.id} className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <div className="flex items-center">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
                     <p className="font-medium">{strategy.name}</p>
-                    <Badge variant={strategy.isActive ? "default" : "secondary"} className="ml-2">
+                    <Badge variant={strategy.isActive ? "default" : "secondary"}>
                       {strategy.isActive ? "Active" : "Inactive"}
                     </Badge>
+                    {strategy.isActive && (
+                      <div className="flex items-center">
+                        {strategy.signalNotificationsEnabled ? (
+                          <Bell className="h-3 w-3 text-green-600" title="Notifications enabled" />
+                        ) : (
+                          <BellOff className="h-3 w-3 text-muted-foreground" title="Notifications disabled" />
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {strategy.targetAsset || "Unknown"} • Updated {formatTimeAgo(strategy.updatedAt)}
-                  </p>
+                  <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+                    <span>{strategy.targetAsset || "Unknown"}</span>
+                    <span>•</span>
+                    <span>Updated {formatTimeAgo(strategy.updatedAt)}</span>
+                    {strategy.isActive && !strategy.signalNotificationsEnabled && (
+                      <>
+                        <span>•</span>
+                        <span className="text-amber-600">No notifications</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <Link to={`/strategy/${strategy.id}`}>
                   <Button variant="ghost" size="icon">

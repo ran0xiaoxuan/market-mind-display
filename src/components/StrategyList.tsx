@@ -89,9 +89,9 @@ export function StrategyList() {
               </Button>
             </div> : filteredStrategies.length > 0 ? filteredStrategies.map(strategy => <Link key={strategy.id} to={`/strategy/${strategy.id}`} className="block hover:bg-muted/50 transition-colors">
                 <div className="flex items-center justify-between px-6 py-4">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="mb-1">
-                      <p className="font-medium truncate">{strategy.name}</p>
+                      <p className="font-medium truncate pr-2">{strategy.name}</p>
                     </div>
                     <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                       <span>{strategy.targetAsset || "Unknown"}</span>

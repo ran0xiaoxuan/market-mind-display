@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -33,8 +34,7 @@ const StrategyDetail = () => {
   const [strategy, setStrategy] = useState<any>(null);
   const [entryRules, setEntryRules] = useState<RuleGroupData[]>([]);
   const [exitRules, setExitRules] = useState<RuleGroupData[]>([]);
-  const [isActive, setIsActive] = useState(false);
-  const [trades, setTrades] = useState([]);
+  const [trades, setTradesState] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasValidTradingRules, setHasValidTradingRules] = useState(false);
@@ -96,7 +96,6 @@ const StrategyDetail = () => {
       }
       
       setStrategy(strategyData);
-      setIsActive(strategyData.isActive);
       
       console.log("Strategy data fetched:", strategyData);
       
@@ -130,7 +129,7 @@ const StrategyDetail = () => {
       
       if (signalsError) {
         console.error('Error fetching signals:', signalsError);
-        setTrades([]);
+        setTradesState([]);
       } else if (signals && signals.length > 0) {
         console.log(`Found ${signals.length} total signals for strategy ${id} (including unprocessed)`);
         
@@ -185,11 +184,11 @@ const StrategyDetail = () => {
           };
         });
         
-        setTrades(formattedTrades);
+        setTradesState(formattedTrades);
         console.log(`Strategy Detail: Formatted ${formattedTrades.length} trades for display (including unprocessed signals)`);
       } else {
         console.log('No trading signals found for this strategy');
-        setTrades([]);
+        setTradesState([]);
       }
     } catch (err: any) {
       console.error("Error fetching strategy details:", err);
@@ -221,38 +220,6 @@ const StrategyDetail = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [id]);
-  
-  const handleStatusChange = async (checked: boolean) => {
-    if (checked && !hasValidTradingRules) {
-      toast.error("Cannot activate strategy without trading conditions", {
-        description: "Please define entry or exit rules before activating this strategy."
-      });
-      return;
-    }
-    
-    setIsActive(checked);
-    
-    // Update the strategy status in the database
-    try {
-      const { error } = await supabase
-        .from('strategies')
-        .update({ is_active: checked })
-        .eq('id', id);
-      
-      if (error) {
-        console.error("Error updating strategy status:", error);
-        toast.error("Failed to update strategy status");
-        setIsActive(!checked);
-        return;
-      }
-      
-      toast.success(`Strategy ${checked ? 'activated' : 'deactivated'} successfully`);
-    } catch (err) {
-      console.error("Error in handleStatusChange:", err);
-      toast.error("An error occurred while updating strategy status");
-      setIsActive(!checked);
-    }
-  };
 
   const handleCleanupInvalidData = async () => {
     try {
@@ -371,8 +338,6 @@ const StrategyDetail = () => {
               dailySignalLimit: strategy?.dailySignalLimit,
               signalNotificationsEnabled: strategy?.signalNotificationsEnabled
             }} 
-            isActive={isActive} 
-            onStatusChange={handleStatusChange} 
           />
           
           <TradingRules 

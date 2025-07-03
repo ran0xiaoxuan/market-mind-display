@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -102,15 +103,15 @@ export function StrategyList() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <p className="font-medium">{strategy.name}</p>
-                      {/* Show notification status only for PRO users */}
+                      {/* Show notification status only for PRO users, positioned after strategy name */}
                       {userIsPro && (
-                        <div className="flex items-center">
+                        <>
                           {strategy.signalNotificationsEnabled ? (
                             <Bell className="h-3 w-3 text-green-600" />
                           ) : (
                             <BellOff className="h-3 w-3 text-muted-foreground" />
                           )}
-                        </div>
+                        </>
                       )}
                     </div>
                     <div className="flex items-center space-x-3 text-xs text-muted-foreground">

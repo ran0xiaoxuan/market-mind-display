@@ -31,8 +31,8 @@ const OptimizedDashboard = () => {
     }
   };
 
-  // Show more trades by default - 50 instead of 5
-  const MAX_VISIBLE_TRADES = 50;
+  // Show only 10 lines of data at most in the card
+  const MAX_VISIBLE_TRADES = 10;
 
   const openTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(true);

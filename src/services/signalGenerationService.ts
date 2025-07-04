@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface TradingSignal {
@@ -22,7 +21,7 @@ export interface TradingSignal {
   processed: boolean;
 }
 
-// Enhanced market hours validation
+// Enhanced market hours validation with stricter checking
 const isMarketHours = (timeframe: string): boolean => {
   const now = new Date();
   const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
@@ -30,24 +29,48 @@ const isMarketHours = (timeframe: string): boolean => {
   const hour = easternTime.getHours();
   const minute = easternTime.getMinutes();
   
-  // Skip weekends
+  // Skip weekends - absolutely no signals on weekends
   if (dayOfWeek === 0 || dayOfWeek === 6) {
-    console.log(`[Market Hours] Weekend detected, market closed`);
+    console.log(`[Market Hours] Weekend detected (day ${dayOfWeek}), market closed - NO SIGNALS`);
     return false;
   }
   
-  // Enhanced validation based on timeframe
+  // Market holidays check (simplified - could be enhanced with holiday API)
+  // For now, just ensure it's a regular weekday
+  
+  // Enhanced validation based on timeframe with stricter rules
   if (timeframe === 'Daily' || timeframe === '1d') {
-    // Daily strategies: only between 4:00-4:05 PM ET
+    // Daily strategies: only between 4:00-4:05 PM ET (market close window)
     const isCloseWindow = hour === 16 && minute >= 0 && minute <= 5;
     console.log(`[Market Hours] Daily strategy - Hour: ${hour}, Minute: ${minute}, Close window: ${isCloseWindow}`);
     return isCloseWindow;
   } else {
-    // Intraday strategies: regular market hours 9:30 AM - 4:00 PM ET
+    // Intraday strategies: strict market hours 9:30 AM - 4:00 PM ET only
     const isRegularHours = (hour === 9 && minute >= 30) || (hour >= 10 && hour < 16);
     console.log(`[Market Hours] Intraday strategy - Hour: ${hour}, Minute: ${minute}, Regular hours: ${isRegularHours}`);
     return isRegularHours;
   }
+};
+
+// Add additional market validation function
+const isStrictMarketOpen = (): boolean => {
+  const now = new Date();
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const dayOfWeek = easternTime.getDay();
+  const hour = easternTime.getHours();
+  const minute = easternTime.getMinutes();
+  
+  // Absolutely no signals on weekends
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return false;
+  }
+  
+  // Only during strict market hours: 9:30 AM - 4:00 PM ET
+  const timeInMinutes = hour * 60 + minute;
+  const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM
+  const marketCloseMinutes = 16 * 60; // 4:00 PM
+  
+  return timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
 };
 
 // Validate signal conditions before generation
@@ -393,6 +416,12 @@ export const evaluateStrategy = async (strategyId: string) => {
   console.log(`[SignalGen] Evaluating strategy ${strategyId} for signal generation`);
   
   try {
+    // STRICT MARKET HOURS CHECK - Absolutely no signals during market close
+    if (!isStrictMarketOpen()) {
+      console.log(`[SignalGen] Market is CLOSED - NO SIGNAL GENERATION ALLOWED`);
+      return;
+    }
+
     // Get strategy details
     const { data: strategy, error: strategyError } = await supabase
       .from('strategies')
@@ -407,9 +436,19 @@ export const evaluateStrategy = async (strategyId: string) => {
 
     console.log(`[SignalGen] Strategy found: ${strategy.name} for ${strategy.target_asset}, timeframe: ${strategy.timeframe}`);
 
-    // Enhanced market hours validation
+    // Double-check market hours validation with timeframe consideration
     if (!isMarketHours(strategy.timeframe)) {
       console.log(`[SignalGen] Market is closed for ${strategy.timeframe} timeframe, skipping evaluation`);
+      return;
+    }
+
+    // Additional safety check - ensure we're not running after market close
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const currentHour = easternTime.getHours();
+    
+    if (currentHour >= 16) {
+      console.log(`[SignalGen] After market close (${currentHour}:xx ET) - NO SIGNALS ALLOWED`);
       return;
     }
 
@@ -476,6 +515,12 @@ export const evaluateStrategy = async (strategyId: string) => {
 
     const currentPrice = priceData.price;
 
+    // FINAL MARKET HOURS CHECK before generating any signals
+    if (!isStrictMarketOpen()) {
+      console.log(`[SignalGen] Final check: Market is CLOSED - Aborting signal generation`);
+      return;
+    }
+
     // Evaluate entry and exit rules
     const entryRules = ruleGroups.filter(group => group.rule_type === 'entry');
     const exitRules = ruleGroups.filter(group => group.rule_type === 'exit');
@@ -491,9 +536,15 @@ export const evaluateStrategy = async (strategyId: string) => {
         return;
       }
 
-      const entryReason = `Entry signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, CCI: ${indicators.cci?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      // One more market check before generating signal
+      if (!isStrictMarketOpen()) {
+        console.log(`[SignalGen] Market closed during processing - Aborting entry signal`);
+        return;
+      }
+
+      const entryReason = `Entry signal (market open) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, CCI: ${indicators.cci?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
       
-      console.log(`[SignalGen] Generating validated entry signal: ${entryReason}`);
+      console.log(`[SignalGen] Generating validated entry signal during market hours: ${entryReason}`);
       
       await generateTradingSignal(strategyId, 'entry', {
         reason: entryReason,
@@ -517,9 +568,15 @@ export const evaluateStrategy = async (strategyId: string) => {
         return;
       }
 
-      const exitReason = `Exit signal (real market data) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, CCI: ${indicators.cci?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
+      // One more market check before generating signal
+      if (!isStrictMarketOpen()) {
+        console.log(`[SignalGen] Market closed during processing - Aborting exit signal`);
+        return;
+      }
+
+      const exitReason = `Exit signal (market open) - RSI: ${indicators.rsi?.toFixed(2) || 'N/A'}, CCI: ${indicators.cci?.toFixed(2) || 'N/A'}, Price: $${currentPrice.toFixed(2)}`;
       
-      console.log(`[SignalGen] Generating validated exit signal: ${exitReason}`);
+      console.log(`[SignalGen] Generating validated exit signal during market hours: ${exitReason}`);
       
       await generateTradingSignal(strategyId, 'exit', {
         reason: exitReason,
@@ -698,6 +755,12 @@ const generateTradingSignal = async (
   signalData: any
 ) => {
   try {
+    // ABSOLUTELY FINAL CHECK - Do not generate signals if market is closed
+    if (!isStrictMarketOpen()) {
+      console.log(`[SignalGen] BLOCKED: Attempted to generate ${signalType} signal after market close - REJECTED`);
+      return;
+    }
+
     // Calculate profit for exit signals
     if (signalType === 'exit') {
       const profitData = await calculateExitProfit(strategyId, signalData.price);
@@ -706,6 +769,10 @@ const generateTradingSignal = async (
         signalData.profitPercentage = profitData.profitPercentage;
       }
     }
+
+    // Add market hours confirmation to signal data
+    signalData.marketHoursConfirmed = true;
+    signalData.generatedDuringMarketHours = isStrictMarketOpen();
 
     // Generate and store the signal
     const { data: signal, error } = await supabase
@@ -725,7 +792,7 @@ const generateTradingSignal = async (
       return;
     }
 
-    console.log(`[SignalGen] Generated ${signalType} signal for strategy ${strategyId} at ${signalData.timestamp}`);
+    console.log(`[SignalGen] Generated ${signalType} signal for strategy ${strategyId} during market hours at ${signalData.timestamp}`);
 
     // Send notifications
     await sendNotificationsForSignal(strategyId, signalType, signalData);

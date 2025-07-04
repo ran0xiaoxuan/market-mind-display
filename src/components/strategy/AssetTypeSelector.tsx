@@ -1,13 +1,13 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Search, RefreshCw } from "lucide-react";
+import { Loader2, Search, RefreshCw, Clock } from "lucide-react";
 import { debounce } from "lodash";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getFmpApiKey, searchStocks, validateFmpApiKey, Asset } from "@/services/assetApiService";
+import { isMarketOpen, getNextMarketOpen } from "@/services/signalMonitoringService";
 
 interface AssetTypeSelectorProps {
   selectedAsset: string;
@@ -28,6 +28,33 @@ export const AssetTypeSelector = ({
   const [isConnecting, setIsConnecting] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>('connecting');
   const [hasShownConnectionToast, setHasShownConnectionToast] = useState(false);
+  
+  // Market status state
+  const [marketOpen, setMarketOpen] = useState<boolean>(false);
+  const [nextMarketOpen, setNextMarketOpen] = useState<Date | null>(null);
+
+  // Update market status
+  const updateMarketStatus = useCallback(() => {
+    const isOpen = isMarketOpen();
+    setMarketOpen(isOpen);
+    
+    if (!isOpen) {
+      const nextOpen = getNextMarketOpen();
+      setNextMarketOpen(nextOpen);
+    } else {
+      setNextMarketOpen(null);
+    }
+  }, []);
+
+  // Initialize market status and set up periodic updates
+  useEffect(() => {
+    updateMarketStatus();
+    
+    // Update market status every minute
+    const interval = setInterval(updateMarketStatus, 60000);
+    
+    return () => clearInterval(interval);
+  }, [updateMarketStatus]);
 
   // Single connection attempt with better error handling
   useEffect(() => {
@@ -189,24 +216,63 @@ export const AssetTypeSelector = ({
     setIsSearchOpen(false);
   };
 
+  const formatNextMarketOpen = (date: Date) => {
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const isTomorrow = date.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
+    
+    let dayText = '';
+    if (isToday) dayText = 'Today';
+    else if (isTomorrow) dayText = 'Tomorrow';
+    else dayText = date.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    const timeText = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      timeZoneName: 'short',
+      timeZone: 'America/New_York'
+    });
+    
+    return `${dayText} at ${timeText}`;
+  };
+
   return (
     <Card className="p-6 mb-10 border">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">Target Asset</h2>
         
-        {isConnecting && (
+        <div className="flex items-center gap-4">
+          {/* Market Status */}
           <div className="flex items-center gap-1 text-xs">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span className="text-muted-foreground">Connecting to market data...</span>
+            <div className={`h-2 w-2 rounded-full ${marketOpen ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-muted-foreground">
+              {marketOpen ? 'US Market Open' : 'US Market Closed'}
+            </span>
+            {!marketOpen && nextMarketOpen && (
+              <div className="flex items-center gap-1 ml-2">
+                <Clock className="h-3 w-3" />
+                <span className="text-muted-foreground">
+                  Opens {formatNextMarketOpen(nextMarketOpen)}
+                </span>
+              </div>
+            )}
           </div>
-        )}
 
-        {connectionStatus === 'connected' && (
-          <div className="flex items-center gap-1 text-xs">
-            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-            <span className="text-muted-foreground">Market data connected</span>
-          </div>
-        )}
+          {/* API Connection Status */}
+          {isConnecting && (
+            <div className="flex items-center gap-1 text-xs">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="text-muted-foreground">Connecting to market data...</span>
+            </div>
+          )}
+
+          {connectionStatus === 'connected' && (
+            <div className="flex items-center gap-1 text-xs">
+              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+              <span className="text-muted-foreground">Market data connected</span>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="mb-6 relative">

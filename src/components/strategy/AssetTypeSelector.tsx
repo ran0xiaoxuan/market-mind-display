@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,11 +8,20 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getFmpApiKey, searchStocks, validateFmpApiKey, Asset } from "@/services/assetApiService";
-import { isMarketOpen, getNextMarketOpen } from "@/services/signalMonitoringService";
 
 interface AssetTypeSelectorProps {
   selectedAsset: string;
   onAssetSelect: (symbol: string) => void;
+}
+
+interface MarketStatus {
+  isOpen: boolean;
+  nextOpen?: string;
+  marketHours?: {
+    open: string;
+    close: string;
+  };
+  lastUpdated: string;
 }
 
 export const AssetTypeSelector = ({
@@ -30,31 +40,146 @@ export const AssetTypeSelector = ({
   const [hasShownConnectionToast, setHasShownConnectionToast] = useState(false);
   
   // Market status state
-  const [marketOpen, setMarketOpen] = useState<boolean>(false);
-  const [nextMarketOpen, setNextMarketOpen] = useState<Date | null>(null);
+  const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
+  const [isMarketStatusLoading, setIsMarketStatusLoading] = useState(false);
 
-  // Update market status
-  const updateMarketStatus = useCallback(() => {
-    const isOpen = isMarketOpen();
-    setMarketOpen(isOpen);
-    
-    if (!isOpen) {
-      const nextOpen = getNextMarketOpen();
-      setNextMarketOpen(nextOpen);
-    } else {
-      setNextMarketOpen(null);
+  // Fetch real-time market status from FMP API
+  const fetchMarketStatus = useCallback(async () => {
+    if (!apiKey || connectionStatus !== 'connected') return;
+
+    setIsMarketStatusLoading(true);
+    try {
+      console.log("Fetching real-time market status from FMP API...");
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      try {
+        const response = await fetch(
+          `https://financialmodelingprep.com/api/v3/market-hours?apikey=${apiKey}`,
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TradingApp/1.0'
+            },
+            signal: controller.signal
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Market status API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Market status data:", data);
+        
+        if (data && typeof data === 'object') {
+          const now = new Date();
+          const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          const dayOfWeek = estTime.getDay();
+          const hour = estTime.getHours();
+          const minute = estTime.getMinutes();
+          
+          // Check if it's a weekday and within market hours (9:30 AM - 4:00 PM ET)
+          const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+          const timeInMinutes = hour * 60 + minute;
+          const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM
+          const marketCloseMinutes = 16 * 60; // 4:00 PM
+          const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
+          
+          const isOpen = isWeekday && isMarketHours;
+          
+          // Calculate next market open
+          let nextOpen = '';
+          if (!isOpen) {
+            const nextMarketDay = new Date(estTime);
+            if (!isWeekday || timeInMinutes >= marketCloseMinutes) {
+              // Move to next weekday
+              do {
+                nextMarketDay.setDate(nextMarketDay.getDate() + 1);
+              } while (nextMarketDay.getDay() === 0 || nextMarketDay.getDay() === 6);
+            }
+            nextMarketDay.setHours(9, 30, 0, 0);
+            
+            const isToday = nextMarketDay.toDateString() === estTime.toDateString();
+            const isTomorrow = nextMarketDay.toDateString() === new Date(estTime.getTime() + 24 * 60 * 60 * 1000).toDateString();
+            
+            let dayText = '';
+            if (isToday) dayText = 'Today';
+            else if (isTomorrow) dayText = 'Tomorrow';
+            else dayText = nextMarketDay.toLocaleDateString('en-US', { weekday: 'long' });
+            
+            const timeText = nextMarketDay.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              timeZoneName: 'short',
+              timeZone: 'America/New_York'
+            });
+            
+            nextOpen = `${dayText} at ${timeText}`;
+          }
+          
+          setMarketStatus({
+            isOpen,
+            nextOpen: isOpen ? undefined : nextOpen,
+            marketHours: {
+              open: '9:30 AM ET',
+              close: '4:00 PM ET'
+            },
+            lastUpdated: new Date().toISOString()
+          });
+          
+          console.log(`Market status updated - Open: ${isOpen}, Next Open: ${nextOpen}`);
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Market status request timeout');
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error fetching market status:", error);
+      // Fallback to client-side calculation if API fails
+      const now = new Date();
+      const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const dayOfWeek = estTime.getDay();
+      const hour = estTime.getHours();
+      const minute = estTime.getMinutes();
+      
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+      const timeInMinutes = hour * 60 + minute;
+      const marketOpenMinutes = 9 * 60 + 30;
+      const marketCloseMinutes = 16 * 60;
+      const isOpen = isWeekday && timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
+      
+      setMarketStatus({
+        isOpen,
+        marketHours: {
+          open: '9:30 AM ET',
+          close: '4:00 PM ET'
+        },
+        lastUpdated: new Date().toISOString()
+      });
+    } finally {
+      setIsMarketStatusLoading(false);
     }
-  }, []);
+  }, [apiKey, connectionStatus]);
 
   // Initialize market status and set up periodic updates
   useEffect(() => {
-    updateMarketStatus();
-    
-    // Update market status every minute
-    const interval = setInterval(updateMarketStatus, 60000);
-    
-    return () => clearInterval(interval);
-  }, [updateMarketStatus]);
+    if (connectionStatus === 'connected' && apiKey) {
+      fetchMarketStatus();
+      
+      // Update market status every 2 minutes
+      const interval = setInterval(fetchMarketStatus, 120000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [fetchMarketStatus, connectionStatus, apiKey]);
 
   // Single connection attempt with better error handling
   useEffect(() => {
@@ -216,47 +341,38 @@ export const AssetTypeSelector = ({
     setIsSearchOpen(false);
   };
 
-  const formatNextMarketOpen = (date: Date) => {
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const isTomorrow = date.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
-    
-    let dayText = '';
-    if (isToday) dayText = 'Today';
-    else if (isTomorrow) dayText = 'Tomorrow';
-    else dayText = date.toLocaleDateString('en-US', { weekday: 'long' });
-    
-    const timeText = date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      timeZoneName: 'short',
-      timeZone: 'America/New_York'
-    });
-    
-    return `${dayText} at ${timeText}`;
-  };
-
   return (
     <Card className="p-6 mb-10 border">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">Target Asset</h2>
         
         <div className="flex items-center gap-4">
-          {/* Market Status */}
-          <div className="flex items-center gap-1 text-xs">
-            <div className={`h-2 w-2 rounded-full ${marketOpen ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-muted-foreground">
-              {marketOpen ? 'US Market Open' : 'US Market Closed'}
-            </span>
-            {!marketOpen && nextMarketOpen && (
-              <div className="flex items-center gap-1 ml-2">
-                <Clock className="h-3 w-3" />
-                <span className="text-muted-foreground">
-                  Opens {formatNextMarketOpen(nextMarketOpen)}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Market Status - Real-time from API */}
+          {marketStatus && (
+            <div className="flex items-center gap-1 text-xs">
+              {isMarketStatusLoading ? (
+                <>
+                  <Loader2 className="h-2 w-2 animate-spin" />
+                  <span className="text-muted-foreground">Checking market...</span>
+                </>
+              ) : (
+                <>
+                  <div className={`h-2 w-2 rounded-full ${marketStatus.isOpen ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className="text-muted-foreground">
+                    {marketStatus.isOpen ? 'US Market Open' : 'US Market Closed'}
+                  </span>
+                  {!marketStatus.isOpen && marketStatus.nextOpen && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <Clock className="h-3 w-3" />
+                      <span className="text-muted-foreground">
+                        Opens {marketStatus.nextOpen}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* API Connection Status */}
           {isConnecting && (

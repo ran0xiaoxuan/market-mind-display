@@ -15,9 +15,10 @@ export function TestSignalGenerator() {
   const [signalType, setSignalType] = useState<'entry' | 'exit'>('entry');
   const [price, setPrice] = useState<string>("100");
 
-  const { data: strategies = [], isLoading } = useQuery({
+  const { data: strategies = [], isLoading, error } = useQuery({
     queryKey: ['test-strategies'],
-    queryFn: getTestStrategies
+    queryFn: getTestStrategies,
+    retry: 1
   });
 
   const handleGenerateSignal = async () => {
@@ -32,30 +33,87 @@ export function TestSignalGenerator() {
       return;
     }
 
+    const priceValue = parseFloat(price);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      toast.error("Please enter a valid price");
+      return;
+    }
+
     setIsGenerating(true);
     try {
+      console.log('Starting test signal generation...');
+      
       const testData: TestSignalData = {
         strategyId: strategy.id,
         strategyName: strategy.name,
         targetAsset: strategy.target_asset || 'AAPL',
-        price: parseFloat(price) || 100,
+        price: priceValue,
         signalType: signalType,
         ...(signalType === 'exit' && { profitPercentage: Math.random() * 10 - 5 }) // Random P&L for exit signals
       };
 
-      const signal = await generateTestSignal(testData);
-      toast.success(`Test ${signalType} signal generated successfully! Check your Discord/Telegram for the notification.`);
-      console.log('Generated signal:', signal);
+      console.log('Test data prepared:', testData);
+
+      const result = await generateTestSignal(testData);
+      
+      console.log('Test signal generated successfully:', result);
+      
+      toast.success(
+        `Test ${signalType} signal generated successfully! ` +
+        `Check your Discord/Telegram/Email for the notification.`,
+        { duration: 5000 }
+      );
     } catch (error) {
       console.error('Error generating test signal:', error);
-      toast.error("Failed to generate test signal: " + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to generate test signal: ${errorMessage}`, { duration: 5000 });
     } finally {
       setIsGenerating(false);
     }
   };
 
+  if (error) {
+    console.error('Error loading strategies:', error);
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>🧪 Test Signal Generator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-600">
+            Error loading strategies. Please refresh the page and try again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
-    return <div>Loading strategies...</div>;
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>🧪 Test Signal Generator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Loading strategies...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (strategies.length === 0) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>🧪 Test Signal Generator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No active strategies found. Please create a strategy first to test notifications.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -99,6 +157,7 @@ export function TestSignalGenerator() {
             id="price"
             type="number"
             step="0.01"
+            min="0.01"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             placeholder="100.00"
@@ -114,7 +173,7 @@ export function TestSignalGenerator() {
         </Button>
 
         <p className="text-sm text-muted-foreground">
-          This will create a test trading signal and send notifications to your verified Discord/Telegram channels.
+          This will create a test trading signal and send notifications to your verified Discord/Telegram channels and email.
         </p>
       </CardContent>
     </Card>

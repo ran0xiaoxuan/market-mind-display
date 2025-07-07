@@ -16,12 +16,38 @@ export const generateTestSignal = async (testData: TestSignalData) => {
     console.log('Generating test signal:', testData);
 
     // Get current user
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('Auth error:', userError);
+      throw new Error('Authentication failed: ' + userError.message);
+    }
+    
     if (!user.user) {
       throw new Error('User not authenticated');
     }
 
-    // Create a test trading signal in the database
+    console.log('Current user:', user.user.id);
+
+    // Verify user owns the strategy
+    const { data: strategy, error: strategyError } = await supabase
+      .from('strategies')
+      .select('id, name, target_asset, target_asset_name, user_id')
+      .eq('id', testData.strategyId)
+      .eq('user_id', user.user.id)
+      .single();
+
+    if (strategyError) {
+      console.error('Strategy verification error:', strategyError);
+      throw new Error('Failed to verify strategy ownership: ' + strategyError.message);
+    }
+
+    if (!strategy) {
+      throw new Error('Strategy not found or you do not own this strategy');
+    }
+
+    console.log('Strategy verified:', strategy);
+
+    // Create signal data that matches what the notification functions expect
     const signalData = {
       strategyId: testData.strategyId,
       strategyName: testData.strategyName,
@@ -32,7 +58,10 @@ export const generateTestSignal = async (testData: TestSignalData) => {
       ...(testData.profitPercentage && { profitPercentage: testData.profitPercentage })
     };
 
-    const { data: signal, error } = await supabase
+    console.log('Creating signal with data:', signalData);
+
+    // Create the trading signal record
+    const { data: signal, error: signalError } = await supabase
       .from('trading_signals')
       .insert({
         strategy_id: testData.strategyId,
@@ -43,49 +72,67 @@ export const generateTestSignal = async (testData: TestSignalData) => {
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating test signal:', error);
-      throw error;
+    if (signalError) {
+      console.error('Error creating trading signal:', signalError);
+      throw new Error('Failed to create signal: ' + signalError.message);
     }
 
-    console.log('Test signal created:', signal);
+    console.log('Trading signal created successfully:', signal);
 
     // Send notifications for this signal
-    await sendNotificationForSignal(
+    console.log('Sending notifications for signal:', signal.id);
+    const notificationResults = await sendNotificationForSignal(
       signal.id,
       user.user.id,
       signalData,
       testData.signalType
     );
 
+    console.log('Notification results:', notificationResults);
+
     // Mark signal as processed
-    await supabase
+    const { error: updateError } = await supabase
       .from('trading_signals')
       .update({ processed: true })
       .eq('id', signal.id);
 
-    return signal;
+    if (updateError) {
+      console.warn('Warning: Failed to mark signal as processed:', updateError);
+    }
+
+    return {
+      signal,
+      notificationResults
+    };
   } catch (error) {
-    console.error('Error generating test signal:', error);
+    console.error('Error in generateTestSignal:', error);
     throw error;
   }
 };
 
 export const getTestStrategies = async () => {
   try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) {
+      throw new Error('User not authenticated');
+    }
+
     const { data: strategies, error } = await supabase
       .from('strategies')
       .select('id, name, target_asset, target_asset_name')
+      .eq('user_id', user.user.id)
       .eq('is_active', true)
-      .limit(5);
+      .limit(10);
 
     if (error) {
+      console.error('Error fetching strategies:', error);
       throw error;
     }
 
+    console.log('Fetched strategies for test:', strategies);
     return strategies || [];
   } catch (error) {
-    console.error('Error fetching test strategies:', error);
+    console.error('Error in getTestStrategies:', error);
     throw error;
   }
 };

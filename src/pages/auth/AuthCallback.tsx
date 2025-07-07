@@ -11,8 +11,8 @@ export default function AuthCallback() {
   useEffect(() => {
     if (!isLoading) {
       if (session) {
-        // User is authenticated, redirect to dashboard
-        navigate('/dashboard', { replace: true });
+        // User is authenticated, redirect to home which will redirect to dashboard
+        navigate('/', { replace: true });
       } else {
         // Authentication failed, redirect to login
         navigate('/login', { replace: true });

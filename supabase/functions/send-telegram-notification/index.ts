@@ -30,6 +30,16 @@ serve(async (req) => {
 
     console.log('Processing Telegram notification for signal type:', signalType)
     console.log('Signal data:', signalData)
+    console.log('Bot token (first 10 chars):', botToken?.substring(0, 10))
+    console.log('Chat ID:', chatId)
+
+    // Validate required parameters
+    if (!botToken) {
+      throw new Error('Bot token is required');
+    }
+    if (!chatId) {
+      throw new Error('Chat ID is required');
+    }
 
     // Get strategy details to include timeframe
     let timeframe = 'Unknown';
@@ -57,43 +67,54 @@ serve(async (req) => {
       timeZoneName: 'short'
     });
 
-    // Create Telegram message with improved formatting
-    const telegramMessage = `
-🚨 *StratAIge Trading Signal*
+    // Create Telegram message with proper escaping for Markdown
+    let telegramMessage = `🚨 *StratAIge Trading Signal*
 
 📊 *Signal Type:* ${signalType.toUpperCase()}
-📈 *Strategy:* ${signalData.strategyName || 'Trading Strategy'}
-💰 *Asset:* ${signalData.targetAsset || signalData.asset || 'Unknown'}
+📈 *Strategy:* ${(signalData.strategyName || 'Trading Strategy').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&')}
+💰 *Asset:* ${(signalData.targetAsset || signalData.asset || 'Unknown').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&')}
 💵 *Price:* $${signalData.price || 'N/A'}
 ⏰ *Timeframe:* ${timeframe}
-🕐 *Time:* ${timeString}
+🕐 *Time:* ${timeString}`;
 
-${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%` : ''}
-    `.trim()
+    if (signalData.profitPercentage) {
+      telegramMessage += `\n💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%`;
+    }
 
     console.log('Sending Telegram message:', telegramMessage);
 
-    // Send to Telegram Bot API
-    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`
+    // Send to Telegram Bot API with proper error handling
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    
+    const telegramPayload = {
+      chat_id: chatId,
+      text: telegramMessage,
+      parse_mode: 'MarkdownV2'
+    };
+
+    console.log('Telegram API payload:', JSON.stringify(telegramPayload, null, 2));
+
     const telegramResponse = await fetch(telegramUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: telegramMessage,
-        parse_mode: 'Markdown'
-      })
-    })
+      body: JSON.stringify(telegramPayload)
+    });
 
-    const telegramResult = await telegramResponse.json()
-    const status = telegramResponse.ok ? 'sent' : 'failed'
+    const telegramResult = await telegramResponse.json();
+    console.log('Telegram API response:', telegramResult);
+
+    let status = 'failed';
     let errorMessage = null;
 
-    if (!telegramResponse.ok) {
-      errorMessage = `Telegram API error: ${telegramResult.description || 'Unknown error'}`;
+    if (telegramResponse.ok && telegramResult.ok) {
+      status = 'sent';
+      console.log('Telegram message sent successfully');
+    } else {
+      errorMessage = `Telegram API error: ${telegramResult.description || telegramResult.error_code || 'Unknown error'}`;
       console.error('Telegram API error:', errorMessage);
+      console.error('Full error response:', telegramResult);
     }
 
     // Log the notification attempt
@@ -105,34 +126,39 @@ ${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFix
         notification_type: 'telegram',
         status: status,
         error_message: errorMessage
-      })
+      });
 
     if (logError) {
-      console.error('Error logging Telegram notification:', logError)
+      console.error('Error logging Telegram notification:', logError);
     }
 
-    if (!telegramResponse.ok) {
-      throw new Error(errorMessage)
+    if (status === 'failed') {
+      throw new Error(errorMessage || 'Failed to send Telegram message');
     }
-
-    console.log('Telegram notification sent successfully')
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Telegram notification sent successfully' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Telegram notification sent successfully',
+        telegramResponse: telegramResult 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
-    )
+    );
 
   } catch (error) {
-    console.error('Error sending Telegram notification:', error)
+    console.error('Error sending Telegram notification:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Unknown error occurred',
+        details: error.toString()
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
       }
-    )
+    );
   }
-})
+});

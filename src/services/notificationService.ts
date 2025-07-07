@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationRateLimiter } from "@/components/RateLimiter";
 
@@ -139,11 +140,12 @@ export const createTradingSignal = async (strategyId: string, signalType: string
   return data;
 };
 
-// Enhanced notification sending with rate limiting and better error handling
+// Enhanced notification sending with better error handling and logging
 export const sendNotificationWithRateLimit = async (
   userId: string,
   notificationType: 'email' | 'discord' | 'telegram',
-  signalId: string,
+  signalData: any,
+  signalType: string,
   ...args: any[]
 ) => {
   const rateLimiter = NotificationRateLimiter.getInstance();
@@ -155,6 +157,9 @@ export const sendNotificationWithRateLimit = async (
     throw new Error(`Rate limit exceeded for ${notificationType}. Try again in ${minutesUntilReset} minutes.`);
   }
 
+  console.log(`Sending ${notificationType} notification for signal type: ${signalType}`);
+  console.log('Signal data:', signalData);
+
   try {
     let result;
     
@@ -162,22 +167,37 @@ export const sendNotificationWithRateLimit = async (
     switch (notificationType) {
       case 'email':
         result = await supabase.functions.invoke('send-email-notification', {
-          body: { signalId, userEmail: args[0], signalData: args[1], signalType: args[2] }
+          body: { 
+            userEmail: args[0], 
+            signalData: signalData, 
+            signalType: signalType 
+          }
         });
         break;
       case 'discord':
         result = await supabase.functions.invoke('send-discord-notification', {
-          body: { signalId, webhookUrl: args[0], signalData: args[1], signalType: args[2] }
+          body: { 
+            webhookUrl: args[0], 
+            signalData: signalData, 
+            signalType: signalType 
+          }
         });
         break;
       case 'telegram':
         result = await supabase.functions.invoke('send-telegram-notification', {
-          body: { signalId, botToken: args[0], chatId: args[1], signalData: args[2], signalType: args[3] }
+          body: { 
+            botToken: args[0], 
+            chatId: args[1], 
+            signalData: signalData, 
+            signalType: signalType 
+          }
         });
         break;
       default:
         throw new Error(`Unknown notification type: ${notificationType}`);
     }
+
+    console.log(`${notificationType} notification result:`, result);
 
     if (result.error) {
       throw new Error(result.error.message || `Failed to send ${notificationType} notification`);
@@ -195,7 +215,7 @@ export const sendNotificationWithRateLimit = async (
         .from('notification_logs')
         .insert({
           user_id: userId,
-          signal_id: signalId,
+          signal_id: signalData.signalId || `${notificationType}-${Date.now()}`,
           notification_type: notificationType,
           status: 'failed',
           error_message: error.message
@@ -204,6 +224,140 @@ export const sendNotificationWithRateLimit = async (
       console.error('Error logging notification failure:', logError);
     }
     
+    throw error;
+  }
+};
+
+// Enhanced signal processing with notification sending
+export const processSignalAndNotify = async (strategyId: string, signalType: string, signalData: any) => {
+  try {
+    console.log('Processing signal and sending notifications:', { strategyId, signalType, signalData });
+
+    // Get user ID from strategy
+    const { data: strategy } = await supabase
+      .from('strategies')
+      .select('user_id, name, target_asset, signal_notifications_enabled')
+      .eq('id', strategyId)
+      .single();
+
+    if (!strategy) {
+      throw new Error('Strategy not found');
+    }
+
+    if (!strategy.signal_notifications_enabled) {
+      console.log('Signal notifications disabled for strategy:', strategyId);
+      return;
+    }
+
+    const userId = strategy.user_id;
+
+    // Get user's notification settings
+    const { data: notificationSettings } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!notificationSettings) {
+      console.log('No notification settings found for user:', userId);
+      return;
+    }
+
+    // Check if this signal type should be sent
+    const shouldSendEntry = signalType === 'entry' && notificationSettings.entry_signals;
+    const shouldSendExit = signalType === 'exit' && notificationSettings.exit_signals;
+    
+    if (!shouldSendEntry && !shouldSendExit) {
+      console.log(`Signal type ${signalType} notifications disabled for user:`, userId);
+      return;
+    }
+
+    // Enhance signal data with strategy info
+    const enhancedSignalData = {
+      ...signalData,
+      userId: userId,
+      strategyId: strategyId,
+      strategyName: strategy.name,
+      targetAsset: strategy.target_asset,
+      signalId: `signal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+
+    console.log('Enhanced signal data:', enhancedSignalData);
+
+    // Send notifications based on user preferences
+    const promises = [];
+
+    if (notificationSettings.discord_enabled && notificationSettings.discord_webhook_url) {
+      console.log('Sending Discord notification...');
+      promises.push(
+        sendNotificationWithRateLimit(
+          userId,
+          'discord',
+          enhancedSignalData,
+          signalType,
+          notificationSettings.discord_webhook_url
+        ).catch(error => {
+          console.error('Discord notification failed:', error);
+          return { type: 'discord', error: error.message };
+        })
+      );
+    }
+
+    if (notificationSettings.telegram_enabled && notificationSettings.telegram_bot_token && notificationSettings.telegram_chat_id) {
+      console.log('Sending Telegram notification...');
+      promises.push(
+        sendNotificationWithRateLimit(
+          userId,
+          'telegram',
+          enhancedSignalData,
+          signalType,
+          notificationSettings.telegram_bot_token,
+          notificationSettings.telegram_chat_id
+        ).catch(error => {
+          console.error('Telegram notification failed:', error);
+          return { type: 'telegram', error: error.message };
+        })
+      );
+    }
+
+    if (notificationSettings.email_enabled) {
+      console.log('Sending Email notification...');
+      // Get user email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        promises.push(
+          sendNotificationWithRateLimit(
+            userId,
+            'email',
+            enhancedSignalData,
+            signalType,
+            user.email
+          ).catch(error => {
+            console.error('Email notification failed:', error);
+            return { type: 'email', error: error.message };
+          })
+        );
+      }
+    }
+
+    if (promises.length === 0) {
+      console.log('No notifications to send - all channels disabled');
+      return;
+    }
+
+    // Wait for all notifications to complete
+    const results = await Promise.all(promises);
+    console.log('Notification results:', results);
+
+    // Log summary
+    const successful = results.filter(r => !r.error).length;
+    const failed = results.filter(r => r.error).length;
+    console.log(`Notifications sent: ${successful} successful, ${failed} failed`);
+
+    return results;
+
+  } catch (error) {
+    console.error('Error processing signal and notifications:', error);
     throw error;
   }
 };
@@ -217,7 +371,6 @@ export const testEmailNotification = async (userEmail: string, signalData: any, 
     console.log('Signal type:', signalType);
 
     const requestPayload = {
-      signalId: 'test-' + Date.now(),
       userEmail: userEmail,
       signalData: {
         ...signalData,

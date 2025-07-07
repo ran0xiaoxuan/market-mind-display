@@ -29,17 +29,6 @@ serve(async (req) => {
     const { botToken, chatId, signalData, signalType }: TelegramNotificationRequest = await req.json()
 
     console.log('Processing Telegram notification for signal type:', signalType)
-    console.log('Signal data:', JSON.stringify(signalData, null, 2))
-    console.log('Bot token provided:', botToken ? 'Yes' : 'No')
-    console.log('Chat ID provided:', chatId ? 'Yes' : 'No')
-
-    if (!botToken) {
-      throw new Error('Telegram bot token is required')
-    }
-
-    if (!chatId) {
-      throw new Error('Telegram chat ID is required')
-    }
 
     // Get strategy details to include timeframe
     let timeframe = 'Unknown';
@@ -68,7 +57,7 @@ serve(async (req) => {
     });
 
     // Create Telegram message with improved formatting
-    let telegramMessage = `
+    const telegramMessage = `
 🚨 *StratAIge Trading Signal*
 
 📊 *Signal Type:* ${signalType.toUpperCase()}
@@ -76,21 +65,10 @@ serve(async (req) => {
 💰 *Asset:* ${signalData.targetAsset || signalData.asset || 'Unknown'}
 💵 *Price:* $${signalData.price || 'N/A'}
 ⏰ *Timeframe:* ${timeframe}
-🕐 *Time:* ${timeString}`;
+🕐 *Time:* ${timeString}
 
-    // Add profit information for exit signals
-    if (signalType === 'exit' && signalData.profitPercentage !== null && signalData.profitPercentage !== undefined) {
-      telegramMessage += `\n💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%`;
-    }
-
-    // Add reason/signal description if available
-    if (signalData.reason) {
-      telegramMessage += `\n📝 *Reason:* ${signalData.reason}`;
-    }
-
-    telegramMessage = telegramMessage.trim();
-
-    console.log('Sending Telegram message:', telegramMessage);
+${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%` : ''}
+    `.trim()
 
     // Send to Telegram Bot API
     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`
@@ -107,9 +85,6 @@ serve(async (req) => {
     })
 
     const telegramResult = await telegramResponse.json()
-    console.log('Telegram API response status:', telegramResponse.status);
-    console.log('Telegram API response:', JSON.stringify(telegramResult, null, 2));
-
     const status = telegramResponse.ok ? 'sent' : 'failed'
     const errorMessage = telegramResponse.ok ? null : `Telegram API error: ${telegramResult.description || 'Unknown error'}`
 
@@ -118,7 +93,7 @@ serve(async (req) => {
       .from('notification_logs')
       .insert({
         user_id: signalData.userId,
-        signal_id: signalData.signalId || 'telegram-' + Date.now(),
+        signal_id: 'telegram-' + Date.now(),
         notification_type: 'telegram',
         status: status,
         error_message: errorMessage

@@ -28,12 +28,6 @@ serve(async (req) => {
     const { webhookUrl, signalData, signalType }: DiscordNotificationRequest = await req.json()
 
     console.log('Processing Discord notification for signal type:', signalType)
-    console.log('Signal data:', JSON.stringify(signalData, null, 2))
-    console.log('Webhook URL provided:', webhookUrl ? 'Yes' : 'No')
-
-    if (!webhookUrl) {
-      throw new Error('Discord webhook URL is required')
-    }
 
     // Get strategy details to include timeframe
     let timeframe = 'Unknown';
@@ -49,77 +43,48 @@ serve(async (req) => {
       }
     }
 
-    // Create user-friendly time in Eastern timezone
-    const now = new Date();
-    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    const timeString = easternTime.toLocaleString("en-US", {
-      timeZone: "America/New_York",
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    });
-
     // Create Discord embed message with improved formatting
     const discordMessage = {
       embeds: [{
-        title: `🚨 StratAIge Trading Signal - ${signalType.toUpperCase()}`,
+        title: `🚨 Trading Signal Alert - ${signalType.toUpperCase()}`,
         color: signalType === 'entry' ? 0x00ff00 : signalType === 'exit' ? 0xff0000 : 0xffff00,
         fields: [
           {
-            name: "📊 Strategy",
+            name: "Strategy",
             value: signalData.strategyName || "Trading Strategy",
             inline: true
           },
           {
-            name: "💰 Asset",
+            name: "Asset",
             value: signalData.targetAsset || signalData.asset || "Unknown",
             inline: true
           },
           {
-            name: "💵 Price",
+            name: "Price",
             value: `$${signalData.price || 'N/A'}`,
             inline: true
           },
           {
-            name: "⏰ Timeframe",
+            name: "Timeframe",
             value: timeframe,
-            inline: true
-          },
-          {
-            name: "🕐 Time",
-            value: timeString,
             inline: true
           }
         ],
         timestamp: new Date().toISOString(),
         footer: {
-          text: "StratAIge Trading Platform",
-          icon_url: "https://via.placeholder.com/20x20/1f77b4/ffffff?text=S"
+          text: "StratAIge Trading Platform"
         }
       }]
     }
 
     // Add profit information for exit signals
-    if (signalType === 'exit' && signalData.profitPercentage !== null && signalData.profitPercentage !== undefined) {
+    if (signalType === 'exit' && signalData.profitPercentage) {
       discordMessage.embeds[0].fields.push({
-        name: "💹 P&L",
+        name: "P&L",
         value: `${signalData.profitPercentage.toFixed(2)}%`,
         inline: true
       });
     }
-
-    // Add reason/signal description if available
-    if (signalData.reason) {
-      discordMessage.embeds[0].fields.push({
-        name: "📝 Signal Reason",
-        value: signalData.reason,
-        inline: false
-      });
-    }
-
-    console.log('Sending Discord message:', JSON.stringify(discordMessage, null, 2));
 
     // Send to Discord webhook
     const discordResponse = await fetch(webhookUrl, {
@@ -130,19 +95,15 @@ serve(async (req) => {
       body: JSON.stringify(discordMessage)
     })
 
-    const responseText = await discordResponse.text();
-    console.log('Discord API response status:', discordResponse.status);
-    console.log('Discord API response:', responseText);
-
     const status = discordResponse.ok ? 'sent' : 'failed'
-    const errorMessage = discordResponse.ok ? null : `Discord API error: ${discordResponse.status} - ${responseText}`
+    const errorMessage = discordResponse.ok ? null : `Discord API error: ${discordResponse.status}`
 
     // Log the notification attempt
     const { error: logError } = await supabaseClient
       .from('notification_logs')
       .insert({
         user_id: signalData.userId,
-        signal_id: signalData.signalId || 'discord-' + Date.now(),
+        signal_id: 'discord-' + Date.now(),
         notification_type: 'discord',
         status: status,
         error_message: errorMessage
@@ -153,7 +114,7 @@ serve(async (req) => {
     }
 
     if (!discordResponse.ok) {
-      throw new Error(`Discord webhook failed: ${discordResponse.status} - ${responseText}`)
+      throw new Error(`Discord webhook failed: ${discordResponse.status}`)
     }
 
     console.log('Discord notification sent successfully')

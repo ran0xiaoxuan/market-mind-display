@@ -29,6 +29,7 @@ serve(async (req) => {
     const { botToken, chatId, signalData, signalType }: TelegramNotificationRequest = await req.json()
 
     console.log('Processing Telegram notification for signal type:', signalType)
+    console.log('Signal data:', signalData)
 
     // Get strategy details to include timeframe
     let timeframe = 'Unknown';
@@ -70,6 +71,8 @@ serve(async (req) => {
 ${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%` : ''}
     `.trim()
 
+    console.log('Sending Telegram message:', telegramMessage);
+
     // Send to Telegram Bot API
     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`
     const telegramResponse = await fetch(telegramUrl, {
@@ -86,14 +89,19 @@ ${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFix
 
     const telegramResult = await telegramResponse.json()
     const status = telegramResponse.ok ? 'sent' : 'failed'
-    const errorMessage = telegramResponse.ok ? null : `Telegram API error: ${telegramResult.description || 'Unknown error'}`
+    let errorMessage = null;
+
+    if (!telegramResponse.ok) {
+      errorMessage = `Telegram API error: ${telegramResult.description || 'Unknown error'}`;
+      console.error('Telegram API error:', errorMessage);
+    }
 
     // Log the notification attempt
     const { error: logError } = await supabaseClient
       .from('notification_logs')
       .insert({
         user_id: signalData.userId,
-        signal_id: 'telegram-' + Date.now(),
+        signal_id: signalData.signalId || 'telegram-' + Date.now(),
         notification_type: 'telegram',
         status: status,
         error_message: errorMessage
@@ -104,7 +112,7 @@ ${signalData.profitPercentage ? `💹 *P&L:* ${signalData.profitPercentage.toFix
     }
 
     if (!telegramResponse.ok) {
-      throw new Error(`Telegram API error: ${telegramResult.description || 'Unknown error'}`)
+      throw new Error(errorMessage)
     }
 
     console.log('Telegram notification sent successfully')

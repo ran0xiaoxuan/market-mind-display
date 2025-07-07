@@ -28,6 +28,7 @@ serve(async (req) => {
     const { webhookUrl, signalData, signalType }: DiscordNotificationRequest = await req.json()
 
     console.log('Processing Discord notification for signal type:', signalType)
+    console.log('Signal data:', signalData)
 
     // Get strategy details to include timeframe
     let timeframe = 'Unknown';
@@ -44,10 +45,12 @@ serve(async (req) => {
     }
 
     // Create Discord embed message with improved formatting
+    const color = signalType === 'entry' ? 0x00ff00 : signalType === 'exit' ? 0xff0000 : 0xffff00;
+    
     const discordMessage = {
       embeds: [{
         title: `🚨 Trading Signal Alert - ${signalType.toUpperCase()}`,
-        color: signalType === 'entry' ? 0x00ff00 : signalType === 'exit' ? 0xff0000 : 0xffff00,
+        color: color,
         fields: [
           {
             name: "Strategy",
@@ -86,6 +89,8 @@ serve(async (req) => {
       });
     }
 
+    console.log('Sending Discord message:', JSON.stringify(discordMessage, null, 2));
+
     // Send to Discord webhook
     const discordResponse = await fetch(webhookUrl, {
       method: 'POST',
@@ -96,14 +101,20 @@ serve(async (req) => {
     })
 
     const status = discordResponse.ok ? 'sent' : 'failed'
-    const errorMessage = discordResponse.ok ? null : `Discord API error: ${discordResponse.status}`
+    let errorMessage = null;
+
+    if (!discordResponse.ok) {
+      const errorText = await discordResponse.text();
+      errorMessage = `Discord API error: ${discordResponse.status} - ${errorText}`;
+      console.error('Discord API error:', errorMessage);
+    }
 
     // Log the notification attempt
     const { error: logError } = await supabaseClient
       .from('notification_logs')
       .insert({
         user_id: signalData.userId,
-        signal_id: 'discord-' + Date.now(),
+        signal_id: signalData.signalId || 'discord-' + Date.now(),
         notification_type: 'discord',
         status: status,
         error_message: errorMessage
@@ -114,7 +125,7 @@ serve(async (req) => {
     }
 
     if (!discordResponse.ok) {
-      throw new Error(`Discord webhook failed: ${discordResponse.status}`)
+      throw new Error(errorMessage)
     }
 
     console.log('Discord notification sent successfully')

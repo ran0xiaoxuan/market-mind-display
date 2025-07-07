@@ -139,6 +139,132 @@ export const createTradingSignal = async (strategyId: string, signalType: string
   return data;
 };
 
+// Enhanced function to send notifications with proper signal handling
+export const sendNotificationForSignal = async (
+  signalId: string,
+  userId: string,
+  signalData: any,
+  signalType: string
+) => {
+  try {
+    console.log('Starting notification delivery for signal:', signalId);
+    console.log('Signal data:', signalData);
+
+    // Get user's notification settings
+    const { data: settings } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!settings) {
+      console.log('No notification settings found for user:', userId);
+      return;
+    }
+
+    console.log('User notification settings:', settings);
+
+    // Check if this type of signal should be sent
+    const shouldSendEntry = signalType === 'entry' && settings.entry_signals;
+    const shouldSendExit = signalType === 'exit' && settings.exit_signals;
+    
+    if (!shouldSendEntry && !shouldSendExit) {
+      console.log(`Signal type ${signalType} not enabled for notifications`);
+      return;
+    }
+
+    // Prepare enhanced signal data
+    const enhancedSignalData = {
+      ...signalData,
+      signalId: signalId,
+      userId: userId,
+      timestamp: new Date().toISOString()
+    };
+
+    const notifications = [];
+
+    // Send Discord notification
+    if (settings.discord_enabled && settings.discord_webhook_url) {
+      console.log('Sending Discord notification...');
+      try {
+        const discordResult = await supabase.functions.invoke('send-discord-notification', {
+          body: {
+            webhookUrl: settings.discord_webhook_url,
+            signalData: enhancedSignalData,
+            signalType: signalType
+          }
+        });
+        
+        if (discordResult.error) {
+          console.error('Discord notification failed:', discordResult.error);
+        } else {
+          console.log('Discord notification sent successfully');
+          notifications.push('discord');
+        }
+      } catch (error) {
+        console.error('Discord notification error:', error);
+      }
+    }
+
+    // Send Telegram notification
+    if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
+      console.log('Sending Telegram notification...');
+      try {
+        const telegramResult = await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            botToken: settings.telegram_bot_token,
+            chatId: settings.telegram_chat_id,
+            signalData: enhancedSignalData,
+            signalType: signalType
+          }
+        });
+        
+        if (telegramResult.error) {
+          console.error('Telegram notification failed:', telegramResult.error);
+        } else {
+          console.log('Telegram notification sent successfully');
+          notifications.push('telegram');
+        }
+      } catch (error) {
+        console.error('Telegram notification error:', error);
+      }
+    }
+
+    // Send Email notification
+    if (settings.email_enabled) {
+      console.log('Sending Email notification...');
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (user.user?.email) {
+          const emailResult = await supabase.functions.invoke('send-email-notification', {
+            body: {
+              userEmail: user.user.email,
+              signalData: enhancedSignalData,
+              signalType: signalType
+            }
+          });
+          
+          if (emailResult.error) {
+            console.error('Email notification failed:', emailResult.error);
+          } else {
+            console.log('Email notification sent successfully');
+            notifications.push('email');
+          }
+        }
+      } catch (error) {
+        console.error('Email notification error:', error);
+      }
+    }
+
+    console.log(`Notifications sent via: ${notifications.join(', ')}`);
+    return notifications;
+
+  } catch (error) {
+    console.error('Error in sendNotificationForSignal:', error);
+    throw error;
+  }
+};
+
 // Enhanced notification sending with rate limiting and better error handling
 export const sendNotificationWithRateLimit = async (
   userId: string,
@@ -167,12 +293,12 @@ export const sendNotificationWithRateLimit = async (
         break;
       case 'discord':
         result = await supabase.functions.invoke('send-discord-notification', {
-          body: { signalId, webhookUrl: args[0], signalData: args[1], signalType: args[2] }
+          body: { webhookUrl: args[0], signalData: args[1], signalType: args[2] }
         });
         break;
       case 'telegram':
         result = await supabase.functions.invoke('send-telegram-notification', {
-          body: { signalId, botToken: args[0], chatId: args[1], signalData: args[2], signalType: args[3] }
+          body: { botToken: args[0], chatId: args[1], signalData: args[2], signalType: args[3] }
         });
         break;
       default:

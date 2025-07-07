@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
+import { TestSignalGenerator } from "@/components/TestSignalGenerator";
+
 export function TradingSettings() {
   const {
     user
@@ -705,7 +707,9 @@ export function TradingSettings() {
         </div>
       </Form>;
   };
-  return <div className="space-y-12">
+
+  return (
+    <div className="space-y-12">
       <div>
         <h2 className="text-xl font-medium mb-2">Trading Signal Notifications</h2>
         <p className="text-sm text-muted-foreground mb-6">
@@ -723,6 +727,33 @@ export function TradingSettings() {
         </Card>
       </div>
       
-      {isPro}
-    </div>;
+      {isPro && (
+        <div>
+          <h2 className="text-xl font-medium mb-2">Signal Types</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Choose which types of signals you want to receive notifications for
+          </p>
+          
+          <Card>
+            <CardContent className="p-6">
+              {renderSignalNotificationTypes()}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {isPro && (
+        <div>
+          <h2 className="text-xl font-medium mb-2">Test Notifications</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Generate test signals to verify your notification setup is working correctly
+          </p>
+          
+          <div className="flex justify-center">
+            <TestSignalGenerator />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -726,21 +726,6 @@ export function TradingSettings() {
           </CardContent>
         </Card>
       </div>
-      
-      {isPro && (
-        <div>
-          <h2 className="text-xl font-medium mb-2">Signal Types</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Choose which types of signals you want to receive notifications for
-          </p>
-          
-          <Card>
-            <CardContent className="p-6">
-              {renderSignalNotificationTypes()}
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {isPro && (
         <div>

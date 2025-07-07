@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Bell, BellOff, Crown } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationToggleProps {
   strategyId: string;
@@ -23,6 +24,7 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [localEnabled, setLocalEnabled] = useState(isEnabled);
+  const queryClient = useQueryClient();
 
   // Update local state when prop changes (e.g., from parent component refresh)
   React.useEffect(() => {
@@ -56,6 +58,21 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
         toast.error("Failed to update notification settings");
         return;
       }
+
+      // Invalidate and refetch related queries to update the UI immediately
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['strategies', 'optimized'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['strategy', strategyId] }),
+      ]);
+
+      // Dispatch custom events to notify other components
+      window.dispatchEvent(new CustomEvent('strategy-updated', { 
+        detail: { strategyId, notificationsEnabled: checked } 
+      }));
+      window.dispatchEvent(new CustomEvent('notification-settings-changed', { 
+        detail: { strategyId, notificationsEnabled: checked } 
+      }));
 
       // Call parent callback to update parent state
       onToggle(checked);

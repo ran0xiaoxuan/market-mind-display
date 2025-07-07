@@ -8,10 +8,12 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 import { useOptimizedStrategies } from "@/hooks/useOptimizedStrategies";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function OptimizedStrategyList() {
   const { data: strategies = [], isLoading, error, refetch } = useOptimizedStrategies();
   const [filteredStrategies, setFilteredStrategies] = useState(strategies.slice(0, 6));
+  const queryClient = useQueryClient();
 
   const {
     tier
@@ -30,6 +32,25 @@ export function OptimizedStrategyList() {
       });
     }
   }, [error]);
+
+  // Listen for strategy updates and refresh data
+  useEffect(() => {
+    const handleStrategyUpdate = () => {
+      console.log("Strategy updated, invalidating cache...");
+      queryClient.invalidateQueries({ queryKey: ['strategies', 'optimized'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      refetch();
+    };
+
+    // Listen for custom events that might be dispatched when strategies are updated
+    window.addEventListener('strategy-updated', handleStrategyUpdate);
+    window.addEventListener('notification-settings-changed', handleStrategyUpdate);
+    
+    return () => {
+      window.removeEventListener('strategy-updated', handleStrategyUpdate);
+      window.removeEventListener('notification-settings-changed', handleStrategyUpdate);
+    };
+  }, [queryClient, refetch]);
 
   const formatTimeAgo = (dateString: string) => {
     try {

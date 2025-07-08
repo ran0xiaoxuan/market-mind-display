@@ -63,9 +63,9 @@ export function TestSignalGenerator() {
 
       toast.success(
         `Test ${signalType} signal generated successfully! ` +
-        `Check your Discord/Telegram/Email for the notification.`,
+        `Notifications sent to your configured channels. Note: Test signals are separate from your real trading history.`,
         {
-          duration: 5000
+          duration: 6000
         }
       );
     } catch (error) {
@@ -179,9 +179,11 @@ export function TestSignalGenerator() {
           {isGenerating ? "Generating..." : "Generate Test Signal"}
         </Button>
 
-        <p className="text-sm text-muted-foreground">
-          This will create a test trading signal and send notifications to your verified Email/Discord/Telegram platforms.
-        </p>
+        <div className="p-3 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            <strong>Note:</strong> Test signals are used only for testing notifications and are stored separately from your real trading history. They will not appear in your strategy's trade history or affect your performance metrics.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

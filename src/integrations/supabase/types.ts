@@ -656,6 +656,41 @@ export type Database = {
         }
         Relationships: []
       }
+      test_signals: {
+        Row: {
+          created_at: string
+          id: string
+          signal_data: Json
+          signal_type: string
+          strategy_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          signal_data?: Json
+          signal_type: string
+          strategy_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          signal_data?: Json
+          signal_type?: string
+          strategy_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_signals_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trading_rules: {
         Row: {
           condition: string

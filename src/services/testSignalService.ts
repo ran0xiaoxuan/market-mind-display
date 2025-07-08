@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { sendNotificationForSignal } from "./notificationService";
 
@@ -58,31 +57,31 @@ export const generateTestSignal = async (testData: TestSignalData) => {
       ...(testData.profitPercentage && { profitPercentage: testData.profitPercentage })
     };
 
-    console.log('Creating signal with data:', signalData);
+    console.log('Creating test signal with data:', signalData);
 
-    // Create the trading signal record
-    const { data: signal, error: signalError } = await supabase
-      .from('trading_signals')
+    // Create the test signal record in the dedicated test_signals table
+    const { data: testSignal, error: testSignalError } = await supabase
+      .from('test_signals')
       .insert({
         strategy_id: testData.strategyId,
         signal_type: testData.signalType,
         signal_data: signalData,
-        processed: false
+        user_id: user.user.id
       })
       .select()
       .single();
 
-    if (signalError) {
-      console.error('Error creating trading signal:', signalError);
-      throw new Error('Failed to create signal: ' + signalError.message);
+    if (testSignalError) {
+      console.error('Error creating test signal:', testSignalError);
+      throw new Error('Failed to create test signal: ' + testSignalError.message);
     }
 
-    console.log('Trading signal created successfully:', signal);
+    console.log('Test signal created successfully:', testSignal);
 
-    // Send notifications for this signal
-    console.log('Sending notifications for signal:', signal.id);
+    // Send notifications for this test signal using the test signal ID
+    console.log('Sending notifications for test signal:', testSignal.id);
     const notificationResults = await sendNotificationForSignal(
-      signal.id,
+      testSignal.id,
       user.user.id,
       signalData,
       testData.signalType
@@ -90,18 +89,8 @@ export const generateTestSignal = async (testData: TestSignalData) => {
 
     console.log('Notification results:', notificationResults);
 
-    // Mark signal as processed
-    const { error: updateError } = await supabase
-      .from('trading_signals')
-      .update({ processed: true })
-      .eq('id', signal.id);
-
-    if (updateError) {
-      console.warn('Warning: Failed to mark signal as processed:', updateError);
-    }
-
     return {
-      signal,
+      testSignal,
       notificationResults
     };
   } catch (error) {

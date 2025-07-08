@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -119,8 +118,8 @@ const StrategyDetail = () => {
         setHasValidTradingRules(hasEntryRules || hasExitRules);
       }
       
-      // Fetch ALL trading signals for this specific strategy (not just processed ones)
-      console.log("Fetching ALL trading signals for strategy:", id);
+      // Fetch ONLY REAL trading signals for this specific strategy (exclude test signals)
+      console.log("Fetching REAL trading signals for strategy:", id);
       const { data: signals, error: signalsError } = await supabase
         .from("trading_signals")
         .select("*")
@@ -131,7 +130,7 @@ const StrategyDetail = () => {
         console.error('Error fetching signals:', signalsError);
         setTradesState([]);
       } else if (signals && signals.length > 0) {
-        console.log(`Found ${signals.length} total signals for strategy ${id} (including unprocessed)`);
+        console.log(`Found ${signals.length} real trading signals for strategy ${id}`);
         
         // Get current prices for open positions
         const currentPrices = new Map();
@@ -145,7 +144,7 @@ const StrategyDetail = () => {
           console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
         }
 
-        // Format ALL trading signals for display (including unprocessed ones)
+        // Format ONLY REAL trading signals for display
         const formattedTrades = signals.map(signal => {
           const signalData = (signal.signal_data as SignalData) || {};
           const currentPrice = currentPrices.get(strategyData.targetAsset);
@@ -185,9 +184,9 @@ const StrategyDetail = () => {
         });
         
         setTradesState(formattedTrades);
-        console.log(`Strategy Detail: Formatted ${formattedTrades.length} trades for display (including unprocessed signals)`);
+        console.log(`Strategy Detail: Formatted ${formattedTrades.length} real trades for display (excluding test signals)`);
       } else {
-        console.log('No trading signals found for this strategy');
+        console.log('No real trading signals found for this strategy');
         setTradesState([]);
       }
     } catch (err: any) {

@@ -57,11 +57,24 @@ serve(async (req) => {
       }
     }
 
-    // Create user-friendly time in Eastern timezone
+    // Get user's timezone preference (default to UTC if not set)
+    let userTimezone = 'UTC';
+    if (signalData.userId) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('timezone')
+        .eq('id', signalData.userId)
+        .single();
+      
+      if (profile?.timezone) {
+        userTimezone = profile.timezone;
+      }
+    }
+
+    // Create user-friendly time in user's timezone
     const now = new Date();
-    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    const timeString = easternTime.toLocaleString("en-US", {
-      timeZone: "America/New_York",
+    const timeString = now.toLocaleString("en-US", {
+      timeZone: userTimezone,
       month: 'short',
       day: 'numeric',
       hour: 'numeric',

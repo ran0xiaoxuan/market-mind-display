@@ -1,604 +1,129 @@
+
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { Upload, Undo, Check, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Bell } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from 'uuid';
-import { Switch } from "@/components/ui/switch";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
-import { passwordSchema } from "@/services/securityService";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-
-// Max file size: 1MB
-const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
+import { TimezoneSettings } from "./TimezoneSettings";
 
 export function AccountSettings() {
-  const {
-    user,
-    validatePassword
-  } = useAuth();
-  const [email, setEmail] = useState(user?.email || "");
-  const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || DEFAULT_AVATAR_URL);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-  const [isPro, setIsPro] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Password validation states
-  const [passwordValidation, setPasswordValidation] = useState({
-    isValid: false,
-    errors: [] as string[]
-  });
-  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-
-  // Extract initials for avatar fallback
-  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || "User";
-  const initialsForAvatar = username.charAt(0).toUpperCase();
-
-  // Validate new password in real-time
   useEffect(() => {
-    if (newPassword) {
-      const validation = validatePassword(newPassword);
-      setPasswordValidation(validation);
-    } else {
-      setPasswordValidation({ isValid: false, errors: [] });
-    }
-  }, [newPassword, validatePassword]);
+    loadProfile();
+  }, []);
 
-  // Load user profile and subscription status
-  useEffect(() => {
-    const loadUserProfile = async () => {
-      console.log('Loading user profile...', {
-        userId: user?.id,
-        userEmail: user?.email
-      });
-      if (!user) {
-        console.log('No user found, setting loading to false');
-        setIsLoadingProfile(false);
-        return;
-      }
-      try {
-        // Check if profile exists, if not create one
-        console.log('Fetching profile for user:', user.id);
-        const {
-          data: profile,
-          error
-        } = await supabase.from('profiles').select('subscription_tier').eq('id', user.id).single();
-        console.log('Profile fetch result:', {
-          profile,
-          error
-        });
-        if (error && error.code === 'PGRST116') {
-          // Profile doesn't exist, create one
-          console.log('Profile does not exist, creating new profile');
-          const {
-            error: insertError
-          } = await supabase.from('profiles').insert({
-            id: user.id,
-            subscription_tier: 'free'
-          });
-          if (insertError) {
-            console.error('Error creating profile:', insertError);
-          } else {
-            console.log('Profile created successfully');
-          }
-          setIsPro(false);
-        } else if (error) {
-          console.error('Error fetching profile:', error);
-          setIsPro(false);
-        } else {
-          const isProUser = profile?.subscription_tier === 'pro';
-          console.log('Profile loaded successfully:', {
-            subscription_tier: profile?.subscription_tier,
-            isProUser
-          });
-          setIsPro(isProUser);
-
-          // If user is Pro, ensure the status is properly updated in the database
-          if (isProUser) {
-            await syncProStatusToDatabase();
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user profile:', error);
-        setIsPro(false);
-      } finally {
-        console.log('Setting loading to false');
-        setIsLoadingProfile(false);
-      }
-    };
-    loadUserProfile();
-  }, [user]);
-
-  // Sync Pro status to database when user is in Pro mode
-  const syncProStatusToDatabase = async () => {
-    if (!user) return;
+  const loadProfile = async () => {
     try {
-      const {
-        error
-      } = await supabase.from('profiles').update({
-        subscription_tier: 'pro',
-        updated_at: new Date().toISOString()
-      }).eq('id', user.id);
-      if (error) {
-        console.error('Error syncing Pro status to database:', error);
-      } else {
-        console.log('Pro status synced to database successfully');
+      const { data: user } = await supabase.auth.getUser();
+      if (user.user) {
+        setEmail(user.user.email || "");
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.user.id)
+          .single();
+        
+        if (profile) {
+          setFullName(profile.full_name || "");
+        }
       }
     } catch (error) {
-      console.error('Error syncing Pro status:', error);
-    }
-  };
-  
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setUploadError(""); // Clear any previous errors
-
-    if (file) {
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
-        setUploadError(`File size exceeds the 1MB limit (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
-        toast({
-          title: "File too large",
-          description: "Maximum file size is 1MB. Please select a smaller image.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Create a temporary URL for preview
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarUrl(previewUrl);
-
-      // Automatically upload the file when selected
-      await uploadAvatar(file);
-    }
-  };
-  
-  const uploadAvatar = async (file: File) => {
-    setIsUpdating(true);
-    try {
-      // Generate a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = `avatars/${user?.id}/${fileName}`;
-
-      // Upload the file to Supabase Storage
-      const {
-        error: uploadError,
-        data
-      } = await supabase.storage.from('avatars').upload(filePath, file);
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        throw uploadError;
-      }
-
-      // Get the public URL
-      const {
-        data: urlData
-      } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      if (!urlData.publicUrl) throw new Error("Failed to get public URL");
-      console.log("Avatar uploaded successfully:", urlData.publicUrl);
-
-      // Update user metadata with the new avatar URL
-      const {
-        error: updateError
-      } = await supabase.auth.updateUser({
-        data: {
-          avatar_url: urlData.publicUrl
-        }
-      });
-      if (updateError) throw updateError;
-      setAvatarUrl(urlData.publicUrl);
-      toast({
-        title: "Avatar uploaded",
-        description: "Your avatar has been updated successfully."
-      });
-    } catch (error: any) {
-      console.error("Error uploading avatar:", error);
-      setUploadError(error.message || "Failed to upload your avatar");
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload your avatar. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error loading profile:', error);
+      toast.error('Failed to load profile');
     } finally {
-      setIsUpdating(false);
+      setIsLoading(false);
     }
   };
-  
-  const handleResetAvatar = async () => {
-    setIsUpdating(true);
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
     try {
-      setAvatarUrl(DEFAULT_AVATAR_URL);
-      const {
-        error
-      } = await supabase.auth.updateUser({
-        data: {
-          avatar_url: DEFAULT_AVATAR_URL
-        }
-      });
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('id', user.user.id);
+
       if (error) throw error;
-      toast({
-        title: "Avatar reset",
-        description: "Your avatar has been reset to the default image."
-      });
+
+      toast.success('Profile updated successfully');
     } catch (error) {
-      console.error("Error resetting avatar:", error);
-      toast({
-        title: "Reset failed",
-        description: "Failed to reset your avatar. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     } finally {
-      setIsUpdating(false);
-    }
-  };
-  
-  const handleSaveProfile = async () => {
-    if (!user) return;
-    setIsUpdating(true);
-    try {
-      // Check if email has changed
-      const emailChanged = email !== user.email;
-
-      // Update email if changed
-      if (emailChanged) {
-        console.log('Updating email from', user.email, 'to', email);
-        const {
-          error: emailError
-        } = await supabase.auth.updateUser({
-          email: email
-        });
-        if (emailError) {
-          console.error('Email update error:', emailError);
-          throw emailError;
-        }
-        toast({
-          title: "Email update initiated",
-          description: "Please check both your old and new email addresses for confirmation links to complete the email change."
-        });
-      } else {
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully."
-        });
-      }
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Update failed",
-        description: error.message || "Failed to update your profile. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
+      setIsSaving(false);
     }
   };
 
-  const handleUpdatePassword = async () => {
-    if (!user) return;
-
-    // Clear previous errors
-    setPasswordErrors([]);
-    const errors: string[] = [];
-
-    // Validate current password
-    if (!currentPassword) {
-      errors.push("Please enter your current password");
-    }
-
-    // Validate new password
-    if (!newPassword) {
-      errors.push("Please enter a new password");
-    }
-
-    // Check password complexity
-    if (newPassword && !passwordValidation.isValid) {
-      errors.push("New password does not meet the security requirements");
-    }
-
-    // Check password confirmation
-    if (!confirmPassword) {
-      errors.push("Please confirm your new password");
-    }
-
-    if (newPassword && confirmPassword && newPassword !== confirmPassword) {
-      errors.push("New password and confirmation password do not match");
-    }
-
-    // Display errors if any
-    if (errors.length > 0) {
-      setPasswordErrors(errors);
-      toast({
-        title: "Password Update Failed",
-        description: "Please check the errors below and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUpdating(true);
-    try {
-      // Verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email!,
-        password: currentPassword
-      });
-
-      if (signInError) {
-        setPasswordErrors(["The current password you entered is incorrect"]);
-        toast({
-          title: "Incorrect Current Password",
-          description: "The current password you entered is incorrect. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Update to new password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully."
-      });
-
-      // Clear password fields and errors
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setPasswordErrors([]);
-    } catch (error: any) {
-      console.error("Error updating password:", error);
-      setPasswordErrors([error.message || "Failed to update password"]);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update your password. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const toggleSubscriptionStatus = async () => {
-    setIsUpdating(true);
-    try {
-      const newTier = isPro ? 'free' : 'pro';
-
-      // Update the profiles table
-      const {
-        error
-      } = await supabase.from('profiles').update({
-        subscription_tier: newTier,
-        updated_at: new Date().toISOString()
-      }).eq('id', user?.id);
-      if (error) throw error;
-      setIsPro(!isPro);
-
-      // If switching to Pro, sync the status to ensure it's properly recorded
-      if (newTier === 'pro') {
-        await syncProStatusToDatabase();
-      }
-      toast({
-        title: `Subscription status updated`,
-        description: `You are now on the ${newTier} plan.`
-      });
-
-      // Force a small delay to ensure the real-time update propagates
-      setTimeout(() => {
-        console.log('Subscription status change broadcasted via real-time');
-        // Refresh the page after the status change
-        window.location.reload();
-      }, 500);
-    } catch (error) {
-      console.error("Error updating subscription status:", error);
-      toast({
-        title: "Update failed",
-        description: "Failed to update subscription status.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  if (isLoadingProfile) {
-    return <div className="space-y-12">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>;
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
-  return <div className="space-y-12">
-      {/* Subscription Plan */}
-      <div>
-        <h2 className="text-xl font-medium">Subscription Plan</h2>
-        <p className="text-sm text-muted-foreground mb-4">Your current plan and subscription details</p>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Badge variant={isPro ? "pro" : "free"} className={isPro ? "text-xs px-3 py-1" : "text-xs px-2 py-0.5"}>
-                  {isPro ? 'Pro' : 'Free'}
-                </Badge>
-              </div>
-              {!isPro && <Button variant="default" className="bg-amber-500 hover:bg-amber-600">Upgrade to Pro</Button>}
-            </div>
-            
-            {/* Show Pro Plan Feature card only for Free users */}
-            {!isPro && <div className="mt-4 p-4 bg-amber-50 rounded-md border border-amber-100 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <Bell className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-amber-800 text-sm font-medium mb-2">Pro Plan Feature:</p>
-                    <p className="text-amber-700 text-sm">Get real-time trading signals delivered directly to your preferred platforms.</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Email Notifications</Badge>
-                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Discord Alerts</Badge>
-                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Telegram Signals</Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>}
-          </CardContent>
-        </Card>
-      </div>
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              disabled
+              className="bg-muted"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Email cannot be changed. Contact support if you need to update your email.
+            </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
+            />
+          </div>
+          
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <TimezoneSettings />
+
+      <Separator />
       
-      {/* Password */}
-      <div>
-        <h2 className="text-xl font-medium">Password</h2>
-        <p className="text-sm text-muted-foreground mb-4">Change your password</p>
-        
-        {/* Display password errors */}
-        {passwordErrors.length > 0 && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              <ul className="list-disc list-inside space-y-1">
-                {passwordErrors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="grid gap-4">
-          <div>
-            <label htmlFor="current-password" className="block text-sm mb-2">Current Password</label>
-            <Input 
-              id="current-password" 
-              type="password" 
-              value={currentPassword} 
-              onChange={e => setCurrentPassword(e.target.value)} 
-              placeholder="Enter your current password" 
-              className={passwordErrors.some(error => error.includes("current password")) ? "border-red-500" : ""}
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="new-password" className="block text-sm mb-2">New Password</label>
-            <Input 
-              id="new-password" 
-              type="password" 
-              value={newPassword} 
-              onChange={e => setNewPassword(e.target.value)} 
-              onFocus={() => setShowPasswordRequirements(true)}
-              placeholder="Enter your new password"
-              className={passwordErrors.some(error => error.includes("New password")) ? "border-red-500" : ""}
-            />
-            
-            {/* Password Requirements */}
-            {showPasswordRequirements && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-md border">
-                <p className="text-sm font-medium mb-2">Password Requirements:</p>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    {newPassword.length >= 8 ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={newPassword.length >= 8 ? "text-green-600" : "text-red-600"}>
-                      At least 8 characters
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {/[A-Z]/.test(newPassword) ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={/[A-Z]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
-                      At least one uppercase letter
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {/[a-z]/.test(newPassword) ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={/[a-z]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
-                      At least one lowercase letter
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {/\d/.test(newPassword) ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={/\d/.test(newPassword) ? "text-green-600" : "text-red-600"}>
-                      At least one number
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(newPassword) ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
-                      At least one special character
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <label htmlFor="confirm-password" className="block text-sm mb-2">Confirm New Password</label>
-            <Input 
-              id="confirm-password" 
-              type="password" 
-              value={confirmPassword} 
-              onChange={e => setConfirmPassword(e.target.value)} 
-              placeholder="Confirm your new password" 
-              className={passwordErrors.some(error => error.includes("confirmation")) ? "border-red-500" : ""}
-            />
-            {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-sm text-red-600 mt-1">Passwords do not match</p>
-            )}
-          </div>
-          
-          <div>
-            <Button 
-              variant="default" 
-              className="bg-black text-white mt-2" 
-              onClick={handleUpdatePassword} 
-              disabled={isUpdating}
-            >
-              {isUpdating ? "Updating..." : "Update Password"}
-            </Button>
-          </div>
-        </div>
-      </div>
-      
-      <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
-    </div>;
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Permanently delete your account and all associated data. This action cannot be undone.
+          </p>
+          <DeleteAccountDialog />
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

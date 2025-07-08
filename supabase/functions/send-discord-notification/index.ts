@@ -44,6 +44,31 @@ serve(async (req) => {
       }
     }
 
+    // Get user's timezone preference (default to UTC if not set)
+    let userTimezone = 'UTC';
+    if (signalData.userId) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('timezone')
+        .eq('id', signalData.userId)
+        .single();
+      
+      if (profile?.timezone) {
+        userTimezone = profile.timezone;
+      }
+    }
+
+    // Create user-friendly time in user's timezone
+    const now = new Date();
+    const timeString = now.toLocaleString("en-US", {
+      timeZone: userTimezone,
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+
     // Create Discord embed message with improved formatting
     const color = signalType === 'entry' ? 0x00ff00 : signalType === 'exit' ? 0xff0000 : 0xffff00;
     
@@ -70,6 +95,11 @@ serve(async (req) => {
           {
             name: "Timeframe",
             value: timeframe,
+            inline: true
+          },
+          {
+            name: "Time",
+            value: timeString,
             inline: true
           }
         ],

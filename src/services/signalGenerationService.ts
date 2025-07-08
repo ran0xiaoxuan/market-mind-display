@@ -17,7 +17,7 @@ export const generateSignalForStrategy = async (
   userId: string
 ): Promise<SignalGenerationResult> => {
   try {
-    console.log(`Starting signal generation for strategy: ${strategyId}`);
+    console.log(`[SignalGen] Starting signal generation for strategy: ${strategyId}`);
 
     // Get strategy details
     const { data: strategy, error: strategyError } = await supabase
@@ -29,12 +29,14 @@ export const generateSignalForStrategy = async (
       .single();
 
     if (strategyError || !strategy) {
-      console.error('Strategy not found or inactive:', strategyError);
+      console.error('[SignalGen] Strategy not found or inactive:', strategyError);
       return {
         signalGenerated: false,
         reason: 'Strategy not found or inactive'
       };
     }
+
+    console.log(`[SignalGen] Found strategy: ${strategy.name} for asset ${strategy.target_asset}`);
 
     // Check daily signal limit
     const today = new Date().toISOString().split('T')[0];
@@ -47,73 +49,93 @@ export const generateSignalForStrategy = async (
 
     const dailyLimit = strategy.daily_signal_limit || 5;
     if (signalCount && signalCount.length >= dailyLimit) {
-      console.log(`Daily signal limit reached for strategy ${strategyId}: ${signalCount.length}/${dailyLimit}`);
+      console.log(`[SignalGen] Daily signal limit reached: ${signalCount.length}/${dailyLimit}`);
       return {
         signalGenerated: false,
         reason: `Daily signal limit reached (${signalCount.length}/${dailyLimit})`
       };
     }
 
-    // Get current market price
-    const currentPrice = await getStockPrice(strategy.target_asset);
-    if (!currentPrice) {
-      console.error(`Failed to get current price for ${strategy.target_asset}`);
+    // Get current market price with enhanced error handling
+    let currentPrice;
+    try {
+      const priceData = await getStockPrice(strategy.target_asset);
+      if (!priceData) {
+        console.error(`[SignalGen] Failed to get current price for ${strategy.target_asset}`);
+        return {
+          signalGenerated: false,
+          reason: `Failed to get current price for ${strategy.target_asset}`
+        };
+      }
+      currentPrice = priceData.price;
+      console.log(`[SignalGen] Current price for ${strategy.target_asset}: $${currentPrice}`);
+    } catch (error) {
+      console.error(`[SignalGen] Error fetching price for ${strategy.target_asset}:`, error);
       return {
         signalGenerated: false,
-        reason: `Failed to get current price for ${strategy.target_asset}`
+        reason: `Error fetching market data: ${error.message}`
       };
     }
-
-    console.log(`Current price for ${strategy.target_asset}: $${currentPrice.price}`);
 
     // Get trading rules for the strategy
     const rulesData = await getTradingRulesForStrategy(strategyId);
     if (!rulesData || (!rulesData.entryRules?.length && !rulesData.exitRules?.length)) {
-      console.log(`No trading rules found for strategy ${strategyId}`);
+      console.log(`[SignalGen] No trading rules found for strategy ${strategyId}`);
       return {
         signalGenerated: false,
         reason: 'No trading rules defined for this strategy'
       };
     }
 
+    console.log(`[SignalGen] Found ${rulesData.entryRules?.length || 0} entry rule groups and ${rulesData.exitRules?.length || 0} exit rule groups`);
+
     // Evaluate entry rules first
     let signalType: 'entry' | 'exit' | null = null;
     let evaluation = null;
 
     if (rulesData.entryRules?.length > 0) {
-      console.log('Evaluating entry rules...');
+      console.log('[SignalGen] Evaluating entry rules...');
       evaluation = await evaluateTradingRules(
         rulesData.entryRules,
         strategy.target_asset,
-        currentPrice.price,
+        currentPrice,
         strategy.timeframe
       );
 
+      console.log(`[SignalGen] Entry rules evaluation result:`, evaluation);
+
       if (evaluation.signalGenerated) {
         signalType = 'entry';
-        console.log('Entry signal conditions met!');
+        console.log('[SignalGen] ✓ Entry signal conditions met!');
+      } else {
+        console.log('[SignalGen] ✗ Entry signal conditions not met');
       }
     }
 
     // If no entry signal, check exit rules
     if (!signalType && rulesData.exitRules?.length > 0) {
-      console.log('Evaluating exit rules...');
+      console.log('[SignalGen] Evaluating exit rules...');
       evaluation = await evaluateTradingRules(
         rulesData.exitRules,
         strategy.target_asset,
-        currentPrice.price,
+        currentPrice,
         strategy.timeframe
       );
 
+      console.log(`[SignalGen] Exit rules evaluation result:`, evaluation);
+
       if (evaluation.signalGenerated) {
         signalType = 'exit';
-        console.log('Exit signal conditions met!');
+        console.log('[SignalGen] ✓ Exit signal conditions met!');
+      } else {
+        console.log('[SignalGen] ✗ Exit signal conditions not met');
       }
     }
 
-    // If no signal conditions are met, return early
+    // If no signal conditions are met, return early with detailed info
     if (!signalType || !evaluation?.signalGenerated) {
-      console.log('No signal conditions met for strategy:', strategyId);
+      console.log(`[SignalGen] No signal generated for strategy: ${strategyId}`);
+      console.log(`[SignalGen] Evaluation details:`, evaluation?.evaluationDetails);
       return {
         signalGenerated: false,
         reason: 'Market conditions do not meet trading rule criteria',
@@ -121,17 +143,20 @@ export const generateSignalForStrategy = async (
       };
     }
 
-    // Create signal data
+    // Create signal data with enhanced information
     const signalData = {
       strategyId: strategyId,
       strategyName: strategy.name,
       targetAsset: strategy.target_asset,
-      price: currentPrice.price,
+      price: currentPrice,
       userId: userId,
       timestamp: new Date().toISOString(),
-      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated`,
+      timeframe: strategy.timeframe,
+      signalType: signalType,
+      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - conditions met`,
       matchedConditions: evaluation.matchedConditions,
-      evaluationDetails: evaluation.evaluationDetails
+      evaluationDetails: evaluation.evaluationDetails,
+      conditionsMetCount: evaluation.matchedConditions.length
     };
 
     // Insert the signal into database
@@ -147,25 +172,26 @@ export const generateSignalForStrategy = async (
       .single();
 
     if (signalError) {
-      console.error('Error creating signal:', signalError);
+      console.error('[SignalGen] Error creating signal:', signalError);
       return {
         signalGenerated: false,
         reason: `Failed to create signal: ${signalError.message}`
       };
     }
 
-    console.log(`${signalType} signal generated successfully:`, signal.id);
+    console.log(`[SignalGen] ✓ ${signalType} signal generated successfully:`, signal.id);
+    console.log(`[SignalGen] Signal matched ${evaluation.matchedConditions.length} conditions`);
 
     return {
       signalGenerated: true,
       signalId: signal.id,
-      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated based on rule evaluation`,
+      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - all required conditions met`,
       matchedConditions: evaluation.matchedConditions,
       evaluationDetails: evaluation.evaluationDetails
     };
 
   } catch (error) {
-    console.error('Error in generateSignalForStrategy:', error);
+    console.error('[SignalGen] Error in generateSignalForStrategy:', error);
     return {
       signalGenerated: false,
       reason: `Error during signal generation: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -175,7 +201,7 @@ export const generateSignalForStrategy = async (
 
 export const cleanupInvalidSignals = async () => {
   try {
-    console.log('Starting cleanup of invalid signals...');
+    console.log('[SignalGen] Starting cleanup of invalid signals...');
     
     const { data: invalidSignals, error: fetchError } = await supabase
       .from('trading_signals')
@@ -183,16 +209,16 @@ export const cleanupInvalidSignals = async () => {
       .is('signal_data->strategyId', null);
 
     if (fetchError) {
-      console.error('Error fetching invalid signals:', fetchError);
+      console.error('[SignalGen] Error fetching invalid signals:', fetchError);
       return;
     }
 
     if (!invalidSignals || invalidSignals.length === 0) {
-      console.log('No invalid signals found');
+      console.log('[SignalGen] No invalid signals found');
       return;
     }
 
-    console.log(`Found ${invalidSignals.length} invalid signals to clean up`);
+    console.log(`[SignalGen] Found ${invalidSignals.length} invalid signals to clean up`);
 
     const { error: deleteError } = await supabase
       .from('trading_signals')
@@ -200,12 +226,12 @@ export const cleanupInvalidSignals = async () => {
       .in('id', invalidSignals.map(s => s.id));
 
     if (deleteError) {
-      console.error('Error deleting invalid signals:', deleteError);
+      console.error('[SignalGen] Error deleting invalid signals:', deleteError);
       return;
     }
 
-    console.log(`Successfully cleaned up ${invalidSignals.length} invalid signals`);
+    console.log(`[SignalGen] Successfully cleaned up ${invalidSignals.length} invalid signals`);
   } catch (error) {
-    console.error('Error during signal cleanup:', error);
+    console.error('[SignalGen] Error during signal cleanup:', error);
   }
 };

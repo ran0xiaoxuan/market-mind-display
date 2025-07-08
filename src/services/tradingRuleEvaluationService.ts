@@ -12,9 +12,12 @@ export const evaluateTradingRules = async (
   ruleGroups: RuleGroupData[],
   asset: string,
   currentPrice: number,
-  timeframe: string = '1d' // Add timeframe parameter with default
+  timeframe: string = '1d'
 ): Promise<RuleEvaluation> => {
   try {
+    console.log(`[RuleEvaluation] Starting evaluation for ${asset} at price ${currentPrice} with timeframe ${timeframe}`);
+    console.log(`[RuleEvaluation] Rule groups:`, ruleGroups);
+
     const evaluation: RuleEvaluation = {
       signalGenerated: false,
       matchedConditions: [],
@@ -22,89 +25,149 @@ export const evaluateTradingRules = async (
     };
 
     if (!ruleGroups || ruleGroups.length === 0) {
+      evaluation.evaluationDetails.push('No rule groups provided');
       return evaluation;
     }
 
-    let andGroupSatisfied = true;
-    let orGroupSatisfied = false;
-    let orGroupExists = false;
+    // Separate AND and OR groups
+    const andGroups = ruleGroups.filter(group => group.logic === 'AND');
+    const orGroups = ruleGroups.filter(group => group.logic === 'OR');
 
-    for (const group of ruleGroups) {
-      if (!group.inequalities || group.inequalities.length === 0) {
-        continue;
-      }
+    console.log(`[RuleEvaluation] Found ${andGroups.length} AND groups and ${orGroups.length} OR groups`);
 
-      const isAndGroup = group.logic === 'AND';
-      const isOrGroup = group.logic === 'OR';
+    let allAndGroupsSatisfied = true;
+    let allOrGroupsSatisfied = true;
 
-      if (isOrGroup) {
-        orGroupExists = true;
-      }
+    // Evaluate all AND groups - ALL must be satisfied
+    for (const andGroup of andGroups) {
+      const groupResult = await evaluateRuleGroup(andGroup, asset, currentPrice, timeframe);
+      
+      evaluation.evaluationDetails.push(`AND Group evaluation: ${groupResult.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
+      evaluation.evaluationDetails.push(...groupResult.details);
+      evaluation.matchedConditions.push(...groupResult.matchedConditions);
 
-      let groupConditionsMet = 0;
-      const groupEvaluations: string[] = [];
-
-      for (const inequality of group.inequalities) {
-        try {
-          const conditionMet = await evaluateInequality(inequality, asset, currentPrice, timeframe);
-          
-          if (conditionMet) {
-            groupConditionsMet++;
-            const conditionDescription = `${inequality.left.type === 'INDICATOR' ? inequality.left.indicator : inequality.left.type} ${mapConditionToOperator(inequality.condition)} ${inequality.right.type === 'INDICATOR' ? inequality.right.indicator : inequality.right.value}`;
-            evaluation.matchedConditions.push(conditionDescription);
-            groupEvaluations.push(`✓ ${conditionDescription}`);
-          } else {
-            const conditionDescription = `${inequality.left.type === 'INDICATOR' ? inequality.left.indicator : inequality.left.type} ${mapConditionToOperator(inequality.condition)} ${inequality.right.type === 'INDICATOR' ? inequality.right.indicator : inequality.right.value}`;
-            groupEvaluations.push(`✗ ${conditionDescription}`);
-          }
-        } catch (error) {
-          console.error('Error evaluating inequality:', error);
-          groupEvaluations.push(`⚠ Error evaluating condition`);
-        }
-      }
-
-      // Evaluate group logic
-      if (isAndGroup) {
-        // All conditions must be met for AND group
-        const allConditionsMet = groupConditionsMet === group.inequalities.length;
-        if (!allConditionsMet) {
-          andGroupSatisfied = false;
-        }
-        evaluation.evaluationDetails.push(`AND Group: ${groupConditionsMet}/${group.inequalities.length} conditions met`);
-        evaluation.evaluationDetails.push(...groupEvaluations);
-      } else if (isOrGroup) {
-        // Required number of conditions must be met for OR group
-        const requiredConditions = group.requiredConditions || 1;
-        const orGroupMet = groupConditionsMet >= requiredConditions;
-        if (orGroupMet) {
-          orGroupSatisfied = true;
-        }
-        evaluation.evaluationDetails.push(`OR Group: ${groupConditionsMet}/${group.inequalities.length} conditions met (required: ${requiredConditions})`);
-        evaluation.evaluationDetails.push(...groupEvaluations);
+      if (!groupResult.satisfied) {
+        allAndGroupsSatisfied = false;
+        console.log(`[RuleEvaluation] AND group failed - signal cannot be generated`);
       }
     }
 
-    // Final signal determination
-    if (orGroupExists) {
-      // Both AND and OR groups must be satisfied if OR group exists
-      evaluation.signalGenerated = andGroupSatisfied && orGroupSatisfied;
-    } else {
-      // Only AND group needs to be satisfied
-      evaluation.signalGenerated = andGroupSatisfied;
+    // Evaluate all OR groups - each must meet its required conditions
+    for (const orGroup of orGroups) {
+      const groupResult = await evaluateRuleGroup(orGroup, asset, currentPrice, timeframe);
+      
+      evaluation.evaluationDetails.push(`OR Group evaluation: ${groupResult.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
+      evaluation.evaluationDetails.push(...groupResult.details);
+      evaluation.matchedConditions.push(...groupResult.matchedConditions);
+
+      if (!groupResult.satisfied) {
+        allOrGroupsSatisfied = false;
+        console.log(`[RuleEvaluation] OR group failed - signal cannot be generated`);
+      }
     }
+
+    // Final decision: All AND groups AND all OR groups must be satisfied
+    evaluation.signalGenerated = allAndGroupsSatisfied && allOrGroupsSatisfied;
+
+    console.log(`[RuleEvaluation] Final result: AND groups=${allAndGroupsSatisfied}, OR groups=${allOrGroupsSatisfied}, Signal=${evaluation.signalGenerated}`);
 
     return evaluation;
   } catch (error) {
-    console.error('Error evaluating trading rules:', error);
+    console.error('[RuleEvaluation] Error evaluating trading rules:', error);
     return {
       signalGenerated: false,
       matchedConditions: [],
-      evaluationDetails: ['Error during evaluation']
+      evaluationDetails: [`Error during evaluation: ${error.message}`]
     };
   }
 };
 
-// Map condition strings to operators
+interface GroupEvaluationResult {
+  satisfied: boolean;
+  matchedConditions: string[];
+  details: string[];
+  conditionsMetCount: number;
+  totalConditions: number;
+}
+
+const evaluateRuleGroup = async (
+  group: RuleGroupData,
+  asset: string,
+  currentPrice: number,
+  timeframe: string
+): Promise<GroupEvaluationResult> => {
+  const result: GroupEvaluationResult = {
+    satisfied: false,
+    matchedConditions: [],
+    details: [],
+    conditionsMetCount: 0,
+    totalConditions: 0
+  };
+
+  if (!group.inequalities || group.inequalities.length === 0) {
+    result.details.push(`${group.logic} Group: No conditions defined`);
+    result.satisfied = group.logic === 'AND' ? true : false; // Empty AND group is satisfied, empty OR group is not
+    return result;
+  }
+
+  result.totalConditions = group.inequalities.length;
+  console.log(`[GroupEvaluation] Evaluating ${group.logic} group with ${result.totalConditions} conditions`);
+
+  // Evaluate each condition in the group
+  for (let i = 0; i < group.inequalities.length; i++) {
+    const inequality = group.inequalities[i];
+    try {
+      const conditionMet = await evaluateInequality(inequality, asset, currentPrice, timeframe);
+      const conditionDescription = formatConditionDescription(inequality);
+      
+      if (conditionMet) {
+        result.conditionsMetCount++;
+        result.matchedConditions.push(conditionDescription);
+        result.details.push(`  ✓ ${conditionDescription}`);
+        console.log(`[GroupEvaluation] Condition ${i + 1} MET: ${conditionDescription}`);
+      } else {
+        result.details.push(`  ✗ ${conditionDescription}`);
+        console.log(`[GroupEvaluation] Condition ${i + 1} NOT MET: ${conditionDescription}`);
+      }
+    } catch (error) {
+      console.error(`[GroupEvaluation] Error evaluating condition ${i + 1}:`, error);
+      result.details.push(`  ⚠ Error evaluating condition: ${error.message}`);
+    }
+  }
+
+  // Determine if group is satisfied based on logic
+  if (group.logic === 'AND') {
+    // AND group: ALL conditions must be met
+    result.satisfied = result.conditionsMetCount === result.totalConditions;
+    result.details.push(`AND Group Result: ${result.conditionsMetCount}/${result.totalConditions} conditions met - ${result.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
+  } else if (group.logic === 'OR') {
+    // OR group: Required number of conditions must be met
+    const requiredConditions = group.requiredConditions || 1;
+    result.satisfied = result.conditionsMetCount >= requiredConditions;
+    result.details.push(`OR Group Result: ${result.conditionsMetCount}/${result.totalConditions} conditions met (required: ${requiredConditions}) - ${result.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
+  }
+
+  return result;
+};
+
+const formatConditionDescription = (inequality: any): string => {
+  const leftSide = inequality.left?.type === 'INDICATOR' 
+    ? `${inequality.left.indicator}${inequality.left.valueType ? ` (${inequality.left.valueType})` : ''}`
+    : inequality.left?.type === 'PRICE' 
+    ? 'Price'
+    : inequality.left?.value || 'Unknown';
+
+  const rightSide = inequality.right?.type === 'INDICATOR'
+    ? `${inequality.right.indicator}${inequality.right.valueType ? ` (${inequality.right.valueType})` : ''}`
+    : inequality.right?.type === 'PRICE'
+    ? 'Price'
+    : inequality.right?.value || 'Unknown';
+
+  const operator = mapConditionToOperator(inequality.condition);
+  
+  return `${leftSide} ${operator} ${rightSide}`;
+};
+
 const mapConditionToOperator = (condition: string): string => {
   const conditionMap: { [key: string]: string } = {
     'GREATER_THAN': '>',
@@ -124,7 +187,6 @@ const mapConditionToOperator = (condition: string): string => {
   return conditionMap[condition] || condition;
 };
 
-// Convert strategy timeframe to TAAPI format
 const mapTimeframeToTaapiInterval = (timeframe: string): string => {
   const timeframeMap: { [key: string]: string } = {
     '1m': '1m',
@@ -143,39 +205,55 @@ const mapTimeframeToTaapiInterval = (timeframe: string): string => {
 
 const evaluateInequality = async (inequality: any, asset: string, currentPrice: number, timeframe: string): Promise<boolean> => {
   try {
+    console.log(`[InequalityEval] Evaluating: ${JSON.stringify(inequality)}`);
+
     // Get left side value
     const leftValue = await getValueFromSide(inequality.left, asset, currentPrice, timeframe);
-    if (leftValue === null) return false;
+    if (leftValue === null) {
+      console.log(`[InequalityEval] Left side value is null`);
+      return false;
+    }
 
     // Get right side value
     const rightValue = await getValueFromSide(inequality.right, asset, currentPrice, timeframe);
-    if (rightValue === null) return false;
+    if (rightValue === null) {
+      console.log(`[InequalityEval] Right side value is null`);
+      return false;
+    }
 
-    // Map condition to operator
     const operator = mapConditionToOperator(inequality.condition);
-
-    console.log(`Evaluating: ${leftValue} ${operator} ${rightValue}`);
+    console.log(`[InequalityEval] Comparing: ${leftValue} ${operator} ${rightValue}`);
 
     // Evaluate condition
+    let result = false;
     switch (operator) {
       case '>':
-        return leftValue > rightValue;
+        result = leftValue > rightValue;
+        break;
       case '<':
-        return leftValue < rightValue;
+        result = leftValue < rightValue;
+        break;
       case '>=':
-        return leftValue >= rightValue;
+        result = leftValue >= rightValue;
+        break;
       case '<=':
-        return leftValue <= rightValue;
+        result = leftValue <= rightValue;
+        break;
       case '==':
-        return Math.abs(leftValue - rightValue) < 0.0001; // Handle floating point comparison
+        result = Math.abs(leftValue - rightValue) < 0.0001; // Handle floating point comparison
+        break;
       case '!=':
-        return Math.abs(leftValue - rightValue) >= 0.0001;
+        result = Math.abs(leftValue - rightValue) >= 0.0001;
+        break;
       default:
-        console.error('Unknown condition:', inequality.condition);
+        console.error('[InequalityEval] Unknown condition:', inequality.condition);
         return false;
     }
+
+    console.log(`[InequalityEval] Result: ${result}`);
+    return result;
   } catch (error) {
-    console.error('Error evaluating inequality:', error);
+    console.error('[InequalityEval] Error evaluating inequality:', error);
     return false;
   }
 };
@@ -188,7 +266,6 @@ const getIndicatorValueWithType = async (
   timeframe: string = '1d'
 ): Promise<number | null> => {
   try {
-    // Map indicator names to TAAPI indicator codes
     const indicatorMap: { [key: string]: string } = {
       'RSI': 'rsi',
       'MACD': 'macd',
@@ -227,35 +304,39 @@ const getIndicatorValueWithType = async (
 
     const taapiIndicator = indicatorMap[indicator];
     if (!taapiIndicator) {
-      console.error('Unsupported indicator:', indicator);
+      console.error('[IndicatorValue] Unsupported indicator:', indicator);
       return null;
     }
 
-    // Convert timeframe to TAAPI format and use it instead of hardcoded '1d'
     const taapiTimeframe = mapTimeframeToTaapiInterval(timeframe);
-    console.log(`Getting indicator ${indicator} for ${asset} with timeframe ${taapiTimeframe} (from strategy timeframe ${timeframe})`);
+    console.log(`[IndicatorValue] Getting ${indicator} for ${asset} with timeframe ${taapiTimeframe}`);
 
-    // Get indicator data from TAAPI with the correct timeframe
     const indicatorData = await getTaapiIndicator(taapiIndicator, asset, taapiTimeframe, parameters);
     
     if (!indicatorData) {
-      console.error('Failed to get indicator data for:', indicator);
+      console.error('[IndicatorValue] Failed to get indicator data for:', indicator);
       return null;
     }
 
-    // Use the updated getIndicatorValue function that handles value types
-    return getIndicatorValue(indicator, indicatorData, valueType);
+    const value = getIndicatorValue(indicator, indicatorData, valueType);
+    console.log(`[IndicatorValue] ${indicator} value: ${value}`);
+    return value;
   } catch (error) {
-    console.error('Error getting indicator value:', error);
+    console.error('[IndicatorValue] Error getting indicator value:', error);
     return null;
   }
 };
 
 const getValueFromSide = async (side: any, asset: string, currentPrice: number, timeframe: string): Promise<number | null> => {
   try {
+    console.log(`[ValueFromSide] Getting value for side:`, side);
+
     switch (side.type) {
       case 'INDICATOR':
-        if (!side.indicator) return null;
+        if (!side.indicator) {
+          console.log(`[ValueFromSide] No indicator specified`);
+          return null;
+        }
         return await getIndicatorValueWithType(
           side.indicator, 
           asset, 
@@ -265,18 +346,24 @@ const getValueFromSide = async (side: any, asset: string, currentPrice: number, 
         );
       
       case 'PRICE':
+        console.log(`[ValueFromSide] Using current price: ${currentPrice}`);
         return currentPrice;
       
       case 'VALUE':
         const value = parseFloat(side.value);
-        return isNaN(value) ? null : value;
+        if (isNaN(value)) {
+          console.log(`[ValueFromSide] Invalid value: ${side.value}`);
+          return null;
+        }
+        console.log(`[ValueFromSide] Using constant value: ${value}`);
+        return value;
       
       default:
-        console.error('Unknown side type:', side.type);
+        console.error('[ValueFromSide] Unknown side type:', side.type);
         return null;
     }
   } catch (error) {
-    console.error('Error getting value from side:', error);
+    console.error('[ValueFromSide] Error getting value from side:', error);
     return null;
   }
 };

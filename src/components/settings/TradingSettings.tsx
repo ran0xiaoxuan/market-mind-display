@@ -734,9 +734,7 @@ export function TradingSettings() {
             Generate test signals to verify your notification setup is working correctly
           </p>
           
-          <div className="flex justify-center">
-            <TestSignalGenerator />
-          </div>
+          <TestSignalGenerator />
         </div>
       )}
     </div>

@@ -35,9 +35,11 @@ serve(async (req) => {
 
     // Validate required parameters
     if (!botToken) {
+      console.error('Bot token is missing');
       throw new Error('Bot token is required');
     }
     if (!chatId) {
+      console.error('Chat ID is missing');
       throw new Error('Chat ID is required');
     }
 
@@ -67,18 +69,18 @@ serve(async (req) => {
       timeZoneName: 'short'
     });
 
-    // Create Telegram message with proper escaping for Markdown
-    let telegramMessage = `🚨 *StratAIge Trading Signal*
+    // Create Telegram message with HTML formatting instead of Markdown
+    let telegramMessage = `🚨 <b>StratAIge Trading Signal</b>
 
-📊 *Signal Type:* ${signalType.toUpperCase()}
-📈 *Strategy:* ${(signalData.strategyName || 'Trading Strategy').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&')}
-💰 *Asset:* ${(signalData.targetAsset || signalData.asset || 'Unknown').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&')}
-💵 *Price:* $${signalData.price || 'N/A'}
-⏰ *Timeframe:* ${timeframe}
-🕐 *Time:* ${timeString}`;
+📊 <b>Signal Type:</b> ${signalType.toUpperCase()}
+📈 <b>Strategy:</b> ${signalData.strategyName || 'Trading Strategy'}
+💰 <b>Asset:</b> ${signalData.targetAsset || signalData.asset || 'Unknown'}
+💵 <b>Price:</b> $${signalData.price || 'N/A'}
+⏰ <b>Timeframe:</b> ${timeframe}
+🕐 <b>Time:</b> ${timeString}`;
 
     if (signalData.profitPercentage) {
-      telegramMessage += `\n💹 *P&L:* ${signalData.profitPercentage.toFixed(2)}%`;
+      telegramMessage += `\n💹 <b>P&L:</b> ${signalData.profitPercentage.toFixed(2)}%`;
     }
 
     console.log('Sending Telegram message:', telegramMessage);
@@ -89,7 +91,7 @@ serve(async (req) => {
     const telegramPayload = {
       chat_id: chatId,
       text: telegramMessage,
-      parse_mode: 'MarkdownV2'
+      parse_mode: 'HTML'  // Changed from MarkdownV2 to HTML for better compatibility
     };
 
     console.log('Telegram API payload:', JSON.stringify(telegramPayload, null, 2));
@@ -103,6 +105,7 @@ serve(async (req) => {
     });
 
     const telegramResult = await telegramResponse.json();
+    console.log('Telegram API response status:', telegramResponse.status);
     console.log('Telegram API response:', telegramResult);
 
     let status = 'failed';
@@ -112,9 +115,30 @@ serve(async (req) => {
       status = 'sent';
       console.log('Telegram message sent successfully');
     } else {
-      errorMessage = `Telegram API error: ${telegramResult.description || telegramResult.error_code || 'Unknown error'}`;
-      console.error('Telegram API error:', errorMessage);
-      console.error('Full error response:', telegramResult);
+      // More detailed error logging
+      errorMessage = `Telegram API error (${telegramResponse.status}): ${telegramResult.description || telegramResult.error_code || 'Unknown error'}`;
+      console.error('Telegram API error details:', {
+        status: telegramResponse.status,
+        statusText: telegramResponse.statusText,
+        result: telegramResult,
+        botToken: botToken?.substring(0, 12) + '***',
+        chatId: chatId
+      });
+      
+      // Check for common Telegram API errors
+      if (telegramResult.error_code === 400) {
+        if (telegramResult.description?.includes('chat not found')) {
+          errorMessage = 'Chat not found. Please verify your chat ID is correct.';
+        } else if (telegramResult.description?.includes('bot was blocked')) {
+          errorMessage = 'Bot was blocked by the user. Please unblock the bot and try again.';
+        } else if (telegramResult.description?.includes('not enough rights')) {
+          errorMessage = 'Bot does not have permission to send messages to this chat.';
+        }
+      } else if (telegramResult.error_code === 401) {
+        errorMessage = 'Invalid bot token. Please verify your bot token is correct.';
+      } else if (telegramResult.error_code === 403) {
+        errorMessage = 'Bot was blocked or does not have permission to send messages.';
+      }
     }
 
     // Log the notification attempt

@@ -180,7 +180,7 @@ export function TestSignalGenerator() {
         </Button>
 
         <p className="text-sm text-muted-foreground">
-          This will create a test trading signal and send notifications to your verified Email/Discord/Telegram channels and email.
+          This will create a test trading signal and send notifications to your verified Email/Discord/Telegram platforms.
         </p>
       </CardContent>
     </Card>

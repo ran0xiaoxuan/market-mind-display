@@ -4,7 +4,6 @@ import { Container } from "@/components/ui/container";
 import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
 import { OptimizedStrategyList } from "@/components/OptimizedStrategyList";
-import { SignalTestPanel } from "@/components/SignalTestPanel";
 import { useState } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
@@ -18,7 +17,6 @@ const OptimizedDashboard = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [period, setPeriod] = useState<string>("Last Week");
   const [isTradeHistoryModalOpen, setIsTradeHistoryModalOpen] = useState(false);
-  const [showTestPanel, setShowTestPanel] = useState(false);
 
   const { data: dashboardData, isLoading, error } = useOptimizedDashboard(timeRange);
 
@@ -149,7 +147,7 @@ const OptimizedDashboard = () => {
               <Card>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Trade History</h2>
+                    <h2 className="text-xl font-bold">Trade History</h2>
                     <p className="text-sm text-muted-foreground">
                       Showing {Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of {recentTrades.length} trades
                     </p>
@@ -172,21 +170,9 @@ const OptimizedDashboard = () => {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowTestPanel(!showTestPanel)}
-              className="mb-4"
-            >
-              {showTestPanel ? 'Hide' : 'Show'} Signal Test Panel
-            </Button>
+          <div className="mt-6">
+            {/* Additional content can go here */}
           </div>
-
-          {showTestPanel && (
-            <div className="mt-6 flex justify-center">
-              <SignalTestPanel />
-            </div>
-          )}
         </Container>
       </main>
 

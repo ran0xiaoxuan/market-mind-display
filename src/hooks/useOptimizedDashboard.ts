@@ -85,7 +85,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         signalCountQuery = signalCountQuery.gte('created_at', startDate.toISOString());
       }
 
-      // Build the trading signals query for display (limited to recent trades)
+      // Build the trading signals query for display - REMOVE THE LIMIT
       let signalsQuery = supabase
         .from('trading_signals')
         .select(`
@@ -110,7 +110,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         // Count all signals for metrics
         signalCountQuery,
         
-        // Get signals for display
+        // Get ALL signals for display (no limit)
         signalsQuery,
         
         // Get ALL trading rules count for all strategies of this user
@@ -148,7 +148,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       console.log(`Active strategies (with notifications enabled): ${activeStrategies}`);
       console.log(`Total conditions: ${totalRules}`);
 
-      // Format recent trades - includes signals for display
+      // Format recent trades - includes ALL signals for display
       const recentTrades: DashboardTrade[] = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;

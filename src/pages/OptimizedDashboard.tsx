@@ -31,7 +31,7 @@ const OptimizedDashboard = () => {
     }
   };
 
-  // Show only 10 lines of data at most in the card
+  // Show only 10 lines of data at most in the dashboard card
   const MAX_VISIBLE_TRADES = 10;
 
   const openTradeHistoryModal = () => {

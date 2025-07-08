@@ -15,6 +15,7 @@ export function AccountSettings() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -121,7 +122,16 @@ export function AccountSettings() {
           <p className="text-sm text-muted-foreground mb-4">
             Permanently delete your account and all associated data. This action cannot be undone.
           </p>
-          <DeleteAccountDialog />
+          <Button 
+            variant="destructive" 
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete Account
+          </Button>
+          <DeleteAccountDialog 
+            open={deleteDialogOpen} 
+            onOpenChange={setDeleteDialogOpen} 
+          />
         </CardContent>
       </Card>
     </div>

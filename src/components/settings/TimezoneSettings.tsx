@@ -37,13 +37,15 @@ export function TimezoneSettings() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('timezone')
         .eq('id', user.user.id)
         .single();
 
-      if (profile?.timezone) {
+      if (error) {
+        console.error('Error loading timezone:', error);
+      } else if (profile?.timezone) {
         setTimezone(profile.timezone);
       } else {
         // Try to detect user's timezone

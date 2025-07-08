@@ -263,6 +263,7 @@ export type Database = {
           full_name: string | null
           id: string
           subscription_tier: string | null
+          timezone: string | null
           updated_at: string
           username: string | null
         }
@@ -272,6 +273,7 @@ export type Database = {
           full_name?: string | null
           id: string
           subscription_tier?: string | null
+          timezone?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -281,6 +283,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           subscription_tier?: string | null
+          timezone?: string | null
           updated_at?: string
           username?: string | null
         }

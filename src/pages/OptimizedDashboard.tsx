@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -31,8 +32,8 @@ const OptimizedDashboard = () => {
     }
   };
 
-  // Show only 10 lines of data at most in the card
-  const MAX_VISIBLE_TRADES = 10;
+  // Show only 20 lines of data in the card initially
+  const MAX_VISIBLE_TRADES = 20;
 
   const openTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(true);

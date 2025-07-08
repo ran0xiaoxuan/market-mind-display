@@ -199,20 +199,23 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
 
 export const deleteStrategy = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('strategies')
-      .delete()
-      .eq('id', id);
+    console.log(`Attempting to delete strategy with ID: ${id}`);
+    
+    // Use the database cascade deletion function
+    const { error } = await supabase.rpc('delete_strategy_cascade', {
+      strategy_uuid: id
+    });
 
     if (error) {
       console.error("Error deleting strategy:", error);
-      return false;
+      throw new Error(error.message);
     }
 
+    console.log(`Strategy ${id} deleted successfully`);
     return true;
   } catch (error) {
     console.error("Failed to delete strategy:", error);
-    return false;
+    throw error;
   }
 };
 

@@ -39,6 +39,7 @@ export const TradeHistoryTable = ({
   const navigate = useNavigate();
   // Ensure we have valid trades array
   const safeTrades = Array.isArray(trades) ? trades : [];
+  // Only apply maxRows limit if explicitly provided, otherwise show all trades
   const displayTrades = maxRows ? safeTrades.slice(0, maxRows) : safeTrades;
   const hasMoreTrades = maxRows && safeTrades.length > maxRows;
   
@@ -138,7 +139,7 @@ export const TradeHistoryTable = ({
         </TableBody>
       </Table>
 
-      {showViewAllButton && (
+      {showViewAllButton && hasMoreTrades && (
         <div className="mt-4 flex justify-center">
           <Button 
             variant="outline" 

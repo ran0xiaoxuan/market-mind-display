@@ -14,7 +14,38 @@ export interface NotificationSettings {
   take_profit_alerts: boolean;
 }
 
+// Helper function to check if user is Pro
+const checkUserProStatus = async (userId: string): Promise<boolean> => {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error checking user subscription:', error);
+      return false;
+    }
+
+    const tier = profile?.subscription_tier;
+    return tier === 'pro' || tier === 'premium';
+  } catch (error) {
+    console.error('Error in checkUserProStatus:', error);
+    return false;
+  }
+};
+
 export const getNotificationSettings = async () => {
+  // First check if user is Pro
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Not authenticated');
+
+  const isPro = await checkUserProStatus(user.user.id);
+  if (!isPro) {
+    throw new Error('This feature is only available for Pro users');
+  }
+
   const { data, error } = await supabase
     .from('notification_settings')
     .select('*')
@@ -30,6 +61,12 @@ export const getNotificationSettings = async () => {
 export const saveNotificationSettings = async (settings: Partial<NotificationSettings>) => {
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) throw new Error('Not authenticated');
+
+  // Check if user is Pro
+  const isPro = await checkUserProStatus(user.user.id);
+  if (!isPro) {
+    throw new Error('This feature is only available for Pro users');
+  }
 
   const { data: existingSettings } = await supabase
     .from('notification_settings')
@@ -66,6 +103,15 @@ export const saveNotificationSettings = async (settings: Partial<NotificationSet
 };
 
 export const verifyDiscordWebhook = async (webhookUrl: string) => {
+  // Check if user is Pro first
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Not authenticated');
+
+  const isPro = await checkUserProStatus(user.user.id);
+  if (!isPro) {
+    throw new Error('This feature is only available for Pro users');
+  }
+
   try {
     console.log('Starting Discord webhook verification for:', webhookUrl);
     
@@ -116,6 +162,15 @@ export const verifyDiscordWebhook = async (webhookUrl: string) => {
 };
 
 export const verifyTelegramBot = async (botToken: string, chatId: string) => {
+  // Check if user is Pro first
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Not authenticated');
+
+  const isPro = await checkUserProStatus(user.user.id);
+  if (!isPro) {
+    throw new Error('This feature is only available for Pro users');
+  }
+
   const { data, error } = await supabase.functions.invoke('verify-telegram-bot', {
     body: { botToken, chatId }
   });
@@ -139,7 +194,7 @@ export const createTradingSignal = async (strategyId: string, signalType: string
   return data;
 };
 
-// Enhanced function to send notifications with proper signal handling
+// Enhanced function to send notifications with proper signal handling and Pro status check
 export const sendNotificationForSignal = async (
   signalId: string,
   userId: string,
@@ -150,6 +205,13 @@ export const sendNotificationForSignal = async (
     console.log('Starting notification delivery for signal:', signalId);
     console.log('Signal data:', signalData);
 
+    // CRITICAL: Check if user is Pro before sending any notifications
+    const isPro = await checkUserProStatus(userId);
+    if (!isPro) {
+      console.log(`User ${userId} is not Pro - skipping all notifications`);
+      return [];
+    }
+
     // Get user's notification settings
     const { data: settings } = await supabase
       .from('notification_settings')
@@ -159,7 +221,7 @@ export const sendNotificationForSignal = async (
 
     if (!settings) {
       console.log('No notification settings found for user:', userId);
-      return;
+      return [];
     }
 
     console.log('User notification settings:', settings);
@@ -170,7 +232,7 @@ export const sendNotificationForSignal = async (
     
     if (!shouldSendEntry && !shouldSendExit) {
       console.log(`Signal type ${signalType} not enabled for notifications`);
-      return;
+      return [];
     }
 
     // Prepare enhanced signal data
@@ -272,6 +334,12 @@ export const sendNotificationWithRateLimit = async (
   signalId: string,
   ...args: any[]
 ) => {
+  // CRITICAL: Check if user is Pro before any notification processing
+  const isPro = await checkUserProStatus(userId);
+  if (!isPro) {
+    throw new Error('Notifications are only available for Pro users');
+  }
+
   const rateLimiter = NotificationRateLimiter.getInstance();
   
   if (!rateLimiter.canSendNotification(userId, notificationType)) {
@@ -337,6 +405,15 @@ export const sendNotificationWithRateLimit = async (
 // Helper function to test email notifications - UPDATED VERSION
 export const testEmailNotification = async (userEmail: string, signalData: any, signalType: string) => {
   try {
+    // Check if user is Pro first
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('Not authenticated');
+
+    const isPro = await checkUserProStatus(user.user.id);
+    if (!isPro) {
+      throw new Error('This feature is only available for Pro users');
+    }
+
     console.log('Starting test email notification...');
     console.log('Target email:', userEmail);
     console.log('Signal data:', signalData);

@@ -199,6 +199,52 @@ export const generateSignalForStrategy = async (
   }
 };
 
+// Enhanced function to test signal generation manually
+export const testSignalGeneration = async (strategyId: string) => {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) {
+      throw new Error('User not authenticated');
+    }
+
+    console.log(`[TestSignal] Testing signal generation for strategy: ${strategyId}`);
+    
+    const result = await generateSignalForStrategy(strategyId, user.user.id);
+    
+    console.log(`[TestSignal] Test result:`, result);
+    
+    return result;
+  } catch (error) {
+    console.error('[TestSignal] Error testing signal generation:', error);
+    return {
+      signalGenerated: false,
+      reason: `Test error: ${error.message}`
+    };
+  }
+};
+
+// Function to manually trigger signal monitoring
+export const triggerSignalMonitoring = async () => {
+  try {
+    console.log('[TriggerMonitor] Manually triggering signal monitoring...');
+    
+    const { data, error } = await supabase.functions.invoke('monitor-trading-signals', {
+      body: { manual: true }
+    });
+    
+    if (error) {
+      console.error('[TriggerMonitor] Error triggering monitoring:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('[TriggerMonitor] Monitoring triggered successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('[TriggerMonitor] Error in triggerSignalMonitoring:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const cleanupInvalidSignals = async () => {
   try {
     console.log('[SignalGen] Starting cleanup of invalid signals...');

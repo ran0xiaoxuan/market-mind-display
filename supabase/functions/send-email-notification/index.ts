@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Resend } from "npm:resend@2.0.0"
@@ -32,24 +33,37 @@ serve(async (req) => {
 
     console.log('Processing email notification for signal type:', signalType)
 
-    // Get strategy details to include timeframe
+    // Get strategy details and user timezone
     let timeframe = 'Unknown';
+    let userTimezone = 'UTC';
+    
     if (signalData.strategyId) {
       const { data: strategy } = await supabaseClient
         .from('strategies')
-        .select('timeframe')
+        .select('timeframe, user_id')
         .eq('id', signalData.strategyId)
         .single();
       
       if (strategy) {
         timeframe = strategy.timeframe;
+        
+        // Get user's timezone preference
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('timezone')
+          .eq('id', strategy.user_id)
+          .single();
+        
+        if (profile?.timezone) {
+          userTimezone = profile.timezone;
+        }
       }
     }
 
-    // Use the current timestamp in a user-friendly format
-    // This will be displayed in the user's local timezone when they view the email
+    // Format time according to user's timezone
     const now = new Date();
     const timeString = now.toLocaleString("en-US", {
+      timeZone: userTimezone,
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
@@ -213,7 +227,7 @@ serve(async (req) => {
                 <span class="detail-value">${timeframe}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Time:</span>
+                <span class="detail-label">Time (${userTimezone}):</span>
                 <span class="detail-value">${timeString}</span>
             </div>
             ${signalData.profitPercentage ? `
@@ -307,3 +321,4 @@ serve(async (req) => {
     );
   }
 });
+

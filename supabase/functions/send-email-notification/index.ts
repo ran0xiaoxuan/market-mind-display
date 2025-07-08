@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Resend } from "npm:resend@2.0.0"
@@ -32,33 +31,51 @@ serve(async (req) => {
     const { userEmail, signalData, signalType }: EmailNotificationRequest = await req.json()
 
     console.log('Processing email notification for signal type:', signalType)
+    console.log('Signal data received:', signalData)
 
-    // Get strategy details and user timezone
+    // Get strategy details and user timezone with proper error handling
     let timeframe = 'Unknown';
     let userTimezone = 'UTC';
     
     if (signalData.strategyId) {
-      const { data: strategy } = await supabaseClient
+      console.log('Fetching strategy details for ID:', signalData.strategyId)
+      
+      const { data: strategy, error: strategyError } = await supabaseClient
         .from('strategies')
         .select('timeframe, user_id')
         .eq('id', signalData.strategyId)
         .single();
       
-      if (strategy) {
+      if (strategyError) {
+        console.error('Error fetching strategy:', strategyError)
+      } else if (strategy) {
         timeframe = strategy.timeframe;
+        console.log('Strategy timeframe from database:', timeframe)
         
         // Get user's timezone preference
-        const { data: profile } = await supabaseClient
+        const { data: profile, error: profileError } = await supabaseClient
           .from('profiles')
           .select('timezone')
           .eq('id', strategy.user_id)
           .single();
         
-        if (profile?.timezone) {
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError)
+        } else if (profile?.timezone) {
           userTimezone = profile.timezone;
         }
       }
+    } else {
+      console.warn('No strategyId found in signalData, using fallback timeframe')
+      // Fallback: try to get timeframe from signalData itself
+      if (signalData.timeframe) {
+        timeframe = signalData.timeframe;
+        console.log('Using timeframe from signalData:', timeframe)
+      }
     }
+
+    console.log('Final timeframe for email:', timeframe)
+    console.log('User timezone:', userTimezone)
 
     // Format time according to user's timezone
     const now = new Date();
@@ -300,7 +317,7 @@ serve(async (req) => {
       throw new Error(`Email API error: ${emailResponse.error.message}`);
     }
 
-    console.log('Email notification sent successfully');
+    console.log('Email notification sent successfully with correct timeframe:', timeframe);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email notification sent successfully' }),
@@ -321,4 +338,3 @@ serve(async (req) => {
     );
   }
 });
-

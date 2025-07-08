@@ -234,13 +234,14 @@ const evaluateRuleGroups = async (
 
     console.log(`[RuleGroupEval] Found ${andGroups.length} AND groups and ${orGroups.length} OR groups`);
 
-    let allAndGroupsSatisfied = true;
-    let allOrGroupsSatisfied = true;
+    let allAndGroupsSatisfied = andGroups.length === 0; // If no AND groups, consider satisfied
+    let allOrGroupsSatisfied = orGroups.length === 0; // If no OR groups, consider satisfied
 
     // Evaluate AND groups - all must be satisfied
     for (const andGroup of andGroups) {
       if (!andGroup.trading_rules || andGroup.trading_rules.length === 0) {
         details.push(`AND Group ${andGroup.id}: No rules defined`);
+        allAndGroupsSatisfied = false;
         continue;
       }
       
@@ -261,6 +262,8 @@ const evaluateRuleGroups = async (
       if (!allConditionsMet) {
         allAndGroupsSatisfied = false;
         console.log(`[RuleGroupEval] AND group ${andGroup.id} failed`);
+      } else if (andGroups.length > 0) {
+        allAndGroupsSatisfied = true; // At least one AND group is satisfied
       }
     }
 
@@ -283,10 +286,15 @@ const evaluateRuleGroups = async (
       const requiredConditions = orGroup.required_conditions || 1;
       details.push(`OR Group ${orGroup.id}: ${conditionsMetCount}/${orGroup.trading_rules.length} conditions met (required: ${requiredConditions})`);
       
-      if (conditionsMetCount < requiredConditions) {
-        allOrGroupsSatisfied = false;
-        console.log(`[RuleGroupEval] OR group ${orGroup.id} failed`);
+      if (conditionsMetCount >= requiredConditions) {
+        allOrGroupsSatisfied = true;
+        console.log(`[RuleGroupEval] OR group ${orGroup.id} satisfied`);
       }
+    }
+
+    // If there are OR groups but none satisfied, signal fails
+    if (orGroups.length > 0 && !allOrGroupsSatisfied) {
+      allOrGroupsSatisfied = false;
     }
 
     const signalGenerated = allAndGroupsSatisfied && allOrGroupsSatisfied;
@@ -523,8 +531,9 @@ serve(async (req) => {
 
     console.log('[Monitor] Starting trading signal monitoring...');
 
-    // Check if market is open
-    if (!isMarketHours()) {
+    // Check if market is open (allow manual override for testing)
+    const { manual } = await req.json().catch(() => ({}));
+    if (!manual && !isMarketHours()) {
       console.log('[Monitor] Market is closed, skipping signal generation');
       return new Response(
         JSON.stringify({ message: 'Market is closed, no signals generated' }),
@@ -610,25 +619,13 @@ serve(async (req) => {
 
         // If signal was generated, send notifications
         if (signalResult.signalGenerated && signalResult.signalId) {
-          console.log(`[Monitor] Signal generated for ${strategy.name}, sending notifications...`);
+          console.log(`[Monitor] Signal generated for ${strategy.name}, marking as processed...`);
           
-          try {
-            const notificationResponse = await supabaseClient.functions.invoke('send-notifications', {
-              body: {
-                signalId: signalResult.signalId,
-                userId: strategy.user_id,
-                signalType: signalResult.signalType
-              }
-            });
-
-            if (notificationResponse.error) {
-              console.error('[Monitor] Notification error:', notificationResponse.error);
-            } else {
-              console.log('[Monitor] Notifications sent successfully');
-            }
-          } catch (notificationError) {
-            console.error('[Monitor] Error sending notifications:', notificationError);
-          }
+          // Mark signal as processed
+          await supabaseClient
+            .from('trading_signals')
+            .update({ processed: true })
+            .eq('id', signalResult.signalId);
         }
 
       } catch (error) {

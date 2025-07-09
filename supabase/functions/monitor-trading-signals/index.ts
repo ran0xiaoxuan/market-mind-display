@@ -461,6 +461,138 @@ const evaluateRuleGroups = async (
   }
 };
 
+// Send notifications directly using individual edge functions
+const sendNotificationsForSignal = async (
+  signalId: string,
+  userId: string,
+  signalType: string,
+  signalData: any,
+  supabaseClient: any
+) => {
+  try {
+    console.log(`[Notifications] Starting notification delivery for signal: ${signalId}`);
+
+    // Get user's notification settings
+    const { data: settings, error: settingsError } = await supabaseClient
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (settingsError && settingsError.code !== 'PGRST116') {
+      console.error('[Notifications] Error fetching notification settings:', settingsError);
+      return [];
+    }
+
+    if (!settings) {
+      console.log('[Notifications] No notification settings found for user:', userId);
+      return [];
+    }
+
+    console.log('[Notifications] User notification settings:', settings);
+
+    // Check if this type of signal should be sent
+    const shouldSendEntry = signalType === 'entry' && settings.entry_signals;
+    const shouldSendExit = signalType === 'exit' && settings.exit_signals;
+    
+    if (!shouldSendEntry && !shouldSendExit) {
+      console.log(`[Notifications] Signal type ${signalType} not enabled for notifications`);
+      return [];
+    }
+
+    // Prepare enhanced signal data
+    const enhancedSignalData = {
+      ...signalData,
+      signalId: signalId,
+      userId: userId,
+      timestamp: new Date().toISOString()
+    };
+
+    const notifications = [];
+
+    // Send Discord notification
+    if (settings.discord_enabled && settings.discord_webhook_url) {
+      console.log('[Notifications] Sending Discord notification...');
+      try {
+        const discordResult = await supabaseClient.functions.invoke('send-discord-notification', {
+          body: {
+            webhookUrl: settings.discord_webhook_url,
+            signalData: enhancedSignalData,
+            signalType: signalType
+          }
+        });
+        
+        if (discordResult.error) {
+          console.error('[Notifications] Discord notification failed:', discordResult.error);
+        } else {
+          console.log('[Notifications] Discord notification sent successfully');
+          notifications.push('discord');
+        }
+      } catch (error) {
+        console.error('[Notifications] Discord notification error:', error);
+      }
+    }
+
+    // Send Telegram notification
+    if (settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id) {
+      console.log('[Notifications] Sending Telegram notification...');
+      try {
+        const telegramResult = await supabaseClient.functions.invoke('send-telegram-notification', {
+          body: {
+            botToken: settings.telegram_bot_token,
+            chatId: settings.telegram_chat_id,
+            signalData: enhancedSignalData,
+            signalType: signalType
+          }
+        });
+        
+        if (telegramResult.error) {
+          console.error('[Notifications] Telegram notification failed:', telegramResult.error);
+        } else {
+          console.log('[Notifications] Telegram notification sent successfully');
+          notifications.push('telegram');
+        }
+      } catch (error) {
+        console.error('[Notifications] Telegram notification error:', error);
+      }
+    }
+
+    // Send Email notification
+    if (settings.email_enabled) {
+      console.log('[Notifications] Sending Email notification...');
+      try {
+        // Get user email from auth
+        const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
+        if (user?.user?.email) {
+          const emailResult = await supabaseClient.functions.invoke('send-email-notification', {
+            body: {
+              userEmail: user.user.email,
+              signalData: enhancedSignalData,
+              signalType: signalType
+            }
+          });
+          
+          if (emailResult.error) {
+            console.error('[Notifications] Email notification failed:', emailResult.error);
+          } else {
+            console.log('[Notifications] Email notification sent successfully');
+            notifications.push('email');
+          }
+        }
+      } catch (error) {
+        console.error('[Notifications] Email notification error:', error);
+      }
+    }
+
+    console.log(`[Notifications] Notifications sent via: ${notifications.join(', ')}`);
+    return notifications;
+
+  } catch (error) {
+    console.error('[Notifications] Error in sendNotificationsForSignal:', error);
+    return [];
+  }
+};
+
 // Generate signal for a specific strategy with improved rate limiting
 const generateSignalForStrategy = async (
   strategyId: string,
@@ -774,24 +906,26 @@ serve(async (req) => {
           evaluationDetails: signalResult.evaluationDetails || []
         });
 
-        // If signal was generated, send notifications
+        // If signal was generated, send notifications directly
         if (signalResult.signalGenerated && signalResult.signalId) {
           console.log(`[Monitor] Signal generated for ${strategy.name}, sending notifications...`);
           
           try {
-            const notificationResponse = await supabaseClient.functions.invoke('send-notifications', {
-              body: {
-                signalId: signalResult.signalId,
-                userId: strategy.user_id,
-                signalType: signalResult.signalType
-              }
-            });
+            const notifications = await sendNotificationsForSignal(
+              signalResult.signalId,
+              strategy.user_id,
+              signalResult.signalType,
+              {
+                strategyId: strategy.id,
+                strategyName: strategy.name,
+                targetAsset: strategy.target_asset,
+                price: signalResult.evaluationDetails?.[0] || 'N/A',
+                timeframe: strategy.timeframe
+              },
+              supabaseClient
+            );
 
-            if (notificationResponse.error) {
-              console.error('[Monitor] Notification error:', notificationResponse.error);
-            } else {
-              console.log('[Monitor] Notifications sent successfully');
-            }
+            console.log(`[Monitor] Notifications sent successfully: ${notifications.join(', ')}`);
           } catch (notificationError) {
             console.error('[Monitor] Error sending notifications:', notificationError);
           }
@@ -814,9 +948,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         message: 'Signal monitoring completed with local indicators',
-        processedStrategies: 0,
-        signalsGenerated: 0,
-        results: [],
+        processedStrategies: results.length,
+        signalsGenerated: signalsGenerated,
+        results: results,
         timestamp: new Date().toISOString(),
         marketOpen: isMarketHours(),
         manualTrigger: isManualTrigger,

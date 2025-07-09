@@ -226,18 +226,89 @@ export const generateStrategy = async (
   description: string
 ): Promise<GeneratedStrategy> => {
   try {
+    console.log('Generating strategy via edge function:', { assetType, asset, description });
+    
     const response = await supabase.functions.invoke('generate-strategy', {
       body: { assetType, asset, description }
     });
 
+    console.log('Edge function response:', response);
+
     if (response.error) {
-      throw new ServiceError(response.error.message || 'Failed to generate strategy', 'api_error');
+      console.error('Edge function returned error:', response.error);
+      
+      // Extract error details from the response
+      let errorType = 'api_error';
+      let errorMessage = 'Failed to generate strategy';
+      let retryable = false;
+      let details: string[] = [];
+
+      if (typeof response.error === 'object') {
+        errorType = response.error.type || 'unknown_error';
+        errorMessage = response.error.message || response.error.error || 'Failed to generate strategy';
+        details = response.error.details ? [response.error.details] : [];
+        
+        // Determine if error is retryable
+        retryable = ['connection_error', 'timeout_error', 'rate_limit_error', 'service_unavailable'].includes(errorType);
+      } else if (typeof response.error === 'string') {
+        errorMessage = response.error;
+        
+        // Check for specific error patterns
+        if (response.error.includes('API key')) {
+          errorType = 'api_key_error';
+        } else if (response.error.includes('rate limit') || response.error.includes('429')) {
+          errorType = 'rate_limit_error';
+          retryable = true;
+        } else if (response.error.includes('timeout')) {
+          errorType = 'timeout_error';
+          retryable = true;
+        } else if (response.error.includes('500') || response.error.includes('502') || response.error.includes('unavailable')) {
+          errorType = 'service_unavailable';
+          retryable = true;
+        }
+      }
+
+      throw new ServiceError(errorMessage, errorType, retryable, details);
     }
 
+    if (!response.data) {
+      console.error('Edge function returned no data');
+      throw new ServiceError('No data returned from AI service', 'api_error', true);
+    }
+
+    console.log('Strategy generated successfully:', response.data.name);
     return response.data;
   } catch (error: any) {
     console.error('Error generating strategy:', error);
-    throw new ServiceError(error.message || 'Failed to generate strategy', 'unknown_error');
+    
+    // If it's already a ServiceError, just re-throw it
+    if (error instanceof ServiceError) {
+      throw error;
+    }
+    
+    // Handle different types of errors
+    let errorType = 'unknown_error';
+    let errorMessage = error.message || 'Failed to generate strategy';
+    let retryable = false;
+    
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+      errorType = 'connection_error';
+      errorMessage = 'Network connection failed. Please check your internet connection.';
+      retryable = true;
+    } else if (error.message?.includes('timeout')) {
+      errorType = 'timeout_error';
+      errorMessage = 'Request timed out. Please try again.';
+      retryable = true;
+    } else if (error.message?.includes('API key')) {
+      errorType = 'api_key_error';
+      errorMessage = 'AI service API key is not configured properly.';
+    } else if (error.message?.includes('non-2xx status code')) {
+      errorType = 'service_unavailable';
+      errorMessage = 'AI service is currently unavailable. Please try again later.';
+      retryable = true;
+    }
+    
+    throw new ServiceError(errorMessage, errorType, retryable);
   }
 };
 
@@ -336,13 +407,31 @@ const saveRuleGroups = async (
 
 export const checkAIServiceHealth = async () => {
   try {
+    console.log('Checking AI service health...');
+    
     const response = await supabase.functions.invoke('generate-strategy', {
       body: { healthCheck: true }
     });
     
-    return { healthy: !response.error, details: response.data };
-  } catch (error) {
-    return { healthy: false, error: 'Health check failed' };
+    console.log('Health check response:', response);
+    
+    if (response.error) {
+      console.error('Health check failed:', response.error);
+      return { 
+        healthy: false, 
+        error: typeof response.error === 'object' ? response.error.message : response.error,
+        details: response.error 
+      };
+    }
+    
+    return { healthy: true, details: response.data };
+  } catch (error: any) {
+    console.error('Health check error:', error);
+    return { 
+      healthy: false, 
+      error: error.message || 'Health check failed',
+      details: error 
+    };
   }
 };
 

@@ -35,10 +35,12 @@ export const sendChatCompletion = async (
   request: ChatCompletionRequest
 ): Promise<ChatCompletionResponse> => {
   try {
-    const { data, error } = await supabase.functions.invoke("openai-chat", {
+    console.log('Sending chat completion request:', request);
+    
+    const { data, error } = await supabase.functions.invoke("moonshot-chat", {
       body: {
         messages: request.messages,
-        model: request.model || "gpt-3.5-turbo",
+        model: request.model || "moonshot-v1-8k",
         temperature: request.temperature || 0.7,
         max_tokens: request.max_tokens,
         stream: request.stream || false
@@ -46,10 +48,22 @@ export const sendChatCompletion = async (
     });
 
     if (error) {
-      console.error("Error calling openai-chat function:", error);
-      throw new Error(`Failed to get AI response: ${error.message}`);
+      console.error("Error calling moonshot-chat function:", error);
+      
+      // Provide more specific error details
+      let errorMessage = `Failed to get AI response: ${error.message}`;
+      if (error.message?.includes('API key')) {
+        errorMessage = 'AI service API key is not configured properly';
+      } else if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+        errorMessage = 'AI service rate limit exceeded. Please try again later';
+      } else if (error.message?.includes('500') || error.message?.includes('502')) {
+        errorMessage = 'AI service is temporarily unavailable. Please try again later';
+      }
+      
+      throw new Error(errorMessage);
     }
 
+    console.log('Chat completion response received:', data);
     return data;
   } catch (error) {
     console.error("Error in sendChatCompletion:", error);

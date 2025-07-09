@@ -113,88 +113,141 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
 
 export const getTradingRulesForStrategy = async (strategyId: string) => {
   try {
-    console.log(`Fetching trading rules for strategy: ${strategyId}`);
-    
-    // Get rule groups with their trading rules
-    const { data: ruleGroups, error } = await supabase
-      .from('rule_groups')
+    console.log("Fetching trading rules for strategy:", strategyId);
+
+    // Fetch rule groups with their associated trading rules
+    const { data: ruleGroupsData, error: ruleGroupsError } = await supabase
+      .from("rule_groups")
       .select(`
-        *,
-        trading_rules (*)
+        id,
+        rule_type,
+        logic,
+        group_order,
+        explanation,
+        required_conditions,
+        trading_rules (
+          id,
+          inequality_order,
+          left_type,
+          left_indicator,
+          left_parameters,
+          left_value,
+          left_value_type,
+          condition,
+          right_type,
+          right_indicator,
+          right_parameters,
+          right_value,
+          right_value_type,
+          explanation
+        )
       `)
-      .eq('strategy_id', strategyId)
-      .order('group_order');
+      .eq("strategy_id", strategyId)
+      .order("group_order", { ascending: true });
 
-    if (error) {
-      console.error('Error fetching rule groups:', error);
-      throw error;
+    if (ruleGroupsError) {
+      console.error("Error fetching rule groups:", ruleGroupsError);
+      throw ruleGroupsError;
     }
 
-    if (!ruleGroups || ruleGroups.length === 0) {
-      console.log('No rule groups found for strategy');
-      return null;
+    if (!ruleGroupsData || ruleGroupsData.length === 0) {
+      console.log("No rule groups found for strategy");
+      return { entryRules: [], exitRules: [] };
     }
 
-    console.log('Raw rule groups from database:', JSON.stringify(ruleGroups, null, 2));
-
-    // Separate entry and exit rules
-    const entryGroups = ruleGroups.filter(group => group.rule_type === 'entry');
-    const exitGroups = ruleGroups.filter(group => group.rule_type === 'exit');
-
-    // Transform rule groups to match our RuleGroupData interface
-    const transformRuleGroup = (group: any): RuleGroupData => {
+    // Transform the data into the expected format
+    const transformedData = ruleGroupsData.map(group => {
+      console.log(`Processing group ${group.id} with logic ${group.logic} and ${group.trading_rules?.length || 0} rules`);
+      
       const inequalities = (group.trading_rules || [])
-        .sort((a: any, b: any) => a.inequality_order - b.inequality_order)
-        .map((rule: any) => {
-          console.log(`Transforming rule:`, rule);
+        .sort((a, b) => a.inequality_order - b.inequality_order)
+        .map(rule => {
+          console.log(`Transforming rule: ${rule.id} for group: ${group.id}`);
           
-          const inequality: Inequality = {
+          const transformedRule: Inequality = {
             id: rule.id,
             left: {
               type: rule.left_type,
-              indicator: rule.left_type === 'INDICATOR' ? rule.left_indicator : undefined,
-              parameters: rule.left_type === 'INDICATOR' ? (rule.left_parameters || {}) : undefined,
-              value: (rule.left_type === 'PRICE' || rule.left_type === 'VALUE') ? rule.left_value : undefined,
-              valueType: rule.left_type === 'INDICATOR' ? rule.left_value_type : undefined
+              indicator: rule.left_indicator || undefined,
+              parameters: rule.left_parameters ? cleanParameters(rule.left_parameters) : {},
+              value: rule.left_value || undefined,
+              valueType: rule.left_value_type || undefined
             },
             condition: rule.condition,
             right: {
               type: rule.right_type,
-              indicator: rule.right_type === 'INDICATOR' ? rule.right_indicator : undefined,
-              parameters: rule.right_type === 'INDICATOR' ? (rule.right_parameters || {}) : undefined,
-              value: (rule.right_type === 'PRICE' || rule.right_type === 'VALUE') ? rule.right_value : undefined,
-              valueType: rule.right_type === 'INDICATOR' ? rule.right_value_type : undefined
+              indicator: rule.right_indicator || undefined,
+              parameters: rule.right_parameters ? cleanParameters(rule.right_parameters) : {},
+              value: rule.right_value || undefined,
+              valueType: rule.right_value_type || undefined
             },
-            explanation: rule.explanation
+            explanation: rule.explanation || undefined
           };
           
-          console.log(`Transformed inequality:`, inequality);
-          return inequality;
+          console.log(`Transformed inequality:`, transformedRule);
+          return transformedRule;
         });
 
       return {
         id: group.id,
-        logic: group.logic as 'AND' | 'OR',
+        logic: group.logic,
         inequalities,
-        requiredConditions: group.required_conditions || 1
+        requiredConditions: group.required_conditions || (group.logic === 'OR' ? 1 : undefined),
+        explanation: group.explanation || undefined
       };
-    };
+    });
 
-    const entryRules = entryGroups.map(transformRuleGroup);
-    const exitRules = exitGroups.map(transformRuleGroup);
+    // Separate entry and exit rules based on rule_type, maintaining proper group association
+    const entryRules = transformedData
+      .filter(group => group.rule_type === 'entry')
+      .sort((a, b) => {
+        // Sort by group_order to maintain proper AND/OR sequence
+        const aOrder = ruleGroupsData.find(rg => rg.id === a.id)?.group_order || 0;
+        const bOrder = ruleGroupsData.find(rg => rg.id === b.id)?.group_order || 0;
+        return aOrder - bOrder;
+      });
 
-    console.log('Transformed entry rules:', JSON.stringify(entryRules, null, 2));
-    console.log('Transformed exit rules:', JSON.stringify(exitRules, null, 2));
+    const exitRules = transformedData
+      .filter(group => group.rule_type === 'exit')
+      .sort((a, b) => {
+        // Sort by group_order to maintain proper AND/OR sequence
+        const aOrder = ruleGroupsData.find(rg => rg.id === a.id)?.group_order || 0;
+        const bOrder = ruleGroupsData.find(rg => rg.id === b.id)?.group_order || 0;
+        return aOrder - bOrder;
+      });
 
-    return {
-      entryRules,
-      exitRules
-    };
+    console.log("Transformed entry rules:", entryRules);
+    console.log("Transformed exit rules:", exitRules);
 
+    return { entryRules, exitRules };
   } catch (error) {
-    console.error('Error in getTradingRulesForStrategy:', error);
+    console.error("Error in getTradingRulesForStrategy:", error);
     throw error;
   }
+};
+
+// Helper function to clean parameters and remove malformed data
+const cleanParameters = (parameters: any): any => {
+  if (!parameters || typeof parameters !== 'object') {
+    return {};
+  }
+
+  const cleaned: any = {};
+  Object.keys(parameters).forEach(key => {
+    const value = parameters[key];
+    
+    // Skip malformed values that have _type properties
+    if (value && typeof value === 'object' && (value._type === 'undefined' || value._type === 'MaxDepthReached')) {
+      return; // Skip this parameter
+    }
+    
+    // Only include valid string and number values
+    if (typeof value === 'string' || typeof value === 'number') {
+      cleaned[key] = value;
+    }
+  });
+  
+  return cleaned;
 };
 
 export const deleteStrategy = async (id: string): Promise<boolean> => {

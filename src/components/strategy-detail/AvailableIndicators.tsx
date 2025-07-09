@@ -12,50 +12,23 @@ export const AvailableIndicators = ({
   onSelectIndicator,
   className = "" 
 }: AvailableIndicatorsProps) => {
+  // Updated to reflect locally supported indicators
   const indicatorGroups = {
     "Moving Averages": [
       "SMA", 
-      "EMA", 
-      "WMA", 
-      "TRIMA", 
-      "KAMA"
+      "EMA"
     ],
     "Oscillators": [
       "RSI", 
-      "Stochastic", 
-      "StochRSI", 
+      "Stochastic",
       "CCI", 
       "Williams %R", 
-      "Ultimate Oscillator", 
-      "MACD", 
-      "Awesome Oscillator", 
-      "Momentum", 
-      "CMO", 
+      "MACD",
       "MFI"
-    ],
-    "Trend Indicators": [
-      "ADX", 
-      "DMI", 
-      "Ichimoku Cloud", 
-      "PSAR", 
-      "VWAP", 
-      "Supertrend", 
-      "TTM Squeeze"
     ],
     "Volatility Indicators": [
       "Bollinger Bands", 
-      "ATR", 
-      "Keltner Channel", 
-      "Donchian Channel", 
-      "Chandelier Exit"
-    ],
-    "Volume Indicators": [
-      "Volume", 
-      "Chaikin Money Flow", 
-      "Volume Oscillator"
-    ],
-    "Price Patterns": [
-      "Heikin Ashi"
+      "ATR"
     ]
   };
 

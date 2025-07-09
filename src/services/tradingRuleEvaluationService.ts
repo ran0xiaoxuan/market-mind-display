@@ -1,6 +1,5 @@
-
 import { RuleGroupData } from "@/components/strategy-detail/types";
-import { getTaapiIndicator, getIndicatorValue } from "./taapiService";
+import { getLocalIndicator, getLocalIndicatorValue, mapParametersToLocal, getCurrentPrice } from "./localIndicatorService";
 
 export interface RuleEvaluation {
   signalGenerated: boolean;
@@ -187,7 +186,7 @@ const mapConditionToOperator = (condition: string): string => {
   return conditionMap[condition] || condition;
 };
 
-const mapTimeframeToTaapiInterval = (timeframe: string): string => {
+const mapTimeframeToLocal = (timeframe: string): string => {
   const timeframeMap: { [key: string]: string } = {
     '1m': '1m',
     '5m': '5m',
@@ -195,12 +194,66 @@ const mapTimeframeToTaapiInterval = (timeframe: string): string => {
     '30m': '30m',
     '1h': '1h',
     '4h': '4h',
-    'Daily': '1d',
-    'Weekly': '1w',
-    'Monthly': '1M'
+    'Daily': 'Daily',
+    'Weekly': 'Weekly',
+    'Monthly': 'Monthly'
   };
   
-  return timeframeMap[timeframe] || '1d';
+  return timeframeMap[timeframe] || 'Daily';
+};
+
+const getIndicatorValueWithType = async (
+  indicator: string, 
+  asset: string, 
+  parameters: any,
+  valueType?: string,
+  timeframe: string = 'Daily'
+): Promise<number | null> => {
+  try {
+    const indicatorMap: { [key: string]: string } = {
+      'RSI': 'RSI',
+      'MACD': 'MACD',
+      'Moving Average': 'SMA',
+      'SMA': 'SMA',
+      'EMA': 'EMA',
+      'Bollinger Bands': 'Bollinger Bands',
+      'Stochastic': 'Stochastic',
+      'ATR': 'ATR',
+      'CCI': 'CCI',
+      'Williams %R': 'Williams %R',
+      'MFI': 'MFI'
+    };
+
+    const localIndicator = indicatorMap[indicator];
+    if (!localIndicator) {
+      console.error('[LocalIndicatorValue] Unsupported indicator:', indicator);
+      return null;
+    }
+
+    const localTimeframe = mapTimeframeToLocal(timeframe);
+    console.log(`[LocalIndicatorValue] Getting ${indicator} for ${asset} with timeframe ${localTimeframe}`);
+
+    // Map parameters to local format
+    const localParams = mapParametersToLocal(indicator, {
+      symbol: asset,
+      interval: localTimeframe,
+      ...parameters
+    });
+
+    const indicatorData = await getLocalIndicator(localIndicator, localParams);
+    
+    if (!indicatorData) {
+      console.error('[LocalIndicatorValue] Failed to get indicator data for:', indicator);
+      return null;
+    }
+
+    const value = getLocalIndicatorValue(indicator, indicatorData, valueType);
+    console.log(`[LocalIndicatorValue] ${indicator} value: ${value}`);
+    return value;
+  } catch (error) {
+    console.error('[LocalIndicatorValue] Error getting indicator value:', error);
+    return null;
+  }
 };
 
 const evaluateInequality = async (inequality: any, asset: string, currentPrice: number, timeframe: string): Promise<boolean> => {
@@ -255,75 +308,6 @@ const evaluateInequality = async (inequality: any, asset: string, currentPrice: 
   } catch (error) {
     console.error('[InequalityEval] Error evaluating inequality:', error);
     return false;
-  }
-};
-
-const getIndicatorValueWithType = async (
-  indicator: string, 
-  asset: string, 
-  parameters: any,
-  valueType?: string,
-  timeframe: string = '1d'
-): Promise<number | null> => {
-  try {
-    const indicatorMap: { [key: string]: string } = {
-      'RSI': 'rsi',
-      'MACD': 'macd',
-      'Moving Average': 'sma',
-      'SMA': 'sma',
-      'EMA': 'ema',
-      'WMA': 'wma',
-      'TRIMA': 'trima',
-      'KAMA': 'kama',
-      'Bollinger Bands': 'bbands',
-      'Stochastic': 'stoch',
-      'StochRSI': 'stochrsi',
-      'Ultimate Oscillator': 'ultosc',
-      'Awesome Oscillator': 'ao',
-      'MFI': 'mfi',
-      'ADX': 'adx',
-      'DMI': 'dmi',
-      'Ichimoku Cloud': 'ichimoku',
-      'PSAR': 'psar',
-      'VWAP': 'vwap',
-      'Supertrend': 'supertrend',
-      'TTM Squeeze': 'ttmsqueeze',
-      'ATR': 'atr',
-      'Keltner Channel': 'keltnerchannels',
-      'Donchian Channel': 'donchian',
-      'Chandelier Exit': 'chandelier',
-      'Volume': 'volume',
-      'Chaikin Money Flow': 'cmf',
-      'Volume Oscillator': 'volumeoscillator',
-      'Heikin Ashi': 'heikinashi',
-      'CCI': 'cci',
-      'Williams %R': 'willr',
-      'Momentum': 'mom',
-      'CMO': 'cmo'
-    };
-
-    const taapiIndicator = indicatorMap[indicator];
-    if (!taapiIndicator) {
-      console.error('[IndicatorValue] Unsupported indicator:', indicator);
-      return null;
-    }
-
-    const taapiTimeframe = mapTimeframeToTaapiInterval(timeframe);
-    console.log(`[IndicatorValue] Getting ${indicator} for ${asset} with timeframe ${taapiTimeframe}`);
-
-    const indicatorData = await getTaapiIndicator(taapiIndicator, asset, taapiTimeframe, parameters);
-    
-    if (!indicatorData) {
-      console.error('[IndicatorValue] Failed to get indicator data for:', indicator);
-      return null;
-    }
-
-    const value = getIndicatorValue(indicator, indicatorData, valueType);
-    console.log(`[IndicatorValue] ${indicator} value: ${value}`);
-    return value;
-  } catch (error) {
-    console.error('[IndicatorValue] Error getting indicator value:', error);
-    return null;
   }
 };
 

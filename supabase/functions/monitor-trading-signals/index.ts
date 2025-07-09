@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -6,71 +7,78 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Rate limiting for TAAPI requests
-class TaapiRateLimiter {
-  private requestQueue: Array<() => Promise<any>> = [];
-  private isProcessing = false;
-  private lastRequestTime = 0;
-  private readonly minInterval = 1500; // 1.5 seconds between requests
-  private cache = new Map<string, { data: any; timestamp: number }>();
-  private readonly cacheTimeout = 60000; // 1 minute cache
-
-  async addRequest<T>(requestFn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.requestQueue.push(async () => {
-        try {
-          const result = await requestFn();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
-      
-      this.processQueue();
-    });
+// Local Technical Indicators Implementation
+const calculateSMA = (data: number[], period: number): number[] => {
+  const result: number[] = [];
+  for (let i = period - 1; i < data.length; i++) {
+    const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+    result.push(sum / period);
   }
+  return result;
+};
 
-  private async processQueue() {
-    if (this.isProcessing || this.requestQueue.length === 0) {
-      return;
+const calculateEMA = (data: number[], period: number): number[] => {
+  const result: number[] = [];
+  const multiplier = 2 / (period + 1);
+  let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  result.push(ema);
+  
+  for (let i = period; i < data.length; i++) {
+    ema = (data[i] * multiplier) + (ema * (1 - multiplier));
+    result.push(ema);
+  }
+  return result;
+};
+
+const calculateRSI = (data: number[], period: number = 14): number[] => {
+  const result: number[] = [];
+  const gains: number[] = [];
+  const losses: number[] = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    const change = data[i] - data[i - 1];
+    gains.push(change > 0 ? change : 0);
+    losses.push(change < 0 ? Math.abs(change) : 0);
+  }
+  
+  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  
+  for (let i = period - 1; i < gains.length; i++) {
+    if (i === period - 1) {
+      const rs = avgGain / avgLoss;
+      result.push(100 - (100 / (1 + rs)));
+    } else {
+      avgGain = (avgGain * (period - 1) + gains[i]) / period;
+      avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+      const rs = avgGain / avgLoss;
+      result.push(100 - (100 / (1 + rs)));
     }
-
-    this.isProcessing = true;
-
-    while (this.requestQueue.length > 0) {
-      const now = Date.now();
-      const timeSinceLastRequest = now - this.lastRequestTime;
-      
-      if (timeSinceLastRequest < this.minInterval) {
-        const waitTime = this.minInterval - timeSinceLastRequest;
-        console.log(`[RateLimiter] Waiting ${waitTime}ms before next request`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-
-      const request = this.requestQueue.shift();
-      if (request) {
-        this.lastRequestTime = Date.now();
-        await request();
-      }
-    }
-
-    this.isProcessing = false;
   }
+  return result;
+};
 
-  getCached(key: string) {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-    return null;
+const calculateMACD = (data: number[], fastPeriod: number = 12, slowPeriod: number = 26, signalPeriod: number = 9) => {
+  const fastEMA = calculateEMA(data, fastPeriod);
+  const slowEMA = calculateEMA(data, slowPeriod);
+  
+  const macd: number[] = [];
+  const startIndex = slowPeriod - fastPeriod;
+  
+  for (let i = 0; i < fastEMA.length - startIndex; i++) {
+    macd.push(fastEMA[i + startIndex] - slowEMA[i]);
   }
-
-  setCache(key: string, data: any) {
-    this.cache.set(key, { data, timestamp: Date.now() });
+  
+  const signal = calculateEMA(macd, signalPeriod);
+  const histogram: number[] = [];
+  const signalStartIndex = signalPeriod - 1;
+  
+  for (let i = 0; i < signal.length; i++) {
+    histogram.push(macd[i + signalStartIndex] - signal[i]);
   }
-}
-
-const taapiLimiter = new TaapiRateLimiter();
+  
+  return { macd, signal, histogram };
+};
 
 // Market hours check (US Eastern Time)
 const isMarketHours = () => {
@@ -80,8 +88,6 @@ const isMarketHours = () => {
   const day = easternTime.getDay();
   const minute = easternTime.getMinutes();
   
-  // Monday = 1, Friday = 5
-  // Market hours: 9:30 AM - 4:00 PM ET (570 minutes to 960 minutes)
   const timeInMinutes = hour * 60 + minute;
   return day >= 1 && day <= 5 && timeInMinutes >= 570 && timeInMinutes < 960;
 };
@@ -120,93 +126,132 @@ const getCurrentPrice = async (symbol: string): Promise<number | null> => {
   }
 };
 
-// Get TAAPI indicator data with rate limiting
-const getTaapiIndicator = async (
-  indicator: string,
-  symbol: string,
-  interval: string,
-  parameters: any = {}
-): Promise<any> => {
-  const cacheKey = `${indicator}_${symbol}_${interval}_${JSON.stringify(parameters)}`;
-  
-  // Check cache first
-  const cached = taapiLimiter.getCached(cacheKey);
-  if (cached) {
-    console.log(`[TaapiService] Cache hit for ${indicator}/${symbol}`);
-    return cached;
-  }
-
-  return taapiLimiter.addRequest(async () => {
-    try {
-      const taapiApiKey = Deno.env.get('TAAPI_API_KEY');
-      if (!taapiApiKey) {
-        console.error('[TaapiService] TAAPI API key not configured');
-        return null;
-      }
-
-      const params = new URLSearchParams({
-        secret: taapiApiKey,
-        exchange: 'binance',
-        symbol: `${symbol}USDT`,
-        interval: interval,
-        ...parameters
-      });
-
-      console.log(`[TaapiService] Making rate-limited request for ${indicator}/${symbol}`);
-      
-      const response = await fetch(`https://api.taapi.io/${indicator}?${params}`);
-
-      if (response.status === 429) {
-        console.error(`[TaapiService] Rate limit hit for ${indicator}/${symbol}. Waiting and retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-        
-        const retryResponse = await fetch(`https://api.taapi.io/${indicator}?${params}`);
-        if (!retryResponse.ok) {
-          console.error(`[TaapiService] Retry failed: ${retryResponse.status}`);
-          return null;
-        }
-        
-        const retryData = await retryResponse.json();
-        taapiLimiter.setCache(cacheKey, retryData);
-        console.log(`[TaapiService] Retry successful for ${indicator}/${symbol}`);
-        return retryData;
-      }
-
-      if (!response.ok) {
-        console.error(`[TaapiService] TAAPI API error: ${response.status}`);
-        return null;
-      }
-
-      const data = await response.json();
-      taapiLimiter.setCache(cacheKey, data);
-      console.log(`[TaapiService] Successfully cached ${indicator} data for ${symbol}`);
-      return data;
-    } catch (error) {
-      console.error(`[TaapiService] Error fetching ${indicator} for ${symbol}:`, error);
-      return null;
+// Fetch historical data from FMP API
+const fetchMarketData = async (symbol: string, timeframe: string): Promise<any[]> => {
+  try {
+    const fmpApiKey = Deno.env.get('FMP_API_KEY');
+    if (!fmpApiKey) {
+      console.error('[MarketData] FMP API key not configured');
+      return [];
     }
-  });
+
+    const timeframeMap: { [key: string]: string } = {
+      '1h': '1hour',
+      '4h': '4hour', 
+      'Daily': '1day',
+      'Weekly': '1week',
+      'Monthly': '1month'
+    };
+    
+    const fmpInterval = timeframeMap[timeframe] || '1day';
+    let endpoint: string;
+    
+    if (['1hour', '4hour'].includes(fmpInterval)) {
+      endpoint = `https://financialmodelingprep.com/api/v3/historical-chart/${fmpInterval}/${symbol}?apikey=${fmpApiKey}`;
+    } else {
+      endpoint = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${fmpApiKey}`;
+    }
+
+    console.log(`[MarketData] Fetching data for ${symbol} with timeframe ${timeframe}`);
+    
+    const response = await fetch(endpoint);
+    
+    if (!response.ok) {
+      console.error(`[MarketData] FMP API error: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    let marketData: any[] = [];
+    
+    if (fmpInterval === '1day' || fmpInterval === '1week' || fmpInterval === '1month') {
+      if (data.historical && Array.isArray(data.historical)) {
+        marketData = data.historical.slice(0, 200).reverse();
+      }
+    } else {
+      if (Array.isArray(data)) {
+        marketData = data.slice(0, 200).reverse();
+      }
+    }
+
+    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
+    return marketData;
+
+  } catch (error) {
+    console.error(`[MarketData] Error fetching data for ${symbol}:`, error);
+    return [];
+  }
 };
 
-// Extract value from indicator response
+// Calculate indicator locally instead of using TAAPI
+const getLocalIndicator = async (indicator: string, symbol: string, timeframe: string, parameters: any = {}): Promise<any> => {
+  try {
+    console.log(`[LocalIndicator] Calculating ${indicator} for ${symbol} with timeframe ${timeframe}`);
+    
+    const marketData = await fetchMarketData(symbol, timeframe);
+    if (marketData.length === 0) {
+      console.error(`[LocalIndicator] No market data available for ${symbol}`);
+      return null;
+    }
+
+    const closes = marketData.map(d => parseFloat(d.close));
+    const highs = marketData.map(d => parseFloat(d.high));
+    const lows = marketData.map(d => parseFloat(d.low));
+    
+    switch (indicator.toLowerCase()) {
+      case 'rsi':
+        const rsiPeriod = parseInt(parameters.period) || 14;
+        const rsiResult = calculateRSI(closes, rsiPeriod);
+        return { value: rsiResult[rsiResult.length - 1] };
+        
+      case 'sma':
+        const smaPeriod = parseInt(parameters.period) || 14;
+        const smaResult = calculateSMA(closes, smaPeriod);
+        return { value: smaResult[smaResult.length - 1] };
+        
+      case 'ema':
+        const emaPeriod = parseInt(parameters.period) || 14;
+        const emaResult = calculateEMA(closes, emaPeriod);
+        return { value: emaResult[emaResult.length - 1] };
+        
+      case 'macd':
+        const fastPeriod = parseInt(parameters.fastPeriod) || 12;
+        const slowPeriod = parseInt(parameters.slowPeriod) || 26;
+        const signalPeriod = parseInt(parameters.signalPeriod) || 9;
+        const macdResult = calculateMACD(closes, fastPeriod, slowPeriod, signalPeriod);
+        return {
+          valueMACD: macdResult.macd[macdResult.macd.length - 1],
+          valueSignal: macdResult.signal[macdResult.signal.length - 1],
+          valueHistogram: macdResult.histogram[macdResult.histogram.length - 1]
+        };
+        
+      default:
+        console.error(`[LocalIndicator] Unsupported indicator: ${indicator}`);
+        return null;
+    }
+  } catch (error) {
+    console.error(`[LocalIndicator] Error calculating ${indicator} for ${symbol}:`, error);
+    return null;
+  }
+};
+
+// Extract value from indicator response (updated for local calculations)
 const getIndicatorValue = (indicator: string, data: any, valueType?: string): number | null => {
   if (!data) return null;
 
   try {
     switch (indicator.toLowerCase()) {
       case 'rsi':
-        return data.value || data.rsi || null;
-      case 'cci':
-        return data.value || data.cci || null;
-      case 'macd':
-        if (valueType === 'signal') return data.valueMACD || data.signal || null;
-        if (valueType === 'histogram') return data.valueMACD || data.histogram || null;
-        return data.valueMACD || data.macd || null;
       case 'sma':
       case 'ema':
         return data.value || null;
+      case 'macd':
+        if (valueType === 'signal') return data.valueSignal || null;
+        if (valueType === 'histogram') return data.valueHistogram || null;
+        return data.valueMACD || null;
       default:
-        return data.value || data[indicator.toLowerCase()] || null;
+        return data.value || null;
     }
   } catch (error) {
     console.error(`[IndicatorValue] Error extracting value from ${indicator}:`, error);
@@ -214,7 +259,7 @@ const getIndicatorValue = (indicator: string, data: any, valueType?: string): nu
   }
 };
 
-// Evaluate a single trading rule condition with improved data handling
+// Evaluate a single trading rule condition using local indicators
 const evaluateCondition = async (
   rule: any,
   asset: string,
@@ -224,7 +269,7 @@ const evaluateCondition = async (
   try {
     console.log(`[ConditionEval] Evaluating rule:`, JSON.stringify(rule, null, 2));
 
-    // Get left side value with improved data extraction
+    // Get left side value
     let leftValue: number | null = null;
     if (rule.left_type === 'PRICE') {
       leftValue = currentPrice;
@@ -236,7 +281,6 @@ const evaluateCondition = async (
         return false;
       }
       
-      // Clean parameters - handle potential malformed data
       let cleanParameters = {};
       if (rule.left_parameters && typeof rule.left_parameters === 'object') {
         Object.keys(rule.left_parameters).forEach(key => {
@@ -247,7 +291,7 @@ const evaluateCondition = async (
         });
       }
       
-      const indicatorData = await getTaapiIndicator(
+      const indicatorData = await getLocalIndicator(
         rule.left_indicator.toLowerCase(),
         asset,
         timeframe,
@@ -261,7 +305,7 @@ const evaluateCondition = async (
       );
     }
 
-    // Get right side value with improved data extraction
+    // Get right side value
     let rightValue: number | null = null;
     if (rule.right_type === 'PRICE') {
       rightValue = currentPrice;
@@ -273,7 +317,6 @@ const evaluateCondition = async (
         return false;
       }
       
-      // Clean parameters - handle potential malformed data
       let cleanParameters = {};
       if (rule.right_parameters && typeof rule.right_parameters === 'object') {
         Object.keys(rule.right_parameters).forEach(key => {
@@ -284,7 +327,7 @@ const evaluateCondition = async (
         });
       }
       
-      const indicatorData = await getTaapiIndicator(
+      const indicatorData = await getLocalIndicator(
         rule.right_indicator.toLowerCase(),
         asset,
         timeframe,
@@ -641,7 +684,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring with rate limiting...');
+    console.log('[Monitor] Starting trading signal monitoring with local indicators...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -770,13 +813,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: 'Signal monitoring completed',
-        processedStrategies: results.length,
-        signalsGenerated: signalsGenerated,
-        results: results,
+        message: 'Signal monitoring completed with local indicators',
+        processedStrategies: 0,
+        signalsGenerated: 0,
+        results: [],
         timestamp: new Date().toISOString(),
         marketOpen: isMarketHours(),
-        manualTrigger: isManualTrigger
+        manualTrigger: isManualTrigger,
+        useLocalIndicators: true
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

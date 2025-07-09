@@ -1,346 +1,201 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
-export interface StockPrice {
+export interface MarketData {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface MarketDataOptions {
   symbol: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  timestamp: string;
+  timeframe: string;
+  limit?: number;
+  from?: string;
+  to?: string;
 }
 
-export interface PortfolioMetrics {
-  strategiesCount: string;
-  strategiesChange: {
-    value: string;
-    positive: boolean;
-  };
-  activeStrategies: string;
-  activeChange: {
-    value: string;
-    positive: boolean;
-  };
-  signalAmount: string;
-  signalChange: {
-    value: string;
-    positive: boolean;
-  };
-  transactionAmount: number;
-  transactionChange: {
-    value: string;
-    positive: boolean;
-  };
-}
-
-export const getStockPrice = async (symbol: string): Promise<StockPrice | null> => {
+// Get FMP API key from Supabase secrets
+const getFmpApiKey = async (): Promise<string | null> => {
   try {
-    console.log(`[MarketData] Fetching real stock price for ${symbol}`);
-    
-    // Get FMP API key with improved error handling and consistent method
-    let fmpApiKey;
-    try {
-      console.log('[MarketData] Requesting FMP API key from edge function...');
-      const { data, error } = await supabase.functions.invoke('get-fmp-key', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (error) {
-        console.error('[MarketData] Error invoking get-fmp-key function:', error);
-        throw new Error(`Failed to get FMP API key: ${error.message}`);
-      }
-      
-      if (!data?.key) {
-        console.error('[MarketData] No FMP API key returned from function:', data);
-        throw new Error('FMP API key not available - please check Supabase secrets configuration');
-      }
-      
-      fmpApiKey = data.key;
-      console.log('[MarketData] Successfully retrieved FMP API key');
-      
-    } catch (error) {
-      console.error('[MarketData] Failed to get FMP API key:', error);
-      throw new Error(`API key retrieval failed: ${error.message}`);
-    }
-
-    // Test FMP API connectivity with proper timeout handling
-    console.log(`[MarketData] Testing FMP API connectivity for ${symbol}...`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
-    try {
-      const testResponse = await fetch(
-        `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'TradingApp/1.0'
-          },
-          signal: controller.signal
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!testResponse.ok) {
-        if (testResponse.status === 429) {
-          console.error('[MarketData] FMP API rate limit reached');
-          throw new Error('FMP API rate limit reached - please try again later');
-        } else if (testResponse.status === 401 || testResponse.status === 403) {
-          console.error('[MarketData] FMP API authentication failed');
-          throw new Error('FMP API authentication failed - please check API key');
-        } else {
-          console.error(`[MarketData] FMP API error: ${testResponse.status} ${testResponse.statusText}`);
-          throw new Error(`FMP API error: ${testResponse.status} - ${testResponse.statusText}`);
-        }
-      }
-
-      const quotes = await testResponse.json();
-      console.log(`[MarketData] Raw FMP API response for ${symbol}:`, quotes);
-      
-      if (!Array.isArray(quotes) || quotes.length === 0) {
-        console.error(`[MarketData] No price data found for ${symbol}:`, quotes);
-        throw new Error(`No price data found for ${symbol} - symbol may not exist or market may be closed`);
-      }
-
-      const quote = quotes[0];
-      
-      if (!quote.price || quote.price === 0) {
-        console.error(`[MarketData] Invalid price data for ${symbol}:`, quote);
-        throw new Error(`Invalid price data for ${symbol} - price is zero or null`);
-      }
-
-      const stockPrice = {
-        symbol: quote.symbol,
-        price: quote.price,
-        change: quote.change || 0,
-        changePercent: quote.changesPercentage || 0,
-        timestamp: new Date().toISOString()
-      };
-
-      console.log(`[MarketData] Successfully retrieved real price data for ${symbol}:`, stockPrice);
-      return stockPrice;
-      
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout - FMP API took too long to respond');
-      }
-      throw error;
-    }
-
+    const { data } = await supabase.functions.invoke('get-fmp-key');
+    return data?.key || null;
   } catch (error) {
-    console.error(`[MarketData] Error fetching real price for ${symbol}:`, error);
-    throw new Error(`Failed to fetch real market data for ${symbol}: ${error.message}`);
+    console.error("Error fetching FMP API key:", error);
+    return null;
   }
 };
 
-const generateSimulatedPrice = (symbol: string): StockPrice => {
-  // Generate realistic price based on symbol
-  const basePrice = getBasePriceForSymbol(symbol);
-  const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-  const price = basePrice * (1 + variation);
-  const change = basePrice * variation;
-  const changePercent = variation * 100;
+// Map timeframe to FMP API intervals
+const mapTimeframeToFmpInterval = (timeframe: string): string => {
+  const timeframeMap: { [key: string]: string } = {
+    '1m': '1min',
+    '5m': '5min',
+    '15m': '15min',
+    '30m': '30min',
+    '1h': '1hour',
+    '4h': '4hour',
+    'Daily': '1day',
+    'Weekly': '1week',
+    'Monthly': '1month'
+  };
+  
+  return timeframeMap[timeframe] || '1day';
+};
 
+// Cache for market data
+const marketDataCache = new Map<string, { data: MarketData[]; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Get cached data if available and not expired
+const getCachedData = (cacheKey: string): MarketData[] | null => {
+  const cached = marketDataCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log(`[MarketData] Cache hit for: ${cacheKey}`);
+    return cached.data;
+  }
+  return null;
+};
+
+// Set data in cache
+const setCachedData = (cacheKey: string, data: MarketData[]): void => {
+  marketDataCache.set(cacheKey, { data, timestamp: Date.now() });
+  console.log(`[MarketData] Cached data for: ${cacheKey}`);
+};
+
+// Fetch historical market data from FMP
+export const fetchMarketData = async (options: MarketDataOptions): Promise<MarketData[]> => {
+  const { symbol, timeframe, limit = 100 } = options;
+  const cacheKey = `${symbol}_${timeframe}_${limit}`;
+  
+  // Check cache first
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
+  try {
+    const apiKey = await getFmpApiKey();
+    if (!apiKey) {
+      throw new Error('FMP API key not available');
+    }
+
+    const fmpInterval = mapTimeframeToFmpInterval(timeframe);
+    let endpoint: string;
+    
+    // Choose the appropriate FMP endpoint based on timeframe
+    if (['1min', '5min', '15min', '30min', '1hour', '4hour'].includes(fmpInterval)) {
+      // Intraday data
+      endpoint = `https://financialmodelingprep.com/api/v3/historical-chart/${fmpInterval}/${symbol}?apikey=${apiKey}`;
+    } else {
+      // Daily, weekly, monthly data
+      endpoint = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${apiKey}`;
+    }
+
+    console.log(`[MarketData] Fetching data for ${symbol} with timeframe ${timeframe}`);
+    
+    const response = await fetch(endpoint);
+    
+    if (!response.ok) {
+      throw new Error(`FMP API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    let marketData: MarketData[] = [];
+    
+    if (fmpInterval === '1day' || fmpInterval === '1week' || fmpInterval === '1month') {
+      // Daily/weekly/monthly data format
+      if (data.historical && Array.isArray(data.historical)) {
+        marketData = data.historical
+          .slice(0, limit)
+          .map((item: any) => ({
+            date: item.date,
+            open: parseFloat(item.open),
+            high: parseFloat(item.high),
+            low: parseFloat(item.low),
+            close: parseFloat(item.close),
+            volume: parseInt(item.volume || 0)
+          }))
+          .reverse(); // FMP returns newest first, we want oldest first
+      }
+    } else {
+      // Intraday data format
+      if (Array.isArray(data)) {
+        marketData = data
+          .slice(0, limit)
+          .map((item: any) => ({
+            date: item.date,
+            open: parseFloat(item.open),
+            high: parseFloat(item.high),
+            low: parseFloat(item.low),
+            close: parseFloat(item.close),
+            volume: parseInt(item.volume || 0)
+          }))
+          .reverse(); // FMP returns newest first, we want oldest first
+      }
+    }
+
+    if (marketData.length === 0) {
+      throw new Error(`No market data found for ${symbol}`);
+    }
+
+    // Cache the data
+    setCachedData(cacheKey, marketData);
+    
+    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
+    return marketData;
+
+  } catch (error) {
+    console.error(`[MarketData] Error fetching data for ${symbol}:`, error);
+    throw error;
+  }
+};
+
+// Get current market price
+export const getCurrentPrice = async (symbol: string): Promise<number | null> => {
+  try {
+    const apiKey = await getFmpApiKey();
+    if (!apiKey) {
+      console.error('[MarketData] FMP API key not available');
+      return null;
+    }
+
+    const response = await fetch(
+      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`
+    );
+
+    if (!response.ok) {
+      console.error(`[MarketData] FMP API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.error(`[MarketData] No price data for ${symbol}`);
+      return null;
+    }
+
+    const price = data[0].price;
+    console.log(`[MarketData] Current price for ${symbol}: $${price}`);
+    return price;
+  } catch (error) {
+    console.error(`[MarketData] Error fetching price for ${symbol}:`, error);
+    return null;
+  }
+};
+
+// Extract arrays from market data for indicator calculations
+export const extractIndicatorData = (marketData: MarketData[]) => {
   return {
-    symbol,
-    price: Math.round(price * 100) / 100,
-    change: Math.round(change * 100) / 100,
-    changePercent: Math.round(changePercent * 100) / 100,
-    timestamp: new Date().toISOString()
+    open: marketData.map(d => d.open),
+    high: marketData.map(d => d.high),
+    low: marketData.map(d => d.low),
+    close: marketData.map(d => d.close),
+    volume: marketData.map(d => d.volume)
   };
-};
-
-const getBasePriceForSymbol = (symbol: string): number => {
-  // Realistic base prices for common symbols
-  const basePrices: Record<string, number> = {
-    'AAPL': 175,
-    'GOOGL': 140,
-    'MSFT': 350,
-    'AMZN': 145,
-    'TSLA': 200,
-    'NVDA': 450,
-    'META': 300,
-    'NFLX': 400,
-    'SPY': 450,
-    'QQQ': 380
-  };
-
-  return basePrices[symbol.toUpperCase()] || 150;
-};
-
-export const calculatePortfolioMetrics = async (timeRange: string): Promise<PortfolioMetrics> => {
-  try {
-    console.log(`Calculating portfolio metrics for timeRange: ${timeRange}`);
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    // Get date range for filtering
-    const now = new Date();
-    let startDate = new Date();
-    
-    switch (timeRange) {
-      case '7d':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(now.getDate() - 30);
-        break;
-      case 'all':
-      default:
-        startDate = new Date('2020-01-01');
-        break;
-    }
-
-    // Fetch strategies count
-    const { data: strategies } = await supabase
-      .from('strategies')
-      .select('id, is_active')
-      .eq('user_id', user.id);
-
-    const totalStrategies = strategies?.length || 0;
-    const activeStrategies = strategies?.filter(s => s.is_active)?.length || 0;
-
-    // Fetch signals count in time range
-    const { data: signals } = await supabase
-      .from('trading_signals')
-      .select('*')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', now.toISOString())
-      .in('strategy_id', strategies?.map(s => s.id) || []);
-
-    const signalAmount = signals?.length || 0;
-
-    // Calculate transaction amount from signals
-    const transactionAmount = (signals || []).reduce((total, signal) => {
-      const signalData = signal.signal_data as any;
-      const price = signalData?.price || 0;
-      const volume = signalData?.volume || 0;
-      return total + (price * volume);
-    }, 0);
-
-    return {
-      strategiesCount: totalStrategies.toString(),
-      strategiesChange: { value: "+0", positive: false },
-      activeStrategies: activeStrategies.toString(),
-      activeChange: { value: "+0", positive: false },
-      signalAmount: signalAmount.toString(),
-      signalChange: { value: "+0", positive: false },
-      transactionAmount: Math.round(transactionAmount * 100) / 100,
-      transactionChange: { value: "+0", positive: false }
-    };
-
-  } catch (error) {
-    console.error('Error calculating portfolio metrics:', error);
-    return {
-      strategiesCount: "0",
-      strategiesChange: { value: "+0", positive: false },
-      activeStrategies: "0",
-      activeChange: { value: "+0", positive: false },
-      signalAmount: "0",
-      signalChange: { value: "+0", positive: false },
-      transactionAmount: 0,
-      transactionChange: { value: "+0", positive: false }
-    };
-  }
-};
-
-export const getRealTradeHistory = async (timeRange: string = '7d') => {
-  try {
-    console.log(`Fetching real trade history for timeRange: ${timeRange}`);
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    // Get date range for filtering
-    const now = new Date();
-    let startDate = new Date();
-    
-    switch (timeRange) {
-      case '7d':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(now.getDate() - 30);
-        break;
-      case 'all':
-      default:
-        startDate = new Date('2020-01-01');
-        break;
-    }
-
-    // Fetch user's strategies first
-    const { data: userStrategies } = await supabase
-      .from('strategies')
-      .select('id, name, target_asset')
-      .eq('user_id', user.id);
-
-    if (!userStrategies || userStrategies.length === 0) {
-      console.log('No strategies found for user');
-      return [];
-    }
-
-    const strategyIds = userStrategies.map(s => s.id);
-
-    // Fetch trading signals for user's strategies in the specified time range
-    const { data: signals, error } = await supabase
-      .from('trading_signals')
-      .select('*')
-      .in('strategy_id', strategyIds)
-      .eq('processed', true)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', now.toISOString())
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (error) {
-      console.error('Error fetching trading signals:', error);
-      return [];
-    }
-
-    if (!signals || signals.length === 0) {
-      console.log('No trading signals found in time range');
-      return [];
-    }
-
-    // Format signals into trade history format
-    const formattedTrades = signals.map(signal => {
-      const signalData = signal.signal_data as any;
-      const strategy = userStrategies.find(s => s.id === signal.strategy_id);
-      
-      return {
-        id: signal.id,
-        date: new Date(signal.created_at).toLocaleDateString(),
-        type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
-        signal: signalData?.reason || 'Trading Signal',
-        price: `$${(signalData?.price || 0).toFixed(2)}`,
-        contracts: signalData?.volume || 0,
-        profit: signalData?.profit !== null && signalData?.profit !== undefined 
-          ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 
-          : null,
-        profitPercentage: signalData?.profitPercentage !== null && signalData?.profitPercentage !== undefined
-          ? `${signalData.profitPercentage >= 0 ? '+' : ''}${signalData.profitPercentage.toFixed(2)}%`
-          : null,
-        strategyId: signal.strategy_id,
-        strategyName: strategy?.name || 'Unknown Strategy',
-        targetAsset: strategy?.target_asset || 'Unknown Asset'
-      };
-    });
-
-    console.log(`Found ${formattedTrades.length} real trades in time range`);
-    return formattedTrades;
-
-  } catch (error) {
-    console.error('Error fetching real trade history:', error);
-    return [];
-  }
 };

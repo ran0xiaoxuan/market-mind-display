@@ -43,16 +43,16 @@ export const AssetTypeSelector = ({
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
   const [isMarketStatusLoading, setIsMarketStatusLoading] = useState(false);
 
-  // Enhanced market status fetch with better error handling
+  // Fetch real-time market status from FMP API
   const fetchMarketStatus = useCallback(async () => {
     if (!apiKey || connectionStatus !== 'connected') return;
 
     setIsMarketStatusLoading(true);
     try {
-      console.log("Fetching enhanced market status...");
+      console.log("Fetching real-time market status from FMP API...");
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       try {
         const response = await fetch(
@@ -74,8 +74,8 @@ export const AssetTypeSelector = ({
         }
         
         const data = await response.json();
+        console.log("Market status data:", data);
         
-        // Enhanced market status processing
         if (data && typeof data === 'object') {
           const now = new Date();
           const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
@@ -83,19 +83,21 @@ export const AssetTypeSelector = ({
           const hour = estTime.getHours();
           const minute = estTime.getMinutes();
           
+          // Check if it's a weekday and within market hours (9:30 AM - 4:00 PM ET)
           const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
           const timeInMinutes = hour * 60 + minute;
-          const marketOpenMinutes = 9 * 60 + 30;
-          const marketCloseMinutes = 16 * 60;
+          const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM
+          const marketCloseMinutes = 16 * 60; // 4:00 PM
           const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
           
           const isOpen = isWeekday && isMarketHours;
           
-          // Calculate next market open with better formatting
+          // Calculate next market open
           let nextOpen = '';
           if (!isOpen) {
             const nextMarketDay = new Date(estTime);
             if (!isWeekday || timeInMinutes >= marketCloseMinutes) {
+              // Move to next weekday
               do {
                 nextMarketDay.setDate(nextMarketDay.getDate() + 1);
               } while (nextMarketDay.getDay() === 0 || nextMarketDay.getDay() === 6);
@@ -130,15 +132,18 @@ export const AssetTypeSelector = ({
             lastUpdated: new Date().toISOString()
           });
           
-          console.log(`Enhanced market status - Open: ${isOpen}, Next: ${nextOpen}`);
+          console.log(`Market status updated - Open: ${isOpen}, Next Open: ${nextOpen}`);
         }
       } catch (error) {
         clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Market status request timeout');
+        }
         throw error;
       }
     } catch (error) {
-      console.error("Enhanced market status fetch failed:", error);
-      // Fallback to basic calculation
+      console.error("Error fetching market status:", error);
+      // Fallback to client-side calculation if API fails
       const now = new Date();
       const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
       const dayOfWeek = estTime.getDay();
@@ -163,71 +168,6 @@ export const AssetTypeSelector = ({
       setIsMarketStatusLoading(false);
     }
   }, [apiKey, connectionStatus]);
-
-  // Enhanced search with better error handling and validation
-  const searchAssets = useCallback(debounce(async (query: string) => {
-    if (connectionStatus !== 'connected' || !apiKey) {
-      console.log("Cannot search: API not connected");
-      return;
-    }
-
-    setIsLoading(true);
-    setIsSearchError(false);
-    
-    try {
-      if (query.trim().length > 0) {
-        console.log(`[AssetAPI] Enhanced search for: "${query}"`);
-        const startTime = performance.now();
-        
-        const results = await searchStocks(query, apiKey);
-        
-        const searchTime = performance.now() - startTime;
-        console.log(`[AssetAPI] Search completed in ${searchTime.toFixed(2)}ms`);
-        
-        // Enhanced result validation
-        const validatedResults = results.filter(asset => 
-          asset.symbol && 
-          asset.name && 
-          asset.symbol.length <= 10 &&
-          !asset.symbol.includes('.')
-        );
-        
-        setSearchResults(validatedResults);
-
-        if (validatedResults.length === 0 && query.trim().length > 2) {
-          toast.info(`No stocks found matching "${query}"`, {
-            description: "Try a different search term or check the spelling"
-          });
-        } else if (validatedResults.length > 0) {
-          toast.success(`Found ${validatedResults.length} matching assets`, {
-            description: `Search completed in ${searchTime.toFixed(0)}ms`
-          });
-        }
-      } else {
-        setSearchResults([]);
-      }
-    } catch (error) {
-      console.error("Enhanced search failed:", error);
-      setIsSearchError(true);
-      
-      // More specific error handling
-      if (error.message?.includes("timeout")) {
-        toast.error("Search timed out", {
-          description: "The search took too long. Please try again."
-        });
-      } else if (error.message?.includes("401") || error.message?.includes("403")) {
-        toast.error("API access denied", {
-          description: "There may be an issue with the market data service."
-        });
-      } else {
-        toast.error("Search failed", {
-          description: "Please check your connection and try again."
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, 400), [apiKey, connectionStatus]);
 
   // Initialize market status and set up periodic updates
   useEffect(() => {
@@ -331,6 +271,38 @@ export const AssetTypeSelector = ({
     }
   }, [selectedAsset, searchResults, apiKey, connectionStatus]);
 
+  // Search for assets with debounce
+  const searchAssets = useCallback(debounce(async (query: string) => {
+    if (connectionStatus !== 'connected' || !apiKey) {
+      console.log("Cannot search: API not connected");
+      return;
+    }
+
+    setIsLoading(true);
+    setIsSearchError(false);
+    
+    try {
+      if (query.trim().length > 0) {
+        const results = await searchStocks(query, apiKey);
+        setSearchResults(results);
+
+        if (results.length === 0 && query.trim().length > 2) {
+          toast.info(`No stocks found matching "${query}"`);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+      setIsSearchError(true);
+      if (query.length > 2) {
+        toast.error("Search failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, 500), [apiKey, connectionStatus]);
+
   // Reset search error state when query changes
   useEffect(() => {
     setIsSearchError(false);
@@ -375,17 +347,17 @@ export const AssetTypeSelector = ({
         <h2 className="text-xl font-semibold">Target Asset</h2>
         
         <div className="flex items-center gap-4">
-          {/* Enhanced Market Status Display */}
+          {/* Market Status - Real-time from API */}
           {marketStatus && (
             <div className="flex items-center gap-1 text-xs">
               {isMarketStatusLoading ? (
                 <>
                   <Loader2 className="h-2 w-2 animate-spin" />
-                  <span className="text-muted-foreground">Updating...</span>
+                  <span className="text-muted-foreground">Checking market...</span>
                 </>
               ) : (
                 <>
-                  <div className={`h-2 w-2 rounded-full ${marketStatus.isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                  <div className={`h-2 w-2 rounded-full ${marketStatus.isOpen ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span className="text-muted-foreground">
                     {marketStatus.isOpen ? 'US Market Open' : 'US Market Closed'}
                   </span>
@@ -402,18 +374,18 @@ export const AssetTypeSelector = ({
             </div>
           )}
 
-          {/* Enhanced Connection Status */}
+          {/* API Connection Status */}
           {isConnecting && (
             <div className="flex items-center gap-1 text-xs">
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span className="text-muted-foreground">Connecting to enhanced data...</span>
+              <span className="text-muted-foreground">Connecting to market data...</span>
             </div>
           )}
 
           {connectionStatus === 'connected' && (
             <div className="flex items-center gap-1 text-xs">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-muted-foreground">Enhanced market data connected</span>
+              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+              <span className="text-muted-foreground">Market data connected</span>
             </div>
           )}
         </div>
@@ -423,27 +395,17 @@ export const AssetTypeSelector = ({
         {connectionStatus === 'connecting' ? (
           <Button variant="outline" className="w-full justify-start text-left font-normal h-10" disabled>
             <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
-            Connecting to enhanced market data...
+            Connecting to market data...
           </Button>
         ) : connectionStatus === 'failed' ? (
           <Button variant="outline" className="w-full justify-start text-left font-normal h-10" disabled>
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            Enhanced market data unavailable
+            Market data unavailable
           </Button>
         ) : (
           <Button variant="outline" className="w-full justify-start text-left font-normal h-10" onClick={handleSearchOpen}>
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            {selectedAsset ? (
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{selectedAsset}</span>
-                <span className="text-muted-foreground">-</span>
-                <span className="text-sm text-muted-foreground">
-                  {selectedAssetDetails?.name || 'Loading details...'}
-                </span>
-              </div>
-            ) : (
-              "Search for stocks with enhanced data..."
-            )}
+            {selectedAsset ? `${selectedAsset} - ${selectedAssetDetails?.name || ''}` : "Search for a stock..."}
           </Button>
         )}
         
@@ -504,9 +466,9 @@ export const AssetTypeSelector = ({
       {connectionStatus === 'failed' && (
         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-md p-3 text-sm flex items-start gap-2">
           <div>
-            <p className="text-amber-800 dark:text-amber-300 font-medium">Enhanced market data unavailable</p>
+            <p className="text-amber-800 dark:text-amber-300 font-medium">Market data unavailable</p>
             <p className="text-amber-700 dark:text-amber-400 text-xs mt-1">
-              Unable to connect to enhanced market data service. Falling back to basic search if available.
+              Unable to connect to market data service. Please check your connection and try again.
             </p>
             <Button 
               variant="outline" 
@@ -523,7 +485,7 @@ export const AssetTypeSelector = ({
               ) : (
                 <>
                   <RefreshCw className="h-3 w-3 mr-1" />
-                  Retry Enhanced Connection
+                  Retry Connection
                 </>
               )}
             </Button>

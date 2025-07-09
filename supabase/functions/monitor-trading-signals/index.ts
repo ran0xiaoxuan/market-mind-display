@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -78,6 +77,28 @@ const calculateMACD = (data: number[], fastPeriod: number = 12, slowPeriod: numb
   }
   
   return { macd, signal, histogram };
+};
+
+// Add CCI calculation function
+const calculateCCI = (high: number[], low: number[], close: number[], period: number = 20): number[] => {
+  const result: number[] = [];
+  const typicalPrices: number[] = [];
+  
+  // Calculate typical prices
+  for (let i = 0; i < close.length; i++) {
+    typicalPrices.push((high[i] + low[i] + close[i]) / 3);
+  }
+  
+  for (let i = period - 1; i < typicalPrices.length; i++) {
+    const slice = typicalPrices.slice(i - period + 1, i + 1);
+    const sma = slice.reduce((a, b) => a + b, 0) / period;
+    const meanDeviation = slice.reduce((a, b) => a + Math.abs(b - sma), 0) / period;
+    
+    const cci = (typicalPrices[i] - sma) / (0.015 * meanDeviation);
+    result.push(cci);
+  }
+  
+  return result;
 };
 
 // Market hours check (US Eastern Time)
@@ -199,7 +220,10 @@ const getLocalIndicator = async (indicator: string, symbol: string, timeframe: s
     const highs = marketData.map(d => parseFloat(d.high));
     const lows = marketData.map(d => parseFloat(d.low));
     
-    switch (indicator.toLowerCase()) {
+    // Normalize indicator name for case-insensitive matching
+    const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
+    
+    switch (normalizedIndicator) {
       case 'rsi':
         const rsiPeriod = parseInt(parameters.period) || 14;
         const rsiResult = calculateRSI(closes, rsiPeriod);
@@ -226,6 +250,11 @@ const getLocalIndicator = async (indicator: string, symbol: string, timeframe: s
           valueHistogram: macdResult.histogram[macdResult.histogram.length - 1]
         };
         
+      case 'cci':
+        const cciPeriod = parseInt(parameters.period) || 20;
+        const cciResult = calculateCCI(highs, lows, closes, cciPeriod);
+        return { value: cciResult[cciResult.length - 1] };
+        
       default:
         console.error(`[LocalIndicator] Unsupported indicator: ${indicator}`);
         return null;
@@ -245,6 +274,7 @@ const getIndicatorValue = (indicator: string, data: any, valueType?: string): nu
       case 'rsi':
       case 'sma':
       case 'ema':
+      case 'cci':
         return data.value || null;
       case 'macd':
         if (valueType === 'signal') return data.valueSignal || null;
@@ -292,7 +322,7 @@ const evaluateCondition = async (
       }
       
       const indicatorData = await getLocalIndicator(
-        rule.left_indicator.toLowerCase(),
+        rule.left_indicator,
         asset,
         timeframe,
         cleanParameters
@@ -328,7 +358,7 @@ const evaluateCondition = async (
       }
       
       const indicatorData = await getLocalIndicator(
-        rule.right_indicator.toLowerCase(),
+        rule.right_indicator,
         asset,
         timeframe,
         cleanParameters
@@ -830,7 +860,7 @@ serve(async (req) => {
       );
     }
 
-    // Get all active strategies that have trading rules and notifications enabled
+    // Get all active strategies - simplified query to avoid filtering issues
     const { data: strategies, error: strategiesError } = await supabaseClient
       .from('strategies')
       .select(`
@@ -842,16 +872,15 @@ serve(async (req) => {
         daily_signal_limit,
         is_active,
         signal_notifications_enabled,
-        rule_groups!inner(
+        rule_groups(
           id,
           rule_type,
           logic,
           required_conditions,
-          trading_rules!inner(id)
+          trading_rules(id)
         )
       `)
-      .eq('is_active', true)
-      .eq('signal_notifications_enabled', true);
+      .eq('is_active', true);
 
     if (strategiesError) {
       console.error('[Monitor] Error fetching strategies:', strategiesError);
@@ -859,7 +888,7 @@ serve(async (req) => {
     }
 
     if (!strategies || strategies.length === 0) {
-      console.log('[Monitor] No active strategies with notifications enabled found');
+      console.log('[Monitor] No active strategies found');
       return new Response(
         JSON.stringify({ message: 'No active strategies found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -887,6 +916,18 @@ serve(async (req) => {
             strategyName: strategy.name,
             status: 'skipped',
             reason: 'No trading rules defined'
+          });
+          continue;
+        }
+
+        // Only process strategies with notifications enabled
+        if (!strategy.signal_notifications_enabled) {
+          console.log(`[Monitor] Skipping strategy ${strategy.name}: Notifications disabled`);
+          results.push({
+            strategyId: strategy.id,
+            strategyName: strategy.name,
+            status: 'skipped',
+            reason: 'Signal notifications disabled'
           });
           continue;
         }

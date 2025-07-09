@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,6 +42,127 @@ export const AssetTypeSelector = ({
   // Market status state
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
   const [isMarketStatusLoading, setIsMarketStatusLoading] = useState(false);
+
+  // Enhanced market status fetch with better error handling
+  const fetchMarketStatus = useCallback(async () => {
+    if (!apiKey || connectionStatus !== 'connected') return;
+
+    setIsMarketStatusLoading(true);
+    try {
+      console.log("Fetching enhanced market status...");
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      try {
+        const response = await fetch(
+          `https://financialmodelingprep.com/api/v3/market-hours?apikey=${apiKey}`,
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TradingApp/1.0'
+            },
+            signal: controller.signal
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Market status API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Enhanced market status processing
+        if (data && typeof data === 'object') {
+          const now = new Date();
+          const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          const dayOfWeek = estTime.getDay();
+          const hour = estTime.getHours();
+          const minute = estTime.getMinutes();
+          
+          const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+          const timeInMinutes = hour * 60 + minute;
+          const marketOpenMinutes = 9 * 60 + 30;
+          const marketCloseMinutes = 16 * 60;
+          const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
+          
+          const isOpen = isWeekday && isMarketHours;
+          
+          // Calculate next market open with better formatting
+          let nextOpen = '';
+          if (!isOpen) {
+            const nextMarketDay = new Date(estTime);
+            if (!isWeekday || timeInMinutes >= marketCloseMinutes) {
+              do {
+                nextMarketDay.setDate(nextMarketDay.getDate() + 1);
+              } while (nextMarketDay.getDay() === 0 || nextMarketDay.getDay() === 6);
+            }
+            nextMarketDay.setHours(9, 30, 0, 0);
+            
+            const isToday = nextMarketDay.toDateString() === estTime.toDateString();
+            const isTomorrow = nextMarketDay.toDateString() === new Date(estTime.getTime() + 24 * 60 * 60 * 1000).toDateString();
+            
+            let dayText = '';
+            if (isToday) dayText = 'Today';
+            else if (isTomorrow) dayText = 'Tomorrow';
+            else dayText = nextMarketDay.toLocaleDateString('en-US', { weekday: 'long' });
+            
+            const timeText = nextMarketDay.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              timeZoneName: 'short',
+              timeZone: 'America/New_York'
+            });
+            
+            nextOpen = `${dayText} at ${timeText}`;
+          }
+          
+          setMarketStatus({
+            isOpen,
+            nextOpen: isOpen ? undefined : nextOpen,
+            marketHours: {
+              open: '9:30 AM ET',
+              close: '4:00 PM ET'
+            },
+            lastUpdated: new Date().toISOString()
+          });
+          
+          console.log(`Enhanced market status - Open: ${isOpen}, Next: ${nextOpen}`);
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    } catch (error) {
+      console.error("Enhanced market status fetch failed:", error);
+      // Fallback to basic calculation
+      const now = new Date();
+      const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const dayOfWeek = estTime.getDay();
+      const hour = estTime.getHours();
+      const minute = estTime.getMinutes();
+      
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+      const timeInMinutes = hour * 60 + minute;
+      const marketOpenMinutes = 9 * 60 + 30;
+      const marketCloseMinutes = 16 * 60;
+      const isOpen = isWeekday && timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
+      
+      setMarketStatus({
+        isOpen,
+        marketHours: {
+          open: '9:30 AM ET',
+          close: '4:00 PM ET'
+        },
+        lastUpdated: new Date().toISOString()
+      });
+    } finally {
+      setIsMarketStatusLoading(false);
+    }
+  }, [apiKey, connectionStatus]);
 
   // Enhanced search with better error handling and validation
   const searchAssets = useCallback(debounce(async (query: string) => {
@@ -208,127 +330,6 @@ export const AssetTypeSelector = ({
       });
     }
   }, [selectedAsset, searchResults, apiKey, connectionStatus]);
-
-  // Enhanced market status fetch with better error handling
-  const fetchMarketStatus = useCallback(async () => {
-    if (!apiKey || connectionStatus !== 'connected') return;
-
-    setIsMarketStatusLoading(true);
-    try {
-      console.log("Fetching enhanced market status...");
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      try {
-        const response = await fetch(
-          `https://financialmodelingprep.com/api/v3/market-hours?apikey=${apiKey}`,
-          {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'TradingApp/1.0'
-            },
-            signal: controller.signal
-          }
-        );
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Market status API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Enhanced market status processing
-        if (data && typeof data === 'object') {
-          const now = new Date();
-          const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-          const dayOfWeek = estTime.getDay();
-          const hour = estTime.getHours();
-          const minute = estTime.getMinutes();
-          
-          const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-          const timeInMinutes = hour * 60 + minute;
-          const marketOpenMinutes = 9 * 60 + 30;
-          const marketCloseMinutes = 16 * 60;
-          const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
-          
-          const isOpen = isWeekday && isMarketHours;
-          
-          // Calculate next market open with better formatting
-          let nextOpen = '';
-          if (!isOpen) {
-            const nextMarketDay = new Date(estTime);
-            if (!isWeekday || timeInMinutes >= marketCloseMinutes) {
-              do {
-                nextMarketDay.setDate(nextMarketDay.getDate() + 1);
-              } while (nextMarketDay.getDay() === 0 || nextMarketDay.getDay() === 6);
-            }
-            nextMarketDay.setHours(9, 30, 0, 0);
-            
-            const isToday = nextMarketDay.toDateString() === estTime.toDateString();
-            const isTomorrow = nextMarketDay.toDateString() === new Date(estTime.getTime() + 24 * 60 * 60 * 1000).toDateString();
-            
-            let dayText = '';
-            if (isToday) dayText = 'Today';
-            else if (isTomorrow) dayText = 'Tomorrow';
-            else dayText = nextMarketDay.toLocaleDateString('en-US', { weekday: 'long' });
-            
-            const timeText = nextMarketDay.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit',
-              timeZoneName: 'short',
-              timeZone: 'America/New_York'
-            });
-            
-            nextOpen = `${dayText} at ${timeText}`;
-          }
-          
-          setMarketStatus({
-            isOpen,
-            nextOpen: isOpen ? undefined : nextOpen,
-            marketHours: {
-              open: '9:30 AM ET',
-              close: '4:00 PM ET'
-            },
-            lastUpdated: new Date().toISOString()
-          });
-          
-          console.log(`Enhanced market status - Open: ${isOpen}, Next: ${nextOpen}`);
-        }
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
-    } catch (error) {
-      console.error("Enhanced market status fetch failed:", error);
-      // Fallback to basic calculation
-      const now = new Date();
-      const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      const dayOfWeek = estTime.getDay();
-      const hour = estTime.getHours();
-      const minute = estTime.getMinutes();
-      
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-      const timeInMinutes = hour * 60 + minute;
-      const marketOpenMinutes = 9 * 60 + 30;
-      const marketCloseMinutes = 16 * 60;
-      const isOpen = isWeekday && timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
-      
-      setMarketStatus({
-        isOpen,
-        marketHours: {
-          open: '9:30 AM ET',
-          close: '4:00 PM ET'
-        },
-        lastUpdated: new Date().toISOString()
-      });
-    } finally {
-      setIsMarketStatusLoading(false);
-    }
-  }, [apiKey, connectionStatus]);
 
   // Reset search error state when query changes
   useEffect(() => {

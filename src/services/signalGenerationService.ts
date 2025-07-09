@@ -77,13 +77,22 @@ export const generateSignalForStrategy = async (
       };
     }
 
-    // Get trading rules for the strategy
-    const rulesData = await getTradingRulesForStrategy(strategyId);
-    if (!rulesData || (!rulesData.entryRules?.length && !rulesData.exitRules?.length)) {
-      console.log(`[SignalGen] No trading rules found for strategy ${strategyId}`);
+    // Get trading rules for the strategy with improved error handling
+    let rulesData;
+    try {
+      rulesData = await getTradingRulesForStrategy(strategyId);
+      if (!rulesData || (!rulesData.entryRules?.length && !rulesData.exitRules?.length)) {
+        console.log(`[SignalGen] No trading rules found for strategy ${strategyId}`);
+        return {
+          signalGenerated: false,
+          reason: 'No trading rules defined for this strategy'
+        };
+      }
+    } catch (error) {
+      console.error(`[SignalGen] Error fetching trading rules:`, error);
       return {
         signalGenerated: false,
-        reason: 'No trading rules defined for this strategy'
+        reason: `Error fetching trading rules: ${error.message}`
       };
     }
 
@@ -95,40 +104,56 @@ export const generateSignalForStrategy = async (
 
     if (rulesData.entryRules?.length > 0) {
       console.log('[SignalGen] Evaluating entry rules...');
-      evaluation = await evaluateTradingRules(
-        rulesData.entryRules,
-        strategy.target_asset,
-        currentPrice,
-        strategy.timeframe
-      );
+      try {
+        evaluation = await evaluateTradingRules(
+          rulesData.entryRules,
+          strategy.target_asset,
+          currentPrice,
+          strategy.timeframe
+        );
 
-      console.log(`[SignalGen] Entry rules evaluation result:`, evaluation);
+        console.log(`[SignalGen] Entry rules evaluation result:`, evaluation);
 
-      if (evaluation.signalGenerated) {
-        signalType = 'entry';
-        console.log('[SignalGen] ✓ Entry signal conditions met!');
-      } else {
-        console.log('[SignalGen] ✗ Entry signal conditions not met');
+        if (evaluation.signalGenerated) {
+          signalType = 'entry';
+          console.log('[SignalGen] ✓ Entry signal conditions met!');
+        } else {
+          console.log('[SignalGen] ✗ Entry signal conditions not met');
+        }
+      } catch (error) {
+        console.error(`[SignalGen] Error evaluating entry rules:`, error);
+        return {
+          signalGenerated: false,
+          reason: `Error evaluating entry rules: ${error.message}`
+        };
       }
     }
 
     // If no entry signal, check exit rules
     if (!signalType && rulesData.exitRules?.length > 0) {
       console.log('[SignalGen] Evaluating exit rules...');
-      evaluation = await evaluateTradingRules(
-        rulesData.exitRules,
-        strategy.target_asset,
-        currentPrice,
-        strategy.timeframe
-      );
+      try {
+        evaluation = await evaluateTradingRules(
+          rulesData.exitRules,
+          strategy.target_asset,
+          currentPrice,
+          strategy.timeframe
+        );
 
-      console.log(`[SignalGen] Exit rules evaluation result:`, evaluation);
+        console.log(`[SignalGen] Exit rules evaluation result:`, evaluation);
 
-      if (evaluation.signalGenerated) {
-        signalType = 'exit';
-        console.log('[SignalGen] ✓ Exit signal conditions met!');
-      } else {
-        console.log('[SignalGen] ✗ Exit signal conditions not met');
+        if (evaluation.signalGenerated) {
+          signalType = 'exit';
+          console.log('[SignalGen] ✓ Exit signal conditions met!');
+        } else {
+          console.log('[SignalGen] ✗ Exit signal conditions not met');
+        }
+      } catch (error) {
+        console.error(`[SignalGen] Error evaluating exit rules:`, error);
+        return {
+          signalGenerated: false,
+          reason: `Error evaluating exit rules: ${error.message}`
+        };
       }
     }
 
@@ -229,7 +254,11 @@ export const triggerSignalMonitoring = async () => {
     console.log('[TriggerMonitor] Manually triggering signal monitoring...');
     
     const { data, error } = await supabase.functions.invoke('monitor-trading-signals', {
-      body: { manual: true }
+      body: { 
+        manual: true,
+        source: 'manual_trigger',
+        timestamp: new Date().toISOString()
+      }
     });
     
     if (error) {

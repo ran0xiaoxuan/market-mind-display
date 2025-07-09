@@ -16,7 +16,7 @@ export const evaluateTradingRules = async (
 ): Promise<RuleEvaluation> => {
   try {
     console.log(`[RuleEvaluation] Starting evaluation for ${asset} at price ${currentPrice} with timeframe ${timeframe}`);
-    console.log(`[RuleEvaluation] Rule groups:`, ruleGroups);
+    console.log(`[RuleEvaluation] Rule groups:`, JSON.stringify(ruleGroups, null, 2));
 
     const evaluation: RuleEvaluation = {
       signalGenerated: false,
@@ -205,16 +205,16 @@ const mapTimeframeToTaapiInterval = (timeframe: string): string => {
 
 const evaluateInequality = async (inequality: any, asset: string, currentPrice: number, timeframe: string): Promise<boolean> => {
   try {
-    console.log(`[InequalityEval] Evaluating: ${JSON.stringify(inequality)}`);
+    console.log(`[InequalityEval] Evaluating:`, JSON.stringify(inequality, null, 2));
 
-    // Get left side value
+    // Get left side value - fix the data access
     const leftValue = await getValueFromSide(inequality.left, asset, currentPrice, timeframe);
     if (leftValue === null) {
       console.log(`[InequalityEval] Left side value is null`);
       return false;
     }
 
-    // Get right side value
+    // Get right side value - fix the data access
     const rightValue = await getValueFromSide(inequality.right, asset, currentPrice, timeframe);
     if (rightValue === null) {
       console.log(`[InequalityEval] Right side value is null`);
@@ -329,7 +329,13 @@ const getIndicatorValueWithType = async (
 
 const getValueFromSide = async (side: any, asset: string, currentPrice: number, timeframe: string): Promise<number | null> => {
   try {
-    console.log(`[ValueFromSide] Getting value for side:`, side);
+    console.log(`[ValueFromSide] Getting value for side:`, JSON.stringify(side, null, 2));
+
+    // Handle malformed data structures
+    if (!side || typeof side !== 'object') {
+      console.log(`[ValueFromSide] Invalid side object:`, side);
+      return null;
+    }
 
     switch (side.type) {
       case 'INDICATOR':
@@ -337,10 +343,25 @@ const getValueFromSide = async (side: any, asset: string, currentPrice: number, 
           console.log(`[ValueFromSide] No indicator specified`);
           return null;
         }
+        
+        // Clean up parameters - handle the malformed data
+        let cleanParameters = {};
+        if (side.parameters && typeof side.parameters === 'object') {
+          // Remove any malformed properties
+          Object.keys(side.parameters).forEach(key => {
+            const value = side.parameters[key];
+            if (value && typeof value === 'object' && value._type !== 'undefined' && value._type !== 'MaxDepthReached') {
+              cleanParameters[key] = value;
+            } else if (typeof value === 'string' || typeof value === 'number') {
+              cleanParameters[key] = value;
+            }
+          });
+        }
+        
         return await getIndicatorValueWithType(
           side.indicator, 
           asset, 
-          side.parameters || {}, 
+          cleanParameters, 
           side.valueType,
           timeframe
         );

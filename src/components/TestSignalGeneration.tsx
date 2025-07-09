@@ -4,12 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { testSignalGeneration, triggerSignalMonitoring } from '@/services/signalGenerationService';
 import { toast } from 'sonner';
+import { useParams } from 'react-router-dom';
 
 export const TestSignalGeneration = () => {
+  const { id: strategyId } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
 
-  const handleTestSignalGeneration = async (strategyId: string) => {
+  const handleTestSignalGeneration = async () => {
+    if (!strategyId) {
+      toast.error('No strategy ID found');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await testSignalGeneration(strategyId);
@@ -53,19 +60,11 @@ export const TestSignalGeneration = () => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Button 
-            onClick={() => handleTestSignalGeneration('YOUR_STRATEGY_ID')}
-            disabled={isLoading}
+            onClick={handleTestSignalGeneration}
+            disabled={isLoading || !strategyId}
             className="w-full"
           >
-            Test AMD Strategy Signal Generation
-          </Button>
-          
-          <Button 
-            onClick={() => handleTestSignalGeneration('YOUR_OTHER_STRATEGY_ID')}
-            disabled={isLoading}
-            className="w-full"
-          >
-            Test TQQQ Strategy Signal Generation
+            Test This Strategy Signal Generation
           </Button>
           
           <Button 
@@ -81,7 +80,7 @@ export const TestSignalGeneration = () => {
         {results && (
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold mb-2">Test Results:</h3>
-            <pre className="text-sm overflow-auto">
+            <pre className="text-sm overflow-auto whitespace-pre-wrap">
               {JSON.stringify(results, null, 2)}
             </pre>
           </div>

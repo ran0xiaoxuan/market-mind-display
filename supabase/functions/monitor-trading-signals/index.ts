@@ -13,10 +13,12 @@ const isMarketHours = () => {
   const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
   const hour = easternTime.getHours();
   const day = easternTime.getDay();
+  const minute = easternTime.getMinutes();
   
   // Monday = 1, Friday = 5
-  // Market hours: 9:30 AM - 4:00 PM ET
-  return day >= 1 && day <= 5 && hour >= 9 && hour < 16;
+  // Market hours: 9:30 AM - 4:00 PM ET (570 minutes to 960 minutes)
+  const timeInMinutes = hour * 60 + minute;
+  return day >= 1 && day <= 5 && timeInMinutes >= 570 && timeInMinutes < 960;
 };
 
 // Get current market price using FMP API
@@ -117,7 +119,7 @@ const getIndicatorValue = (indicator: string, data: any, valueType?: string): nu
   }
 };
 
-// Evaluate a single trading rule condition
+// Evaluate a single trading rule condition with improved data handling
 const evaluateCondition = async (
   rule: any,
   asset: string,
@@ -125,9 +127,9 @@ const evaluateCondition = async (
   timeframe: string
 ): Promise<boolean> => {
   try {
-    console.log(`[ConditionEval] Evaluating rule:`, rule);
+    console.log(`[ConditionEval] Evaluating rule:`, JSON.stringify(rule, null, 2));
 
-    // Get left side value
+    // Get left side value with improved data extraction
     let leftValue: number | null = null;
     if (rule.left_type === 'PRICE') {
       leftValue = currentPrice;
@@ -139,11 +141,22 @@ const evaluateCondition = async (
         return false;
       }
       
+      // Clean parameters - handle potential malformed data
+      let cleanParameters = {};
+      if (rule.left_parameters && typeof rule.left_parameters === 'object') {
+        Object.keys(rule.left_parameters).forEach(key => {
+          const value = rule.left_parameters[key];
+          if (typeof value === 'string' || typeof value === 'number') {
+            cleanParameters[key] = value;
+          }
+        });
+      }
+      
       const indicatorData = await getTaapiIndicator(
         rule.left_indicator.toLowerCase(),
         asset,
         timeframe,
-        rule.left_parameters || {}
+        cleanParameters
       );
       
       leftValue = getIndicatorValue(
@@ -153,7 +166,7 @@ const evaluateCondition = async (
       );
     }
 
-    // Get right side value
+    // Get right side value with improved data extraction
     let rightValue: number | null = null;
     if (rule.right_type === 'PRICE') {
       rightValue = currentPrice;
@@ -165,11 +178,22 @@ const evaluateCondition = async (
         return false;
       }
       
+      // Clean parameters - handle potential malformed data
+      let cleanParameters = {};
+      if (rule.right_parameters && typeof rule.right_parameters === 'object') {
+        Object.keys(rule.right_parameters).forEach(key => {
+          const value = rule.right_parameters[key];
+          if (typeof value === 'string' || typeof value === 'number') {
+            cleanParameters[key] = value;
+          }
+        });
+      }
+      
       const indicatorData = await getTaapiIndicator(
         rule.right_indicator.toLowerCase(),
         asset,
         timeframe,
-        rule.right_parameters || {}
+        cleanParameters
       );
       
       rightValue = getIndicatorValue(
@@ -216,7 +240,7 @@ const evaluateCondition = async (
   }
 };
 
-// Evaluate rule groups for signal generation
+// Evaluate rule groups for signal generation with improved error handling
 const evaluateRuleGroups = async (
   ruleGroups: any[],
   asset: string,
@@ -299,7 +323,7 @@ const evaluateRuleGroups = async (
   }
 };
 
-// Generate signal for a specific strategy
+// Generate signal for a specific strategy with improved error handling
 const generateSignalForStrategy = async (
   strategyId: string,
   userId: string,
@@ -338,6 +362,7 @@ const generateSignalForStrategy = async (
       `)
       .eq('id', strategyId)
       .eq('user_id', userId)
+      .eq('is_active', true)
       .single();
 
     if (strategyError || !strategy) {
@@ -523,8 +548,11 @@ serve(async (req) => {
 
     console.log('[Monitor] Starting trading signal monitoring...');
 
-    // Check if market is open
-    if (!isMarketHours()) {
+    // Check if market is open (allow manual override for testing)
+    const body = await req.json().catch(() => ({}));
+    const isManualTrigger = body?.manual === true;
+    
+    if (!isMarketHours() && !isManualTrigger) {
       console.log('[Monitor] Market is closed, skipping signal generation');
       return new Response(
         JSON.stringify({ message: 'Market is closed, no signals generated' }),
@@ -651,7 +679,9 @@ serve(async (req) => {
         processedStrategies: results.length,
         signalsGenerated: signalsGenerated,
         results: results,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        marketOpen: isMarketHours(),
+        manualTrigger: isManualTrigger
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

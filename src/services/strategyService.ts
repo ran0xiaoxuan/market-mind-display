@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -193,7 +194,8 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         logic: group.logic,
         inequalities,
         requiredConditions: group.required_conditions || (group.logic === 'OR' ? 1 : undefined),
-        explanation: group.explanation || undefined
+        explanation: group.explanation || undefined,
+        rule_type: group.rule_type // Keep the original rule_type for filtering
       };
     });
 
@@ -205,7 +207,8 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         const aOrder = ruleGroupsData.find(rg => rg.id === a.id)?.group_order || 0;
         const bOrder = ruleGroupsData.find(rg => rg.id === b.id)?.group_order || 0;
         return aOrder - bOrder;
-      });
+      })
+      .map(({ rule_type, ...group }) => group); // Remove rule_type from final result
 
     const exitRules = transformedData
       .filter(group => group.rule_type === 'exit')
@@ -214,7 +217,8 @@ export const getTradingRulesForStrategy = async (strategyId: string) => {
         const aOrder = ruleGroupsData.find(rg => rg.id === a.id)?.group_order || 0;
         const bOrder = ruleGroupsData.find(rg => rg.id === b.id)?.group_order || 0;
         return aOrder - bOrder;
-      });
+      })
+      .map(({ rule_type, ...group }) => group); // Remove rule_type from final result
 
     console.log("Transformed entry rules:", entryRules);
     console.log("Transformed exit rules:", exitRules);

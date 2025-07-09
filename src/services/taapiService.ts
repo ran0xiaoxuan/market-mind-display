@@ -62,6 +62,83 @@ export interface TaapiIndicatorResponse {
   close?: number;
 }
 
+// Rate limiting and caching
+class TaapiRateLimiter {
+  private requestQueue: Array<() => Promise<any>> = [];
+  private isProcessing = false;
+  private lastRequestTime = 0;
+  private readonly minInterval = 1200; // 1.2 seconds between requests (50 requests per minute max)
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly cacheTimeout = 30000; // 30 seconds cache
+
+  async addRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          const result = await requestFn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.isProcessing || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    while (this.requestQueue.length > 0) {
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      
+      if (timeSinceLastRequest < this.minInterval) {
+        const waitTime = this.minInterval - timeSinceLastRequest;
+        console.log(`[TaapiRateLimiter] Waiting ${waitTime}ms before next request`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+
+      const request = this.requestQueue.shift();
+      if (request) {
+        this.lastRequestTime = Date.now();
+        await request();
+      }
+    }
+
+    this.isProcessing = false;
+  }
+
+  getCached(key: string) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      console.log(`[TaapiRateLimiter] Cache hit for key: ${key}`);
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key: string, data: any) {
+    this.cache.set(key, { data, timestamp: Date.now() });
+    console.log(`[TaapiRateLimiter] Cached data for key: ${key}`);
+  }
+
+  clearOldCache() {
+    const now = Date.now();
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > this.cacheTimeout) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+
+const rateLimiter = new TaapiRateLimiter();
+
 // Get TAAPI API key from Supabase secrets
 export const getTaapiApiKey = async (): Promise<string | null> => {
   try {
@@ -73,45 +150,81 @@ export const getTaapiApiKey = async (): Promise<string | null> => {
   }
 };
 
-// Get indicator data from TAAPI
+// Get indicator data from TAAPI with rate limiting and caching
 export const getIndicatorData = async (
   indicator: string,
   params: TaapiIndicatorParams
 ): Promise<TaapiIndicatorResponse | null> => {
-  try {
-    const apiKey = await getTaapiApiKey();
-    
-    if (!apiKey) {
-      console.error("No TAAPI API key available");
+  // Create cache key
+  const cacheKey = `${indicator}_${JSON.stringify(params)}`;
+  
+  // Check cache first
+  const cached = rateLimiter.getCached(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Clean old cache entries
+  rateLimiter.clearOldCache();
+
+  return rateLimiter.addRequest(async () => {
+    try {
+      const apiKey = await getTaapiApiKey();
+      
+      if (!apiKey) {
+        console.error("[TaapiService] No TAAPI API key available");
+        return null;
+      }
+      
+      const baseUrl = "https://api.taapi.io";
+      const url = new URL(`/${indicator}`, baseUrl);
+      
+      // Add API key
+      url.searchParams.append("secret", apiKey);
+      
+      // Add all parameters
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, value.toString());
+        }
+      });
+      
+      console.log(`[TaapiService] Making request to TAAPI for ${indicator} with params:`, params);
+      
+      const response = await fetch(url.toString());
+      
+      if (response.status === 429) {
+        console.error("[TaapiService] Rate limit exceeded (429). Waiting before retry...");
+        // Wait longer and retry once
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        const retryResponse = await fetch(url.toString());
+        
+        if (!retryResponse.ok) {
+          const errorText = await retryResponse.text();
+          throw new Error(`TAAPI API retry failed (${retryResponse.status}): ${errorText}`);
+        }
+        
+        const retryData = await retryResponse.json();
+        rateLimiter.setCache(cacheKey, retryData);
+        console.log(`[TaapiService] Successful retry for ${indicator}`);
+        return retryData;
+      }
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[TaapiService] API error (${response.status}): ${errorText}`);
+        throw new Error(`TAAPI API error (${response.status}): ${errorText}`);
+      }
+      
+      const data = await response.json();
+      rateLimiter.setCache(cacheKey, data);
+      console.log(`[TaapiService] Successful request for ${indicator}`);
+      return data;
+    } catch (error) {
+      console.error(`[TaapiService] Error fetching ${indicator} indicator data:`, error);
       return null;
     }
-    
-    const baseUrl = "https://api.taapi.io";
-    const url = new URL(`/${indicator}`, baseUrl);
-    
-    // Add API key
-    url.searchParams.append("secret", apiKey);
-    
-    // Add all parameters
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, value.toString());
-      }
-    });
-    
-    const response = await fetch(url.toString());
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`TAAPI API error (${response.status}): ${errorText}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error(`Error fetching ${indicator} indicator data:`, error);
-    return null;
-  }
+  });
 };
 
 // New function to get TAAPI indicator data with simplified parameters

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -6,6 +5,72 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Rate limiting for TAAPI requests
+class TaapiRateLimiter {
+  private requestQueue: Array<() => Promise<any>> = [];
+  private isProcessing = false;
+  private lastRequestTime = 0;
+  private readonly minInterval = 1500; // 1.5 seconds between requests
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly cacheTimeout = 60000; // 1 minute cache
+
+  async addRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          const result = await requestFn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.isProcessing || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    while (this.requestQueue.length > 0) {
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      
+      if (timeSinceLastRequest < this.minInterval) {
+        const waitTime = this.minInterval - timeSinceLastRequest;
+        console.log(`[RateLimiter] Waiting ${waitTime}ms before next request`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+
+      const request = this.requestQueue.shift();
+      if (request) {
+        this.lastRequestTime = Date.now();
+        await request();
+      }
+    }
+
+    this.isProcessing = false;
+  }
+
+  getCached(key: string) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key: string, data: any) {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+}
+
+const taapiLimiter = new TaapiRateLimiter();
 
 // Market hours check (US Eastern Time)
 const isMarketHours = () => {
@@ -55,42 +120,72 @@ const getCurrentPrice = async (symbol: string): Promise<number | null> => {
   }
 };
 
-// Get TAAPI indicator data
+// Get TAAPI indicator data with rate limiting
 const getTaapiIndicator = async (
   indicator: string,
   symbol: string,
   interval: string,
   parameters: any = {}
 ): Promise<any> => {
-  try {
-    const taapiApiKey = Deno.env.get('TAAPI_API_KEY');
-    if (!taapiApiKey) {
-      console.error('[TaapiService] TAAPI API key not configured');
-      return null;
-    }
-
-    const params = new URLSearchParams({
-      secret: taapiApiKey,
-      exchange: 'binance',
-      symbol: `${symbol}USDT`,
-      interval: interval,
-      ...parameters
-    });
-
-    const response = await fetch(`https://api.taapi.io/${indicator}?${params}`);
-
-    if (!response.ok) {
-      console.error(`[TaapiService] TAAPI API error: ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    console.log(`[TaapiService] ${indicator} data for ${symbol}:`, data);
-    return data;
-  } catch (error) {
-    console.error(`[TaapiService] Error fetching ${indicator} for ${symbol}:`, error);
-    return null;
+  const cacheKey = `${indicator}_${symbol}_${interval}_${JSON.stringify(parameters)}`;
+  
+  // Check cache first
+  const cached = taapiLimiter.getCached(cacheKey);
+  if (cached) {
+    console.log(`[TaapiService] Cache hit for ${indicator}/${symbol}`);
+    return cached;
   }
+
+  return taapiLimiter.addRequest(async () => {
+    try {
+      const taapiApiKey = Deno.env.get('TAAPI_API_KEY');
+      if (!taapiApiKey) {
+        console.error('[TaapiService] TAAPI API key not configured');
+        return null;
+      }
+
+      const params = new URLSearchParams({
+        secret: taapiApiKey,
+        exchange: 'binance',
+        symbol: `${symbol}USDT`,
+        interval: interval,
+        ...parameters
+      });
+
+      console.log(`[TaapiService] Making rate-limited request for ${indicator}/${symbol}`);
+      
+      const response = await fetch(`https://api.taapi.io/${indicator}?${params}`);
+
+      if (response.status === 429) {
+        console.error(`[TaapiService] Rate limit hit for ${indicator}/${symbol}. Waiting and retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+        
+        const retryResponse = await fetch(`https://api.taapi.io/${indicator}?${params}`);
+        if (!retryResponse.ok) {
+          console.error(`[TaapiService] Retry failed: ${retryResponse.status}`);
+          return null;
+        }
+        
+        const retryData = await retryResponse.json();
+        taapiLimiter.setCache(cacheKey, retryData);
+        console.log(`[TaapiService] Retry successful for ${indicator}/${symbol}`);
+        return retryData;
+      }
+
+      if (!response.ok) {
+        console.error(`[TaapiService] TAAPI API error: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      taapiLimiter.setCache(cacheKey, data);
+      console.log(`[TaapiService] Successfully cached ${indicator} data for ${symbol}`);
+      return data;
+    } catch (error) {
+      console.error(`[TaapiService] Error fetching ${indicator} for ${symbol}:`, error);
+      return null;
+    }
+  });
 };
 
 // Extract value from indicator response
@@ -323,7 +418,7 @@ const evaluateRuleGroups = async (
   }
 };
 
-// Generate signal for a specific strategy with improved error handling
+// Generate signal for a specific strategy with improved rate limiting
 const generateSignalForStrategy = async (
   strategyId: string,
   userId: string,
@@ -432,12 +527,12 @@ const generateSignalForStrategy = async (
     };
     const taapiInterval = timeframeMap[strategy.timeframe] || '1d';
 
-    // Evaluate entry rules first
+    // Evaluate entry rules first with rate limiting consideration
     let signalType: 'entry' | 'exit' | null = null;
     let evaluationDetails: string[] = [];
     
     if (entryRules.length > 0) {
-      console.log(`[SignalGen] Evaluating entry rules...`);
+      console.log(`[SignalGen] Evaluating entry rules with rate limiting...`);
       const entryEvaluation = await evaluateRuleGroups(
         entryRules,
         strategy.target_asset,
@@ -546,7 +641,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring...');
+    console.log('[Monitor] Starting trading signal monitoring with rate limiting...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -600,10 +695,10 @@ serve(async (req) => {
 
     const results = [];
 
-    // Process each strategy
+    // Process each strategy with rate limiting
     for (const strategy of strategies) {
       try {
-        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id})`);
+        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id}) with rate limits`);
 
         // Check if strategy has valid trading rules
         const hasRules = strategy.rule_groups?.some((rg: any) => 
@@ -621,7 +716,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Generate signal using the enhanced service
+        // Generate signal using the enhanced service with rate limiting
         const signalResult = await generateSignalForStrategy(strategy.id, strategy.user_id, supabaseClient);
         
         results.push({

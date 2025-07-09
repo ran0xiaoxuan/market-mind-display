@@ -189,6 +189,13 @@ export const getCurrentPrice = async (symbol: string): Promise<number | null> =>
   }
 };
 
+// Alias for backward compatibility
+export const getStockPrice = async (symbol: string): Promise<{ price: number } | null> => {
+  const price = await getCurrentPrice(symbol);
+  if (price === null) return null;
+  return { price };
+};
+
 // Extract arrays from market data for indicator calculations
 export const extractIndicatorData = (marketData: MarketData[]) => {
   return {
@@ -198,4 +205,61 @@ export const extractIndicatorData = (marketData: MarketData[]) => {
     close: marketData.map(d => d.close),
     volume: marketData.map(d => d.volume)
   };
+};
+
+// Calculate portfolio metrics for dashboard
+export const calculatePortfolioMetrics = async (timeRange: string = '7d') => {
+  try {
+    console.log(`[Portfolio] Calculating metrics for timeRange: ${timeRange}`);
+    
+    // Return basic metrics structure for now
+    // This can be enhanced with real portfolio calculations later
+    return {
+      totalValue: "$0.00",
+      totalChange: {
+        value: "+$0.00",
+        positive: true
+      },
+      winRate: "0%",
+      winRateChange: {
+        value: "+0%",
+        positive: true
+      },
+      avgReturn: "0%",
+      avgReturnChange: {
+        value: "+0%",
+        positive: true
+      },
+      sharpeRatio: "0.00",
+      sharpeChange: {
+        value: "+0.00",
+        positive: true
+      }
+    };
+  } catch (error) {
+    console.error('[Portfolio] Error calculating metrics:', error);
+    // Return default metrics on error
+    return {
+      totalValue: "$0.00",
+      totalChange: {
+        value: "+$0.00",
+        positive: true
+      },
+      winRate: "0%",
+      winRateChange: {
+        value: "+0%",
+        positive: true
+      },
+      avgReturn: "0%",
+      avgReturnChange: {
+        value: "+0%",
+        positive: true
+      },
+      sharpeRatio: "0.00",
+      sharpeChange: {
+        value: "+0.00",
+        positive: true
+      }
+    };
+  }
 };

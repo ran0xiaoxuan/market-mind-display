@@ -101,6 +101,101 @@ const calculateCCI = (high: number[], low: number[], close: number[], period: nu
   return result;
 };
 
+// Add Bollinger Bands calculation
+const calculateBollingerBands = (data: number[], period: number = 20, deviation: number = 2) => {
+  const sma = calculateSMA(data, period);
+  const upper: number[] = [];
+  const lower: number[] = [];
+  
+  for (let i = period - 1; i < data.length; i++) {
+    const slice = data.slice(i - period + 1, i + 1);
+    const mean = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / period;
+    const stdDev = Math.sqrt(variance);
+    
+    upper.push(mean + (deviation * stdDev));
+    lower.push(mean - (deviation * stdDev));
+  }
+  
+  return { upper, middle: sma, lower };
+};
+
+// Add Stochastic Oscillator calculation
+const calculateStochastic = (high: number[], low: number[], close: number[], kPeriod: number = 14, dPeriod: number = 3) => {
+  const k: number[] = [];
+  
+  for (let i = kPeriod - 1; i < close.length; i++) {
+    const highestHigh = Math.max(...high.slice(i - kPeriod + 1, i + 1));
+    const lowestLow = Math.min(...low.slice(i - kPeriod + 1, i + 1));
+    const kValue = ((close[i] - lowestLow) / (highestHigh - lowestLow)) * 100;
+    k.push(kValue);
+  }
+  
+  const d = calculateSMA(k, dPeriod);
+  return { k, d };
+};
+
+// Add Average True Range calculation
+const calculateATR = (high: number[], low: number[], close: number[], period: number = 14): number[] => {
+  const trueRanges: number[] = [];
+  
+  for (let i = 1; i < close.length; i++) {
+    const tr1 = high[i] - low[i];
+    const tr2 = Math.abs(high[i] - close[i - 1]);
+    const tr3 = Math.abs(low[i] - close[i - 1]);
+    trueRanges.push(Math.max(tr1, tr2, tr3));
+  }
+  
+  return calculateSMA(trueRanges, period);
+};
+
+// Add Williams %R calculation
+const calculateWilliamsR = (high: number[], low: number[], close: number[], period: number = 14): number[] => {
+  const result: number[] = [];
+  
+  for (let i = period - 1; i < close.length; i++) {
+    const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
+    const lowestLow = Math.min(...low.slice(i - period + 1, i + 1));
+    const williamsR = ((highestHigh - close[i]) / (highestHigh - lowestLow)) * -100;
+    result.push(williamsR);
+  }
+  
+  return result;
+};
+
+// Add Money Flow Index calculation
+const calculateMFI = (high: number[], low: number[], close: number[], volume: number[], period: number = 14): number[] => {
+  const result: number[] = [];
+  const typicalPrices: number[] = [];
+  const rawMoneyFlow: number[] = [];
+  
+  // Calculate typical prices and raw money flow
+  for (let i = 0; i < close.length; i++) {
+    const typicalPrice = (high[i] + low[i] + close[i]) / 3;
+    typicalPrices.push(typicalPrice);
+    rawMoneyFlow.push(typicalPrice * volume[i]);
+  }
+  
+  for (let i = period; i < close.length; i++) {
+    let positiveFlow = 0;
+    let negativeFlow = 0;
+    
+    for (let j = i - period + 1; j <= i; j++) {
+      if (typicalPrices[j] > typicalPrices[j - 1]) {
+        positiveFlow += rawMoneyFlow[j];
+      } else if (typicalPrices[j] < typicalPrices[j - 1]) {
+        negativeFlow += rawMoneyFlow[j];
+      }
+    }
+    
+    const moneyFlowRatio = positiveFlow / negativeFlow;
+    const mfi = 100 - (100 / (1 + moneyFlowRatio));
+    result.push(mfi);
+  }
+  
+  return result;
+};
+
 // Market hours check (US Eastern Time)
 const isMarketHours = () => {
   const now = new Date();
@@ -206,7 +301,7 @@ const fetchFreshMarketData = async (symbol: string, timeframe: string): Promise<
   }
 };
 
-// Calculate indicator with FRESH market data - NO CACHING
+// Calculate indicator with FRESH market data - SUPPORTS ALL 10 INDICATORS
 const getFreshIndicatorValue = async (indicator: string, symbol: string, timeframe: string, parameters: any = {}): Promise<any> => {
   try {
     console.log(`[FreshIndicator] Calculating FRESH ${indicator} for ${symbol} with timeframe ${timeframe}`);
@@ -221,6 +316,7 @@ const getFreshIndicatorValue = async (indicator: string, symbol: string, timefra
     const closes = marketData.map(d => parseFloat(d.close));
     const highs = marketData.map(d => parseFloat(d.high));
     const lows = marketData.map(d => parseFloat(d.low));
+    const volumes = marketData.map(d => parseFloat(d.volume || 0));
     
     // Normalize indicator name for case-insensitive matching
     const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
@@ -269,6 +365,53 @@ const getFreshIndicatorValue = async (indicator: string, symbol: string, timefra
         console.log(`[FreshIndicator] FRESH CCI(${cciPeriod}) value: ${cciValue}`);
         return { value: cciValue };
         
+      case 'bollingerbands':
+      case 'bbands':
+        const bbPeriod = parseInt(parameters.period) || 20;
+        const bbDeviation = parseFloat(parameters.deviation) || 2;
+        const bbResult = calculateBollingerBands(closes, bbPeriod, bbDeviation);
+        const bbValues = {
+          upper: bbResult.upper[bbResult.upper.length - 1],
+          middle: bbResult.middle[bbResult.middle.length - 1],
+          lower: bbResult.lower[bbResult.lower.length - 1]
+        };
+        console.log(`[FreshIndicator] FRESH Bollinger Bands values:`, bbValues);
+        return bbValues;
+        
+      case 'stochastic':
+      case 'stoch':
+        const kPeriod = parseInt(parameters.kPeriod) || 14;
+        const dPeriod = parseInt(parameters.dPeriod) || 3;
+        const stochResult = calculateStochastic(highs, lows, closes, kPeriod, dPeriod);
+        const stochValues = {
+          k: stochResult.k[stochResult.k.length - 1],
+          d: stochResult.d[stochResult.d.length - 1]
+        };
+        console.log(`[FreshIndicator] FRESH Stochastic values:`, stochValues);
+        return stochValues;
+        
+      case 'atr':
+        const atrPeriod = parseInt(parameters.period) || 14;
+        const atrResult = calculateATR(highs, lows, closes, atrPeriod);
+        const atrValue = atrResult[atrResult.length - 1];
+        console.log(`[FreshIndicator] FRESH ATR(${atrPeriod}) value: ${atrValue}`);
+        return { value: atrValue };
+        
+      case 'williamsr':
+      case 'willr':
+        const wrPeriod = parseInt(parameters.period) || 14;
+        const wrResult = calculateWilliamsR(highs, lows, closes, wrPeriod);
+        const wrValue = wrResult[wrResult.length - 1];
+        console.log(`[FreshIndicator] FRESH Williams %R(${wrPeriod}) value: ${wrValue}`);
+        return { value: wrValue };
+        
+      case 'mfi':
+        const mfiPeriod = parseInt(parameters.period) || 14;
+        const mfiResult = calculateMFI(highs, lows, closes, volumes, mfiPeriod);
+        const mfiValue = mfiResult[mfiResult.length - 1];
+        console.log(`[FreshIndicator] FRESH MFI(${mfiPeriod}) value: ${mfiValue}`);
+        return { value: mfiValue };
+        
       default:
         console.error(`[FreshIndicator] Unsupported indicator: ${indicator}`);
         return null;
@@ -279,21 +422,40 @@ const getFreshIndicatorValue = async (indicator: string, symbol: string, timefra
   }
 };
 
-// Extract value from indicator response (updated for fresh calculations)
+// Extract value from indicator response (updated for all indicators)
 const getIndicatorValue = (indicator: string, data: any, valueType?: string): number | null => {
   if (!data) return null;
 
   try {
-    switch (indicator.toLowerCase()) {
+    const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
+    
+    switch (normalizedIndicator) {
       case 'rsi':
       case 'sma':
       case 'ema':
       case 'cci':
+      case 'atr':
+      case 'williamsr':
+      case 'willr':
+      case 'mfi':
         return data.value || null;
+        
       case 'macd':
-        if (valueType === 'signal') return data.valueSignal || null;
-        if (valueType === 'histogram') return data.valueHistogram || null;
+        if (valueType === 'MACD Signal') return data.valueSignal || null;
+        if (valueType === 'MACD Histogram') return data.valueHistogram || null;
         return data.valueMACD || null;
+        
+      case 'bollingerbands':
+      case 'bbands':
+        if (valueType === 'Upper Band') return data.upper || null;
+        if (valueType === 'Lower Band') return data.lower || null;
+        return data.middle || null;
+        
+      case 'stochastic':
+      case 'stoch':
+        if (valueType === '%D') return data.d || null;
+        return data.k || null;
+        
       default:
         return data.value || null;
     }
@@ -955,7 +1117,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring with FRESH indicator data verification...');
+    console.log('[Monitor] Starting trading signal monitoring with FRESH indicator data verification for ALL 10 indicators...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -1004,14 +1166,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[Monitor] Found ${strategies.length} active strategies to monitor with FRESH data`);
+    console.log(`[Monitor] Found ${strategies.length} active strategies to monitor with FRESH data for ALL 10 indicators`);
 
     const results = [];
 
     // Process each strategy with FRESH indicator data verification
     for (const strategy of strategies) {
       try {
-        console.log(`[Monitor] Processing strategy with FRESH data: ${strategy.name} (${strategy.id})`);
+        console.log(`[Monitor] Processing strategy with FRESH data for ALL indicators: ${strategy.name} (${strategy.id})`);
 
         // Check if strategy has valid trading rules
         const hasRules = strategy.rule_groups?.some((rg: any) => 
@@ -1029,7 +1191,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Generate signal with FRESH indicator data verification
+        // Generate signal with FRESH indicator data verification for ALL 10 indicators
         const signalResult = await generateSignalForStrategy(strategy.id, strategy.user_id, supabaseClient);
         
         results.push({
@@ -1046,7 +1208,8 @@ serve(async (req) => {
           conditionsVerified: signalResult.signalGenerated,
           freshDataVerified: signalResult.freshDataVerified || false,
           notificationStatus: signalResult.notificationStatus,
-          externalNotificationsEnabled: strategy.signal_notifications_enabled
+          externalNotificationsEnabled: strategy.signal_notifications_enabled,
+          indicatorsSupported: 'ALL 10 indicators (RSI, SMA, EMA, MACD, CCI, Bollinger Bands, Stochastic, ATR, Williams %R, MFI)'
         });
 
         // Send external notifications if signal was generated and verified with FRESH data
@@ -1096,11 +1259,11 @@ serve(async (req) => {
     const signalsGenerated = results.filter(r => r.status === 'signal_generated').length;
     const notificationsSent = results.filter(r => r.notificationsSent && r.notificationsSent.length > 0).length;
     
-    console.log(`[Monitor] Signal monitoring completed with FRESH data verification. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
+    console.log(`[Monitor] Signal monitoring completed with FRESH data verification for ALL 10 indicators. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
 
     return new Response(
       JSON.stringify({
-        message: 'Signal monitoring completed with FRESH indicator data verification',
+        message: 'Signal monitoring completed with FRESH indicator data verification for ALL 10 indicators',
         processedStrategies: results.length,
         signalsGenerated: signalsGenerated,
         externalNotificationsSent: notificationsSent,
@@ -1109,7 +1272,8 @@ serve(async (req) => {
         marketOpen: isMarketHours(),
         manualTrigger: isManualTrigger,
         freshDataVerification: true,
-        conditionValidationEnabled: true
+        conditionValidationEnabled: true,
+        supportedIndicators: ['RSI', 'SMA', 'EMA', 'MACD', 'CCI', 'Bollinger Bands', 'Stochastic', 'ATR', 'Williams %R', 'MFI']
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

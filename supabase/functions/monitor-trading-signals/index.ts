@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -491,6 +492,43 @@ const evaluateRuleGroups = async (
   }
 };
 
+// Check daily signal limit for notifications (not signal generation)
+const checkDailyNotificationLimit = async (strategyId: string, supabaseClient: any): Promise<boolean> => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Get strategy's daily limit
+    const { data: strategy, error: strategyError } = await supabaseClient
+      .from('strategies')
+      .select('daily_signal_limit')
+      .eq('id', strategyId)
+      .single();
+
+    if (strategyError || !strategy) {
+      console.error('[NotificationLimit] Error fetching strategy:', strategyError);
+      return true; // Allow notifications if we can't fetch strategy
+    }
+
+    // Count today's signals for this strategy
+    const { data: signalCount } = await supabaseClient
+      .from('trading_signals')
+      .select('id', { count: 'exact' })
+      .eq('strategy_id', strategyId)
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lt('created_at', `${today}T23:59:59.999Z`);
+
+    const dailyLimit = strategy.daily_signal_limit || 5;
+    const currentCount = signalCount ? signalCount.length : 0;
+    
+    console.log(`[NotificationLimit] Strategy ${strategyId}: ${currentCount}/${dailyLimit} signals today`);
+    
+    return currentCount < dailyLimit;
+  } catch (error) {
+    console.error('[NotificationLimit] Error checking daily limit:', error);
+    return true; // Allow notifications on error
+  }
+};
+
 // Send notifications directly using individual edge functions
 const sendNotificationsForSignal = async (
   signalId: string,
@@ -623,7 +661,7 @@ const sendNotificationsForSignal = async (
   }
 };
 
-// Generate signal for a specific strategy with improved rate limiting
+// Generate signal for a specific strategy with corrected logic
 const generateSignalForStrategy = async (
   strategyId: string,
   userId: string,
@@ -675,24 +713,6 @@ const generateSignalForStrategy = async (
 
     console.log(`[SignalGen] Found strategy: ${strategy.name} for ${strategy.target_asset}`);
 
-    // Check daily signal limit
-    const today = new Date().toISOString().split('T')[0];
-    const { data: signalCount } = await supabaseClient
-      .from('trading_signals')
-      .select('id', { count: 'exact' })
-      .eq('strategy_id', strategyId)
-      .gte('created_at', `${today}T00:00:00.000Z`)
-      .lt('created_at', `${today}T23:59:59.999Z`);
-
-    const dailyLimit = strategy.daily_signal_limit || 5;
-    if (signalCount && signalCount.length >= dailyLimit) {
-      console.log(`[SignalGen] Daily limit reached: ${signalCount.length}/${dailyLimit}`);
-      return {
-        signalGenerated: false,
-        reason: `Daily limit reached (${signalCount.length}/${dailyLimit})`
-      };
-    }
-
     // Get current market price
     const currentPrice = await getCurrentPrice(strategy.target_asset);
     if (!currentPrice) {
@@ -732,12 +752,12 @@ const generateSignalForStrategy = async (
     };
     const taapiInterval = timeframeMap[strategy.timeframe] || '1d';
 
-    // Evaluate entry rules first with rate limiting consideration
+    // Evaluate entry rules first
     let signalType: 'entry' | 'exit' | null = null;
     let evaluationDetails: string[] = [];
     
     if (entryRules.length > 0) {
-      console.log(`[SignalGen] Evaluating entry rules with rate limiting...`);
+      console.log(`[SignalGen] Evaluating entry rules...`);
       const entryEvaluation = await evaluateRuleGroups(
         entryRules,
         strategy.target_asset,
@@ -784,7 +804,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    // Create signal
+    // Create signal data
     const signalData = {
       strategyId: strategyId,
       strategyName: strategy.name,
@@ -797,6 +817,7 @@ const generateSignalForStrategy = async (
       evaluationDetails
     };
 
+    // ALWAYS create the signal in the database regardless of notification settings
     const { data: signal, error: signalError } = await supabaseClient
       .from('trading_signals')
       .insert({
@@ -817,12 +838,34 @@ const generateSignalForStrategy = async (
     }
 
     console.log(`[SignalGen] ✓ Signal created successfully: ${signal.id}`);
+    
+    // Check if external notifications should be sent
+    const shouldSendNotifications = strategy.signal_notifications_enabled;
+    let notificationStatus = 'disabled';
+    
+    if (shouldSendNotifications) {
+      // Check daily notification limit
+      const withinLimit = await checkDailyNotificationLimit(strategyId, supabaseClient);
+      
+      if (withinLimit) {
+        notificationStatus = 'sent';
+        console.log(`[SignalGen] Sending external notifications for signal: ${signal.id}`);
+      } else {
+        notificationStatus = 'limit_exceeded';
+        console.log(`[SignalGen] Daily notification limit exceeded, skipping external notifications`);
+      }
+    } else {
+      console.log(`[SignalGen] External notifications disabled for strategy`);
+    }
+
     return {
       signalGenerated: true,
       signalId: signal.id,
       signalType: signalType,
       reason: `${signalType} signal generated`,
-      evaluationDetails
+      evaluationDetails,
+      notificationStatus,
+      shouldSendNotifications: shouldSendNotifications && notificationStatus === 'sent'
     };
 
   } catch (error) {
@@ -846,7 +889,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring with local indicators...');
+    console.log('[Monitor] Starting trading signal monitoring with corrected logic...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -860,7 +903,7 @@ serve(async (req) => {
       );
     }
 
-    // Get all active strategies - simplified query to avoid filtering issues
+    // Get all active strategies - process ALL active strategies regardless of notification settings
     const { data: strategies, error: strategiesError } = await supabaseClient
       .from('strategies')
       .select(`
@@ -899,10 +942,10 @@ serve(async (req) => {
 
     const results = [];
 
-    // Process each strategy with rate limiting
+    // Process each strategy
     for (const strategy of strategies) {
       try {
-        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id}) with rate limits`);
+        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id})`);
 
         // Check if strategy has valid trading rules
         const hasRules = strategy.rule_groups?.some((rg: any) => 
@@ -920,19 +963,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Only process strategies with notifications enabled
-        if (!strategy.signal_notifications_enabled) {
-          console.log(`[Monitor] Skipping strategy ${strategy.name}: Notifications disabled`);
-          results.push({
-            strategyId: strategy.id,
-            strategyName: strategy.name,
-            status: 'skipped',
-            reason: 'Signal notifications disabled'
-          });
-          continue;
-        }
-
-        // Generate signal using the enhanced service with rate limiting
+        // Generate signal using the corrected logic
         const signalResult = await generateSignalForStrategy(strategy.id, strategy.user_id, supabaseClient);
         
         results.push({
@@ -944,12 +975,14 @@ serve(async (req) => {
           reason: signalResult.reason,
           signalId: signalResult.signalId,
           signalType: signalResult.signalType,
-          evaluationDetails: signalResult.evaluationDetails || []
+          evaluationDetails: signalResult.evaluationDetails || [],
+          notificationStatus: signalResult.notificationStatus,
+          externalNotificationsEnabled: strategy.signal_notifications_enabled
         });
 
-        // If signal was generated, send notifications directly
-        if (signalResult.signalGenerated && signalResult.signalId) {
-          console.log(`[Monitor] Signal generated for ${strategy.name}, sending notifications...`);
+        // If signal was generated and external notifications should be sent
+        if (signalResult.signalGenerated && signalResult.shouldSendNotifications && signalResult.signalId) {
+          console.log(`[Monitor] Signal generated for ${strategy.name}, sending external notifications...`);
           
           try {
             const notifications = await sendNotificationsForSignal(
@@ -966,10 +999,18 @@ serve(async (req) => {
               supabaseClient
             );
 
-            console.log(`[Monitor] Notifications sent successfully: ${notifications.join(', ')}`);
+            console.log(`[Monitor] External notifications sent successfully: ${notifications.join(', ')}`);
+            
+            // Update the result with notification details
+            const resultIndex = results.length - 1;
+            results[resultIndex].notificationsSent = notifications;
           } catch (notificationError) {
-            console.error('[Monitor] Error sending notifications:', notificationError);
+            console.error('[Monitor] Error sending external notifications:', notificationError);
+            const resultIndex = results.length - 1;
+            results[resultIndex].notificationError = notificationError.message;
           }
+        } else if (signalResult.signalGenerated) {
+          console.log(`[Monitor] Signal generated for ${strategy.name}, but external notifications ${strategy.signal_notifications_enabled ? 'limit exceeded' : 'disabled'}`);
         }
 
       } catch (error) {
@@ -984,13 +1025,16 @@ serve(async (req) => {
     }
 
     const signalsGenerated = results.filter(r => r.status === 'signal_generated').length;
-    console.log(`[Monitor] Signal monitoring completed. Generated ${signalsGenerated} signals from ${results.length} strategies`);
+    const notificationsSent = results.filter(r => r.notificationsSent && r.notificationsSent.length > 0).length;
+    
+    console.log(`[Monitor] Signal monitoring completed. Generated ${signalsGenerated} signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
 
     return new Response(
       JSON.stringify({
-        message: 'Signal monitoring completed with local indicators',
+        message: 'Signal monitoring completed with corrected logic',
         processedStrategies: results.length,
         signalsGenerated: signalsGenerated,
+        externalNotificationsSent: notificationsSent,
         results: results,
         timestamp: new Date().toISOString(),
         marketOpen: isMarketHours(),

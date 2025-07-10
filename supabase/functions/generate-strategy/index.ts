@@ -13,11 +13,42 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json()
+    const { healthCheck, assetType, asset, description } = await req.json()
+
+    // Handle health check requests
+    if (healthCheck) {
+      const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+      if (!openaiApiKey) {
+        return new Response(JSON.stringify({ 
+          healthy: false, 
+          error: 'OpenAI API key not configured',
+          type: 'api_key_error'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      
+      return new Response(JSON.stringify({ 
+        healthy: true, 
+        message: 'AI service is operational'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Create the prompt for strategy generation
+    const prompt = `Create a trading strategy for ${asset} (${assetType}) based on this description: ${description}`
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not found')
+      return new Response(JSON.stringify({ 
+        error: 'OpenAI API key not configured',
+        type: 'api_key_error'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const systemPrompt = `You are an expert trading strategy generator. Create detailed trading strategies based on user requests.
@@ -111,6 +142,8 @@ SUPPORTED CONDITIONS:
 
 Always provide clear explanations for each rule explaining the trading logic.`
 
+    console.log('Sending request to OpenAI for strategy generation...')
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -118,7 +151,7 @@ Always provide clear explanations for each rule explaining the trading logic.`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
@@ -129,14 +162,45 @@ Always provide clear explanations for each rule explaining the trading logic.`
     })
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`OpenAI API error: ${response.status} ${response.statusText}`, errorText)
+      
+      let errorType = 'api_error'
+      let errorMessage = `OpenAI API error: ${response.status}`
+      
+      if (response.status === 401) {
+        errorType = 'api_key_error'
+        errorMessage = 'Invalid OpenAI API key'
+      } else if (response.status === 429) {
+        errorType = 'rate_limit_error'
+        errorMessage = 'OpenAI API rate limit exceeded'
+      } else if (response.status >= 500) {
+        errorType = 'service_unavailable'
+        errorMessage = 'OpenAI service is temporarily unavailable'
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        type: errorType,
+        details: errorText
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const data = await response.json()
     const content = data.choices[0]?.message?.content
 
     if (!content) {
-      throw new Error('No content received from OpenAI')
+      console.error('No content received from OpenAI')
+      return new Response(JSON.stringify({ 
+        error: 'No content received from OpenAI',
+        type: 'api_error'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Try to parse the JSON response
@@ -146,18 +210,31 @@ Always provide clear explanations for each rule explaining the trading logic.`
       const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*\}/)
       const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content
       strategy = JSON.parse(jsonString)
+      
+      console.log('Strategy generated successfully:', strategy.name)
     } catch (parseError) {
       console.error('Failed to parse JSON:', parseError)
-      throw new Error('Invalid JSON response from OpenAI')
+      console.error('Raw content:', content)
+      return new Response(JSON.stringify({ 
+        error: 'Failed to parse AI response',
+        type: 'parsing_error',
+        details: content
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    return new Response(JSON.stringify({ strategy }), {
+    return new Response(JSON.stringify(strategy), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error('Error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in generate-strategy function:', error)
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Unknown error occurred',
+      type: 'unknown_error'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

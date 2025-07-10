@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RuleGroupData, Inequality } from "@/components/strategy-detail/types";
 
@@ -475,7 +476,7 @@ export const checkAIServiceHealth = async () => {
       console.error('Health check failed:', response.error);
       return { 
         healthy: false, 
-        error: typeof response.error === 'object' ? response.error.error || response.error.message : response.error,
+        error: typeof response.error === 'object' ? response.error.message : response.error,
         details: response.error 
       };
     }

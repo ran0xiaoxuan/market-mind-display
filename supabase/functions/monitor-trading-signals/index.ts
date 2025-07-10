@@ -243,7 +243,7 @@ const getCurrentPrice = async (symbol: string): Promise<number | null> => {
   }
 };
 
-// Fetch FRESH historical data from FMP API - NO CACHING FOR SIGNAL EVALUATION
+// Fetch FRESH historical data from FMP API - SUPPORTS ALL 9 TIMEFRAMES
 const fetchFreshMarketData = async (symbol: string, timeframe: string): Promise<any[]> => {
   try {
     const fmpApiKey = Deno.env.get('FMP_API_KEY');
@@ -252,9 +252,14 @@ const fetchFreshMarketData = async (symbol: string, timeframe: string): Promise<
       return [];
     }
 
+    // Updated timeframe mapping to support ALL 9 timeframes
     const timeframeMap: { [key: string]: string } = {
+      '1m': '1min',
+      '5m': '5min',
+      '15m': '15min',
+      '30m': '30min',
       '1h': '1hour',
-      '4h': '4hour', 
+      '4h': '4hour',
       'Daily': '1day',
       'Weekly': '1week',
       'Monthly': '1month'
@@ -263,13 +268,14 @@ const fetchFreshMarketData = async (symbol: string, timeframe: string): Promise<
     const fmpInterval = timeframeMap[timeframe] || '1day';
     let endpoint: string;
     
-    if (['1hour', '4hour'].includes(fmpInterval)) {
+    // Choose the appropriate FMP endpoint based on timeframe
+    if (['1min', '5min', '15min', '30min', '1hour', '4hour'].includes(fmpInterval)) {
       endpoint = `https://financialmodelingprep.com/api/v3/historical-chart/${fmpInterval}/${symbol}?apikey=${fmpApiKey}`;
     } else {
       endpoint = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${fmpApiKey}`;
     }
 
-    console.log(`[MarketData] Fetching FRESH market data for ${symbol} with timeframe ${timeframe}`);
+    console.log(`[MarketData] Fetching FRESH market data for ${symbol} with timeframe ${timeframe} (FMP: ${fmpInterval})`);
     
     const response = await fetch(endpoint);
     
@@ -292,11 +298,11 @@ const fetchFreshMarketData = async (symbol: string, timeframe: string): Promise<
       }
     }
 
-    console.log(`[MarketData] Successfully fetched ${marketData.length} FRESH data points for ${symbol}`);
+    console.log(`[MarketData] Successfully fetched ${marketData.length} FRESH data points for ${symbol} on ${timeframe} timeframe`);
     return marketData;
 
   } catch (error) {
-    console.error(`[MarketData] Error fetching FRESH data for ${symbol}:`, error);
+    console.error(`[MarketData] Error fetching FRESH data for ${symbol} on ${timeframe}:`, error);
     return [];
   }
 };
@@ -872,7 +878,23 @@ const sendNotificationsForSignal = async (
   }
 };
 
-// Enhanced signal generation with FRESH indicator data verification
+// Map timeframe for indicator calculations - SUPPORTS ALL 9 TIMEFRAMES  
+const mapTimeframeForEvaluation = (timeframe: string): string => {
+  const timeframeMap = {
+    '1m': '1m',
+    '5m': '5m', 
+    '15m': '15m',
+    '30m': '30m',
+    '1h': '1h',
+    '4h': '4h',
+    'Daily': '1d',
+    'Weekly': '1w',
+    'Monthly': '1M'
+  };
+  return timeframeMap[timeframe] || '1d';
+};
+
+// Enhanced signal generation with FRESH indicator data verification for ALL 9 TIMEFRAMES
 const generateSignalForStrategy = async (
   strategyId: string,
   userId: string,
@@ -922,7 +944,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    console.log(`[SignalGen] Found strategy: ${strategy.name} for ${strategy.target_asset}`);
+    console.log(`[SignalGen] Found strategy: ${strategy.name} for ${strategy.target_asset} on ${strategy.timeframe} timeframe`);
 
     // Check if strategy has valid trading rules
     const entryRules = strategy.rule_groups?.filter((rg: any) => rg.rule_type === 'entry') || [];
@@ -949,26 +971,16 @@ const generateSignalForStrategy = async (
 
     console.log(`[SignalGen] FRESH current price for ${strategy.target_asset}: $${currentPrice}`);
 
-    // Map timeframe for indicator calculations
-    const timeframeMap = {
-      '1m': '1m',
-      '5m': '5m',
-      '15m': '15m',
-      '30m': '30m',
-      '1h': '1h',
-      '4h': '4h',
-      'Daily': '1d',
-      'Weekly': '1w',
-      'Monthly': '1M'
-    };
-    const taapiInterval = timeframeMap[strategy.timeframe] || '1d';
+    // Use the timeframe mapping for evaluation - NOW SUPPORTS ALL 9 TIMEFRAMES
+    const evaluationTimeframe = mapTimeframeForEvaluation(strategy.timeframe);
+    console.log(`[SignalGen] Using timeframe ${strategy.timeframe} (mapped to ${evaluationTimeframe}) for indicator calculations`);
 
     // CRITICAL: Properly evaluate trading rules against CURRENT market conditions with FRESH data
     let signalType: 'entry' | 'exit' | null = null;
     let evaluationDetails: string[] = [];
     let matchedConditions: string[] = [];
     
-    console.log(`[SignalGen] Starting rule evaluation with FRESH indicator data...`);
+    console.log(`[SignalGen] Starting rule evaluation with FRESH indicator data for ALL 9 timeframes...`);
     
     // Evaluate entry rules first with strict condition checking using FRESH data
     if (entryRules.length > 0) {
@@ -977,7 +989,7 @@ const generateSignalForStrategy = async (
         entryRules,
         strategy.target_asset,
         currentPrice,
-        taapiInterval
+        evaluationTimeframe
       );
       
       evaluationDetails.push('Entry Rules (with FRESH data):', ...entryEvaluation.details);
@@ -999,7 +1011,7 @@ const generateSignalForStrategy = async (
         exitRules,
         strategy.target_asset,
         currentPrice,
-        taapiInterval
+        evaluationTimeframe
       );
       
       evaluationDetails.push('Exit Rules (with FRESH data):', ...exitEvaluation.details);
@@ -1040,7 +1052,8 @@ const generateSignalForStrategy = async (
       conditionsVerified: true,
       conditionsMetCount: matchedConditions.length,
       freshDataUsed: true,
-      verificationTimestamp: new Date().toISOString()
+      verificationTimestamp: new Date().toISOString(),
+      timeframeSupported: `${strategy.timeframe} (1 of 9 supported timeframes)`
     };
 
     // ONLY create signal if conditions are verified and met with FRESH data
@@ -1063,7 +1076,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    console.log(`[SignalGen] ✓ Signal created successfully with FRESH data verification: ${signal.id}`);
+    console.log(`[SignalGen] ✓ Signal created successfully with FRESH data verification for ${strategy.timeframe} timeframe: ${signal.id}`);
     
     // Check if external notifications should be sent
     const shouldSendNotifications = strategy.signal_notifications_enabled;
@@ -1088,12 +1101,13 @@ const generateSignalForStrategy = async (
       signalGenerated: true,
       signalId: signal.id,
       signalType: signalType,
-      reason: `${signalType} signal generated - conditions verified and met with FRESH data`,
+      reason: `${signalType} signal generated - conditions verified and met with FRESH data for ${strategy.timeframe} timeframe`,
       evaluationDetails,
       matchedConditions,
       notificationStatus,
       shouldSendNotifications: shouldSendNotifications && notificationStatus === 'sent',
-      freshDataVerified: true
+      freshDataVerified: true,
+      timeframeUsed: strategy.timeframe
     };
 
   } catch (error) {
@@ -1117,7 +1131,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring with FRESH indicator data verification for ALL 10 indicators...');
+    console.log('[Monitor] Starting trading signal monitoring with FRESH indicator data verification for ALL 10 indicators and ALL 9 timeframes...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -1166,14 +1180,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[Monitor] Found ${strategies.length} active strategies to monitor with FRESH data for ALL 10 indicators`);
+    console.log(`[Monitor] Found ${strategies.length} active strategies to monitor with FRESH data for ALL 10 indicators across ALL 9 timeframes`);
 
     const results = [];
 
     // Process each strategy with FRESH indicator data verification
     for (const strategy of strategies) {
       try {
-        console.log(`[Monitor] Processing strategy with FRESH data for ALL indicators: ${strategy.name} (${strategy.id})`);
+        console.log(`[Monitor] Processing strategy with FRESH data for ALL indicators on ${strategy.timeframe} timeframe: ${strategy.name} (${strategy.id})`);
 
         // Check if strategy has valid trading rules
         const hasRules = strategy.rule_groups?.some((rg: any) => 
@@ -1185,13 +1199,14 @@ serve(async (req) => {
           results.push({
             strategyId: strategy.id,
             strategyName: strategy.name,
+            timeframe: strategy.timeframe,
             status: 'skipped',
             reason: 'No trading rules defined'
           });
           continue;
         }
 
-        // Generate signal with FRESH indicator data verification for ALL 10 indicators
+        // Generate signal with FRESH indicator data verification for ALL 10 indicators across ALL 9 timeframes
         const signalResult = await generateSignalForStrategy(strategy.id, strategy.user_id, supabaseClient);
         
         results.push({
@@ -1207,14 +1222,16 @@ serve(async (req) => {
           matchedConditions: signalResult.matchedConditions || [],
           conditionsVerified: signalResult.signalGenerated,
           freshDataVerified: signalResult.freshDataVerified || false,
+          timeframeSupported: signalResult.timeframeUsed || strategy.timeframe,
           notificationStatus: signalResult.notificationStatus,
           externalNotificationsEnabled: strategy.signal_notifications_enabled,
-          indicatorsSupported: 'ALL 10 indicators (RSI, SMA, EMA, MACD, CCI, Bollinger Bands, Stochastic, ATR, Williams %R, MFI)'
+          indicatorsSupported: 'ALL 10 indicators (RSI, SMA, EMA, MACD, CCI, Bollinger Bands, Stochastic, ATR, Williams %R, MFI)',
+          timeframesSupported: 'ALL 9 timeframes (1m, 5m, 15m, 30m, 1h, 4h, Daily, Weekly, Monthly)'
         });
 
         // Send external notifications if signal was generated and verified with FRESH data
         if (signalResult.signalGenerated && signalResult.shouldSendNotifications && signalResult.signalId) {
-          console.log(`[Monitor] Signal verified with FRESH data for ${strategy.name}, sending external notifications...`);
+          console.log(`[Monitor] Signal verified with FRESH data for ${strategy.name} on ${strategy.timeframe}, sending external notifications...`);
           
           try {
             const notifications = await sendNotificationsForSignal(
@@ -1250,6 +1267,7 @@ serve(async (req) => {
         results.push({
           strategyId: strategy.id,
           strategyName: strategy.name,
+          timeframe: strategy.timeframe,
           status: 'error',
           reason: error.message
         });
@@ -1259,11 +1277,11 @@ serve(async (req) => {
     const signalsGenerated = results.filter(r => r.status === 'signal_generated').length;
     const notificationsSent = results.filter(r => r.notificationsSent && r.notificationsSent.length > 0).length;
     
-    console.log(`[Monitor] Signal monitoring completed with FRESH data verification for ALL 10 indicators. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
+    console.log(`[Monitor] Signal monitoring completed with FRESH data verification for ALL 10 indicators across ALL 9 timeframes. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
 
     return new Response(
       JSON.stringify({
-        message: 'Signal monitoring completed with FRESH indicator data verification for ALL 10 indicators',
+        message: 'Signal monitoring completed with FRESH indicator data verification for ALL 10 indicators across ALL 9 timeframes',
         processedStrategies: results.length,
         signalsGenerated: signalsGenerated,
         externalNotificationsSent: notificationsSent,
@@ -1273,7 +1291,8 @@ serve(async (req) => {
         manualTrigger: isManualTrigger,
         freshDataVerification: true,
         conditionValidationEnabled: true,
-        supportedIndicators: ['RSI', 'SMA', 'EMA', 'MACD', 'CCI', 'Bollinger Bands', 'Stochastic', 'ATR', 'Williams %R', 'MFI']
+        supportedIndicators: ['RSI', 'SMA', 'EMA', 'MACD', 'CCI', 'Bollinger Bands', 'Stochastic', 'ATR', 'Williams %R', 'MFI'],
+        supportedTimeframes: ['1m', '5m', '15m', '30m', '1h', '4h', 'Daily', 'Weekly', 'Monthly']
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

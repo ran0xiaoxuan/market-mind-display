@@ -111,7 +111,7 @@ export const NotificationToggle: React.FC<NotificationToggleProps> = ({
         <p className="text-xs text-muted-foreground mt-1">
           {localEnabled 
             ? "Signals will be sent to your configured channels (Email/Discord/Telegram) and recorded in the app"
-            : "Signals will only be recorded in the app - upgrade to PRO to enable external notifications"
+            : "Signals will only be recorded in the app"
           }
         </p>
       </div>

@@ -35,7 +35,7 @@ const Dashboard = () => {
     }
   };
 
-  // Simplified and consistent trade history fetching that matches StrategyDetail approach
+  // Consistent trade history fetching that matches signal count logic
   const fetchAllTradeHistory = async (strategies: any[]) => {
     try {
       const userStrategyIds = strategies.map(s => s.id);
@@ -44,14 +44,14 @@ const Dashboard = () => {
         return [];
       }
 
-      // Use the same query pattern as StrategyDetail for consistency
+      // Use the same base query for both count and display
       let query = supabase
         .from("trading_signals")
         .select("*")
         .in("strategy_id", userStrategyIds)
         .order("created_at", { ascending: false });
 
-      // Apply date filter based on timeRange
+      // Apply consistent date filter based on timeRange
       if (timeRange === "7d") {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -85,7 +85,7 @@ const Dashboard = () => {
         });
       });
 
-      // Format signals consistently with StrategyDetail approach
+      // Format signals consistently
       const formattedTrades = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategyInfo = strategyMap.get(signal.strategy_id);
@@ -117,7 +117,7 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate metrics from user's strategies and signals
+  // Calculate metrics using the SAME data as trade history
   const calculateMetrics = async (strategies: any[], allSignals: any[]) => {
     try {
       const userStrategyIds = strategies.map(s => s.id);
@@ -126,23 +126,9 @@ const Dashboard = () => {
       const totalStrategies = strategies.length;
       const activeStrategies = strategies.filter(s => s.signalNotificationsEnabled === true).length;
 
-      // Get total signal count with time filter if needed
-      let signalCountQuery = supabase
-        .from("trading_signals")
-        .select("id", { count: 'exact', head: true })
-        .in("strategy_id", userStrategyIds.length > 0 ? userStrategyIds : ['']);
-
-      if (timeRange === "7d") {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        signalCountQuery = signalCountQuery.gte("created_at", sevenDaysAgo.toISOString());
-      } else if (timeRange === "30d") {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        signalCountQuery = signalCountQuery.gte("created_at", thirtyDaysAgo.toISOString());
-      }
-
-      const { count: totalSignalCount } = await signalCountQuery;
+      // Use the SAME signal count as the trade history length
+      // This ensures consistency between Signal Amount and Trade History entries
+      const totalSignalCount = allSignals.length;
 
       // Calculate total conditions count
       let conditionsCount = 0;
@@ -170,7 +156,7 @@ const Dashboard = () => {
         strategiesChange: { value: "+0", positive: false },
         activeStrategies: activeStrategies.toString(),
         activeChange: { value: "+0", positive: false },
-        signalAmount: (totalSignalCount || 0).toString(),
+        signalAmount: totalSignalCount.toString(),
         signalChange: { value: "+0", positive: false },
         conditionsCount: conditionsCount.toString(),
         conditionsChange: { value: "+0", positive: false }
@@ -210,23 +196,23 @@ const Dashboard = () => {
       const strategies = await getStrategies();
       console.log(`Dashboard: Found ${strategies.length} strategies for user`);
 
-      // Fetch trade history using the consistent approach
+      // Fetch trade history using consistent approach
       const allTradeHistory = await fetchAllTradeHistory(strategies);
       
-      // Calculate metrics
+      // Calculate metrics using the SAME data as trade history
       const calculatedMetrics = await calculateMetrics(strategies, allTradeHistory);
 
       setMetrics(calculatedMetrics);
       setTradeHistory(allTradeHistory);
       
-      console.log(`Dashboard: Successfully loaded ${allTradeHistory.length} trades`);
+      console.log(`Dashboard: Successfully loaded ${allTradeHistory.length} trades, Signal Amount: ${calculatedMetrics.signalAmount}`);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast.error("Failed to load dashboard data", {
         description: "Using cached data. Please check your connection."
       });
 
-      // Fallback metrics
+      // ... keep existing code (fallback metrics)
       setMetrics({
         strategiesCount: "0",
         strategiesChange: { value: "+0", positive: false },

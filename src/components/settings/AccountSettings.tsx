@@ -1,31 +1,28 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TimezoneSettings } from "./TimezoneSettings";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AccountSettings() {
-  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const { user } = useAuth();
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) {
-      toast.error("Please enter your email address");
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast.error("No email address found for your account");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
@@ -47,7 +44,6 @@ export function AccountSettings() {
 
   const handleSendAnother = () => {
     setIsEmailSent(false);
-    setEmail("");
   };
 
   return (
@@ -66,7 +62,7 @@ export function AccountSettings() {
                 <h3 className="text-lg font-medium">Reset Link Sent</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                We've sent a password reset link to <strong>{email}</strong>
+                We've sent a password reset link to <strong>{user?.email}</strong>
               </p>
               <p className="text-sm text-muted-foreground">
                 Please check your email and click the reset link to create a new password.
@@ -76,28 +72,15 @@ export function AccountSettings() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handlePasswordReset} className="space-y-4">
+            <div className="space-y-4">
               <p className="text-sm text-muted-foreground mb-4">
-                Enter your email address and we'll send you a link to reset your password.
+                Click the button below to send a password reset link to your email address: <strong>{user?.email}</strong>
               </p>
-              
-              <div className="space-y-2">
-                <Label htmlFor="reset-email">Email Address</Label>
-                <Input
-                  id="reset-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  autoComplete="email"
-                  disabled={isLoading}
-                />
-              </div>
 
               <Button 
-                type="submit" 
+                onClick={handlePasswordReset}
                 className="w-full" 
-                disabled={isLoading}
+                disabled={isLoading || !user?.email}
               >
                 {isLoading ? (
                   <>
@@ -108,7 +91,7 @@ export function AccountSettings() {
                   "Send Reset Link"
                 )}
               </Button>
-            </form>
+            </div>
           )}
         </CardContent>
       </Card>

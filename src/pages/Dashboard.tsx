@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -41,8 +42,11 @@ const Dashboard = () => {
       const userStrategyIds = strategies.map(s => s.id);
       
       if (userStrategyIds.length === 0) {
+        console.log('Dashboard: No strategies found for user');
         return [];
       }
+
+      console.log(`Dashboard: Fetching signals for ${userStrategyIds.length} strategies with timeRange: ${timeRange}`);
 
       // Use the same base query for both count and display
       let query = supabase
@@ -56,21 +60,23 @@ const Dashboard = () => {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         query = query.gte("created_at", sevenDaysAgo.toISOString());
+        console.log(`Dashboard: Applying 7-day filter from ${sevenDaysAgo.toISOString()}`);
       } else if (timeRange === "30d") {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         query = query.gte("created_at", thirtyDaysAgo.toISOString());
+        console.log(`Dashboard: Applying 30-day filter from ${thirtyDaysAgo.toISOString()}`);
       }
 
       const { data: signals, error } = await query;
 
       if (error) {
-        console.error('Error fetching trade history:', error);
+        console.error('Dashboard: Error fetching trade history:', error);
         return [];
       }
 
       if (!signals || signals.length === 0) {
-        console.log('No trading signals found for dashboard');
+        console.log(`Dashboard: No trading signals found for time range ${timeRange}`);
         return [];
       }
 
@@ -81,7 +87,8 @@ const Dashboard = () => {
       strategies.forEach(strategy => {
         strategyMap.set(strategy.id, {
           name: strategy.name,
-          targetAsset: strategy.targetAsset
+          targetAsset: strategy.target_asset,
+          targetAssetName: strategy.target_asset_name
         });
       });
 
@@ -94,8 +101,8 @@ const Dashboard = () => {
           id: signal.id,
           date: signal.created_at,
           type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
-          signal: signalData.reason || 'Trading Signal',
-          price: `$${(signalData.price || 0).toFixed(2)}`,
+          signal: signalData.reason || `${signal.signal_type} signal`,
+          price: `$${(signalData.price || signalData.marketPrice || 0).toFixed(2)}`,
           contracts: 1,
           profit: signalData.profit !== null && signalData.profit !== undefined 
             ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 
@@ -105,14 +112,14 @@ const Dashboard = () => {
             : null,
           strategyId: signal.strategy_id,
           strategyName: strategyInfo?.name || 'Unknown Strategy',
-          targetAsset: strategyInfo?.targetAsset || 'Unknown Asset'
+          targetAsset: strategyInfo?.targetAssetName || strategyInfo?.targetAsset || signalData.targetAsset || 'Unknown Asset'
         };
       });
 
       console.log(`Dashboard: Formatted ${formattedTrades.length} trades for display`);
       return formattedTrades;
     } catch (error) {
-      console.error('Error in fetchAllTradeHistory:', error);
+      console.error('Dashboard: Error in fetchAllTradeHistory:', error);
       return [];
     }
   };
@@ -124,7 +131,7 @@ const Dashboard = () => {
       
       // Calculate basic strategy metrics
       const totalStrategies = strategies.length;
-      const activeStrategies = strategies.filter(s => s.signalNotificationsEnabled === true).length;
+      const activeStrategies = strategies.filter(s => s.signal_notifications_enabled === true).length;
 
       // Use the SAME signal count as the trade history length
       // This ensures consistency between Signal Amount and Trade History entries
@@ -162,7 +169,7 @@ const Dashboard = () => {
         conditionsChange: { value: "+0", positive: false }
       };
     } catch (error) {
-      console.error("Error calculating metrics:", error);
+      console.error("Dashboard: Error calculating metrics:", error);
       return {
         strategiesCount: "0",
         strategiesChange: { value: "+0", positive: false },
@@ -176,7 +183,7 @@ const Dashboard = () => {
     }
   };
 
-  // Main data fetching function
+  // Main data fetching function with enhanced error handling and logging
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -206,8 +213,16 @@ const Dashboard = () => {
       setTradeHistory(allTradeHistory);
       
       console.log(`Dashboard: Successfully loaded ${allTradeHistory.length} trades, Signal Amount: ${calculatedMetrics.signalAmount}`);
+      
+      // Verify consistency
+      if (calculatedMetrics.signalAmount !== allTradeHistory.length.toString()) {
+        console.warn(`Dashboard: Inconsistency detected! Signal Amount: ${calculatedMetrics.signalAmount}, Trade History Length: ${allTradeHistory.length}`);
+      } else {
+        console.log('Dashboard: ✅ Signal Amount and Trade History count are consistent');
+      }
+      
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      console.error("Dashboard: Error fetching dashboard data:", error);
       toast.error("Failed to load dashboard data", {
         description: "Using cached data. Please check your connection."
       });
@@ -231,6 +246,16 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+  }, [timeRange]);
+
+  // Auto-refresh dashboard data every 30 seconds to catch new signals
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Dashboard: Auto-refreshing data...');
+      fetchDashboardData();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [timeRange]);
 
   // Fixed number of trades to show in the dashboard view
@@ -314,6 +339,9 @@ const Dashboard = () => {
               <Button variant={timeRange === "all" ? "default" : "outline"} onClick={() => handleTimeRangeChange("all")}>
                 All Time
               </Button>
+              <Button variant="ghost" size="sm" onClick={fetchDashboardData}>
+                🔄 Refresh
+              </Button>
             </div>
           </div>
           
@@ -330,7 +358,12 @@ const Dashboard = () => {
             <div className="space-y-6 lg:col-span-5">
               <Card>
                 <div className="p-6">
-                  <h2 className="text-xl font-bold">Trade History</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold">Trade History</h2>
+                    <span className="text-sm text-gray-500">
+                      Showing {Math.min(tradeHistory.length, MAX_VISIBLE_TRADES)} of {tradeHistory.length} signals
+                    </span>
+                  </div>
                 </div>
 
                 <div className="px-6 pb-6">

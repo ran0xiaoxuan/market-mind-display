@@ -168,11 +168,12 @@ export const generateSignalForStrategy = async (
       };
     }
 
-    // Create signal data with enhanced information
+    // Create comprehensive signal data with all required fields
     const signalData = {
       strategyId: strategyId,
       strategyName: strategy.name,
       targetAsset: strategy.target_asset,
+      targetAssetName: strategy.target_asset_name || strategy.target_asset,
       price: currentPrice,
       userId: userId,
       timestamp: new Date().toISOString(),
@@ -181,10 +182,16 @@ export const generateSignalForStrategy = async (
       reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - conditions met`,
       matchedConditions: evaluation.matchedConditions,
       evaluationDetails: evaluation.evaluationDetails,
-      conditionsMetCount: evaluation.matchedConditions.length
+      conditionsMetCount: evaluation.matchedConditions.length,
+      // Additional metadata for better tracking
+      generatedAt: new Date().toISOString(),
+      marketPrice: currentPrice,
+      dailySignalNumber: (signalCount?.length || 0) + 1
     };
 
-    // Insert the signal into database
+    console.log(`[SignalGen] Attempting to insert signal with data:`, signalData);
+
+    // Insert the signal into database with enhanced error handling
     const { data: signal, error: signalError } = await supabase
       .from('trading_signals')
       .insert({
@@ -197,20 +204,42 @@ export const generateSignalForStrategy = async (
       .single();
 
     if (signalError) {
-      console.error('[SignalGen] Error creating signal:', signalError);
+      console.error('[SignalGen] Error creating signal in database:', signalError);
+      console.error('[SignalGen] Signal data that failed to insert:', signalData);
       return {
         signalGenerated: false,
-        reason: `Failed to create signal: ${signalError.message}`
+        reason: `Failed to create signal in database: ${signalError.message}`
       };
     }
 
-    console.log(`[SignalGen] ✓ ${signalType} signal generated successfully:`, signal.id);
+    if (!signal) {
+      console.error('[SignalGen] No signal returned from database insert');
+      return {
+        signalGenerated: false,
+        reason: 'Signal creation failed - no data returned from database'
+      };
+    }
+
+    console.log(`[SignalGen] ✓ ${signalType} signal successfully created in database:`, signal.id);
     console.log(`[SignalGen] Signal matched ${evaluation.matchedConditions.length} conditions`);
+
+    // Verify the signal was actually stored
+    const { data: verifySignal, error: verifyError } = await supabase
+      .from('trading_signals')
+      .select('*')
+      .eq('id', signal.id)
+      .single();
+
+    if (verifyError || !verifySignal) {
+      console.error('[SignalGen] Failed to verify signal storage:', verifyError);
+    } else {
+      console.log('[SignalGen] ✓ Signal verified in database');
+    }
 
     return {
       signalGenerated: true,
       signalId: signal.id,
-      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - all required conditions met`,
+      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated and stored successfully`,
       matchedConditions: evaluation.matchedConditions,
       evaluationDetails: evaluation.evaluationDetails
     };
@@ -224,7 +253,7 @@ export const generateSignalForStrategy = async (
   }
 };
 
-// Enhanced function to test signal generation manually
+// Enhanced function to test signal generation manually with better database integration
 export const testSignalGeneration = async (strategyId: string) => {
   try {
     const { data: user } = await supabase.auth.getUser();
@@ -238,6 +267,26 @@ export const testSignalGeneration = async (strategyId: string) => {
     
     console.log(`[TestSignal] Test result:`, result);
     
+    // If signal was generated, also verify it's accessible via the queries used by Dashboard
+    if (result.signalGenerated && result.signalId) {
+      console.log(`[TestSignal] Verifying signal accessibility...`);
+      
+      const { data: signals, error: queryError } = await supabase
+        .from('trading_signals')
+        .select('*')
+        .eq('strategy_id', strategyId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (queryError) {
+        console.error('[TestSignal] Error querying signals:', queryError);
+      } else if (signals && signals.length > 0) {
+        console.log('[TestSignal] ✓ Signal is accessible via dashboard queries');
+      } else {
+        console.error('[TestSignal] ⚠️ Signal not found in dashboard queries');
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('[TestSignal] Error testing signal generation:', error);
@@ -248,7 +297,7 @@ export const testSignalGeneration = async (strategyId: string) => {
   }
 };
 
-// Function to manually trigger signal monitoring
+// Function to manually trigger signal monitoring with better error handling
 export const triggerSignalMonitoring = async () => {
   try {
     console.log('[TriggerMonitor] Manually triggering signal monitoring...');
@@ -257,7 +306,8 @@ export const triggerSignalMonitoring = async () => {
       body: { 
         manual: true,
         source: 'manual_trigger',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        debug: true
       }
     });
     
@@ -267,6 +317,12 @@ export const triggerSignalMonitoring = async () => {
     }
     
     console.log('[TriggerMonitor] Monitoring triggered successfully:', data);
+    
+    // Also refresh the signals display after monitoring
+    if (data?.signalsGenerated > 0) {
+      console.log(`[TriggerMonitor] ${data.signalsGenerated} new signals generated`);
+    }
+    
     return { success: true, data };
   } catch (error) {
     console.error('[TriggerMonitor] Error in triggerSignalMonitoring:', error);
@@ -308,5 +364,21 @@ export const cleanupInvalidSignals = async () => {
     console.log(`[SignalGen] Successfully cleaned up ${invalidSignals.length} invalid signals`);
   } catch (error) {
     console.error('[SignalGen] Error during signal cleanup:', error);
+  }
+};
+
+// Add a function to force refresh dashboard data
+export const refreshDashboardData = async () => {
+  try {
+    console.log('[RefreshDashboard] Forcing dashboard data refresh...');
+    
+    // Clean up any invalid signals first
+    await cleanupInvalidSignals();
+    
+    // Trigger a fresh data fetch
+    window.location.reload();
+    
+  } catch (error) {
+    console.error('[RefreshDashboard] Error refreshing dashboard:', error);
   }
 };

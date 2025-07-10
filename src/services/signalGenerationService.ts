@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getTradingRulesForStrategy } from "./strategyService";
 import { getStockPrice } from "./marketDataService";
@@ -38,7 +37,7 @@ export const generateSignalForStrategy = async (
 
     console.log(`[SignalGen] Found strategy: ${strategy.name} for asset ${strategy.target_asset}`);
 
-    // Check daily signal limit
+    // Check daily signal limit BEFORE expensive operations
     const today = new Date().toISOString().split('T')[0];
     const { data: signalCount } = await supabase
       .from('trading_signals')
@@ -56,28 +55,7 @@ export const generateSignalForStrategy = async (
       };
     }
 
-    // Get current market price with enhanced error handling
-    let currentPrice;
-    try {
-      const priceData = await getStockPrice(strategy.target_asset);
-      if (!priceData) {
-        console.error(`[SignalGen] Failed to get current price for ${strategy.target_asset}`);
-        return {
-          signalGenerated: false,
-          reason: `Failed to get current price for ${strategy.target_asset}`
-        };
-      }
-      currentPrice = priceData.price;
-      console.log(`[SignalGen] Current price for ${strategy.target_asset}: $${currentPrice}`);
-    } catch (error) {
-      console.error(`[SignalGen] Error fetching price for ${strategy.target_asset}:`, error);
-      return {
-        signalGenerated: false,
-        reason: `Error fetching market data: ${error.message}`
-      };
-    }
-
-    // Get trading rules for the strategy with improved error handling
+    // Get trading rules for the strategy
     let rulesData;
     try {
       rulesData = await getTradingRulesForStrategy(strategyId);
@@ -98,12 +76,34 @@ export const generateSignalForStrategy = async (
 
     console.log(`[SignalGen] Found ${rulesData.entryRules?.length || 0} entry rule groups and ${rulesData.exitRules?.length || 0} exit rule groups`);
 
-    // Evaluate entry rules first
+    // Get current market price
+    let currentPrice;
+    try {
+      const priceData = await getStockPrice(strategy.target_asset);
+      if (!priceData) {
+        console.error(`[SignalGen] Failed to get current price for ${strategy.target_asset}`);
+        return {
+          signalGenerated: false,
+          reason: `Failed to get current price for ${strategy.target_asset}`
+        };
+      }
+      currentPrice = priceData.price;
+      console.log(`[SignalGen] Current price for ${strategy.target_asset}: $${currentPrice}`);
+    } catch (error) {
+      console.error(`[SignalGen] Error fetching price for ${strategy.target_asset}:`, error);
+      return {
+        signalGenerated: false,
+        reason: `Error fetching market data: ${error.message}`
+      };
+    }
+
+    // CRITICAL: Actually evaluate the trading rules against current market conditions
     let signalType: 'entry' | 'exit' | null = null;
     let evaluation = null;
 
+    // Evaluate entry rules first with proper condition checking
     if (rulesData.entryRules?.length > 0) {
-      console.log('[SignalGen] Evaluating entry rules...');
+      console.log('[SignalGen] Evaluating entry rules against current market conditions...');
       try {
         evaluation = await evaluateTradingRules(
           rulesData.entryRules,
@@ -114,11 +114,12 @@ export const generateSignalForStrategy = async (
 
         console.log(`[SignalGen] Entry rules evaluation result:`, evaluation);
 
-        if (evaluation.signalGenerated) {
+        // Only generate signal if conditions are ACTUALLY met
+        if (evaluation.signalGenerated && evaluation.matchedConditions?.length > 0) {
           signalType = 'entry';
-          console.log('[SignalGen] ✓ Entry signal conditions met!');
+          console.log('[SignalGen] ✓ Entry signal conditions VERIFIED and met!');
         } else {
-          console.log('[SignalGen] ✗ Entry signal conditions not met');
+          console.log('[SignalGen] ✗ Entry signal conditions NOT met - no signal generated');
         }
       } catch (error) {
         console.error(`[SignalGen] Error evaluating entry rules:`, error);
@@ -129,9 +130,9 @@ export const generateSignalForStrategy = async (
       }
     }
 
-    // If no entry signal, check exit rules
+    // If no entry signal generated, check exit rules
     if (!signalType && rulesData.exitRules?.length > 0) {
-      console.log('[SignalGen] Evaluating exit rules...');
+      console.log('[SignalGen] Evaluating exit rules against current market conditions...');
       try {
         evaluation = await evaluateTradingRules(
           rulesData.exitRules,
@@ -142,11 +143,12 @@ export const generateSignalForStrategy = async (
 
         console.log(`[SignalGen] Exit rules evaluation result:`, evaluation);
 
-        if (evaluation.signalGenerated) {
+        // Only generate signal if conditions are ACTUALLY met
+        if (evaluation.signalGenerated && evaluation.matchedConditions?.length > 0) {
           signalType = 'exit';
-          console.log('[SignalGen] ✓ Exit signal conditions met!');
+          console.log('[SignalGen] ✓ Exit signal conditions VERIFIED and met!');
         } else {
-          console.log('[SignalGen] ✗ Exit signal conditions not met');
+          console.log('[SignalGen] ✗ Exit signal conditions NOT met - no signal generated');
         }
       } catch (error) {
         console.error(`[SignalGen] Error evaluating exit rules:`, error);
@@ -160,6 +162,7 @@ export const generateSignalForStrategy = async (
     // If no signal conditions are met, return early with detailed info
     if (!signalType || !evaluation?.signalGenerated) {
       console.log(`[SignalGen] No signal generated for strategy: ${strategyId}`);
+      console.log(`[SignalGen] Market conditions do not meet trading criteria`);
       console.log(`[SignalGen] Evaluation details:`, evaluation?.evaluationDetails);
       return {
         signalGenerated: false,
@@ -168,7 +171,7 @@ export const generateSignalForStrategy = async (
       };
     }
 
-    // Create comprehensive signal data with all required fields
+    // ONLY create signal if conditions are verified and met
     const signalData = {
       strategyId: strategyId,
       strategyName: strategy.name,
@@ -179,19 +182,19 @@ export const generateSignalForStrategy = async (
       timestamp: new Date().toISOString(),
       timeframe: strategy.timeframe,
       signalType: signalType,
-      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - conditions met`,
+      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal - conditions verified and met`,
       matchedConditions: evaluation.matchedConditions,
       evaluationDetails: evaluation.evaluationDetails,
       conditionsMetCount: evaluation.matchedConditions.length,
-      // Additional metadata for better tracking
-      generatedAt: new Date().toISOString(),
       marketPrice: currentPrice,
-      dailySignalNumber: (signalCount?.length || 0) + 1
+      dailySignalNumber: (signalCount?.length || 0) + 1,
+      conditionsMet: true, // Flag to indicate conditions were properly verified
+      verifiedAt: new Date().toISOString()
     };
 
-    console.log(`[SignalGen] Attempting to insert signal with data:`, signalData);
+    console.log(`[SignalGen] Creating signal with verified conditions:`, signalData);
 
-    // Insert the signal into database with enhanced error handling
+    // Insert the signal into database
     const { data: signal, error: signalError } = await supabase
       .from('trading_signals')
       .insert({
@@ -205,7 +208,6 @@ export const generateSignalForStrategy = async (
 
     if (signalError) {
       console.error('[SignalGen] Error creating signal in database:', signalError);
-      console.error('[SignalGen] Signal data that failed to insert:', signalData);
       return {
         signalGenerated: false,
         reason: `Failed to create signal in database: ${signalError.message}`
@@ -220,26 +222,13 @@ export const generateSignalForStrategy = async (
       };
     }
 
-    console.log(`[SignalGen] ✓ ${signalType} signal successfully created in database:`, signal.id);
-    console.log(`[SignalGen] Signal matched ${evaluation.matchedConditions.length} conditions`);
-
-    // Verify the signal was actually stored
-    const { data: verifySignal, error: verifyError } = await supabase
-      .from('trading_signals')
-      .select('*')
-      .eq('id', signal.id)
-      .single();
-
-    if (verifyError || !verifySignal) {
-      console.error('[SignalGen] Failed to verify signal storage:', verifyError);
-    } else {
-      console.log('[SignalGen] ✓ Signal verified in database');
-    }
+    console.log(`[SignalGen] ✓ ${signalType} signal successfully created with verified conditions:`, signal.id);
+    console.log(`[SignalGen] Signal matched ${evaluation.matchedConditions.length} verified conditions`);
 
     return {
       signalGenerated: true,
       signalId: signal.id,
-      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated and stored successfully`,
+      reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - conditions verified and met`,
       matchedConditions: evaluation.matchedConditions,
       evaluationDetails: evaluation.evaluationDetails
     };

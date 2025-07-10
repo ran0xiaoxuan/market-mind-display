@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -290,15 +289,15 @@ const getIndicatorValue = (indicator: string, data: any, valueType?: string): nu
   }
 };
 
-// Evaluate a single trading rule condition using local indicators
+// Enhanced condition evaluation with proper validation
 const evaluateCondition = async (
   rule: any,
   asset: string,
   currentPrice: number,
   timeframe: string
-): Promise<boolean> => {
+): Promise<{ conditionMet: boolean; reason: string; leftValue: number | null; rightValue: number | null }> => {
   try {
-    console.log(`[ConditionEval] Evaluating rule:`, JSON.stringify(rule, null, 2));
+    console.log(`[ConditionEval] Evaluating rule condition:`, JSON.stringify(rule, null, 2));
 
     // Get left side value
     let leftValue: number | null = null;
@@ -306,10 +305,12 @@ const evaluateCondition = async (
       leftValue = currentPrice;
     } else if (rule.left_type === 'VALUE') {
       leftValue = parseFloat(rule.left_value);
+      if (isNaN(leftValue)) {
+        return { conditionMet: false, reason: 'Invalid left value', leftValue: null, rightValue: null };
+      }
     } else if (rule.left_type === 'INDICATOR') {
       if (!rule.left_indicator) {
-        console.error('[ConditionEval] Left indicator not specified');
-        return false;
+        return { conditionMet: false, reason: 'Left indicator not specified', leftValue: null, rightValue: null };
       }
       
       let cleanParameters = {};
@@ -342,10 +343,12 @@ const evaluateCondition = async (
       rightValue = currentPrice;
     } else if (rule.right_type === 'VALUE') {
       rightValue = parseFloat(rule.right_value);
+      if (isNaN(rightValue)) {
+        return { conditionMet: false, reason: 'Invalid right value', leftValue, rightValue: null };
+      }
     } else if (rule.right_type === 'INDICATOR') {
       if (!rule.right_indicator) {
-        console.error('[ConditionEval] Right indicator not specified');
-        return false;
+        return { conditionMet: false, reason: 'Right indicator not specified', leftValue, rightValue: null };
       }
       
       let cleanParameters = {};
@@ -373,53 +376,68 @@ const evaluateCondition = async (
     }
 
     if (leftValue === null || rightValue === null) {
-      console.log(`[ConditionEval] Null values - Left: ${leftValue}, Right: ${rightValue}`);
-      return false;
+      const reason = `Invalid values - Left: ${leftValue}, Right: ${rightValue}`;
+      console.log(`[ConditionEval] ${reason}`);
+      return { conditionMet: false, reason, leftValue, rightValue };
     }
 
     console.log(`[ConditionEval] Comparing: ${leftValue} ${rule.condition} ${rightValue}`);
 
-    // Evaluate condition
+    // Evaluate condition with proper validation
+    let conditionMet = false;
     switch (rule.condition) {
       case 'GREATER_THAN':
       case '>':
-        return leftValue > rightValue;
+        conditionMet = leftValue > rightValue;
+        break;
       case 'LESS_THAN':
       case '<':
-        return leftValue < rightValue;
+        conditionMet = leftValue < rightValue;
+        break;
       case 'GREATER_THAN_OR_EQUAL':
       case '>=':
-        return leftValue >= rightValue;
+        conditionMet = leftValue >= rightValue;
+        break;
       case 'LESS_THAN_OR_EQUAL':
       case '<=':
-        return leftValue <= rightValue;
+        conditionMet = leftValue <= rightValue;
+        break;
       case 'EQUAL':
       case '==':
-        return Math.abs(leftValue - rightValue) < 0.0001;
+        conditionMet = Math.abs(leftValue - rightValue) < 0.0001;
+        break;
       case 'NOT_EQUAL':
       case '!=':
-        return Math.abs(leftValue - rightValue) >= 0.0001;
+        conditionMet = Math.abs(leftValue - rightValue) >= 0.0001;
+        break;
       default:
-        console.error(`[ConditionEval] Unknown condition: ${rule.condition}`);
-        return false;
+        return { conditionMet: false, reason: `Unknown condition: ${rule.condition}`, leftValue, rightValue };
     }
+
+    const reason = conditionMet 
+      ? `Condition met: ${leftValue} ${rule.condition} ${rightValue}` 
+      : `Condition not met: ${leftValue} ${rule.condition} ${rightValue}`;
+    
+    console.log(`[ConditionEval] ${reason}`);
+    return { conditionMet, reason, leftValue, rightValue };
   } catch (error) {
     console.error('[ConditionEval] Error evaluating condition:', error);
-    return false;
+    return { conditionMet: false, reason: `Error: ${error.message}`, leftValue: null, rightValue: null };
   }
 };
 
-// Evaluate rule groups for signal generation with improved error handling
+// Enhanced rule group evaluation with strict condition checking
 const evaluateRuleGroups = async (
   ruleGroups: any[],
   asset: string,
   currentPrice: number,
   timeframe: string
-): Promise<{ signalGenerated: boolean; details: string[] }> => {
+): Promise<{ signalGenerated: boolean; details: string[]; matchedConditions: string[] }> => {
   try {
     console.log(`[RuleGroupEval] Evaluating ${ruleGroups.length} rule groups`);
     
     const details: string[] = [];
+    const matchedConditions: string[] = [];
     
     // Separate AND and OR groups
     const andGroups = ruleGroups.filter(group => group.logic === 'AND');
@@ -430,10 +448,11 @@ const evaluateRuleGroups = async (
     let allAndGroupsSatisfied = true;
     let allOrGroupsSatisfied = true;
 
-    // Evaluate AND groups - all must be satisfied
+    // Evaluate AND groups - ALL conditions must be satisfied
     for (const andGroup of andGroups) {
       if (!andGroup.trading_rules || andGroup.trading_rules.length === 0) {
         details.push(`AND Group ${andGroup.id}: No rules defined`);
+        allAndGroupsSatisfied = false;
         continue;
       }
       
@@ -441,11 +460,13 @@ const evaluateRuleGroups = async (
       let conditionsMetCount = 0;
       
       for (const rule of andGroup.trading_rules) {
-        const conditionMet = await evaluateCondition(rule, asset, currentPrice, timeframe);
-        if (conditionMet) {
+        const conditionResult = await evaluateCondition(rule, asset, currentPrice, timeframe);
+        if (conditionResult.conditionMet) {
           conditionsMetCount++;
+          matchedConditions.push(conditionResult.reason);
         } else {
           allConditionsMet = false;
+          details.push(`AND Group ${andGroup.id}: ${conditionResult.reason}`);
         }
       }
       
@@ -453,23 +474,27 @@ const evaluateRuleGroups = async (
       
       if (!allConditionsMet) {
         allAndGroupsSatisfied = false;
-        console.log(`[RuleGroupEval] AND group ${andGroup.id} failed`);
+        console.log(`[RuleGroupEval] AND group ${andGroup.id} failed - not all conditions met`);
       }
     }
 
-    // Evaluate OR groups - each must meet required conditions
+    // Evaluate OR groups - required number of conditions must be met
     for (const orGroup of orGroups) {
       if (!orGroup.trading_rules || orGroup.trading_rules.length === 0) {
         details.push(`OR Group ${orGroup.id}: No rules defined`);
+        allOrGroupsSatisfied = false;
         continue;
       }
       
       let conditionsMetCount = 0;
       
       for (const rule of orGroup.trading_rules) {
-        const conditionMet = await evaluateCondition(rule, asset, currentPrice, timeframe);
-        if (conditionMet) {
+        const conditionResult = await evaluateCondition(rule, asset, currentPrice, timeframe);
+        if (conditionResult.conditionMet) {
           conditionsMetCount++;
+          matchedConditions.push(conditionResult.reason);
+        } else {
+          details.push(`OR Group ${orGroup.id}: ${conditionResult.reason}`);
         }
       }
       
@@ -478,17 +503,17 @@ const evaluateRuleGroups = async (
       
       if (conditionsMetCount < requiredConditions) {
         allOrGroupsSatisfied = false;
-        console.log(`[RuleGroupEval] OR group ${orGroup.id} failed`);
+        console.log(`[RuleGroupEval] OR group ${orGroup.id} failed - insufficient conditions met`);
       }
     }
 
-    const signalGenerated = allAndGroupsSatisfied && allOrGroupsSatisfied;
-    console.log(`[RuleGroupEval] Final result: AND=${allAndGroupsSatisfied}, OR=${allOrGroupsSatisfied}, Signal=${signalGenerated}`);
+    const signalGenerated = allAndGroupsSatisfied && allOrGroupsSatisfied && matchedConditions.length > 0;
+    console.log(`[RuleGroupEval] Final result: AND=${allAndGroupsSatisfied}, OR=${allOrGroupsSatisfied}, MatchedConditions=${matchedConditions.length}, Signal=${signalGenerated}`);
 
-    return { signalGenerated, details };
+    return { signalGenerated, details, matchedConditions };
   } catch (error) {
     console.error('[RuleGroupEval] Error evaluating rule groups:', error);
-    return { signalGenerated: false, details: [`Error: ${error.message}`] };
+    return { signalGenerated: false, details: [`Error: ${error.message}`], matchedConditions: [] };
   }
 };
 
@@ -661,7 +686,7 @@ const sendNotificationsForSignal = async (
   }
 };
 
-// Generate signal for a specific strategy with corrected logic
+// Enhanced signal generation with proper condition validation
 const generateSignalForStrategy = async (
   strategyId: string,
   userId: string,
@@ -713,19 +738,7 @@ const generateSignalForStrategy = async (
 
     console.log(`[SignalGen] Found strategy: ${strategy.name} for ${strategy.target_asset}`);
 
-    // Get current market price
-    const currentPrice = await getCurrentPrice(strategy.target_asset);
-    if (!currentPrice) {
-      console.log(`[SignalGen] Failed to get price for ${strategy.target_asset}`);
-      return {
-        signalGenerated: false,
-        reason: `Failed to get current price for ${strategy.target_asset}`
-      };
-    }
-
-    console.log(`[SignalGen] Current price for ${strategy.target_asset}: $${currentPrice}`);
-
-    // Organize rules by type
+    // Check if strategy has valid trading rules
     const entryRules = strategy.rule_groups?.filter((rg: any) => rg.rule_type === 'entry') || [];
     const exitRules = strategy.rule_groups?.filter((rg: any) => rg.rule_type === 'exit') || [];
 
@@ -738,7 +751,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    // Map timeframe to TAAPI interval
+    // Map timeframe for indicator calculations
     const timeframeMap = {
       '1m': '1m',
       '5m': '5m',
@@ -752,12 +765,14 @@ const generateSignalForStrategy = async (
     };
     const taapiInterval = timeframeMap[strategy.timeframe] || '1d';
 
-    // Evaluate entry rules first
+    // CRITICAL: Properly evaluate trading rules against CURRENT market conditions
     let signalType: 'entry' | 'exit' | null = null;
     let evaluationDetails: string[] = [];
+    let matchedConditions: string[] = [];
     
+    // Evaluate entry rules first with strict condition checking
     if (entryRules.length > 0) {
-      console.log(`[SignalGen] Evaluating entry rules...`);
+      console.log(`[SignalGen] Evaluating entry rules against current market conditions...`);
       const entryEvaluation = await evaluateRuleGroups(
         entryRules,
         strategy.target_asset,
@@ -767,17 +782,19 @@ const generateSignalForStrategy = async (
       
       evaluationDetails.push('Entry Rules:', ...entryEvaluation.details);
       
-      if (entryEvaluation.signalGenerated) {
+      // ONLY generate signal if conditions are ACTUALLY met
+      if (entryEvaluation.signalGenerated && entryEvaluation.matchedConditions.length > 0) {
         signalType = 'entry';
-        console.log(`[SignalGen] ✓ Entry signal generated`);
+        matchedConditions = entryEvaluation.matchedConditions;
+        console.log(`[SignalGen] ✓ Entry signal conditions VERIFIED and met with ${matchedConditions.length} matched conditions`);
       } else {
-        console.log(`[SignalGen] ✗ Entry signal conditions not met`);
+        console.log(`[SignalGen] ✗ Entry signal conditions NOT met - no signal generated`);
       }
     }
 
-    // If no entry signal, check exit rules
+    // If no entry signal generated, check exit rules with strict validation
     if (!signalType && exitRules.length > 0) {
-      console.log(`[SignalGen] Evaluating exit rules...`);
+      console.log(`[SignalGen] Evaluating exit rules against current market conditions...`);
       const exitEvaluation = await evaluateRuleGroups(
         exitRules,
         strategy.target_asset,
@@ -787,24 +804,28 @@ const generateSignalForStrategy = async (
       
       evaluationDetails.push('Exit Rules:', ...exitEvaluation.details);
       
-      if (exitEvaluation.signalGenerated) {
+      // ONLY generate signal if conditions are ACTUALLY met
+      if (exitEvaluation.signalGenerated && exitEvaluation.matchedConditions.length > 0) {
         signalType = 'exit';
-        console.log(`[SignalGen] ✓ Exit signal generated`);
+        matchedConditions = exitEvaluation.matchedConditions;
+        console.log(`[SignalGen] ✓ Exit signal conditions VERIFIED and met with ${matchedConditions.length} matched conditions`);
       } else {
-        console.log(`[SignalGen] ✗ Exit signal conditions not met`);
+        console.log(`[SignalGen] ✗ Exit signal conditions NOT met - no signal generated`);
       }
     }
 
-    if (!signalType) {
-      console.log(`[SignalGen] No signal conditions met`);
+    // If no signal conditions are verified and met, return early
+    if (!signalType || matchedConditions.length === 0) {
+      console.log(`[SignalGen] No signal conditions met for strategy: ${strategyId}`);
       return {
         signalGenerated: false,
-        reason: 'Market conditions do not meet rule criteria',
-        evaluationDetails
+        reason: 'Market conditions do not meet trading rule criteria',
+        evaluationDetails,
+        matchedConditions: []
       };
     }
 
-    // Create signal data
+    // Create signal data with verification details
     const signalData = {
       strategyId: strategyId,
       strategyName: strategy.name,
@@ -813,11 +834,14 @@ const generateSignalForStrategy = async (
       userId: userId,
       timestamp: new Date().toISOString(),
       timeframe: strategy.timeframe,
-      reason: `${signalType} signal generated - conditions met`,
-      evaluationDetails
+      reason: `${signalType} signal - conditions verified and met`,
+      evaluationDetails,
+      matchedConditions,
+      conditionsVerified: true,
+      conditionsMetCount: matchedConditions.length
     };
 
-    // ALWAYS create the signal in the database regardless of notification settings
+    // ONLY create signal if conditions are verified and met
     const { data: signal, error: signalError } = await supabaseClient
       .from('trading_signals')
       .insert({
@@ -837,7 +861,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    console.log(`[SignalGen] ✓ Signal created successfully: ${signal.id}`);
+    console.log(`[SignalGen] ✓ Signal created successfully with verified conditions: ${signal.id}`);
     
     // Check if external notifications should be sent
     const shouldSendNotifications = strategy.signal_notifications_enabled;
@@ -849,7 +873,7 @@ const generateSignalForStrategy = async (
       
       if (withinLimit) {
         notificationStatus = 'sent';
-        console.log(`[SignalGen] Sending external notifications for signal: ${signal.id}`);
+        console.log(`[SignalGen] Sending external notifications for verified signal: ${signal.id}`);
       } else {
         notificationStatus = 'limit_exceeded';
         console.log(`[SignalGen] Daily notification limit exceeded, skipping external notifications`);
@@ -862,8 +886,9 @@ const generateSignalForStrategy = async (
       signalGenerated: true,
       signalId: signal.id,
       signalType: signalType,
-      reason: `${signalType} signal generated`,
+      reason: `${signalType} signal generated - conditions verified and met`,
       evaluationDetails,
+      matchedConditions,
       notificationStatus,
       shouldSendNotifications: shouldSendNotifications && notificationStatus === 'sent'
     };
@@ -889,7 +914,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring with corrected logic...');
+    console.log('[Monitor] Starting trading signal monitoring with enhanced condition validation...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -903,7 +928,7 @@ serve(async (req) => {
       );
     }
 
-    // Get all active strategies - process ALL active strategies regardless of notification settings
+    // Get all active strategies
     const { data: strategies, error: strategiesError } = await supabaseClient
       .from('strategies')
       .select(`
@@ -942,7 +967,7 @@ serve(async (req) => {
 
     const results = [];
 
-    // Process each strategy
+    // Process each strategy with proper condition validation
     for (const strategy of strategies) {
       try {
         console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id})`);
@@ -963,7 +988,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Generate signal using the corrected logic
+        // Generate signal with enhanced condition validation
         const signalResult = await generateSignalForStrategy(strategy.id, strategy.user_id, supabaseClient);
         
         results.push({
@@ -976,13 +1001,15 @@ serve(async (req) => {
           signalId: signalResult.signalId,
           signalType: signalResult.signalType,
           evaluationDetails: signalResult.evaluationDetails || [],
+          matchedConditions: signalResult.matchedConditions || [],
+          conditionsVerified: signalResult.signalGenerated,
           notificationStatus: signalResult.notificationStatus,
           externalNotificationsEnabled: strategy.signal_notifications_enabled
         });
 
-        // If signal was generated and external notifications should be sent
+        // Send external notifications if signal was generated and verified
         if (signalResult.signalGenerated && signalResult.shouldSendNotifications && signalResult.signalId) {
-          console.log(`[Monitor] Signal generated for ${strategy.name}, sending external notifications...`);
+          console.log(`[Monitor] Signal verified and generated for ${strategy.name}, sending external notifications...`);
           
           try {
             const notifications = await sendNotificationsForSignal(
@@ -994,14 +1021,15 @@ serve(async (req) => {
                 strategyName: strategy.name,
                 targetAsset: strategy.target_asset,
                 price: signalResult.evaluationDetails?.[0] || 'N/A',
-                timeframe: strategy.timeframe
+                timeframe: strategy.timeframe,
+                conditionsVerified: true,
+                matchedConditions: signalResult.matchedConditions
               },
               supabaseClient
             );
 
             console.log(`[Monitor] External notifications sent successfully: ${notifications.join(', ')}`);
             
-            // Update the result with notification details
             const resultIndex = results.length - 1;
             results[resultIndex].notificationsSent = notifications;
           } catch (notificationError) {
@@ -1009,8 +1037,6 @@ serve(async (req) => {
             const resultIndex = results.length - 1;
             results[resultIndex].notificationError = notificationError.message;
           }
-        } else if (signalResult.signalGenerated) {
-          console.log(`[Monitor] Signal generated for ${strategy.name}, but external notifications ${strategy.signal_notifications_enabled ? 'limit exceeded' : 'disabled'}`);
         }
 
       } catch (error) {
@@ -1027,11 +1053,11 @@ serve(async (req) => {
     const signalsGenerated = results.filter(r => r.status === 'signal_generated').length;
     const notificationsSent = results.filter(r => r.notificationsSent && r.notificationsSent.length > 0).length;
     
-    console.log(`[Monitor] Signal monitoring completed. Generated ${signalsGenerated} signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
+    console.log(`[Monitor] Signal monitoring completed with enhanced validation. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
 
     return new Response(
       JSON.stringify({
-        message: 'Signal monitoring completed with corrected logic',
+        message: 'Signal monitoring completed with enhanced condition validation',
         processedStrategies: results.length,
         signalsGenerated: signalsGenerated,
         externalNotificationsSent: notificationsSent,
@@ -1039,7 +1065,7 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
         marketOpen: isMarketHours(),
         manualTrigger: isManualTrigger,
-        useLocalIndicators: true
+        conditionValidationEnabled: true
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

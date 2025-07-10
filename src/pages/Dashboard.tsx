@@ -3,12 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
-import { PerformanceMetrics } from "@/components/PerformanceMetrics";
 import { StrategyList } from "@/components/StrategyList";
 import { useState, useEffect } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
-import { calculatePortfolioMetrics } from "@/services/marketDataService";
 import { getStrategies } from "@/services/strategyService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 import { toast } from "sonner";
@@ -37,7 +35,7 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch all trade history from trading_signals table
+  // Simplified and consistent trade history fetching that matches StrategyDetail approach
   const fetchAllTradeHistory = async (strategies: any[]) => {
     try {
       const userStrategyIds = strategies.map(s => s.id);
@@ -46,21 +44,21 @@ const Dashboard = () => {
         return [];
       }
 
-      // Get date range filter based on timeRange
-      const now = new Date();
+      // Use the same query pattern as StrategyDetail for consistency
       let query = supabase
         .from("trading_signals")
         .select("*")
         .in("strategy_id", userStrategyIds)
-        .eq("processed", true)
         .order("created_at", { ascending: false });
 
-      // Apply date filter if not "all"
+      // Apply date filter based on timeRange
       if (timeRange === "7d") {
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         query = query.gte("created_at", sevenDaysAgo.toISOString());
       } else if (timeRange === "30d") {
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         query = query.gte("created_at", thirtyDaysAgo.toISOString());
       }
 
@@ -72,10 +70,13 @@ const Dashboard = () => {
       }
 
       if (!signals || signals.length === 0) {
+        console.log('No trading signals found for dashboard');
         return [];
       }
 
-      // Create a map of strategy names for quick lookup
+      console.log(`Dashboard: Found ${signals.length} trading signals for time range ${timeRange}`);
+
+      // Create a map of strategy information for quick lookup
       const strategyMap = new Map();
       strategies.forEach(strategy => {
         strategyMap.set(strategy.id, {
@@ -84,7 +85,7 @@ const Dashboard = () => {
         });
       });
 
-      // Format trading signals for display
+      // Format signals consistently with StrategyDetail approach
       const formattedTrades = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategyInfo = strategyMap.get(signal.strategy_id);
@@ -96,15 +97,19 @@ const Dashboard = () => {
           signal: signalData.reason || 'Trading Signal',
           price: `$${(signalData.price || 0).toFixed(2)}`,
           contracts: 1,
-          profit: signalData.profit !== null && signalData.profit !== undefined ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` : null,
-          profitPercentage: signalData.profitPercentage !== null && signalData.profitPercentage !== undefined ? `${signalData.profitPercentage >= 0 ? '+' : ''}${signalData.profitPercentage.toFixed(2)}%` : null,
+          profit: signalData.profit !== null && signalData.profit !== undefined 
+            ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 
+            : null,
+          profitPercentage: signalData.profitPercentage !== null && signalData.profitPercentage !== undefined 
+            ? `${signalData.profitPercentage >= 0 ? '+' : ''}${signalData.profitPercentage.toFixed(2)}%` 
+            : null,
           strategyId: signal.strategy_id,
           strategyName: strategyInfo?.name || 'Unknown Strategy',
           targetAsset: strategyInfo?.targetAsset || 'Unknown Asset'
         };
       });
 
-      console.log(`Dashboard: Formatted ${formattedTrades.length} trades from trading_signals table`);
+      console.log(`Dashboard: Formatted ${formattedTrades.length} trades for display`);
       return formattedTrades;
     } catch (error) {
       console.error('Error in fetchAllTradeHistory:', error);
@@ -112,156 +117,125 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate total conditions count from user's strategies
-  const calculateConditionsCount = async (strategies: any[]) => {
+  // Calculate metrics from user's strategies and signals
+  const calculateMetrics = async (strategies: any[], allSignals: any[]) => {
     try {
       const userStrategyIds = strategies.map(s => s.id);
       
-      if (userStrategyIds.length === 0) {
-        return 0;
+      // Calculate basic strategy metrics
+      const totalStrategies = strategies.length;
+      const activeStrategies = strategies.filter(s => s.signalNotificationsEnabled === true).length;
+
+      // Get total signal count with time filter if needed
+      let signalCountQuery = supabase
+        .from("trading_signals")
+        .select("id", { count: 'exact', head: true })
+        .in("strategy_id", userStrategyIds.length > 0 ? userStrategyIds : ['']);
+
+      if (timeRange === "7d") {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        signalCountQuery = signalCountQuery.gte("created_at", sevenDaysAgo.toISOString());
+      } else if (timeRange === "30d") {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        signalCountQuery = signalCountQuery.gte("created_at", thirtyDaysAgo.toISOString());
       }
 
-      // Get all rule groups for user's strategies
-      const { data: ruleGroups, error: ruleGroupsError } = await supabase
-        .from("rule_groups")
-        .select("id")
-        .in("strategy_id", userStrategyIds);
+      const { count: totalSignalCount } = await signalCountQuery;
 
-      if (ruleGroupsError) {
-        console.error('Error fetching rule groups:', ruleGroupsError);
-        return 0;
+      // Calculate total conditions count
+      let conditionsCount = 0;
+      if (userStrategyIds.length > 0) {
+        const { data: ruleGroups } = await supabase
+          .from("rule_groups")
+          .select("id")
+          .in("strategy_id", userStrategyIds);
+
+        if (ruleGroups && ruleGroups.length > 0) {
+          const ruleGroupIds = ruleGroups.map(rg => rg.id);
+          const { data: tradingRules } = await supabase
+            .from("trading_rules")
+            .select("id")
+            .in("rule_group_id", ruleGroupIds);
+          
+          conditionsCount = tradingRules?.length || 0;
+        }
       }
 
-      if (!ruleGroups || ruleGroups.length === 0) {
-        return 0;
-      }
+      console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Total Signals: ${totalSignalCount}, Conditions: ${conditionsCount}`);
 
-      const ruleGroupIds = ruleGroups.map(rg => rg.id);
-
-      // Get all trading rules (conditions) for these rule groups
-      const { data: tradingRules, error: tradingRulesError } = await supabase
-        .from("trading_rules")
-        .select("id")
-        .in("rule_group_id", ruleGroupIds);
-
-      if (tradingRulesError) {
-        console.error('Error fetching trading rules:', tradingRulesError);
-        return 0;
-      }
-
-      const conditionsCount = tradingRules?.length || 0;
-      console.log(`Dashboard: Found ${conditionsCount} conditions across ${strategies.length} strategies`);
-      
-      return conditionsCount;
+      return {
+        strategiesCount: totalStrategies.toString(),
+        strategiesChange: { value: "+0", positive: false },
+        activeStrategies: activeStrategies.toString(),
+        activeChange: { value: "+0", positive: false },
+        signalAmount: (totalSignalCount || 0).toString(),
+        signalChange: { value: "+0", positive: false },
+        conditionsCount: conditionsCount.toString(),
+        conditionsChange: { value: "+0", positive: false }
+      };
     } catch (error) {
-      console.error('Error calculating conditions count:', error);
-      return 0;
+      console.error("Error calculating metrics:", error);
+      return {
+        strategiesCount: "0",
+        strategiesChange: { value: "+0", positive: false },
+        activeStrategies: "0",
+        activeChange: { value: "+0", positive: false },
+        signalAmount: "0",
+        signalChange: { value: "+0", positive: false },
+        conditionsCount: "0",
+        conditionsChange: { value: "+0", positive: false }
+      };
     }
   };
 
-  // Fetch real-time data
+  // Main data fetching function
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
 
-      // First clean up invalid signals
+      // Clean up invalid signals first
       await cleanupInvalidSignals();
 
-      // Get current user ID
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error("User not authenticated");
       }
 
-      // Fetch strategies and portfolio metrics in parallel
-      const [strategies, portfolioMetrics] = await Promise.all([
-        getStrategies(), 
-        calculatePortfolioMetrics(timeRange)
-      ]);
-
-      // Calculate strategy metrics from actual user strategies
-      const totalStrategies = strategies.length;
-      const activeStrategies = strategies.filter(s => s.isActive).length;
-
-      // Get ALL signals for the user's strategies (not just processed ones)
-      const userStrategyIds = strategies.map(s => s.id);
+      console.log("Dashboard: Fetching strategies and signals");
       
-      let totalSignalCount = 0;
-      if (userStrategyIds.length > 0) {
-        const { data: allSignals, error: signalsError } = await supabase
-          .from("trading_signals")
-          .select("id")
-          .in("strategy_id", userStrategyIds);
+      // Fetch user's strategies
+      const strategies = await getStrategies();
+      console.log(`Dashboard: Found ${strategies.length} strategies for user`);
 
-        if (signalsError) {
-          console.error("Error fetching total signals:", signalsError);
-        } else {
-          totalSignalCount = allSignals?.length || 0;
-        }
-      }
-
-      console.log(`Dashboard metrics - Strategies: ${totalStrategies}, Active: ${activeStrategies}, Total Signals: ${totalSignalCount}`);
-
-      // Fetch all trade history from trading_signals table
+      // Fetch trade history using the consistent approach
       const allTradeHistory = await fetchAllTradeHistory(strategies);
+      
+      // Calculate metrics
+      const calculatedMetrics = await calculateMetrics(strategies, allTradeHistory);
 
-      // Calculate total conditions count
-      const conditionsCount = await calculateConditionsCount(strategies);
-
-      // Update metrics with real strategy counts and conditions count
-      const updatedMetrics = {
-        ...portfolioMetrics,
-        strategiesCount: totalStrategies.toString(),
-        strategiesChange: {
-          value: "+0",
-          positive: false
-        },
-        activeStrategies: activeStrategies.toString(),
-        activeChange: {
-          value: "+0",
-          positive: false
-        },
-        signalAmount: totalSignalCount.toString(),
-        signalChange: {
-          value: "+0",
-          positive: false
-        },
-        conditionsCount: conditionsCount.toString(),
-        conditionsChange: {
-          value: "+0",
-          positive: false
-        }
-      };
-      setMetrics(updatedMetrics);
+      setMetrics(calculatedMetrics);
       setTradeHistory(allTradeHistory);
+      
+      console.log(`Dashboard: Successfully loaded ${allTradeHistory.length} trades`);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast.error("Failed to load dashboard data", {
         description: "Using cached data. Please check your connection."
       });
 
-      // Fallback to zero metrics if API fails
+      // Fallback metrics
       setMetrics({
         strategiesCount: "0",
-        strategiesChange: {
-          value: "+0",
-          positive: false
-        },
+        strategiesChange: { value: "+0", positive: false },
         activeStrategies: "0",
-        activeChange: {
-          value: "+0",
-          positive: false
-        },
+        activeChange: { value: "+0", positive: false },
         signalAmount: "0",
-        signalChange: {
-          value: "+0",
-          positive: false
-        },
+        signalChange: { value: "+0", positive: false },
         conditionsCount: "0",
-        conditionsChange: {
-          value: "+0",
-          positive: false
-        }
+        conditionsChange: { value: "+0", positive: false }
       });
       setTradeHistory([]);
     } finally {

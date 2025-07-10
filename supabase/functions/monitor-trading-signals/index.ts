@@ -37,6 +37,7 @@ interface TradingRule {
 interface RuleGroup {
   id: string;
   logic: string;
+  rule_type: string;
   required_conditions?: number;
   trading_rules: TradingRule[];
 }
@@ -410,6 +411,8 @@ function getIndicatorValue(indicators: Map<string, any>, type: string, indicator
 }
 
 function evaluateCondition(condition: string, leftValue: number, rightValue: number): boolean {
+  console.log(`Evaluating condition: ${leftValue} ${condition} ${rightValue}`);
+  
   switch (condition) {
     case 'GREATER_THAN':
       return leftValue > rightValue;
@@ -426,53 +429,77 @@ function evaluateCondition(condition: string, leftValue: number, rightValue: num
     case 'CROSSES_BELOW':
       return leftValue < rightValue;
     default:
+      console.warn(`Unknown condition: ${condition}`);
       return false;
   }
 }
 
 function evaluateRuleGroup(group: RuleGroup, indicators: Map<string, any>): boolean {
   if (!group.trading_rules || group.trading_rules.length === 0) {
+    console.log(`Rule group ${group.id} has no trading rules`);
     return false;
   }
 
-  const results = group.trading_rules.map(rule => {
-    const leftValue = rule.left_type === 'VALUE' ? 
-      parseFloat(rule.left_value || '0') :
-      getIndicatorValue(indicators, rule.left_type, rule.left_indicator, rule.left_parameters, rule.left_value_type);
+  console.log(`Evaluating rule group ${group.id} with logic ${group.logic} and ${group.trading_rules.length} rules`);
+
+  const results = group.trading_rules.map((rule, index) => {
+    console.log(`Evaluating rule ${index + 1}/${group.trading_rules.length}: ${rule.id}`);
     
-    const rightValue = rule.right_type === 'VALUE' ?
-      parseFloat(rule.right_value || '0') :
-      getIndicatorValue(indicators, rule.right_type, rule.right_indicator, rule.right_parameters, rule.right_value_type);
+    let leftValue: number;
+    if (rule.left_type === 'VALUE') {
+      leftValue = parseFloat(rule.left_value || '0');
+    } else {
+      leftValue = getIndicatorValue(indicators, rule.left_type, rule.left_indicator, rule.left_parameters, rule.left_value_type);
+    }
+    
+    let rightValue: number;
+    if (rule.right_type === 'VALUE') {
+      rightValue = parseFloat(rule.right_value || '0');
+    } else {
+      rightValue = getIndicatorValue(indicators, rule.right_type, rule.right_indicator, rule.right_parameters, rule.right_value_type);
+    }
     
     const result = evaluateCondition(rule.condition, leftValue, rightValue);
+    console.log(`Rule ${index + 1} result: ${leftValue} ${rule.condition} ${rightValue} = ${result}`);
     
-    console.log(`Rule evaluation: ${leftValue} ${rule.condition} ${rightValue} = ${result}`);
     return result;
   });
 
+  let groupResult: boolean;
   if (group.logic === 'OR') {
     const requiredConditions = group.required_conditions || 1;
     const metConditions = results.filter(Boolean).length;
-    return metConditions >= requiredConditions;
+    groupResult = metConditions >= requiredConditions;
+    console.log(`OR group: ${metConditions}/${results.length} conditions met (required: ${requiredConditions}) = ${groupResult}`);
   } else {
-    return results.every(Boolean);
+    groupResult = results.every(Boolean);
+    console.log(`AND group: ${results.filter(Boolean).length}/${results.length} conditions met = ${groupResult}`);
   }
+
+  return groupResult;
 }
 
 function evaluateStrategy(strategy: Strategy, indicators: Map<string, any>): { entrySignal: boolean, exitSignal: boolean } {
-  const entryGroups = strategy.rule_groups.filter(group => 
-    group.trading_rules?.some(rule => rule.id.includes('entry')) || 
-    strategy.rule_groups.indexOf(group) % 2 === 0
-  );
+  console.log(`Evaluating strategy ${strategy.name} with ${strategy.rule_groups.length} rule groups`);
   
-  const exitGroups = strategy.rule_groups.filter(group => 
-    group.trading_rules?.some(rule => rule.id.includes('exit')) || 
-    strategy.rule_groups.indexOf(group) % 2 === 1
-  );
+  const entryGroups = strategy.rule_groups.filter(group => group.rule_type === 'entry');
+  const exitGroups = strategy.rule_groups.filter(group => group.rule_type === 'exit');
 
-  const entrySignal = entryGroups.length > 0 ? entryGroups.some(group => evaluateRuleGroup(group, indicators)) : false;
-  const exitSignal = exitGroups.length > 0 ? exitGroups.some(group => evaluateRuleGroup(group, indicators)) : false;
+  console.log(`Found ${entryGroups.length} entry groups and ${exitGroups.length} exit groups`);
 
+  const entrySignal = entryGroups.length > 0 ? entryGroups.some(group => {
+    const result = evaluateRuleGroup(group, indicators);
+    console.log(`Entry group ${group.id} evaluation: ${result}`);
+    return result;
+  }) : false;
+  
+  const exitSignal = exitGroups.length > 0 ? exitGroups.some(group => {
+    const result = evaluateRuleGroup(group, indicators);
+    console.log(`Exit group ${group.id} evaluation: ${result}`);
+    return result;
+  }) : false;
+
+  console.log(`Strategy ${strategy.name} evaluation: entry=${entrySignal}, exit=${exitSignal}`);
   return { entrySignal, exitSignal };
 }
 
@@ -485,7 +512,10 @@ function checkMarketHours(): boolean {
   const marketOpenUTC = 14 * 60 + 30;
   const marketCloseUTC = 21 * 60;
   
-  return utcTimeInMinutes >= marketOpenUTC && utcTimeInMinutes <= marketCloseUTC;
+  const isOpen = utcTimeInMinutes >= marketOpenUTC && utcTimeInMinutes <= marketCloseUTC;
+  console.log(`Market hours check: ${utcHours}:${utcMinutes.toString().padStart(2, '0')} UTC, Market is ${isOpen ? 'OPEN' : 'CLOSED'}`);
+  
+  return isOpen;
 }
 
 async function sendNotifications(supabase: any, signal: any, strategy: Strategy): Promise<void> {
@@ -567,14 +597,6 @@ Deno.serve(async (req) => {
 
     console.log('Starting signal monitoring process...');
 
-    if (!checkMarketHours()) {
-      console.log('Markets are closed, skipping signal generation');
-      return new Response(
-        JSON.stringify({ message: 'Markets are closed' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const { data: strategies, error: strategiesError } = await supabase
       .from('strategies')
       .select(`
@@ -604,6 +626,11 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        if (!strategy.rule_groups || strategy.rule_groups.length === 0) {
+          console.log(`Skipping strategy ${strategy.name} - no rule groups`);
+          continue;
+        }
+
         const fmpTimeframe = getFmpTimeframe(strategy.timeframe);
         console.log(`Fetching ${fmpTimeframe} data for ${strategy.target_asset}`);
 
@@ -622,14 +649,16 @@ Deno.serve(async (req) => {
         }
 
         console.log(`Retrieved ${marketData.length} data points for ${strategy.target_asset}`);
+        console.log(`Latest price: ${marketData[0].close} at ${marketData[0].date}`);
 
         const indicators = await calculateIndicatorsForStrategy(strategy, marketData);
+        console.log(`Calculated indicators: ${Array.from(indicators.keys()).join(', ')}`);
+        
         const evaluation = evaluateStrategy(strategy, indicators);
-
         console.log(`Strategy evaluation for ${strategy.name}:`, evaluation);
 
         if (evaluation.entrySignal || evaluation.exitSignal) {
-          console.log(`Signal detected for strategy ${strategy.name}`);
+          console.log(`🎯 Signal detected for strategy ${strategy.name}!`);
           
           const signalType = evaluation.entrySignal ? 'entry' : 'exit';
           const signalData = {
@@ -655,9 +684,11 @@ Deno.serve(async (req) => {
             .single();
 
           if (signalError) {
+            console.error('Error inserting signal:', signalError);
             throw signalError;
           }
 
+          console.log(`Signal ${signal.id} created successfully`);
           await sendNotifications(supabase, signal, strategy);
           
           processedStrategies.push({

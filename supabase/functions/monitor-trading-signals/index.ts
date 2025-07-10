@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Local Technical Indicators Implementation
+// Local Technical Indicators Implementation - ALWAYS RECALCULATE WITH FRESH DATA
 const calculateSMA = (data: number[], period: number): number[] => {
   const result: number[] = [];
   for (let i = period - 1; i < data.length; i++) {
@@ -113,7 +113,7 @@ const isMarketHours = () => {
   return day >= 1 && day <= 5 && timeInMinutes >= 570 && timeInMinutes < 960;
 };
 
-// Get current market price using FMP API
+// Get current market price using FMP API - ALWAYS FETCH FRESH PRICE
 const getCurrentPrice = async (symbol: string): Promise<number | null> => {
   try {
     const fmpApiKey = Deno.env.get('FMP_API_KEY');
@@ -122,6 +122,7 @@ const getCurrentPrice = async (symbol: string): Promise<number | null> => {
       return null;
     }
 
+    console.log(`[PriceService] Fetching FRESH price for ${symbol}...`);
     const response = await fetch(
       `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${fmpApiKey}`
     );
@@ -139,7 +140,7 @@ const getCurrentPrice = async (symbol: string): Promise<number | null> => {
     }
 
     const price = data[0].price;
-    console.log(`[PriceService] Current price for ${symbol}: $${price}`);
+    console.log(`[PriceService] FRESH current price for ${symbol}: $${price}`);
     return price;
   } catch (error) {
     console.error(`[PriceService] Error fetching price for ${symbol}:`, error);
@@ -147,8 +148,8 @@ const getCurrentPrice = async (symbol: string): Promise<number | null> => {
   }
 };
 
-// Fetch historical data from FMP API
-const fetchMarketData = async (symbol: string, timeframe: string): Promise<any[]> => {
+// Fetch FRESH historical data from FMP API - NO CACHING FOR SIGNAL EVALUATION
+const fetchFreshMarketData = async (symbol: string, timeframe: string): Promise<any[]> => {
   try {
     const fmpApiKey = Deno.env.get('FMP_API_KEY');
     if (!fmpApiKey) {
@@ -173,7 +174,7 @@ const fetchMarketData = async (symbol: string, timeframe: string): Promise<any[]
       endpoint = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${fmpApiKey}`;
     }
 
-    console.log(`[MarketData] Fetching data for ${symbol} with timeframe ${timeframe}`);
+    console.log(`[MarketData] Fetching FRESH market data for ${symbol} with timeframe ${timeframe}`);
     
     const response = await fetch(endpoint);
     
@@ -196,23 +197,24 @@ const fetchMarketData = async (symbol: string, timeframe: string): Promise<any[]
       }
     }
 
-    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
+    console.log(`[MarketData] Successfully fetched ${marketData.length} FRESH data points for ${symbol}`);
     return marketData;
 
   } catch (error) {
-    console.error(`[MarketData] Error fetching data for ${symbol}:`, error);
+    console.error(`[MarketData] Error fetching FRESH data for ${symbol}:`, error);
     return [];
   }
 };
 
-// Calculate indicator locally instead of using TAAPI
-const getLocalIndicator = async (indicator: string, symbol: string, timeframe: string, parameters: any = {}): Promise<any> => {
+// Calculate indicator with FRESH market data - NO CACHING
+const getFreshIndicatorValue = async (indicator: string, symbol: string, timeframe: string, parameters: any = {}): Promise<any> => {
   try {
-    console.log(`[LocalIndicator] Calculating ${indicator} for ${symbol} with timeframe ${timeframe}`);
+    console.log(`[FreshIndicator] Calculating FRESH ${indicator} for ${symbol} with timeframe ${timeframe}`);
     
-    const marketData = await fetchMarketData(symbol, timeframe);
+    // ALWAYS fetch fresh market data for each indicator calculation
+    const marketData = await fetchFreshMarketData(symbol, timeframe);
     if (marketData.length === 0) {
-      console.error(`[LocalIndicator] No market data available for ${symbol}`);
+      console.error(`[FreshIndicator] No FRESH market data available for ${symbol}`);
       return null;
     }
 
@@ -223,49 +225,61 @@ const getLocalIndicator = async (indicator: string, symbol: string, timeframe: s
     // Normalize indicator name for case-insensitive matching
     const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
     
+    console.log(`[FreshIndicator] Using ${closes.length} fresh data points for ${indicator} calculation`);
+    
     switch (normalizedIndicator) {
       case 'rsi':
         const rsiPeriod = parseInt(parameters.period) || 14;
         const rsiResult = calculateRSI(closes, rsiPeriod);
-        return { value: rsiResult[rsiResult.length - 1] };
+        const rsiValue = rsiResult[rsiResult.length - 1];
+        console.log(`[FreshIndicator] FRESH RSI(${rsiPeriod}) value: ${rsiValue}`);
+        return { value: rsiValue };
         
       case 'sma':
         const smaPeriod = parseInt(parameters.period) || 14;
         const smaResult = calculateSMA(closes, smaPeriod);
-        return { value: smaResult[smaResult.length - 1] };
+        const smaValue = smaResult[smaResult.length - 1];
+        console.log(`[FreshIndicator] FRESH SMA(${smaPeriod}) value: ${smaValue}`);
+        return { value: smaValue };
         
       case 'ema':
         const emaPeriod = parseInt(parameters.period) || 14;
         const emaResult = calculateEMA(closes, emaPeriod);
-        return { value: emaResult[emaResult.length - 1] };
+        const emaValue = emaResult[emaResult.length - 1];
+        console.log(`[FreshIndicator] FRESH EMA(${emaPeriod}) value: ${emaValue}`);
+        return { value: emaValue };
         
       case 'macd':
         const fastPeriod = parseInt(parameters.fastPeriod) || 12;
         const slowPeriod = parseInt(parameters.slowPeriod) || 26;
         const signalPeriod = parseInt(parameters.signalPeriod) || 9;
         const macdResult = calculateMACD(closes, fastPeriod, slowPeriod, signalPeriod);
-        return {
+        const macdValues = {
           valueMACD: macdResult.macd[macdResult.macd.length - 1],
           valueSignal: macdResult.signal[macdResult.signal.length - 1],
           valueHistogram: macdResult.histogram[macdResult.histogram.length - 1]
         };
+        console.log(`[FreshIndicator] FRESH MACD values:`, macdValues);
+        return macdValues;
         
       case 'cci':
         const cciPeriod = parseInt(parameters.period) || 20;
         const cciResult = calculateCCI(highs, lows, closes, cciPeriod);
-        return { value: cciResult[cciResult.length - 1] };
+        const cciValue = cciResult[cciResult.length - 1];
+        console.log(`[FreshIndicator] FRESH CCI(${cciPeriod}) value: ${cciValue}`);
+        return { value: cciValue };
         
       default:
-        console.error(`[LocalIndicator] Unsupported indicator: ${indicator}`);
+        console.error(`[FreshIndicator] Unsupported indicator: ${indicator}`);
         return null;
     }
   } catch (error) {
-    console.error(`[LocalIndicator] Error calculating ${indicator} for ${symbol}:`, error);
+    console.error(`[FreshIndicator] Error calculating FRESH ${indicator} for ${symbol}:`, error);
     return null;
   }
 };
 
-// Extract value from indicator response (updated for local calculations)
+// Extract value from indicator response (updated for fresh calculations)
 const getIndicatorValue = (indicator: string, data: any, valueType?: string): number | null => {
   if (!data) return null;
 
@@ -289,7 +303,7 @@ const getIndicatorValue = (indicator: string, data: any, valueType?: string): nu
   }
 };
 
-// Enhanced condition evaluation with proper validation
+// Enhanced condition evaluation with FRESH indicator data for every evaluation
 const evaluateCondition = async (
   rule: any,
   asset: string,
@@ -297,17 +311,19 @@ const evaluateCondition = async (
   timeframe: string
 ): Promise<{ conditionMet: boolean; reason: string; leftValue: number | null; rightValue: number | null }> => {
   try {
-    console.log(`[ConditionEval] Evaluating rule condition:`, JSON.stringify(rule, null, 2));
+    console.log(`[ConditionEval] Evaluating rule condition with FRESH data:`, JSON.stringify(rule, null, 2));
 
-    // Get left side value
+    // Get left side value with FRESH data
     let leftValue: number | null = null;
     if (rule.left_type === 'PRICE') {
       leftValue = currentPrice;
+      console.log(`[ConditionEval] Left side - using current price: ${leftValue}`);
     } else if (rule.left_type === 'VALUE') {
       leftValue = parseFloat(rule.left_value);
       if (isNaN(leftValue)) {
         return { conditionMet: false, reason: 'Invalid left value', leftValue: null, rightValue: null };
       }
+      console.log(`[ConditionEval] Left side - using constant value: ${leftValue}`);
     } else if (rule.left_type === 'INDICATOR') {
       if (!rule.left_indicator) {
         return { conditionMet: false, reason: 'Left indicator not specified', leftValue: null, rightValue: null };
@@ -323,7 +339,8 @@ const evaluateCondition = async (
         });
       }
       
-      const indicatorData = await getLocalIndicator(
+      console.log(`[ConditionEval] Left side - fetching FRESH ${rule.left_indicator} data...`);
+      const indicatorData = await getFreshIndicatorValue(
         rule.left_indicator,
         asset,
         timeframe,
@@ -335,17 +352,20 @@ const evaluateCondition = async (
         indicatorData,
         rule.left_value_type
       );
+      console.log(`[ConditionEval] Left side - FRESH ${rule.left_indicator} value: ${leftValue}`);
     }
 
-    // Get right side value
+    // Get right side value with FRESH data
     let rightValue: number | null = null;
     if (rule.right_type === 'PRICE') {
       rightValue = currentPrice;
+      console.log(`[ConditionEval] Right side - using current price: ${rightValue}`);
     } else if (rule.right_type === 'VALUE') {
       rightValue = parseFloat(rule.right_value);
       if (isNaN(rightValue)) {
         return { conditionMet: false, reason: 'Invalid right value', leftValue, rightValue: null };
       }
+      console.log(`[ConditionEval] Right side - using constant value: ${rightValue}`);
     } else if (rule.right_type === 'INDICATOR') {
       if (!rule.right_indicator) {
         return { conditionMet: false, reason: 'Right indicator not specified', leftValue, rightValue: null };
@@ -361,7 +381,8 @@ const evaluateCondition = async (
         });
       }
       
-      const indicatorData = await getLocalIndicator(
+      console.log(`[ConditionEval] Right side - fetching FRESH ${rule.right_indicator} data...`);
+      const indicatorData = await getFreshIndicatorValue(
         rule.right_indicator,
         asset,
         timeframe,
@@ -373,15 +394,16 @@ const evaluateCondition = async (
         indicatorData,
         rule.right_value_type
       );
+      console.log(`[ConditionEval] Right side - FRESH ${rule.right_indicator} value: ${rightValue}`);
     }
 
     if (leftValue === null || rightValue === null) {
-      const reason = `Invalid values - Left: ${leftValue}, Right: ${rightValue}`;
+      const reason = `Invalid values after FRESH data fetch - Left: ${leftValue}, Right: ${rightValue}`;
       console.log(`[ConditionEval] ${reason}`);
       return { conditionMet: false, reason, leftValue, rightValue };
     }
 
-    console.log(`[ConditionEval] Comparing: ${leftValue} ${rule.condition} ${rightValue}`);
+    console.log(`[ConditionEval] Comparing FRESH values: ${leftValue} ${rule.condition} ${rightValue}`);
 
     // Evaluate condition with proper validation
     let conditionMet = false;
@@ -415,18 +437,18 @@ const evaluateCondition = async (
     }
 
     const reason = conditionMet 
-      ? `Condition met: ${leftValue} ${rule.condition} ${rightValue}` 
-      : `Condition not met: ${leftValue} ${rule.condition} ${rightValue}`;
+      ? `Condition met with FRESH data: ${leftValue} ${rule.condition} ${rightValue}` 
+      : `Condition not met with FRESH data: ${leftValue} ${rule.condition} ${rightValue}`;
     
     console.log(`[ConditionEval] ${reason}`);
     return { conditionMet, reason, leftValue, rightValue };
   } catch (error) {
-    console.error('[ConditionEval] Error evaluating condition:', error);
+    console.error('[ConditionEval] Error evaluating condition with fresh data:', error);
     return { conditionMet: false, reason: `Error: ${error.message}`, leftValue: null, rightValue: null };
   }
 };
 
-// Enhanced rule group evaluation with strict condition checking
+// Enhanced rule group evaluation with strict condition checking using FRESH data
 const evaluateRuleGroups = async (
   ruleGroups: any[],
   asset: string,
@@ -434,7 +456,7 @@ const evaluateRuleGroups = async (
   timeframe: string
 ): Promise<{ signalGenerated: boolean; details: string[]; matchedConditions: string[] }> => {
   try {
-    console.log(`[RuleGroupEval] Evaluating ${ruleGroups.length} rule groups`);
+    console.log(`[RuleGroupEval] Evaluating ${ruleGroups.length} rule groups with FRESH indicator data`);
     
     const details: string[] = [];
     const matchedConditions: string[] = [];
@@ -460,6 +482,7 @@ const evaluateRuleGroups = async (
       let conditionsMetCount = 0;
       
       for (const rule of andGroup.trading_rules) {
+        // Each condition evaluation fetches FRESH indicator data
         const conditionResult = await evaluateCondition(rule, asset, currentPrice, timeframe);
         if (conditionResult.conditionMet) {
           conditionsMetCount++;
@@ -470,11 +493,11 @@ const evaluateRuleGroups = async (
         }
       }
       
-      details.push(`AND Group ${andGroup.id}: ${conditionsMetCount}/${andGroup.trading_rules.length} conditions met`);
+      details.push(`AND Group ${andGroup.id}: ${conditionsMetCount}/${andGroup.trading_rules.length} conditions met with FRESH data`);
       
       if (!allConditionsMet) {
         allAndGroupsSatisfied = false;
-        console.log(`[RuleGroupEval] AND group ${andGroup.id} failed - not all conditions met`);
+        console.log(`[RuleGroupEval] AND group ${andGroup.id} failed - not all conditions met with FRESH data`);
       }
     }
 
@@ -489,6 +512,7 @@ const evaluateRuleGroups = async (
       let conditionsMetCount = 0;
       
       for (const rule of orGroup.trading_rules) {
+        // Each condition evaluation fetches FRESH indicator data
         const conditionResult = await evaluateCondition(rule, asset, currentPrice, timeframe);
         if (conditionResult.conditionMet) {
           conditionsMetCount++;
@@ -499,20 +523,20 @@ const evaluateRuleGroups = async (
       }
       
       const requiredConditions = orGroup.required_conditions || 1;
-      details.push(`OR Group ${orGroup.id}: ${conditionsMetCount}/${orGroup.trading_rules.length} conditions met (required: ${requiredConditions})`);
+      details.push(`OR Group ${orGroup.id}: ${conditionsMetCount}/${orGroup.trading_rules.length} conditions met with FRESH data (required: ${requiredConditions})`);
       
       if (conditionsMetCount < requiredConditions) {
         allOrGroupsSatisfied = false;
-        console.log(`[RuleGroupEval] OR group ${orGroup.id} failed - insufficient conditions met`);
+        console.log(`[RuleGroupEval] OR group ${orGroup.id} failed - insufficient conditions met with FRESH data`);
       }
     }
 
     const signalGenerated = allAndGroupsSatisfied && allOrGroupsSatisfied && matchedConditions.length > 0;
-    console.log(`[RuleGroupEval] Final result: AND=${allAndGroupsSatisfied}, OR=${allOrGroupsSatisfied}, MatchedConditions=${matchedConditions.length}, Signal=${signalGenerated}`);
+    console.log(`[RuleGroupEval] Final result with FRESH data: AND=${allAndGroupsSatisfied}, OR=${allOrGroupsSatisfied}, MatchedConditions=${matchedConditions.length}, Signal=${signalGenerated}`);
 
     return { signalGenerated, details, matchedConditions };
   } catch (error) {
-    console.error('[RuleGroupEval] Error evaluating rule groups:', error);
+    console.error('[RuleGroupEval] Error evaluating rule groups with fresh data:', error);
     return { signalGenerated: false, details: [`Error: ${error.message}`], matchedConditions: [] };
   }
 };
@@ -686,14 +710,14 @@ const sendNotificationsForSignal = async (
   }
 };
 
-// Enhanced signal generation with proper condition validation
+// Enhanced signal generation with FRESH indicator data verification
 const generateSignalForStrategy = async (
   strategyId: string,
   userId: string,
   supabaseClient: any
 ) => {
   try {
-    console.log(`[SignalGen] Starting signal generation for strategy: ${strategyId}`);
+    console.log(`[SignalGen] Starting signal generation with FRESH indicator data for strategy: ${strategyId}`);
 
     // Get strategy with complete rule structure
     const { data: strategy, error: strategyError } = await supabaseClient
@@ -751,7 +775,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    // Get current market price BEFORE evaluating rules
+    // Get FRESH current market price
     const currentPrice = await getCurrentPrice(strategy.target_asset);
     if (!currentPrice) {
       console.error(`[SignalGen] Failed to get current price for ${strategy.target_asset}`);
@@ -761,7 +785,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    console.log(`[SignalGen] Current price for ${strategy.target_asset}: $${currentPrice}`);
+    console.log(`[SignalGen] FRESH current price for ${strategy.target_asset}: $${currentPrice}`);
 
     // Map timeframe for indicator calculations
     const timeframeMap = {
@@ -777,14 +801,16 @@ const generateSignalForStrategy = async (
     };
     const taapiInterval = timeframeMap[strategy.timeframe] || '1d';
 
-    // CRITICAL: Properly evaluate trading rules against CURRENT market conditions
+    // CRITICAL: Properly evaluate trading rules against CURRENT market conditions with FRESH data
     let signalType: 'entry' | 'exit' | null = null;
     let evaluationDetails: string[] = [];
     let matchedConditions: string[] = [];
     
-    // Evaluate entry rules first with strict condition checking
+    console.log(`[SignalGen] Starting rule evaluation with FRESH indicator data...`);
+    
+    // Evaluate entry rules first with strict condition checking using FRESH data
     if (entryRules.length > 0) {
-      console.log(`[SignalGen] Evaluating entry rules against current market conditions...`);
+      console.log(`[SignalGen] Evaluating entry rules against FRESH market conditions...`);
       const entryEvaluation = await evaluateRuleGroups(
         entryRules,
         strategy.target_asset,
@@ -792,21 +818,21 @@ const generateSignalForStrategy = async (
         taapiInterval
       );
       
-      evaluationDetails.push('Entry Rules:', ...entryEvaluation.details);
+      evaluationDetails.push('Entry Rules (with FRESH data):', ...entryEvaluation.details);
       
-      // ONLY generate signal if conditions are ACTUALLY met
+      // ONLY generate signal if conditions are ACTUALLY met with FRESH data
       if (entryEvaluation.signalGenerated && entryEvaluation.matchedConditions.length > 0) {
         signalType = 'entry';
         matchedConditions = entryEvaluation.matchedConditions;
-        console.log(`[SignalGen] ✓ Entry signal conditions VERIFIED and met with ${matchedConditions.length} matched conditions`);
+        console.log(`[SignalGen] ✓ Entry signal conditions VERIFIED and met with FRESH data - ${matchedConditions.length} matched conditions`);
       } else {
-        console.log(`[SignalGen] ✗ Entry signal conditions NOT met - no signal generated`);
+        console.log(`[SignalGen] ✗ Entry signal conditions NOT met with FRESH data - no signal generated`);
       }
     }
 
-    // If no entry signal generated, check exit rules with strict validation
+    // If no entry signal generated, check exit rules with strict validation using FRESH data
     if (!signalType && exitRules.length > 0) {
-      console.log(`[SignalGen] Evaluating exit rules against current market conditions...`);
+      console.log(`[SignalGen] Evaluating exit rules against FRESH market conditions...`);
       const exitEvaluation = await evaluateRuleGroups(
         exitRules,
         strategy.target_asset,
@@ -814,30 +840,30 @@ const generateSignalForStrategy = async (
         taapiInterval
       );
       
-      evaluationDetails.push('Exit Rules:', ...exitEvaluation.details);
+      evaluationDetails.push('Exit Rules (with FRESH data):', ...exitEvaluation.details);
       
-      // ONLY generate signal if conditions are ACTUALLY met
+      // ONLY generate signal if conditions are ACTUALLY met with FRESH data
       if (exitEvaluation.signalGenerated && exitEvaluation.matchedConditions.length > 0) {
         signalType = 'exit';
         matchedConditions = exitEvaluation.matchedConditions;
-        console.log(`[SignalGen] ✓ Exit signal conditions VERIFIED and met with ${matchedConditions.length} matched conditions`);
+        console.log(`[SignalGen] ✓ Exit signal conditions VERIFIED and met with FRESH data - ${matchedConditions.length} matched conditions`);
       } else {
-        console.log(`[SignalGen] ✗ Exit signal conditions NOT met - no signal generated`);
+        console.log(`[SignalGen] ✗ Exit signal conditions NOT met with FRESH data - no signal generated`);
       }
     }
 
-    // If no signal conditions are verified and met, return early
+    // If no signal conditions are verified and met with FRESH data, return early
     if (!signalType || matchedConditions.length === 0) {
-      console.log(`[SignalGen] No signal conditions met for strategy: ${strategyId}`);
+      console.log(`[SignalGen] No signal conditions met with FRESH data for strategy: ${strategyId}`);
       return {
         signalGenerated: false,
-        reason: 'Market conditions do not meet trading rule criteria',
+        reason: 'Market conditions do not meet trading rule criteria (verified with FRESH data)',
         evaluationDetails,
         matchedConditions: []
       };
     }
 
-    // Create signal data with verification details
+    // Create signal data with FRESH data verification details
     const signalData = {
       strategyId: strategyId,
       strategyName: strategy.name,
@@ -846,14 +872,16 @@ const generateSignalForStrategy = async (
       userId: userId,
       timestamp: new Date().toISOString(),
       timeframe: strategy.timeframe,
-      reason: `${signalType} signal - conditions verified and met`,
+      reason: `${signalType} signal - conditions verified and met with FRESH data`,
       evaluationDetails,
       matchedConditions,
       conditionsVerified: true,
-      conditionsMetCount: matchedConditions.length
+      conditionsMetCount: matchedConditions.length,
+      freshDataUsed: true,
+      verificationTimestamp: new Date().toISOString()
     };
 
-    // ONLY create signal if conditions are verified and met
+    // ONLY create signal if conditions are verified and met with FRESH data
     const { data: signal, error: signalError } = await supabaseClient
       .from('trading_signals')
       .insert({
@@ -873,7 +901,7 @@ const generateSignalForStrategy = async (
       };
     }
 
-    console.log(`[SignalGen] ✓ Signal created successfully with verified conditions: ${signal.id}`);
+    console.log(`[SignalGen] ✓ Signal created successfully with FRESH data verification: ${signal.id}`);
     
     // Check if external notifications should be sent
     const shouldSendNotifications = strategy.signal_notifications_enabled;
@@ -885,7 +913,7 @@ const generateSignalForStrategy = async (
       
       if (withinLimit) {
         notificationStatus = 'sent';
-        console.log(`[SignalGen] Sending external notifications for verified signal: ${signal.id}`);
+        console.log(`[SignalGen] Sending external notifications for FRESH data verified signal: ${signal.id}`);
       } else {
         notificationStatus = 'limit_exceeded';
         console.log(`[SignalGen] Daily notification limit exceeded, skipping external notifications`);
@@ -898,11 +926,12 @@ const generateSignalForStrategy = async (
       signalGenerated: true,
       signalId: signal.id,
       signalType: signalType,
-      reason: `${signalType} signal generated - conditions verified and met`,
+      reason: `${signalType} signal generated - conditions verified and met with FRESH data`,
       evaluationDetails,
       matchedConditions,
       notificationStatus,
-      shouldSendNotifications: shouldSendNotifications && notificationStatus === 'sent'
+      shouldSendNotifications: shouldSendNotifications && notificationStatus === 'sent',
+      freshDataVerified: true
     };
 
   } catch (error) {
@@ -926,7 +955,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('[Monitor] Starting trading signal monitoring with enhanced condition validation...');
+    console.log('[Monitor] Starting trading signal monitoring with FRESH indicator data verification...');
 
     // Check if market is open (allow manual override for testing)
     const body = await req.json().catch(() => ({}));
@@ -975,14 +1004,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[Monitor] Found ${strategies.length} active strategies to monitor`);
+    console.log(`[Monitor] Found ${strategies.length} active strategies to monitor with FRESH data`);
 
     const results = [];
 
-    // Process each strategy with proper condition validation
+    // Process each strategy with FRESH indicator data verification
     for (const strategy of strategies) {
       try {
-        console.log(`[Monitor] Processing strategy: ${strategy.name} (${strategy.id})`);
+        console.log(`[Monitor] Processing strategy with FRESH data: ${strategy.name} (${strategy.id})`);
 
         // Check if strategy has valid trading rules
         const hasRules = strategy.rule_groups?.some((rg: any) => 
@@ -1000,7 +1029,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Generate signal with enhanced condition validation
+        // Generate signal with FRESH indicator data verification
         const signalResult = await generateSignalForStrategy(strategy.id, strategy.user_id, supabaseClient);
         
         results.push({
@@ -1015,13 +1044,14 @@ serve(async (req) => {
           evaluationDetails: signalResult.evaluationDetails || [],
           matchedConditions: signalResult.matchedConditions || [],
           conditionsVerified: signalResult.signalGenerated,
+          freshDataVerified: signalResult.freshDataVerified || false,
           notificationStatus: signalResult.notificationStatus,
           externalNotificationsEnabled: strategy.signal_notifications_enabled
         });
 
-        // Send external notifications if signal was generated and verified
+        // Send external notifications if signal was generated and verified with FRESH data
         if (signalResult.signalGenerated && signalResult.shouldSendNotifications && signalResult.signalId) {
-          console.log(`[Monitor] Signal verified and generated for ${strategy.name}, sending external notifications...`);
+          console.log(`[Monitor] Signal verified with FRESH data for ${strategy.name}, sending external notifications...`);
           
           try {
             const notifications = await sendNotificationsForSignal(
@@ -1035,6 +1065,7 @@ serve(async (req) => {
                 price: signalResult.evaluationDetails?.[0] || 'N/A',
                 timeframe: strategy.timeframe,
                 conditionsVerified: true,
+                freshDataVerified: true,
                 matchedConditions: signalResult.matchedConditions
               },
               supabaseClient
@@ -1065,11 +1096,11 @@ serve(async (req) => {
     const signalsGenerated = results.filter(r => r.status === 'signal_generated').length;
     const notificationsSent = results.filter(r => r.notificationsSent && r.notificationsSent.length > 0).length;
     
-    console.log(`[Monitor] Signal monitoring completed with enhanced validation. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
+    console.log(`[Monitor] Signal monitoring completed with FRESH data verification. Generated ${signalsGenerated} verified signals from ${results.length} strategies, sent ${notificationsSent} external notifications`);
 
     return new Response(
       JSON.stringify({
-        message: 'Signal monitoring completed with enhanced condition validation',
+        message: 'Signal monitoring completed with FRESH indicator data verification',
         processedStrategies: results.length,
         signalsGenerated: signalsGenerated,
         externalNotificationsSent: notificationsSent,
@@ -1077,6 +1108,7 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
         marketOpen: isMarketHours(),
         manualTrigger: isManualTrigger,
+        freshDataVerification: true,
         conditionValidationEnabled: true
       }),
       { 

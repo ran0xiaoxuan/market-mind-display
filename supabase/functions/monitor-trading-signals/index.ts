@@ -751,6 +751,18 @@ const generateSignalForStrategy = async (
       };
     }
 
+    // Get current market price BEFORE evaluating rules
+    const currentPrice = await getCurrentPrice(strategy.target_asset);
+    if (!currentPrice) {
+      console.error(`[SignalGen] Failed to get current price for ${strategy.target_asset}`);
+      return {
+        signalGenerated: false,
+        reason: `Failed to get current price for ${strategy.target_asset}`
+      };
+    }
+
+    console.log(`[SignalGen] Current price for ${strategy.target_asset}: $${currentPrice}`);
+
     // Map timeframe for indicator calculations
     const timeframeMap = {
       '1m': '1m',

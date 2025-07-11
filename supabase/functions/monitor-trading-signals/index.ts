@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -48,6 +47,29 @@ interface MarketData {
   low: number;
   close: number;
   volume: number;
+}
+
+// Price source calculation helper
+class PriceSourceCalculator {
+  static calculateSource(data: MarketData[], source: string): number[] {
+    switch (source?.toLowerCase()) {
+      case 'open':
+        return data.map(d => d.open);
+      case 'high':
+        return data.map(d => d.high);
+      case 'low':
+        return data.map(d => d.low);
+      case 'close':
+      default:
+        return data.map(d => d.close);
+      case 'hl2':
+        return data.map(d => (d.high + d.low) / 2);
+      case 'hlc3':
+        return data.map(d => (d.high + d.low + d.close) / 3);
+      case 'ohlc4':
+        return data.map(d => (d.open + d.high + d.low + d.close) / 4);
+    }
+  }
 }
 
 // Technical Indicators Calculator Class
@@ -113,13 +135,37 @@ class TechnicalIndicators {
     return { line: macdLine, signal: signalLine, histogram };
   }
 
-  // Commodity Channel Index
-  static calculateCCI(highs: number[], lows: number[], closes: number[], period: number = 20): number {
-    if (closes.length < period) return 0;
+  // Commodity Channel Index with proper source handling
+  static calculateCCI(data: MarketData[], period: number = 20, source: string = 'hlc3'): number {
+    if (data.length < period) return 0;
     
-    const typicalPrices = closes.slice(0, period).map((close, i) => 
-      (highs[i] + lows[i] + close) / 3
-    );
+    let typicalPrices: number[];
+    
+    // Use proper source calculation
+    switch (source?.toLowerCase()) {
+      case 'open':
+        typicalPrices = data.slice(0, period).map(d => d.open);
+        break;
+      case 'high':
+        typicalPrices = data.slice(0, period).map(d => d.high);
+        break;
+      case 'low':
+        typicalPrices = data.slice(0, period).map(d => d.low);
+        break;
+      case 'close':
+        typicalPrices = data.slice(0, period).map(d => d.close);
+        break;
+      case 'hl2':
+        typicalPrices = data.slice(0, period).map(d => (d.high + d.low) / 2);
+        break;
+      case 'ohlc4':
+        typicalPrices = data.slice(0, period).map(d => (d.open + d.high + d.low + d.close) / 4);
+        break;
+      case 'hlc3':
+      default:
+        typicalPrices = data.slice(0, period).map(d => (d.high + d.low + d.close) / 3);
+        break;
+    }
     
     const sma = typicalPrices.reduce((a, b) => a + b, 0) / period;
     const meanDeviation = typicalPrices.reduce((sum, price) => 
@@ -128,7 +174,7 @@ class TechnicalIndicators {
     
     if (meanDeviation === 0) return 0;
     
-    const currentTypicalPrice = (highs[0] + lows[0] + closes[0]) / 3;
+    const currentTypicalPrice = typicalPrices[0];
     return (currentTypicalPrice - sma) / (0.015 * meanDeviation);
   }
 
@@ -150,11 +196,15 @@ class TechnicalIndicators {
   }
 
   // Stochastic Oscillator
-  static calculateStochastic(highs: number[], lows: number[], closes: number[], kPeriod: number = 14, dPeriod: number = 3): { k: number, d: number } {
-    if (closes.length < kPeriod) return { k: 0, d: 0 };
+  static calculateStochastic(data: MarketData[], kPeriod: number = 14, dPeriod: number = 3): { k: number, d: number } {
+    if (data.length < kPeriod) return { k: 0, d: 0 };
     
-    const highestHigh = Math.max(...highs.slice(0, kPeriod));
-    const lowestLow = Math.min(...lows.slice(0, kPeriod));
+    const highs = data.slice(0, kPeriod).map(d => d.high);
+    const lows = data.slice(0, kPeriod).map(d => d.low);
+    const closes = data.slice(0, kPeriod).map(d => d.close);
+    
+    const highestHigh = Math.max(...highs);
+    const lowestLow = Math.min(...lows);
     
     const k = ((closes[0] - lowestLow) / (highestHigh - lowestLow)) * 100;
     const d = k * 0.9; // Simplified
@@ -163,15 +213,15 @@ class TechnicalIndicators {
   }
 
   // Average True Range
-  static calculateATR(highs: number[], lows: number[], closes: number[], period: number = 14): number {
-    if (closes.length < period + 1) return 0;
+  static calculateATR(data: MarketData[], period: number = 14): number {
+    if (data.length < period + 1) return 0;
     
     let trSum = 0;
     
     for (let i = 0; i < period; i++) {
-      const high = highs[i];
-      const low = lows[i];
-      const prevClose = i < closes.length - 1 ? closes[i + 1] : closes[i];
+      const high = data[i].high;
+      const low = data[i].low;
+      const prevClose = i < data.length - 1 ? data[i + 1].close : data[i].close;
       
       const tr = Math.max(
         high - low,
@@ -186,28 +236,32 @@ class TechnicalIndicators {
   }
 
   // Williams %R
-  static calculateWilliamsR(highs: number[], lows: number[], closes: number[], period: number = 14): number {
-    if (closes.length < period) return 0;
+  static calculateWilliamsR(data: MarketData[], period: number = 14): number {
+    if (data.length < period) return 0;
     
-    const highestHigh = Math.max(...highs.slice(0, period));
-    const lowestLow = Math.min(...lows.slice(0, period));
+    const highs = data.slice(0, period).map(d => d.high);
+    const lows = data.slice(0, period).map(d => d.low);
+    const closes = data.slice(0, period).map(d => d.close);
+    
+    const highestHigh = Math.max(...highs);
+    const lowestLow = Math.min(...lows);
     
     return ((highestHigh - closes[0]) / (highestHigh - lowestLow)) * -100;
   }
 
   // Money Flow Index
-  static calculateMFI(highs: number[], lows: number[], closes: number[], volumes: number[], period: number = 14): number {
-    if (closes.length < period + 1) return 50;
+  static calculateMFI(data: MarketData[], period: number = 14): number {
+    if (data.length < period + 1) return 50;
     
     let positiveFlow = 0;
     let negativeFlow = 0;
     
     for (let i = 0; i < period; i++) {
-      const typicalPrice = (highs[i] + lows[i] + closes[i]) / 3;
-      const prevTypicalPrice = i < closes.length - 1 ? 
-        (highs[i + 1] + lows[i + 1] + closes[i + 1]) / 3 : typicalPrice;
+      const typicalPrice = (data[i].high + data[i].low + data[i].close) / 3;
+      const prevTypicalPrice = i < data.length - 1 ? 
+        (data[i + 1].high + data[i + 1].low + data[i + 1].close) / 3 : typicalPrice;
       
-      const moneyFlow = typicalPrice * volumes[i];
+      const moneyFlow = typicalPrice * data[i].volume;
       
       if (typicalPrice > prevTypicalPrice) {
         positiveFlow += moneyFlow;
@@ -299,7 +353,8 @@ class MarketDataService {
     return timeframeMap[timeframe] || '1day';
   }
 
-  async fetchMarketData(symbol: string, timeframe: string, limit: number = 100): Promise<MarketData[]> {
+  // Get real-time aligned market data based on current time and timeframe
+  async fetchTimeAlignedMarketData(symbol: string, timeframe: string, limit: number = 100): Promise<MarketData[]> {
     const fmpInterval = this.mapTimeframeToFmpInterval(timeframe);
     let endpoint: string;
     
@@ -309,7 +364,7 @@ class MarketDataService {
       endpoint = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${this.fmpApiKey}`;
     }
 
-    console.log(`[MarketData] Fetching data for ${symbol} with timeframe ${timeframe}`);
+    console.log(`[MarketData] Fetching time-aligned data for ${symbol} with timeframe ${timeframe}`);
     
     const response = await fetch(endpoint);
     
@@ -336,7 +391,23 @@ class MarketDataService {
       }
     } else {
       if (Array.isArray(data)) {
+        // For intraday data, ensure we have the most recent data points aligned to current time
+        const now = new Date();
+        const currentMinute = now.getMinutes();
+        const timeframeMinutes = this.getTimeframeMinutes(timeframe);
+        
+        // Filter data to get the most recent complete timeframe periods
         marketData = data
+          .filter((item: any) => {
+            const itemDate = new Date(item.date);
+            const itemMinute = itemDate.getMinutes();
+            
+            // For 5m timeframe, only include data at 00, 05, 10, 15, etc.
+            if (timeframeMinutes > 1) {
+              return itemMinute % timeframeMinutes === 0;
+            }
+            return true;
+          })
           .slice(0, limit)
           .map((item: any) => ({
             date: item.date,
@@ -354,8 +425,25 @@ class MarketDataService {
       throw new Error(`No market data found for ${symbol}`);
     }
 
-    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
+    const latestDataTime = new Date(marketData[0].date);
+    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}, latest: ${latestDataTime.toISOString()}`);
     return marketData;
+  }
+
+  private getTimeframeMinutes(timeframe: string): number {
+    const timeframeMap: { [key: string]: number } = {
+      '1m': 1,
+      '5m': 5,
+      '15m': 15,
+      '30m': 30,
+      '1h': 60,
+      '4h': 240,
+      'Daily': 1440,
+      'Weekly': 10080,
+      'Monthly': 43200
+    };
+    
+    return timeframeMap[timeframe] || 1440;
   }
 }
 
@@ -388,66 +476,84 @@ class StrategyEvaluator {
       const indicatorName = configKey.split('_')[0];
       
       try {
-        const source = params.source || 'close';
-        const sourcePrices = this.getPriceBySource(marketData, source);
-        
         let indicatorValue: any;
         
         switch (indicatorName.toLowerCase()) {
           case 'sma':
             const period = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateSMA(sourcePrices, period);
+            const smaSource = params.source || 'close';
+            const smaPrices = PriceSourceCalculator.calculateSource(marketData, smaSource);
+            indicatorValue = TechnicalIndicators.calculateSMA(smaPrices, period);
+            console.log(`[Indicator] SMA(${period}, ${smaSource}): ${indicatorValue}`);
             break;
             
           case 'ema':
             const emaPeriod = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateEMA(sourcePrices, emaPeriod);
+            const emaSource = params.source || 'close';
+            const emaPrices = PriceSourceCalculator.calculateSource(marketData, emaSource);
+            indicatorValue = TechnicalIndicators.calculateEMA(emaPrices, emaPeriod);
+            console.log(`[Indicator] EMA(${emaPeriod}, ${emaSource}): ${indicatorValue}`);
             break;
             
           case 'rsi':
             const rsiPeriod = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateRSI(sourcePrices, rsiPeriod);
+            const rsiSource = params.source || 'close';
+            const rsiPrices = PriceSourceCalculator.calculateSource(marketData, rsiSource);
+            indicatorValue = TechnicalIndicators.calculateRSI(rsiPrices, rsiPeriod);
+            console.log(`[Indicator] RSI(${rsiPeriod}, ${rsiSource}): ${indicatorValue}`);
             break;
             
           case 'macd':
             const fastPeriod = parseInt(params.fast || params.fastPeriod || '12');
             const slowPeriod = parseInt(params.slow || params.slowPeriod || '26');
             const signalPeriod = parseInt(params.signal || params.signalPeriod || '9');
-            indicatorValue = TechnicalIndicators.calculateMACD(sourcePrices, fastPeriod, slowPeriod, signalPeriod);
+            const macdSource = params.source || 'close';
+            const macdPrices = PriceSourceCalculator.calculateSource(marketData, macdSource);
+            indicatorValue = TechnicalIndicators.calculateMACD(macdPrices, fastPeriod, slowPeriod, signalPeriod);
+            console.log(`[Indicator] MACD(${fastPeriod}, ${slowPeriod}, ${signalPeriod}, ${macdSource}):`, indicatorValue);
             break;
             
           case 'cci':
             const cciPeriod = parseInt(params.period || '20');
-            indicatorValue = TechnicalIndicators.calculateCCI(highs, lows, closes, cciPeriod);
+            const cciSource = params.source || 'hlc3';
+            indicatorValue = TechnicalIndicators.calculateCCI(marketData, cciPeriod, cciSource);
+            console.log(`[Indicator] CCI(${cciPeriod}, ${cciSource}): ${indicatorValue}`);
             break;
             
           case 'bollingerbands':
           case 'bbands':
             const bbPeriod = parseInt(params.period || '20');
             const deviation = parseFloat(params.deviation || '2');
-            indicatorValue = TechnicalIndicators.calculateBollingerBands(sourcePrices, bbPeriod, deviation);
+            const bbSource = params.source || 'close';
+            const bbPrices = PriceSourceCalculator.calculateSource(marketData, bbSource);
+            indicatorValue = TechnicalIndicators.calculateBollingerBands(bbPrices, bbPeriod, deviation);
+            console.log(`[Indicator] BollingerBands(${bbPeriod}, ${deviation}, ${bbSource}):`, indicatorValue);
             break;
             
           case 'stochastic':
             const kPeriod = parseInt(params.k || params.kPeriod || '14');
             const dPeriod = parseInt(params.d || params.dPeriod || '3');
-            indicatorValue = TechnicalIndicators.calculateStochastic(highs, lows, closes, kPeriod, dPeriod);
+            indicatorValue = TechnicalIndicators.calculateStochastic(marketData, kPeriod, dPeriod);
+            console.log(`[Indicator] Stochastic(${kPeriod}, ${dPeriod}):`, indicatorValue);
             break;
             
           case 'atr':
             const atrPeriod = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateATR(highs, lows, closes, atrPeriod);
+            indicatorValue = TechnicalIndicators.calculateATR(marketData, atrPeriod);
+            console.log(`[Indicator] ATR(${atrPeriod}): ${indicatorValue}`);
             break;
             
           case 'williamsr':
           case 'willr':
             const willrPeriod = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateWilliamsR(highs, lows, closes, willrPeriod);
+            indicatorValue = TechnicalIndicators.calculateWilliamsR(marketData, willrPeriod);
+            console.log(`[Indicator] WilliamsR(${willrPeriod}): ${indicatorValue}`);
             break;
             
           case 'mfi':
             const mfiPeriod = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateMFI(highs, lows, closes, volumes, mfiPeriod);
+            indicatorValue = TechnicalIndicators.calculateMFI(marketData, mfiPeriod);
+            console.log(`[Indicator] MFI(${mfiPeriod}): ${indicatorValue}`);
             break;
             
           default:
@@ -456,7 +562,6 @@ class StrategyEvaluator {
         }
         
         this.indicators.set(configKey, indicatorValue);
-        console.log(`[StrategyEvaluator] Calculated ${indicatorName}: ${JSON.stringify(indicatorValue)}`);
         
       } catch (error) {
         console.error(`[StrategyEvaluator] Error calculating ${indicatorName}:`, error);
@@ -483,16 +588,6 @@ class StrategyEvaluator {
     });
     
     return indicatorConfigs;
-  }
-
-  private getPriceBySource(marketData: MarketData[], source: string = 'close'): number[] {
-    switch (source.toLowerCase()) {
-      case 'open': return marketData.map(d => d.open);
-      case 'high': return marketData.map(d => d.high);
-      case 'low': return marketData.map(d => d.low);
-      case 'close':
-      default: return marketData.map(d => d.close);
-    }
   }
 
   private getIndicatorValue(type: string, indicator?: string, params?: Record<string, any>, valueType?: string): number {
@@ -819,9 +914,9 @@ Deno.serve(async (req) => {
       throw new Error('FMP API key not found');
     }
 
-    console.log('🚀 Starting signal monitoring process...');
+    console.log('🚀 Starting real-time signal monitoring process...');
 
-    // Check market hours
+    // Check market hours first - this is critical for timing
     if (!MarketHoursChecker.isMarketOpen()) {
       return new Response(
         JSON.stringify({ 
@@ -861,7 +956,7 @@ Deno.serve(async (req) => {
 
     for (const strategy of strategies || []) {
       try {
-        console.log(`\n🎯 Processing strategy: ${strategy.name}`);
+        console.log(`\n🎯 Processing strategy: ${strategy.name} (${strategy.timeframe})`);
         
         if (!strategy.target_asset) {
           console.log(`⚠️ Skipping strategy ${strategy.name} - no target asset`);
@@ -873,19 +968,20 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Fetch market data
-        const marketData = await marketDataService.fetchMarketData(
+        // Fetch time-aligned market data based on strategy timeframe
+        const marketData = await marketDataService.fetchTimeAlignedMarketData(
           strategy.target_asset, 
           strategy.timeframe, 
           100
         );
 
-        console.log(`📈 Retrieved ${marketData.length} data points for ${strategy.target_asset}`);
+        console.log(`📈 Retrieved ${marketData.length} time-aligned data points for ${strategy.target_asset}`);
+        console.log(`🕒 Latest data timestamp: ${marketData[0].date}`);
 
-        // Calculate indicators
+        // Calculate indicators with proper source parameters
         await strategyEvaluator.calculateIndicatorsForStrategy(strategy, marketData);
         
-        // Evaluate strategy
+        // Evaluate strategy conditions in real-time
         const evaluation = strategyEvaluator.evaluateStrategy(strategy);
 
         if (evaluation.entrySignal || evaluation.exitSignal) {
@@ -899,7 +995,8 @@ Deno.serve(async (req) => {
             timeframe: strategy.timeframe,
             signal_type: signalType,
             timestamp: new Date().toISOString(),
-            current_price: marketData[0].close
+            current_price: marketData[0].close,
+            data_timestamp: marketData[0].date
           };
 
           // Create signal in database
@@ -920,14 +1017,15 @@ Deno.serve(async (req) => {
 
           console.log(`✅ Signal ${signal.id} created successfully`);
           
-          // Send notifications
+          // Send notifications immediately without delay
           await notificationService.sendNotifications(signal, strategy);
           
           processedStrategies.push({
             strategy_id: strategy.id,
             strategy_name: strategy.name,
             signal_type: signalType,
-            signal_id: signal.id
+            signal_id: signal.id,
+            data_timestamp: marketData[0].date
           });
         } else {
           console.log(`❌ No signals generated for strategy ${strategy.name}`);
@@ -952,7 +1050,7 @@ Deno.serve(async (req) => {
       timestamp: new Date().toISOString()
     };
 
-    console.log('\n🏁 Signal monitoring completed:', response);
+    console.log('\n🏁 Real-time signal monitoring completed:', response);
 
     return new Response(
       JSON.stringify(response),

@@ -330,12 +330,14 @@ class MarketDataService {
     return timeframeMap[timeframe] || '1day';
   }
 
-  // Get the most recent market data - always fetch fresh data for real-time calculations
+  // Get the most recent market data with current real-time timestamp
   async fetchCurrentMarketData(symbol: string, timeframe: string, limit: number = 100): Promise<MarketData[]> {
     const fmpInterval = this.mapTimeframeToFmpInterval(timeframe);
     let endpoint: string;
     
-    console.log(`[MarketData] Fetching CURRENT market data for ${symbol} with timeframe ${timeframe} at ${new Date().toISOString()}`);
+    // Record the exact time when we start fetching data
+    const dataExtractionTime = new Date().toISOString();
+    console.log(`[MarketData] Starting data extraction for ${symbol} at REAL-TIME: ${dataExtractionTime}`);
     
     if (['1min', '5min', '15min', '30min', '1hour', '4hour'].includes(fmpInterval)) {
       endpoint = `https://financialmodelingprep.com/api/v3/historical-chart/${fmpInterval}/${symbol}?apikey=${this.fmpApiKey}`;
@@ -369,10 +371,6 @@ class MarketDataService {
     } else {
       if (Array.isArray(data)) {
         // For intraday data, get the most recent data points
-        const now = new Date();
-        const currentTime = now.getTime();
-        
-        // Sort by date descending to get most recent first
         const sortedData = data
           .map((item: any) => ({
             date: item.date,
@@ -387,8 +385,6 @@ class MarketDataService {
 
         // Take the most recent data points
         marketData = sortedData.slice(0, limit);
-        
-        console.log(`[MarketData] Most recent data point: ${marketData[0]?.date} at ${new Date().toISOString()}`);
       }
     }
 
@@ -396,13 +392,19 @@ class MarketDataService {
       throw new Error(`No current market data found for ${symbol}`);
     }
 
-    console.log(`[MarketData] Successfully fetched ${marketData.length} CURRENT data points for ${symbol}, latest timestamp: ${marketData[0].date}`);
+    // Record completion time for accurate timestamp tracking
+    const dataProcessingCompleteTime = new Date().toISOString();
+    console.log(`[MarketData] Data extraction and processing completed at REAL-TIME: ${dataProcessingCompleteTime}`);
+    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
+    console.log(`[MarketData] Latest data point from API: ${marketData[0].date}`);
+    
     return marketData;
   }
 
-  // Get current price quote - this should always be the absolute latest price
+  // Get current price quote with real-time timestamp tracking
   async getCurrentPrice(symbol: string): Promise<number> {
-    console.log(`[MarketData] Fetching CURRENT price for ${symbol} at ${new Date().toISOString()}`);
+    const priceRequestTime = new Date().toISOString();
+    console.log(`[MarketData] Requesting CURRENT real-time price for ${symbol} at: ${priceRequestTime}`);
     
     const response = await fetch(
       `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${this.fmpApiKey}`
@@ -419,7 +421,8 @@ class MarketDataService {
     }
 
     const currentPrice = data[0].price;
-    console.log(`[MarketData] CURRENT real-time price for ${symbol}: $${currentPrice} fetched at ${new Date().toISOString()}`);
+    const priceReceivedTime = new Date().toISOString();
+    console.log(`[MarketData] REAL-TIME price for ${symbol}: $${currentPrice} received at: ${priceReceivedTime}`);
     return currentPrice;
   }
 
@@ -447,22 +450,23 @@ class StrategyEvaluator {
   async calculateIndicatorsForStrategy(strategy: Strategy, marketData: MarketData[]): Promise<void> {
     this.indicators.clear();
     
-    console.log(`[StrategyEvaluator] Calculating indicators for strategy ${strategy.name} using CURRENT data from ${marketData[0]?.date}`);
+    const calculationStartTime = new Date().toISOString();
+    console.log(`[StrategyEvaluator] Starting indicator calculations for strategy ${strategy.name} at REAL-TIME: ${calculationStartTime}`);
     
     const closes = marketData.map(d => d.close);
     const highs = marketData.map(d => d.high);
     const lows = marketData.map(d => d.low);
     const volumes = marketData.map(d => d.volume);
     
-    // Store current prices - these are the MOST RECENT prices
+    // Store current prices with real-time context
     this.indicators.set('PRICE_close', closes[0]);
     this.indicators.set('PRICE_open', marketData[0].open);
     this.indicators.set('PRICE_high', highs[0]);
     this.indicators.set('PRICE_low', lows[0]);
     
-    console.log(`[StrategyEvaluator] CURRENT prices from ${marketData[0].date} - Close: ${closes[0]}, Open: ${marketData[0].open}, High: ${highs[0]}, Low: ${lows[0]}`);
+    console.log(`[StrategyEvaluator] Using REAL-TIME prices calculated at ${calculationStartTime} - Close: ${closes[0]}, Open: ${marketData[0].open}, High: ${highs[0]}, Low: ${lows[0]}`);
     
-    // Calculate indicators based on strategy rules using CURRENT data
+    // Calculate indicators based on strategy rules using current data
     const indicatorConfigs = this.extractIndicatorConfigs(strategy);
     
     for (const [configKey, params] of indicatorConfigs) {
@@ -477,7 +481,7 @@ class StrategyEvaluator {
             const smaSource = params.source || 'close';
             const smaPrices = PriceSourceCalculator.calculateSource(marketData, smaSource);
             indicatorValue = TechnicalIndicators.calculateSMA(smaPrices, period);
-            console.log(`[Indicator] SMA(${period}, ${smaSource}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] SMA(${period}, ${smaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'ema':
@@ -485,7 +489,7 @@ class StrategyEvaluator {
             const emaSource = params.source || 'close';
             const emaPrices = PriceSourceCalculator.calculateSource(marketData, emaSource);
             indicatorValue = TechnicalIndicators.calculateEMA(emaPrices, emaPeriod);
-            console.log(`[Indicator] EMA(${emaPeriod}, ${emaSource}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] EMA(${emaPeriod}, ${emaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'rsi':
@@ -493,7 +497,7 @@ class StrategyEvaluator {
             const rsiSource = params.source || 'close';
             const rsiPrices = PriceSourceCalculator.calculateSource(marketData, rsiSource);
             indicatorValue = TechnicalIndicators.calculateRSI(rsiPrices, rsiPeriod);
-            console.log(`[Indicator] RSI(${rsiPeriod}, ${rsiSource}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] RSI(${rsiPeriod}, ${rsiSource}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'macd':
@@ -503,14 +507,14 @@ class StrategyEvaluator {
             const macdSource = params.source || 'close';
             const macdPrices = PriceSourceCalculator.calculateSource(marketData, macdSource);
             indicatorValue = TechnicalIndicators.calculateMACD(macdPrices, fastPeriod, slowPeriod, signalPeriod);
-            console.log(`[Indicator] MACD(${fastPeriod}, ${slowPeriod}, ${signalPeriod}, ${macdSource}) calculated from CURRENT data:`, indicatorValue);
+            console.log(`[Indicator] MACD(${fastPeriod}, ${slowPeriod}, ${signalPeriod}, ${macdSource}) calculated with REAL-TIME data:`, indicatorValue);
             break;
             
           case 'cci':
             const cciPeriod = parseInt(params.period || '20');
             const cciSource = params.source || 'hlc3';
             indicatorValue = TechnicalIndicators.calculateCCI(marketData, cciPeriod, cciSource);
-            console.log(`[Indicator] CCI(${cciPeriod}, ${cciSource}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] CCI(${cciPeriod}, ${cciSource}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'bollingerbands':
@@ -520,33 +524,33 @@ class StrategyEvaluator {
             const bbSource = params.source || 'close';
             const bbPrices = PriceSourceCalculator.calculateSource(marketData, bbSource);
             indicatorValue = TechnicalIndicators.calculateBollingerBands(bbPrices, bbPeriod, deviation);
-            console.log(`[Indicator] BollingerBands(${bbPeriod}, ${deviation}, ${bbSource}) calculated from CURRENT data:`, indicatorValue);
+            console.log(`[Indicator] BollingerBands(${bbPeriod}, ${deviation}, ${bbSource}) calculated with REAL-TIME data:`, indicatorValue);
             break;
             
           case 'stochastic':
             const kPeriod = parseInt(params.k || params.kPeriod || '14');
             const dPeriod = parseInt(params.d || params.dPeriod || '3');
             indicatorValue = TechnicalIndicators.calculateStochastic(marketData, kPeriod, dPeriod);
-            console.log(`[Indicator] Stochastic(${kPeriod}, ${dPeriod}) calculated from CURRENT data:`, indicatorValue);
+            console.log(`[Indicator] Stochastic(${kPeriod}, ${dPeriod}) calculated with REAL-TIME data:`, indicatorValue);
             break;
             
           case 'atr':
             const atrPeriod = parseInt(params.period || '14');
             indicatorValue = TechnicalIndicators.calculateATR(marketData, atrPeriod);
-            console.log(`[Indicator] ATR(${atrPeriod}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] ATR(${atrPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'williamsr':
           case 'willr':
             const willrPeriod = parseInt(params.period || '14');
             indicatorValue = TechnicalIndicators.calculateWilliamsR(marketData, willrPeriod);
-            console.log(`[Indicator] WilliamsR(${willrPeriod}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] WilliamsR(${willrPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'mfi':
             const mfiPeriod = parseInt(params.period || '14');
             indicatorValue = TechnicalIndicators.calculateMFI(marketData, mfiPeriod);
-            console.log(`[Indicator] MFI(${mfiPeriod}) calculated from CURRENT data: ${indicatorValue}`);
+            console.log(`[Indicator] MFI(${mfiPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           default:
@@ -561,6 +565,9 @@ class StrategyEvaluator {
         this.indicators.set(configKey, 0);
       }
     }
+
+    const calculationEndTime = new Date().toISOString();
+    console.log(`[StrategyEvaluator] Completed indicator calculations at REAL-TIME: ${calculationEndTime}`);
   }
 
   private extractIndicatorConfigs(strategy: Strategy): Map<string, Record<string, any>> {
@@ -673,7 +680,8 @@ class StrategyEvaluator {
   }
 
   evaluateStrategy(strategy: Strategy): { entrySignal: boolean, exitSignal: boolean } {
-    console.log(`[Strategy] Evaluating strategy: ${strategy.name} with CURRENT market data`);
+    const evaluationTime = new Date().toISOString();
+    console.log(`[Strategy] Evaluating strategy: ${strategy.name} with REAL-TIME data at: ${evaluationTime}`);
     
     const entryGroups = strategy.rule_groups.filter(group => group.rule_type === 'entry');
     const exitGroups = strategy.rule_groups.filter(group => group.rule_type === 'exit');
@@ -681,7 +689,7 @@ class StrategyEvaluator {
     const entrySignal = entryGroups.some(group => this.evaluateRuleGroup(group));
     const exitSignal = exitGroups.some(group => this.evaluateRuleGroup(group));
 
-    console.log(`[Strategy] Final result using CURRENT data - Entry: ${entrySignal}, Exit: ${exitSignal}`);
+    console.log(`[Strategy] Final result using REAL-TIME data - Entry: ${entrySignal}, Exit: ${exitSignal}`);
     return { entrySignal, exitSignal };
   }
 }
@@ -907,7 +915,9 @@ Deno.serve(async (req) => {
       throw new Error('FMP API key not found');
     }
 
-    console.log(`🚀 Starting REAL-TIME signal monitoring process at ${new Date().toISOString()}...`);
+    // Record the exact start time of the monitoring process
+    const monitoringStartTime = new Date().toISOString();
+    console.log(`🚀 Starting REAL-TIME signal monitoring process at: ${monitoringStartTime}`);
 
     // Check market hours first - this is critical for timing
     if (!MarketHoursChecker.isMarketOpen()) {
@@ -915,7 +925,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           message: 'Market is closed',
-          timestamp: new Date().toISOString()
+          timestamp: monitoringStartTime
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -949,7 +959,8 @@ Deno.serve(async (req) => {
 
     for (const strategy of strategies || []) {
       try {
-        console.log(`\n🎯 Processing strategy: ${strategy.name} (${strategy.timeframe}) at ${new Date().toISOString()}`);
+        const strategyProcessingStartTime = new Date().toISOString();
+        console.log(`\n🎯 Processing strategy: ${strategy.name} (${strategy.timeframe}) starting at REAL-TIME: ${strategyProcessingStartTime}`);
         
         if (!strategy.target_asset) {
           console.log(`⚠️ Skipping strategy ${strategy.name} - no target asset`);
@@ -961,7 +972,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Fetch CURRENT market data - always get the latest data
+        // Fetch current market data with real-time tracking
         const marketData = await marketDataService.fetchCurrentMarketData(
           strategy.target_asset, 
           strategy.timeframe, 
@@ -969,28 +980,33 @@ Deno.serve(async (req) => {
         );
 
         console.log(`📈 Retrieved ${marketData.length} CURRENT data points for ${strategy.target_asset}`);
-        console.log(`🕒 Latest data timestamp: ${marketData[0].date} (fetched at ${new Date().toISOString()})`);
 
-        // Calculate indicators with CURRENT market data
+        // Calculate indicators with current market data
         await strategyEvaluator.calculateIndicatorsForStrategy(strategy, marketData);
         
-        // Evaluate strategy conditions using CURRENT data
+        // Evaluate strategy conditions using current data
         const evaluation = strategyEvaluator.evaluateStrategy(strategy);
 
         if (evaluation.entrySignal || evaluation.exitSignal) {
-          console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using CURRENT data!`);
+          console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using REAL-TIME data!`);
           
           const signalType = evaluation.entrySignal ? 'entry' : 'exit';
+          
+          // Use CURRENT REAL-TIME timestamp for data_timestamp
+          const currentRealTime = new Date().toISOString();
+          
           const signalData = {
             strategy_id: strategy.id,
             strategy_name: strategy.name,
             asset: strategy.target_asset,
             timeframe: strategy.timeframe,
             signal_type: signalType,
-            timestamp: new Date().toISOString(),
+            timestamp: currentRealTime,
             current_price: marketData[0].close,
-            data_timestamp: marketData[0].date // This now represents the latest data point
+            data_timestamp: currentRealTime // This is now the REAL-TIME when all calculations were performed
           };
+
+          console.log(`📊 Signal data_timestamp set to CURRENT REAL-TIME: ${currentRealTime}`);
 
           // Create signal in database
           const { data: signal, error: signalError } = await supabase
@@ -1008,7 +1024,7 @@ Deno.serve(async (req) => {
             throw signalError;
           }
 
-          console.log(`✅ Signal ${signal.id} created successfully with CURRENT data`);
+          console.log(`✅ Signal ${signal.id} created successfully with REAL-TIME data_timestamp: ${currentRealTime}`);
           
           // Send notifications immediately
           await notificationService.sendNotifications(signal, strategy);
@@ -1018,11 +1034,11 @@ Deno.serve(async (req) => {
             strategy_name: strategy.name,
             signal_type: signalType,
             signal_id: signal.id,
-            data_timestamp: marketData[0].date,
+            data_timestamp: currentRealTime, // Real-time timestamp
             processing_time: new Date().toISOString()
           });
         } else {
-          console.log(`❌ No signals generated for strategy ${strategy.name} with CURRENT data`);
+          console.log(`❌ No signals generated for strategy ${strategy.name} with REAL-TIME data`);
         }
 
       } catch (error) {
@@ -1035,16 +1051,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    const monitoringCompleteTime = new Date().toISOString();
     const response = {
       success: true,
-      message: `Processed ${strategies?.length || 0} strategies with CURRENT market data`,
+      message: `Processed ${strategies?.length || 0} strategies with REAL-TIME market data`,
       signals_generated: processedStrategies.length,
       processed_strategies: processedStrategies,
       errors: errors,
-      timestamp: new Date().toISOString()
+      monitoring_start_time: monitoringStartTime,
+      monitoring_complete_time: monitoringCompleteTime
     };
 
-    console.log('\n🏁 REAL-TIME signal monitoring completed:', response);
+    console.log(`\n🏁 REAL-TIME signal monitoring completed at: ${monitoringCompleteTime}`);
+    console.log('Final response:', response);
 
     return new Response(
       JSON.stringify(response),

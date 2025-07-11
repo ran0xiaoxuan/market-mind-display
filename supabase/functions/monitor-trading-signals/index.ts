@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -599,19 +598,98 @@ class StrategyEvaluator {
 // Market Hours Checker
 class MarketHoursChecker {
   static checkMarketHours(): boolean {
+    try {
+      // Get current time in EST/EDT (America/New_York timezone)
+      const now = new Date();
+      const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const dayOfWeek = estTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      const hour = estTime.getHours();
+      const minute = estTime.getMinutes();
+      
+      // Check if it's a weekday (Monday = 1 to Friday = 5)
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+      
+      // Convert time to minutes for easier comparison
+      const timeInMinutes = hour * 60 + minute;
+      const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM EST
+      const marketCloseMinutes = 16 * 60; // 4:00 PM EST
+      
+      // Market is open if it's a weekday and within trading hours
+      const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes < marketCloseMinutes;
+      const isOpen = isWeekday && isMarketHours;
+      
+      console.log(`Market hours check - EST Time: ${estTime.toLocaleString('en-US', { 
+        timeZone: 'America/New_York',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      })}`);
+      console.log(`Day of week: ${dayOfWeek} (${isWeekday ? 'Weekday' : 'Weekend'})`);
+      console.log(`Time in minutes: ${timeInMinutes} (Open: ${marketOpenMinutes}, Close: ${marketCloseMinutes})`);
+      console.log(`Market is ${isOpen ? 'OPEN' : 'CLOSED'}`);
+      
+      return isOpen;
+    } catch (error) {
+      console.error('Error checking market hours:', error);
+      // Default to closed if there's an error
+      return false;
+    }
+  }
+  
+  static getMarketStatus(): { isOpen: boolean; nextOpen?: string; marketHours: { open: string; close: string } } {
+    const isOpen = this.checkMarketHours();
+    const marketHours = {
+      open: '9:30 AM ET',
+      close: '4:00 PM ET'
+    };
+    
+    if (isOpen) {
+      return { isOpen: true, marketHours };
+    }
+    
+    // Calculate next market open
     const now = new Date();
-    const utcHours = now.getUTCHours();
-    const utcMinutes = now.getUTCMinutes();
-    const utcTimeInMinutes = utcHours * 60 + utcMinutes;
+    const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const nextMarketDay = new Date(estTime);
     
-    // US market hours: 9:30 AM - 4:00 PM EST (14:30 - 21:00 UTC)
-    const marketOpenUTC = 14 * 60 + 30;
-    const marketCloseUTC = 21 * 60;
+    // If it's after market close today or weekend, find next weekday
+    const dayOfWeek = estTime.getDay();
+    const hour = estTime.getHours();
+    const minute = estTime.getMinutes();
+    const timeInMinutes = hour * 60 + minute;
+    const marketCloseMinutes = 16 * 60;
     
-    const isOpen = utcTimeInMinutes >= marketOpenUTC && utcTimeInMinutes <= marketCloseUTC;
-    console.log(`Market hours check: ${utcHours}:${utcMinutes.toString().padStart(2, '0')} UTC, Market is ${isOpen ? 'OPEN' : 'CLOSED'}`);
+    if (dayOfWeek === 0 || dayOfWeek === 6 || (dayOfWeek >= 1 && dayOfWeek <= 5 && timeInMinutes >= marketCloseMinutes)) {
+      // Move to next weekday
+      do {
+        nextMarketDay.setDate(nextMarketDay.getDate() + 1);
+      } while (nextMarketDay.getDay() === 0 || nextMarketDay.getDay() === 6);
+    }
     
-    return isOpen;
+    nextMarketDay.setHours(9, 30, 0, 0);
+    
+    const isToday = nextMarketDay.toDateString() === estTime.toDateString();
+    const isTomorrow = nextMarketDay.toDateString() === new Date(estTime.getTime() + 24 * 60 * 60 * 1000).toDateString();
+    
+    let dayText = '';
+    if (isToday) dayText = 'Today';
+    else if (isTomorrow) dayText = 'Tomorrow';
+    else dayText = nextMarketDay.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    const timeText = nextMarketDay.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      timeZoneName: 'short',
+      timeZone: 'America/New_York'
+    });
+    
+    const nextOpen = `${dayText} at ${timeText}`;
+    
+    return { isOpen: false, nextOpen, marketHours };
   }
 }
 
@@ -881,12 +959,16 @@ Deno.serve(async (req) => {
 
     console.log('Starting signal monitoring process...');
 
-    // Check market hours
-    if (!MarketHoursChecker.checkMarketHours()) {
+    // Check market hours with improved timezone handling
+    const marketStatus = MarketHoursChecker.getMarketStatus();
+    console.log('Market status:', marketStatus);
+    
+    if (!marketStatus.isOpen) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'Market is closed' 
+          message: `Market is closed. ${marketStatus.nextOpen ? `Opens ${marketStatus.nextOpen}` : 'Closed'}`,
+          market_status: marketStatus
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

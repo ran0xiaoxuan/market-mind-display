@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -107,6 +108,9 @@ const OptimizedDashboard = () => {
 
   const { metrics, recentTrades } = dashboardData || { metrics: null, recentTrades: [] };
 
+  console.log('Dashboard recentTrades:', recentTrades);
+  console.log('Recent trades length:', recentTrades?.length || 0);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -141,21 +145,32 @@ const OptimizedDashboard = () => {
               <Card>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">Trade History</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Showing {Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of {recentTrades.length} signals
-                    </p>
+                    <h2 className="text-xl font-bold">Trading Signals History</h2>
+                    {recentTrades && recentTrades.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Showing {Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of {recentTrades.length} signals
+                      </p>
+                    )}
                   </div>
-                </div>
-
-                <div className="px-6 pb-6">
-                  <TradeHistoryTable 
-                    trades={recentTrades} 
-                    maxRows={MAX_VISIBLE_TRADES}
-                    showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES}
-                    onViewAllClick={openTradeHistoryModal}
-                    enableRowClick={true}
-                  />
+                  
+                  {recentTrades && recentTrades.length > 0 ? (
+                    <div className="space-y-4">
+                      <TradeHistoryTable 
+                        trades={recentTrades} 
+                        maxRows={MAX_VISIBLE_TRADES}
+                        showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES}
+                        onViewAllClick={openTradeHistoryModal}
+                        enableRowClick={true}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground text-lg mb-2">No trading signals yet</p>
+                      <p className="text-sm text-muted-foreground">
+                        Signals will appear here once your strategies start generating them
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>
@@ -170,12 +185,14 @@ const OptimizedDashboard = () => {
         </Container>
       </main>
 
-      <TradeHistoryModal 
-        isOpen={isTradeHistoryModalOpen} 
-        onClose={closeTradeHistoryModal} 
-        trades={recentTrades} 
-        title="All Trading Signals" 
-      />
+      {recentTrades && recentTrades.length > 0 && (
+        <TradeHistoryModal 
+          isOpen={isTradeHistoryModalOpen} 
+          onClose={closeTradeHistoryModal} 
+          trades={recentTrades} 
+          title="All Trading Signals" 
+        />
+      )}
     </div>
   );
 };

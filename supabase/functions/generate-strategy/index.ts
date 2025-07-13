@@ -149,13 +149,6 @@ You must respond with a valid JSON object that follows this exact structure:
   ]
 }
 
-CRITICAL RULE ABOUT OR GROUPS:
-- OR groups MUST always contain at least 2 conditions (inequalities)
-- If you would create an OR group with only 1 condition, place that condition in the AND group instead
-- Never create an OR group with just a single inequality
-- The AND group can contain multiple conditions that all must be met
-- The OR group should only exist when you have multiple alternative conditions (at least 2)
-
 Available indicators: RSI, MACD, Moving Average, SMA, EMA, Bollinger Bands, Stochastic, ADX, VWAP, ATR
 Available conditions: GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL
 Available timeframes: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w
@@ -170,8 +163,7 @@ Requirements:
 - Use appropriate technical indicators
 - Include clear explanations for each rule
 - Make the strategy suitable for the specified asset type
-- Ensure the JSON is valid and follows the exact structure provided
-- IMPORTANT: Only create OR groups if you have at least 2 conditions. If you only have 1 condition for an OR group, put it in the AND group instead`;
+- Ensure the JSON is valid and follows the exact structure provided`;
 
     console.log('Sending request to OpenAI...');
 

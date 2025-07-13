@@ -3,6 +3,7 @@ import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
 import { Trash2, Equal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { IndicatorSource } from "../IndicatorSource";
 
 interface CompactInequalityDisplayProps {
   inequality: Inequality;
@@ -27,12 +28,13 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
       return "Unknown";
     }
     if (side.type === "INDICATOR") {
-      // Display indicator with key parameters if available
+      // Display indicator with comprehensive information
       if (side.indicator) {
         return (
           <div className="flex flex-col">
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center space-y-1">
               <span className="font-medium text-center">{side.indicator}</span>
+              <IndicatorSource indicator={side.indicator} />
               {side.valueType && side.valueType !== "Value" && (
                 <span className="text-xs text-muted-foreground">({side.valueType})</span>
               )}
@@ -59,13 +61,23 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
       const formattedPriceOption = priceOption.charAt(0).toUpperCase() + priceOption.slice(1).toLowerCase();
       
       return (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center space-y-1">
           <span className="font-medium text-center">Price</span>
+          <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+            FMP
+          </Badge>
           <span className="text-xs text-muted-foreground">({formattedPriceOption})</span>
         </div>
       );
     } else if (side.type === "VALUE") {
-      return side.value || "0";
+      return (
+        <div className="flex flex-col items-center space-y-1">
+          <span className="font-medium text-center">{side.value || "0"}</span>
+          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-800 border-gray-200">
+            User Input
+          </Badge>
+        </div>
+      );
     } else {
       return "Unknown type";
     }

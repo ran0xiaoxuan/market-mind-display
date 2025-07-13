@@ -344,27 +344,6 @@ const StrategyDetail = () => {
             exitRules={exitRules} 
           />
           
-          {/* Data Sources Information Card */}
-          {(entryRules.length > 0 || exitRules.length > 0) && (
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Data Sources</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm"><strong>TAAPI.IO:</strong> Technical indicators (RSI, MACD, Moving Averages, etc.)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm"><strong>FMP:</strong> Price data (Open, High, Low, Close, Volume)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                  <span className="text-sm"><strong>User Input:</strong> Custom values and thresholds</span>
-                </div>
-              </div>
-            </Card>
-          )}
-          
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Trade History</h2>
             {!hasValidTradingRules ? (

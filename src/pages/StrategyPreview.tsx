@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -8,8 +9,6 @@ import { Loader2 } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
-import { Badge } from "@/components/ui/badge";
-import { getIndicatorSource, getSourceBadgeColor } from "@/lib/indicatorSources";
 
 const StrategyPreview = () => {
   const { user } = useAuth();
@@ -81,37 +80,6 @@ const StrategyPreview = () => {
     }));
   };
 
-  // Extract unique data sources from the strategy
-  const getDataSources = () => {
-    const sources = new Set<string>();
-    
-    const extractIndicators = (rules: GeneratedStrategy['entryRules'] | GeneratedStrategy['exitRules']) => {
-      rules.forEach(rule => {
-        rule.inequalities.forEach(inequality => {
-          if (inequality.left.type === 'INDICATOR' && inequality.left.indicator) {
-            sources.add(getIndicatorSource(inequality.left.indicator));
-          }
-          if (inequality.right.type === 'INDICATOR' && inequality.right.indicator) {
-            sources.add(getIndicatorSource(inequality.right.indicator));
-          }
-          if (inequality.left.type === 'PRICE' || inequality.right.type === 'PRICE') {
-            sources.add('FMP');
-          }
-          if (inequality.left.type === 'VALUE' || inequality.right.type === 'VALUE') {
-            sources.add('User Input');
-          }
-        });
-      });
-    };
-    
-    extractIndicators(generatedStrategy.entryRules);
-    extractIndicators(generatedStrategy.exitRules);
-    
-    return Array.from(sources);
-  };
-
-  const dataSources = getDataSources();
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -158,26 +126,6 @@ const StrategyPreview = () => {
                 </div>
               </div>
             </Card>
-
-            {dataSources.length > 0 && (
-              <Card className="p-6 mt-6">
-                <h2 className="text-xl font-semibold mb-4">Data Sources</h2>
-                <p className="text-sm text-muted-foreground mb-3">
-                  This strategy uses data from the following sources:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {dataSources.map((source) => (
-                    <Badge 
-                      key={source} 
-                      variant="outline" 
-                      className={getSourceBadgeColor(source)}
-                    >
-                      {source}
-                    </Badge>
-                  ))}
-                </div>
-              </Card>
-            )}
           </div>
 
           <TradingRules 

@@ -13,10 +13,12 @@ import { RuleGroupData } from "@/components/strategy-detail/types";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { getTradingRulesForStrategy, getStrategyById } from "@/services/strategyService";
 import { Navbar } from "@/components/Navbar";
 import { getStockPrice } from "@/services/marketDataService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
+import { getIndicatorSource, getSourceBadgeColor } from "@/lib/indicatorSources";
 
 // Type for signal data structure
 interface SignalData {
@@ -62,6 +64,35 @@ const StrategyDetail = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
+  };
+
+  // Extract unique data sources from the strategy rules
+  const getDataSources = () => {
+    const sources = new Set<string>();
+    
+    const extractFromRules = (rules: RuleGroupData[]) => {
+      rules.forEach(ruleGroup => {
+        ruleGroup.inequalities.forEach(inequality => {
+          if (inequality.left.type === 'INDICATOR' && inequality.left.indicator) {
+            sources.add(getIndicatorSource(inequality.left.indicator));
+          }
+          if (inequality.right.type === 'INDICATOR' && inequality.right.indicator) {
+            sources.add(getIndicatorSource(inequality.right.indicator));
+          }
+          if (inequality.left.type === 'PRICE' || inequality.right.type === 'PRICE') {
+            sources.add('FMP');
+          }
+          if (inequality.left.type === 'VALUE' || inequality.right.type === 'VALUE') {
+            sources.add('User Input');
+          }
+        });
+      });
+    };
+    
+    extractFromRules(entryRules);
+    extractFromRules(exitRules);
+    
+    return Array.from(sources);
   };
 
   const fetchStrategyDetails = async () => {
@@ -230,6 +261,8 @@ const StrategyDetail = () => {
       toast.error("Failed to cleanup invalid data");
     }
   };
+
+  const dataSources = getDataSources();
   
   if (!id || id === 'undefined') {
     return (
@@ -338,6 +371,26 @@ const StrategyDetail = () => {
               signalNotificationsEnabled: strategy?.signalNotificationsEnabled
             }} 
           />
+
+          {dataSources.length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Data Sources</h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                This strategy uses data from the following sources:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {dataSources.map((source) => (
+                  <Badge 
+                    key={source} 
+                    variant="outline" 
+                    className={getSourceBadgeColor(source)}
+                  >
+                    {source}
+                  </Badge>
+                ))}
+              </div>
+            </Card>
+          )}
           
           <TradingRules 
             entryRules={entryRules} 

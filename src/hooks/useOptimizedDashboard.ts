@@ -153,8 +153,19 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;
         
+        // Debug logging to see what's in the signal_data
+        console.log('Signal data for debugging:', {
+          signalId: signal.id,
+          signalData: signalData,
+          current_price: signalData.current_price,
+          price: signalData.price,
+          fullSignalDataStructure: JSON.stringify(signalData)
+        });
+        
         // Use current_price from signal_data if available, fallback to price
         const signalPrice = signalData.current_price || signalData.price || 0;
+        
+        console.log('Final signal price used:', signalPrice);
         
         return {
           id: signal.id,

@@ -149,6 +149,11 @@ You must respond with a valid JSON object that follows this exact structure:
   ]
 }
 
+CRITICAL RULE GROUP REQUIREMENTS (in order of priority):
+1. If you would create an OR group with only 1 condition, place that condition in the AND group instead.
+2. OR groups MUST always contain at least 2 conditions
+3. Never create an OR group with just a single inequality
+
 Available indicators: RSI, MACD, Moving Average, SMA, EMA, Bollinger Bands, Stochastic, ADX, VWAP, ATR
 Available conditions: GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL
 Available timeframes: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w
@@ -163,7 +168,8 @@ Requirements:
 - Use appropriate technical indicators
 - Include clear explanations for each rule
 - Make the strategy suitable for the specified asset type
-- Ensure the JSON is valid and follows the exact structure provided`;
+- Ensure the JSON is valid and follows the exact structure provided
+- REMEMBER: OR groups must contain at least 2 conditions - if you have only 1 condition, use AND logic instead`;
 
     console.log('Sending request to OpenAI...');
 

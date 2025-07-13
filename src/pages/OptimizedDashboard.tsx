@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -8,8 +7,7 @@ import { OptimizedStrategyList } from "@/components/OptimizedStrategyList";
 import { useState } from "react";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/Badge";
+import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { useNavigate } from "react-router-dom";
 import { useOptimizedDashboard } from "@/hooks/useOptimizedDashboard";
 
@@ -36,32 +34,6 @@ const OptimizedDashboard = () => {
 
   const closeTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(false);
-  };
-
-  const handleRowClick = (trade: any) => {
-    if (trade.strategyId) {
-      navigate(`/strategy/${trade.strategyId}`);
-    }
-  };
-
-  // Format date to YYYY/MM/DD HH:MM format
-  const formatDateTime = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return dateString;
-      }
-      
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      
-      return `${year}/${month}/${day} ${hours}:${minutes}`;
-    } catch (error) {
-      return dateString;
-    }
   };
 
   if (isLoading) {
@@ -134,7 +106,6 @@ const OptimizedDashboard = () => {
   }
 
   const { metrics, recentTrades } = dashboardData || { metrics: null, recentTrades: [] };
-  const displayTrades = recentTrades.slice(0, MAX_VISIBLE_TRADES);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -178,73 +149,13 @@ const OptimizedDashboard = () => {
                 </div>
 
                 <div className="px-6 pb-6">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/20">
-                          <TableHead className="whitespace-nowrap font-medium">Asset</TableHead>
-                          <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
-                          <TableHead className="whitespace-nowrap font-medium">Time</TableHead>
-                          <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {displayTrades.length > 0 ? (
-                          displayTrades.map((trade) => {
-                            const isBuy = trade.type.toLowerCase().includes('buy');
-                            
-                            return (
-                              <TableRow 
-                                key={trade.id} 
-                                className="cursor-pointer hover:bg-muted/60"
-                                onClick={() => handleRowClick(trade)}
-                              >
-                                <TableCell>
-                                  <div className="max-w-[160px] truncate">
-                                    {trade.targetAsset || "—"}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge 
-                                    variant={isBuy ? "default" : "outline"}
-                                    className={isBuy ? "bg-green-100 text-green-800 border-green-200" : "bg-red-100 text-red-800 border-red-200"}
-                                  >
-                                    {trade.type}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm">
-                                    {formatDateTime(trade.date)}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {trade.price}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
-                              {isLoading ? "Loading signals..." : "No trading signals found"}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {recentTrades.length > MAX_VISIBLE_TRADES && (
-                    <div className="mt-4 flex justify-center">
-                      <Button 
-                        variant="outline" 
-                        onClick={openTradeHistoryModal}
-                        className="w-full"
-                      >
-                        View All Signals ({recentTrades.length})
-                      </Button>
-                    </div>
-                  )}
+                  <TradeHistoryTable 
+                    trades={recentTrades} 
+                    maxRows={MAX_VISIBLE_TRADES}
+                    showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES}
+                    onViewAllClick={openTradeHistoryModal}
+                    enableRowClick={true}
+                  />
                 </div>
               </Card>
             </div>

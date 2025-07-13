@@ -8,27 +8,12 @@ import { OptimizedStrategyList } from "@/components/OptimizedStrategyList";
 import { useState } from "react";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/Badge";
 import { useNavigate } from "react-router-dom";
+import { useOptimizedDashboard } from "@/hooks/useOptimizedDashboard";
 
 type TimeRange = "7d" | "30d" | "all";
-
-interface DashboardTrade {
-  id: string;
-  date: string;
-  type: string;
-  signal: string;
-  price: string;
-  contracts: number;
-  profit: string | null;
-  profitPercentage?: string | null;
-  strategyName?: string;
-  targetAsset?: string;
-  strategyId?: string;
-}
 
 const OptimizedDashboard = () => {
   usePageTitle("Dashboard - StratAIge");
@@ -36,131 +21,8 @@ const OptimizedDashboard = () => {
   const [isTradeHistoryModalOpen, setIsTradeHistoryModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch trading signals with proper time range filtering
-  const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ['dashboard-signals', timeRange],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Calculate date range
-      const now = new Date();
-      let startDate = new Date();
-      
-      switch (timeRange) {
-        case '7d':
-          startDate.setDate(now.getDate() - 7);
-          break;
-        case '30d':
-          startDate.setDate(now.getDate() - 30);
-          break;
-        case 'all':
-        default:
-          startDate = new Date('2020-01-01');
-          break;
-      }
-
-      // Get user's strategies first
-      const { data: strategies, error: strategiesError } = await supabase
-        .from('strategies')
-        .select('id, name, target_asset, is_active, updated_at, signal_notifications_enabled')
-        .eq('user_id', user.id);
-
-      if (strategiesError) throw strategiesError;
-      const userStrategies = strategies || [];
-      const userStrategyIds = userStrategies.map(s => s.id);
-
-      if (userStrategyIds.length === 0) {
-        return {
-          metrics: {
-            strategiesCount: "0",
-            activeStrategies: "0", 
-            signalAmount: "0",
-            conditionsCount: "0",
-            strategiesChange: { value: "+0", positive: false },
-            activeChange: { value: "+0", positive: false },
-            signalChange: { value: "+0", positive: false },
-            conditionsChange: { value: "+0", positive: false }
-          },
-          recentTrades: []
-        };
-      }
-
-      // Build the trading signals query
-      let signalsQuery = supabase
-        .from('trading_signals')
-        .select(`
-          id,
-          created_at,
-          signal_type,
-          signal_data,
-          strategy_id,
-          strategies!inner(name, target_asset, user_id)
-        `)
-        .eq('strategies.user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      // Only apply date filter if not "all time"
-      if (timeRange !== 'all') {
-        signalsQuery = signalsQuery.gte('created_at', startDate.toISOString());
-      }
-
-      const { data: signals, error: signalsError } = await signalsQuery;
-      
-      if (signalsError) {
-        console.error('Error fetching signals:', signalsError);
-        throw signalsError;
-      }
-
-      console.log(`Fetched ${signals?.length || 0} signals for user ${user.id}`);
-      console.log('Signals data:', signals);
-
-      // Transform signals to trades format
-      const recentTrades: DashboardTrade[] = (signals || []).map(signal => {
-        const signalData = (signal.signal_data as any) || {};
-        const strategy = signal.strategies;
-        
-        return {
-          id: signal.id,
-          date: signal.created_at,
-          type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
-          signal: signalData.reason || 'Trading Signal',
-          price: `$${(signalData.price || 0).toFixed(2)}`,
-          contracts: 1,
-          profit: signalData.profit !== null && signalData.profit !== undefined 
-            ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 
-            : null,
-          profitPercentage: signalData.profitPercentage !== null && signalData.profitPercentage !== undefined
-            ? `${signalData.profitPercentage >= 0 ? '+' : ''}${signalData.profitPercentage.toFixed(2)}%`
-            : null,
-          strategyId: signal.strategy_id,
-          strategyName: strategy?.name || 'Unknown Strategy',
-          targetAsset: strategy?.target_asset || 'Unknown Asset'
-        };
-      });
-
-      // Calculate metrics
-      const totalStrategies = userStrategies.length;
-      const activeStrategies = userStrategies.filter(s => s.signal_notifications_enabled === true).length;
-      const totalSignals = signals?.length || 0;
-
-      return {
-        metrics: {
-          strategiesCount: totalStrategies.toString(),
-          activeStrategies: activeStrategies.toString(),
-          signalAmount: totalSignals.toString(),
-          conditionsCount: "0", // We can calculate this separately if needed
-          strategiesChange: { value: "+0", positive: false },
-          activeChange: { value: "+0", positive: false },
-          signalChange: { value: "+0", positive: false },
-          conditionsChange: { value: "+0", positive: false }
-        },
-        recentTrades
-      };
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Use the optimized dashboard hook
+  const { data: dashboardData, isLoading, error } = useOptimizedDashboard(timeRange);
 
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
@@ -176,7 +38,7 @@ const OptimizedDashboard = () => {
     setIsTradeHistoryModalOpen(false);
   };
 
-  const handleRowClick = (trade: DashboardTrade) => {
+  const handleRowClick = (trade: any) => {
     if (trade.strategyId) {
       navigate(`/strategy/${trade.strategyId}`);
     }

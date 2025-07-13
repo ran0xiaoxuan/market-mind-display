@@ -1,8 +1,11 @@
+
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
 import { Trash2, Equal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { IndicatorSource } from "../IndicatorSource";
+import { formatPriceSource } from "@/lib/indicatorSources";
 
 interface CompactInequalityDisplayProps {
   inequality: Inequality;
@@ -36,6 +39,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
               {side.valueType && side.valueType !== "Value" && (
                 <span className="text-xs text-muted-foreground">({side.valueType})</span>
               )}
+              <IndicatorSource indicator={side.indicator} className="mt-1" />
             </div>
             {renderIndicatorParameters(side)}
           </div>
@@ -56,16 +60,26 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
       }
       
       // Format the price option for display
-      const formattedPriceOption = priceOption.charAt(0).toUpperCase() + priceOption.slice(1).toLowerCase();
+      const formattedPriceOption = formatPriceSource(priceOption);
       
       return (
         <div className="flex flex-col items-center">
           <span className="font-medium text-center">Price</span>
           <span className="text-xs text-muted-foreground">({formattedPriceOption})</span>
+          <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800 border-purple-200 mt-1">
+            Market Data
+          </Badge>
         </div>
       );
     } else if (side.type === "VALUE") {
-      return side.value || "0";
+      return (
+        <div className="flex flex-col items-center">
+          <span className="font-medium text-center">{side.value || "0"}</span>
+          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-800 border-gray-200 mt-1">
+            User Input
+          </Badge>
+        </div>
+      );
     } else {
       return "Unknown type";
     }

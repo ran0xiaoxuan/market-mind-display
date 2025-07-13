@@ -5,6 +5,7 @@ import { StrategyHeader } from "@/components/strategy-detail/StrategyHeader";
 import { StrategyInfo } from "@/components/strategy-detail/StrategyInfo";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
+import { DataSourcesSummary } from "@/components/strategy-detail/IndicatorSource";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info, ChevronLeft, ChevronRight } from "lucide-react";
@@ -62,6 +63,37 @@ const StrategyDetail = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
+  };
+
+  // Extract all indicators used in the strategy
+  const getAllIndicators = (): string[] => {
+    const indicators: string[] = [];
+    
+    // Extract from entry rules
+    entryRules.forEach(rule => {
+      rule.inequalities.forEach(inequality => {
+        if (inequality.left.type === 'INDICATOR' && inequality.left.indicator) {
+          indicators.push(inequality.left.indicator);
+        }
+        if (inequality.right.type === 'INDICATOR' && inequality.right.indicator) {
+          indicators.push(inequality.right.indicator);
+        }
+      });
+    });
+    
+    // Extract from exit rules
+    exitRules.forEach(rule => {
+      rule.inequalities.forEach(inequality => {
+        if (inequality.left.type === 'INDICATOR' && inequality.left.indicator) {
+          indicators.push(inequality.left.indicator);
+        }
+        if (inequality.right.type === 'INDICATOR' && inequality.right.indicator) {
+          indicators.push(inequality.right.indicator);
+        }
+      });
+    });
+    
+    return Array.from(new Set(indicators)); // Remove duplicates
   };
 
   const fetchStrategyDetails = async () => {
@@ -338,6 +370,14 @@ const StrategyDetail = () => {
               signalNotificationsEnabled: strategy?.signalNotificationsEnabled
             }} 
           />
+
+          {/* Data Sources Section */}
+          {getAllIndicators().length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Data Sources</h2>
+              <DataSourcesSummary indicators={getAllIndicators()} />
+            </Card>
+          )}
           
           <TradingRules 
             entryRules={entryRules} 

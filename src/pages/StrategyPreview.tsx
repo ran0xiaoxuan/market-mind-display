@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
+import { DataSourcesSummary } from "@/components/strategy-detail/IndicatorSource";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 
@@ -80,6 +81,37 @@ const StrategyPreview = () => {
     }));
   };
 
+  // Extract all indicators used in the strategy
+  const getAllIndicators = (): string[] => {
+    const indicators: string[] = [];
+    
+    // Extract from entry rules
+    generatedStrategy.entryRules.forEach(rule => {
+      rule.inequalities.forEach(inequality => {
+        if (inequality.left.type === 'INDICATOR' && inequality.left.indicator) {
+          indicators.push(inequality.left.indicator);
+        }
+        if (inequality.right.type === 'INDICATOR' && inequality.right.indicator) {
+          indicators.push(inequality.right.indicator);
+        }
+      });
+    });
+    
+    // Extract from exit rules
+    generatedStrategy.exitRules.forEach(rule => {
+      rule.inequalities.forEach(inequality => {
+        if (inequality.left.type === 'INDICATOR' && inequality.left.indicator) {
+          indicators.push(inequality.left.indicator);
+        }
+        if (inequality.right.type === 'INDICATOR' && inequality.right.indicator) {
+          indicators.push(inequality.right.indicator);
+        }
+      });
+    });
+    
+    return Array.from(new Set(indicators)); // Remove duplicates
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -124,6 +156,10 @@ const StrategyPreview = () => {
                   <p className="text-sm text-muted-foreground">Target Asset</p>
                   <p className="font-medium">{generatedStrategy.targetAsset || "Not specified"}</p>
                 </div>
+              </div>
+              
+              <div className="mt-6 pt-6 border-t">
+                <DataSourcesSummary indicators={getAllIndicators()} />
               </div>
             </Card>
           </div>

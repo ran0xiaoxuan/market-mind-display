@@ -42,7 +42,7 @@ export const sendChatCompletion = async (
         messages: request.messages,
         model: request.model || "moonshot-v1-8k",
         temperature: request.temperature || 0.7,
-        max_tokens: request.max_tokens,
+        max_tokens: request.max_tokens || 2000,
         stream: request.stream || false
       }
     });
@@ -61,6 +61,10 @@ export const sendChatCompletion = async (
       }
       
       throw new Error(errorMessage);
+    }
+
+    if (!data) {
+      throw new Error('No response received from AI service');
     }
 
     console.log('Chat completion response received:', data);
@@ -91,4 +95,40 @@ export const extractAssistantMessage = (
     return response.choices[0].message.content;
   }
   return "";
+};
+
+// Health check function for the AI service
+export const checkAIServiceHealth = async (): Promise<{ healthy: boolean; details?: any; error?: string }> => {
+  try {
+    console.log('Checking AI service health...');
+    
+    const { data, error } = await supabase.functions.invoke("moonshot-chat", {
+      body: {
+        messages: [{ role: "user", content: "Hello" }],
+        model: "moonshot-v1-8k",
+        max_tokens: 10
+      }
+    });
+
+    if (error) {
+      console.error('AI service health check failed:', error);
+      return { 
+        healthy: false, 
+        error: error.message || 'Health check failed',
+        details: error 
+      };
+    }
+
+    return { 
+      healthy: true, 
+      details: data 
+    };
+  } catch (error) {
+    console.error('AI service health check error:', error);
+    return { 
+      healthy: false, 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: error 
+    };
+  }
 };

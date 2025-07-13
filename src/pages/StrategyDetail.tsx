@@ -22,6 +22,7 @@ import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 interface SignalData {
   reason?: string;
   price?: number;
+  current_price?: number; // Add current_price field
   profit?: number;
   profitPercentage?: number;
   [key: string]: any;
@@ -149,12 +150,15 @@ const StrategyDetail = () => {
           const signalData = (signal.signal_data as SignalData) || {};
           const currentPrice = currentPrices.get(strategyData.targetAsset);
           
+          // Use current_price from signal_data if available, fallback to price
+          const signalPrice = signalData.current_price || signalData.price || 0;
+          
           let calculatedProfit = signalData.profit;
           let calculatedProfitPercentage = signalData.profitPercentage;
 
           // For open positions (entry signals without corresponding exits), calculate unrealized P&L
           if (signal.signal_type === 'entry' && currentPrice && !calculatedProfit) {
-            const entryPrice = signalData.price || 0;
+            const entryPrice = signalPrice;
             if (entryPrice > 0) {
               const unrealizedProfitPercentage = ((currentPrice - entryPrice) / entryPrice) * 100;
               // Calculate profit based on price difference only (no volume)
@@ -172,7 +176,7 @@ const StrategyDetail = () => {
             date: signal.created_at, // Use the actual created_at timestamp from the signal
             type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
             signal: signalData.reason || 'Trading Signal',
-            price: `$${(signalData.price || 0).toFixed(2)}`,
+            price: `$${signalPrice.toFixed(2)}`,
             contracts: 1, // Set to 1 since volume is removed but still needed for interface compatibility
             profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,

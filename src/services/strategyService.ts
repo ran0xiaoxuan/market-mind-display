@@ -6,6 +6,49 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { sendChatCompletion, createSystemMessage, createUserMessage, extractAssistantMessage } from "./moonshotService";
 
+// Type definitions based on database schema
+export interface Strategy {
+  id: string;
+  name: string;
+  description: string | null;
+  timeframe: string;
+  targetAsset: string | null;
+  isActive: boolean;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  signalNotificationsEnabled?: boolean;
+}
+
+export interface TradingRule {
+  id: string;
+  ruleGroupId: string;
+  leftType: string;
+  leftIndicator: string | null;
+  leftParameters: Record<string, any> | null;
+  leftValueType: string | null;
+  leftValue: string | null;
+  condition: string;
+  rightType: string;
+  rightIndicator: string | null;
+  rightParameters: Record<string, any> | null;
+  rightValueType: string | null;
+  rightValue: string | null;
+  explanation: string | null;
+  inequalityOrder: number;
+}
+
+export interface RuleGroup {
+  id: string;
+  strategyId: string;
+  ruleType: string;
+  logic: string;
+  requiredConditions: number | null;
+  groupOrder: number;
+  explanation: string | null;
+  tradingRules?: TradingRule[];
+}
+
 export interface GeneratedStrategy {
   name: string;
   description: string;
@@ -50,6 +93,134 @@ export class ServiceError extends Error {
     this.details = details;
   }
 }
+
+export const getStrategies = async (): Promise<Strategy[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('strategies')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching strategies:', error);
+      throw new ServiceError(error.message, 'database_error', true);
+    }
+
+    return data.map(strategy => ({
+      id: strategy.id,
+      name: strategy.name,
+      description: strategy.description,
+      timeframe: strategy.timeframe,
+      targetAsset: strategy.target_asset,
+      isActive: strategy.is_active,
+      userId: strategy.user_id,
+      createdAt: strategy.created_at,
+      updatedAt: strategy.updated_at,
+      signalNotificationsEnabled: strategy.signal_notifications_enabled
+    }));
+  } catch (error) {
+    console.error('Error in getStrategies:', error);
+    throw error instanceof ServiceError ? error : new ServiceError('Failed to fetch strategies', 'unknown_error', true);
+  }
+};
+
+export const getStrategyById = async (id: string): Promise<Strategy | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('strategies')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Strategy not found
+      }
+      console.error('Error fetching strategy:', error);
+      throw new ServiceError(error.message, 'database_error', true);
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      timeframe: data.timeframe,
+      targetAsset: data.target_asset,
+      isActive: data.is_active,
+      userId: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      signalNotificationsEnabled: data.signal_notifications_enabled
+    };
+  } catch (error) {
+    console.error('Error in getStrategyById:', error);
+    throw error instanceof ServiceError ? error : new ServiceError('Failed to fetch strategy', 'unknown_error', true);
+  }
+};
+
+export const getTradingRulesForStrategy = async (strategyId: string): Promise<RuleGroup[]> => {
+  try {
+    const { data: ruleGroups, error: groupsError } = await supabase
+      .from('rule_groups')
+      .select(`
+        *,
+        trading_rules (*)
+      `)
+      .eq('strategy_id', strategyId)
+      .order('group_order');
+
+    if (groupsError) {
+      console.error('Error fetching rule groups:', groupsError);
+      throw new ServiceError(groupsError.message, 'database_error', true);
+    }
+
+    return ruleGroups.map(group => ({
+      id: group.id,
+      strategyId: group.strategy_id,
+      ruleType: group.rule_type,
+      logic: group.logic,
+      requiredConditions: group.required_conditions,
+      groupOrder: group.group_order,
+      explanation: group.explanation,
+      tradingRules: group.trading_rules.map((rule: any) => ({
+        id: rule.id,
+        ruleGroupId: rule.rule_group_id,
+        leftType: rule.left_type,
+        leftIndicator: rule.left_indicator,
+        leftParameters: rule.left_parameters,
+        leftValueType: rule.left_value_type,
+        leftValue: rule.left_value,
+        condition: rule.condition,
+        rightType: rule.right_type,
+        rightIndicator: rule.right_indicator,
+        rightParameters: rule.right_parameters,
+        rightValueType: rule.right_value_type,
+        rightValue: rule.right_value,
+        explanation: rule.explanation,
+        inequalityOrder: rule.inequality_order
+      }))
+    }));
+  } catch (error) {
+    console.error('Error in getTradingRulesForStrategy:', error);
+    throw error instanceof ServiceError ? error : new ServiceError('Failed to fetch trading rules', 'unknown_error', true);
+  }
+};
+
+export const deleteStrategy = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc('delete_strategy_cascade', {
+      strategy_uuid: id
+    });
+
+    if (error) {
+      console.error('Error deleting strategy:', error);
+      throw new ServiceError(error.message, 'database_error', true);
+    }
+  } catch (error) {
+    console.error('Error in deleteStrategy:', error);
+    throw error instanceof ServiceError ? error : new ServiceError('Failed to delete strategy', 'unknown_error', true);
+  }
+};
 
 export const generateStrategy = async (
   assetType: string,

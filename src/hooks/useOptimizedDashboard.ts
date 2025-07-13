@@ -153,12 +153,15 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;
         
+        // Use current_price from signal_data if available, fallback to price
+        const signalPrice = signalData.current_price || signalData.price || 0;
+        
         return {
           id: signal.id,
           date: signal.created_at,
           type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
           signal: signalData.reason || 'Trading Signal',
-          price: `$${(signalData.price || 0).toFixed(2)}`,
+          price: `$${signalPrice.toFixed(2)}`,
           contracts: 1,
           profit: signalData.profit !== null && signalData.profit !== undefined 
             ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 

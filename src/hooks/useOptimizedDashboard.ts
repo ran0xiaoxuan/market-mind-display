@@ -85,7 +85,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         signalCountQuery = signalCountQuery.gte('created_at', startDate.toISOString());
       }
 
-      // Build the trading signals query for display - REMOVED processed filter
+      // Build the trading signals query for display (limited to recent trades)
       let signalsQuery = supabase
         .from('trading_signals')
         .select(`
@@ -97,8 +97,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           strategies!inner(name, target_asset, user_id)
         `)
         .eq('strategies.user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50); // Limit to recent 50 signals for performance
+        .eq('processed', true)
+        .order('created_at', { ascending: false });
 
       // Only apply date filter if not "all time"
       if (timeRange !== 'all') {

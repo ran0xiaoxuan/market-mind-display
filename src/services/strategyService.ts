@@ -1,18 +1,15 @@
-import {
-  TradingRule,
-  Strategy,
-  RuleGroup as RuleGroupType,
-} from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { sendChatCompletion, createSystemMessage, createUserMessage, extractAssistantMessage } from "./moonshotService";
 
-// Type definitions based on database schema
+// Type definitions for Supabase tables
 export interface Strategy {
   id: string;
   name: string;
   description: string | null;
   timeframe: string;
   targetAsset: string | null;
+  targetAssetName?: string | null;
+  dailySignalLimit?: number | null;
   isActive: boolean;
   userId: string;
   createdAt: string;
@@ -49,16 +46,25 @@ export interface RuleGroup {
   tradingRules?: TradingRule[];
 }
 
+// Types for AI-generated strategies
+export interface GeneratedRuleGroup {
+  logic: "AND" | "OR";
+  requiredConditions: number;
+  inequalities: Inequality[];
+}
+
 export interface GeneratedStrategy {
   name: string;
   description: string;
   timeframe: string;
   targetAsset?: string;
-  entryRules: RuleGroup[];
-  exitRules: RuleGroup[];
+  entryRules: GeneratedRuleGroup[];
+  exitRules: GeneratedRuleGroup[];
 }
 
-export interface RuleGroup {
+// Types for rule display
+export interface RuleGroupData {
+  id: number;
   logic: "AND" | "OR";
   requiredConditions: number;
   inequalities: Inequality[];
@@ -158,7 +164,7 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
   }
 };
 
-export const getTradingRulesForStrategy = async (strategyId: string): Promise<RuleGroup[]> => {
+export const getTradingRulesForStrategy = async (strategyId: string): Promise<{ entryRules: RuleGroupData[]; exitRules: RuleGroupData[] }> => {
   try {
     const { data: ruleGroups, error: groupsError } = await supabase
       .from('rule_groups')
@@ -174,32 +180,43 @@ export const getTradingRulesForStrategy = async (strategyId: string): Promise<Ru
       throw new ServiceError(groupsError.message, 'database_error', true);
     }
 
-    return ruleGroups.map(group => ({
-      id: group.id,
-      strategyId: group.strategy_id,
-      ruleType: group.rule_type,
-      logic: group.logic,
-      requiredConditions: group.required_conditions,
-      groupOrder: group.group_order,
-      explanation: group.explanation,
-      tradingRules: group.trading_rules.map((rule: any) => ({
-        id: rule.id,
-        ruleGroupId: rule.rule_group_id,
-        leftType: rule.left_type,
-        leftIndicator: rule.left_indicator,
-        leftParameters: rule.left_parameters,
-        leftValueType: rule.left_value_type,
-        leftValue: rule.left_value,
-        condition: rule.condition,
-        rightType: rule.right_type,
-        rightIndicator: rule.right_indicator,
-        rightParameters: rule.right_parameters,
-        rightValueType: rule.right_value_type,
-        rightValue: rule.right_value,
-        explanation: rule.explanation,
-        inequalityOrder: rule.inequality_order
-      }))
-    }));
+    const entryRules: RuleGroupData[] = [];
+    const exitRules: RuleGroupData[] = [];
+
+    ruleGroups.forEach((group, index) => {
+      const ruleGroupData: RuleGroupData = {
+        id: index + 1,
+        logic: group.logic as "AND" | "OR",
+        requiredConditions: group.required_conditions || 1,
+        inequalities: group.trading_rules.map((rule: any, ruleIndex: number) => ({
+          id: ruleIndex + 1,
+          left: {
+            type: rule.left_type as "INDICATOR" | "PRICE" | "VALUE",
+            indicator: rule.left_indicator || undefined,
+            parameters: rule.left_parameters || undefined,
+            valueType: rule.left_value_type || undefined,
+            value: rule.left_value || undefined
+          },
+          condition: rule.condition,
+          right: {
+            type: rule.right_type as "INDICATOR" | "PRICE" | "VALUE",
+            indicator: rule.right_indicator || undefined,
+            parameters: rule.right_parameters || undefined,
+            valueType: rule.right_value_type || undefined,
+            value: rule.right_value || undefined
+          },
+          explanation: rule.explanation || ''
+        }))
+      };
+
+      if (group.rule_type === 'entry') {
+        entryRules.push(ruleGroupData);
+      } else if (group.rule_type === 'exit') {
+        exitRules.push(ruleGroupData);
+      }
+    });
+
+    return { entryRules, exitRules };
   } catch (error) {
     console.error('Error in getTradingRulesForStrategy:', error);
     throw error instanceof ServiceError ? error : new ServiceError('Failed to fetch trading rules', 'unknown_error', true);

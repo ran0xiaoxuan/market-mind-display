@@ -312,19 +312,23 @@ serve(async (req) => {
     const status = emailResponse.error ? 'failed' : 'sent';
     const errorMessage = emailResponse.error ? `Email API error: ${emailResponse.error.message}` : null;
 
-    // Log the notification attempt
-    const { error: logError } = await supabaseClient
-      .from('notification_logs')
-      .insert({
-        user_id: signalData.userId,
-        signal_id: 'email-' + Date.now(),
-        notification_type: 'email',
-        status: status,
-        error_message: errorMessage
-      });
+    // Fix: Only log if we have a valid UUID signal_id, otherwise skip logging
+    if (signalData.signalId && signalData.signalId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+      const { error: logError } = await supabaseClient
+        .from('notification_logs')
+        .insert({
+          user_id: signalData.userId,
+          signal_id: signalData.signalId,
+          notification_type: 'email',
+          status: status,
+          error_message: errorMessage
+        });
 
-    if (logError) {
-      console.error('Error logging email notification:', logError);
+      if (logError) {
+        console.error('Error logging email notification:', logError);
+      }
+    } else {
+      console.log('Skipping notification log - invalid or missing signal_id:', signalData.signalId)
     }
 
     if (emailResponse.error) {

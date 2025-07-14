@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -149,19 +148,23 @@ serve(async (req) => {
       }
     }
 
-    // Log the notification attempt
-    const { error: logError } = await supabaseClient
-      .from('notification_logs')
-      .insert({
-        user_id: signalData.userId,
-        signal_id: signalData.signalId || 'telegram-' + Date.now(),
-        notification_type: 'telegram',
-        status: status,
-        error_message: errorMessage
-      });
+    // Fix: Only log if we have a valid UUID signal_id, otherwise skip logging
+    if (signalData.signalId && signalData.signalId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+      const { error: logError } = await supabaseClient
+        .from('notification_logs')
+        .insert({
+          user_id: signalData.userId,
+          signal_id: signalData.signalId,
+          notification_type: 'telegram',
+          status: status,
+          error_message: errorMessage
+        });
 
-    if (logError) {
-      console.error('Error logging Telegram notification:', logError);
+      if (logError) {
+        console.error('Error logging Telegram notification:', logError);
+      }
+    } else {
+      console.log('Skipping notification log - invalid or missing signal_id:', signalData.signalId)
     }
 
     if (status === 'failed') {
@@ -194,4 +197,3 @@ serve(async (req) => {
     );
   }
 });
-

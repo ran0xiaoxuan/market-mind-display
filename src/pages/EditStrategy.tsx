@@ -784,7 +784,7 @@ const EditStrategy = () => {
                     <Input
                       id="daily-signal-limit"
                       type="number"
-                      value={dailySignalLimit}
+                      value={5}
                       disabled
                       className="w-32 bg-muted"
                     />

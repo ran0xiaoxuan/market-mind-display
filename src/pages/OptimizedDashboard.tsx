@@ -115,7 +115,7 @@ const OptimizedDashboard = () => {
     );
   }
 
-  const { metrics, recentTrades } = dashboardData || { metrics: null, recentTrades: [] };
+  const { metrics, recentTrades, totalSignalsCount } = dashboardData || { metrics: null, recentTrades: [], totalSignalsCount: 0 };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -153,8 +153,8 @@ const OptimizedDashboard = () => {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold">Trading Signals</h2>
                     <p className="text-sm text-muted-foreground">
-                      {recentTrades.length > 0 
-                        ? `Showing ${Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of ${recentTrades.length} signals`
+                      {totalSignalsCount > 0 
+                        ? `Showing ${Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of ${totalSignalsCount} signals`
                         : 'No signals available'
                       }
                     </p>
@@ -164,7 +164,7 @@ const OptimizedDashboard = () => {
                     <TradeHistoryTable 
                       trades={recentTrades} 
                       maxRows={MAX_VISIBLE_TRADES}
-                      showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES}
+                      showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES || totalSignalsCount > MAX_VISIBLE_TRADES}
                       onViewAllClick={openTradeHistoryModal}
                       enableRowClick={true}
                     />
@@ -193,7 +193,7 @@ const OptimizedDashboard = () => {
           isOpen={isTradeHistoryModalOpen} 
           onClose={closeTradeHistoryModal} 
           trades={recentTrades} 
-          title={`Trading Signals - ${getTimeRangeText()}`}
+          title="Trading Signals"
         />
       )}
     </div>

@@ -742,10 +742,10 @@ const EditStrategy = () => {
                 </CommandDialog>
               </div>
 
-              {/* Daily Signal Limit Setting - Updated for better FREE vs PRO distinction */}
+              {/* Daily Signal Limit Setting - PRO only */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Label htmlFor="daily-signal-limit">Daily Signal Limit</Label>
+                  <Label htmlFor="daily-signal-limit">Maximum Notifications Per Trading Day</Label>
                   {userIsPro && <Crown className="h-4 w-4 text-amber-600" />}
                   <TooltipProvider>
                     <Tooltip>
@@ -755,8 +755,8 @@ const EditStrategy = () => {
                       <TooltipContent side="top" className="max-w-xs">
                         <p className="text-sm">
                           {userIsPro 
-                            ? "All signals are recorded in the app. For PRO users, this limits external notifications (Email/Discord/Telegram) per trading day."
-                            : "All signals are recorded in the app. FREE users don't receive external notifications - upgrade to PRO to enable Email/Discord/Telegram alerts."
+                            ? "Limits the number of signal notifications sent to your external channels per trading day. All signals are still recorded in the app regardless of this limit."
+                            : "This is a PRO feature. Upgrade to customize your daily notification limit. FREE users are limited to 5 notifications per day."
                           }
                         </p>
                       </TooltipContent>
@@ -770,7 +770,7 @@ const EditStrategy = () => {
                     type="number"
                     min="1"
                     max="390"
-                    value={dailySignalLimit}
+                    value={DailySignalLimit}
                     onChange={(e) => {
                       const value = parseInt(e.target.value);
                       if (value >= 1 && value <= 390) {
@@ -791,9 +791,9 @@ const EditStrategy = () => {
                     <Alert className="border-amber-200 bg-amber-50">
                       <Crown className="h-4 w-4 text-amber-600" />
                       <AlertDescription className="text-amber-700">
-                        <div className="font-medium mb-1">FREE Plan: App-Only Signals</div>
+                        <div className="font-medium mb-1">PRO Feature Required</div>
                         <p className="text-sm">
-                          All signals are recorded in the app for FREE users. External notifications (Email/Discord/Telegram) are available with PRO upgrade.
+                          Upgrade to PRO to customize your daily notification limit. FREE users are limited to 5 notifications per day.
                         </p>
                       </AlertDescription>
                     </Alert>
@@ -802,8 +802,8 @@ const EditStrategy = () => {
                 
                 <p className="text-xs text-muted-foreground mt-1">
                   {userIsPro 
-                    ? "Set the maximum number of external notifications per trading day (1-390)"
-                    : "Signals are recorded in the app - external notifications require PRO upgrade"
+                    ? "Set the maximum number of notifications per trading day (1-390)"
+                    : "FREE users are limited to 5 notifications per trading day"
                   }
                 </p>
               </div>

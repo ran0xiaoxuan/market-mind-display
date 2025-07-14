@@ -214,7 +214,7 @@ const EditStrategy = () => {
         setIsActive(strategy.isActive);
 
         // Set daily signal limit from the strategy data
-        setDailySignalLimit(strategy.dailySignalLimit || 5);
+        setDailySignalLimit(strategy.dailySignalLimit || "");
 
         // Fetch trading rules
         const rulesData = await getTradingRulesForStrategy(id);
@@ -756,7 +756,7 @@ const EditStrategy = () => {
                         <p className="text-sm">
                           {userIsPro 
                             ? "Limits the number of signal notifications sent to your external channels per trading day. All signals are still recorded in the app regardless of this limit."
-                            : "This is a PRO feature. Upgrade to customize your daily notification limit. FREE users can record unlimited signals in the app."
+                            : "This is a PRO feature. Upgrade to customize your daily notification limit. FREE users are limited to 5 notifications per day."
                           }
                         </p>
                       </TooltipContent>
@@ -793,7 +793,7 @@ const EditStrategy = () => {
                       <AlertDescription className="text-amber-700">
                         <div className="font-medium mb-1">PRO Feature Required</div>
                         <p className="text-sm">
-                          Upgrade to PRO to customize your daily notification limit and enable external notifications (Email/Discord/Telegram). FREE users can record unlimited signals in the app.
+                          Upgrade to PRO to customize your daily notification limit. FREE users are limited to 5 notifications per day.
                         </p>
                       </AlertDescription>
                     </Alert>
@@ -802,8 +802,8 @@ const EditStrategy = () => {
                 
                 <p className="text-xs text-muted-foreground mt-1">
                   {userIsPro 
-                    ? "Set the maximum number of external notifications per trading day (1-390)"
-                    : "FREE users record all signals in-app; external notifications require PRO"
+                    ? "Set the maximum number of notifications per trading day (1-390)"
+                    : "FREE users are limited to 5 notifications per trading day"
                   }
                 </p>
               </div>

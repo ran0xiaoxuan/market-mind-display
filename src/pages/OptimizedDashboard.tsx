@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -35,6 +34,16 @@ const OptimizedDashboard = () => {
 
   const closeTradeHistoryModal = () => {
     setIsTradeHistoryModalOpen(false);
+  };
+
+  // Helper function to get time range display text
+  const getTimeRangeText = () => {
+    switch (timeRange) {
+      case '7d': return 'Last 7 Days';
+      case '30d': return 'Last 30 Days';
+      case 'all': return 'All Time';
+      default: return 'Last 7 Days';
+    }
   };
 
   if (isLoading) {
@@ -142,7 +151,7 @@ const OptimizedDashboard = () => {
               <Card>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">All Trading Signals</h2>
+                    <h2 className="text-xl font-bold">Trading Signals - {getTimeRangeText()}</h2>
                     <p className="text-sm text-muted-foreground">
                       {recentTrades.length > 0 
                         ? `Showing ${Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of ${recentTrades.length} signals`
@@ -161,7 +170,7 @@ const OptimizedDashboard = () => {
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      <p>No trading signals found.</p>
+                      <p>No trading signals found for {getTimeRangeText().toLowerCase()}.</p>
                       <p className="text-sm mt-2">Create a strategy and enable notifications to start receiving signals.</p>
                     </div>
                   )}
@@ -184,7 +193,7 @@ const OptimizedDashboard = () => {
           isOpen={isTradeHistoryModalOpen} 
           onClose={closeTradeHistoryModal} 
           trades={recentTrades} 
-          title="All Trading Signals" 
+          title={`Trading Signals - ${getTimeRangeText()}`}
         />
       )}
     </div>

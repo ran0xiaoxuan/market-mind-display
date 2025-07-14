@@ -47,7 +47,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Calculate date range for metrics only
+      // Calculate date range for both metrics and signals
       const now = new Date();
       let startDate = new Date();
       
@@ -98,13 +98,13 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         .select('id', { count: 'exact', head: true })
         .in('strategy_id', userStrategyIds);
 
-      // Only apply date filter for metrics if not "all time"
+      // Apply date filter for metrics if not "all time"
       if (timeRange !== 'all') {
         signalCountQuery = signalCountQuery.gte('created_at', startDate.toISOString());
       }
 
-      // Get ALL trading signals for Trade History (no time filter)
-      const allSignalsQuery = supabase
+      // Get trading signals filtered by time range
+      let signalsQuery = supabase
         .from('trading_signals')
         .select(`
           id,
@@ -116,7 +116,12 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         `)
         .eq('strategies.user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(100); // Increased limit to show more signals
+        .limit(100);
+
+      // Apply date filter for signals based on time range
+      if (timeRange !== 'all') {
+        signalsQuery = signalsQuery.gte('created_at', startDate.toISOString());
+      }
 
       // Get rules count
       const rulesQuery = supabase
@@ -131,22 +136,22 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         .eq('rule_groups.strategies.user_id', user.id);
 
       // Parallel queries for better performance
-      const [signalCountResult, allSignalsResult, rulesResult] = await Promise.all([
+      const [signalCountResult, signalsResult, rulesResult] = await Promise.all([
         signalCountQuery,
-        allSignalsQuery,
+        signalsQuery,
         rulesQuery
       ]);
 
       const totalSignalCount = signalCountResult.count || 0;
-      const allSignals = allSignalsResult.data || [];
+      const signals = signalsResult.data || [];
       const rules = rulesResult.data || [];
 
       console.log(`Total strategies: ${userStrategies.length}`);
       console.log(`Total signals count (for metrics): ${totalSignalCount}`);
-      console.log(`All signals fetched (for Trade History): ${allSignals.length}`);
+      console.log(`Filtered signals fetched: ${signals.length}`);
       console.log(`Total rules: ${rules.length}`);
-      console.log(`Time range (metrics only): ${timeRange}`);
-      console.log(`Date filter applied to metrics: ${timeRange !== 'all' ? startDate.toISOString() : 'No date filter (all time)'}`);
+      console.log(`Time range: ${timeRange}`);
+      console.log(`Date filter applied: ${timeRange !== 'all' ? startDate.toISOString() : 'No date filter (all time)'}`);
 
       // Calculate metrics
       const totalStrategies = userStrategies.length;
@@ -159,8 +164,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       console.log(`Active strategies (with notifications enabled): ${activeStrategies}`);
       console.log(`Total conditions: ${totalRules}`);
 
-      // Format ALL trades for Trade History display
-      const recentTrades: DashboardTrade[] = allSignals.map(signal => {
+      // Format trades for display
+      const recentTrades: DashboardTrade[] = signals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;
         

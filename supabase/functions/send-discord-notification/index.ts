@@ -30,27 +30,14 @@ serve(async (req) => {
     console.log('Processing Discord notification for signal type:', signalType)
     console.log('Signal data received:', signalData)
 
-    // Use the enhanced signal data directly from the notification service
-    const timeframe = signalData.timeframe || 'Unknown';
-    const targetAsset = signalData.targetAsset || 'Unknown';
-    const price = signalData.currentPrice || signalData.price || 'N/A';
+    // Extract data from the enhanced signal data
     const strategyName = signalData.strategyName || 'Trading Strategy';
+    const targetAsset = signalData.targetAsset || 'Unknown';
+    const timeframe = signalData.timeframe || 'Unknown';
+    const price = signalData.currentPrice || signalData.price || 'N/A';
+    const userTimezone = signalData.userTimezone || 'UTC';
 
-    console.log('Processed data - Timeframe:', timeframe, 'Asset:', targetAsset, 'Price:', price);
-
-    // Get user's timezone preference (default to UTC if not set)
-    let userTimezone = 'UTC';
-    if (signalData.userId) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('timezone')
-        .eq('id', signalData.userId)
-        .single();
-      
-      if (profile?.timezone) {
-        userTimezone = profile.timezone;
-      }
-    }
+    console.log('Extracted data - Strategy:', strategyName, 'Asset:', targetAsset, 'Price:', price, 'Timezone:', userTimezone);
 
     // Create user-friendly time in user's timezone
     const now = new Date();

@@ -203,7 +203,7 @@ export const sendNotificationForSignal = async (
 ) => {
   try {
     console.log('Starting notification delivery for signal:', signalId);
-    console.log('Signal data:', signalData);
+    console.log('Signal data received:', signalData);
 
     // CRITICAL: Check if user is Pro before sending any notifications
     const isPro = await checkUserProStatus(userId);
@@ -235,39 +235,61 @@ export const sendNotificationForSignal = async (
       return [];
     }
 
-    // Get strategy details to ensure we have timeframe and asset information
-    let strategyDetails = null;
-    if (signalData.strategyId) {
-      const { data: strategy } = await supabase
+    // Get comprehensive strategy details and user profile in parallel
+    const [strategyResponse, profileResponse] = await Promise.all([
+      supabase
         .from('strategies')
-        .select('timeframe, target_asset, target_asset_name, name')
-        .eq('id', signalData.strategyId)
-        .single();
-      
-      if (strategy) {
-        strategyDetails = strategy;
-        console.log('Strategy details fetched:', strategyDetails);
-      }
+        .select('id, name, timeframe, target_asset, target_asset_name, user_id')
+        .eq('id', signalData.strategyId || signalData.strategy_id)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('timezone')
+        .eq('id', userId)
+        .single()
+    ]);
+
+    const strategy = strategyResponse.data;
+    const profile = profileResponse.data;
+
+    console.log('Strategy details fetched:', strategy);
+    console.log('User profile fetched:', profile);
+
+    // Extract current price from signal data (check multiple possible locations)
+    let currentPrice = 'N/A';
+    if (signalData.currentPrice) {
+      currentPrice = signalData.currentPrice;
+    } else if (signalData.price) {
+      currentPrice = signalData.price;
+    } else if (signalData.signal_data?.currentPrice) {
+      currentPrice = signalData.signal_data.currentPrice;
+    } else if (signalData.signal_data?.price) {
+      currentPrice = signalData.signal_data.price;
     }
 
-    // Prepare enhanced signal data with current price and strategy details
+    console.log('Extracted current price:', currentPrice);
+
+    // Prepare comprehensive enhanced signal data
     const enhancedSignalData = {
       ...signalData,
       signalId: signalId,
       userId: userId,
       timestamp: new Date().toISOString(),
-      // Ensure price is properly passed - check multiple possible sources
-      price: signalData.currentPrice || signalData.price || signalData.signal_data?.price || signalData.signal_data?.currentPrice || 'N/A',
-      currentPrice: signalData.currentPrice || signalData.price || signalData.signal_data?.price || signalData.signal_data?.currentPrice || 'N/A',
-      // Add strategy details
-      strategyName: signalData.strategyName || strategyDetails?.name || 'Trading Strategy',
-      timeframe: signalData.timeframe || strategyDetails?.timeframe || 'Unknown',
-      targetAsset: signalData.targetAsset || signalData.asset || strategyDetails?.target_asset_name || strategyDetails?.target_asset || 'Unknown',
-      // Pass strategy ID for edge functions to use if needed
-      strategyId: signalData.strategyId
+      // Strategy information
+      strategyId: strategy?.id || signalData.strategyId || signalData.strategy_id,
+      strategyName: strategy?.name || signalData.strategyName || 'Trading Strategy',
+      timeframe: strategy?.timeframe || signalData.timeframe || 'Unknown',
+      targetAsset: strategy?.target_asset_name || strategy?.target_asset || signalData.targetAsset || signalData.asset || 'Unknown',
+      // Price information
+      price: currentPrice,
+      currentPrice: currentPrice,
+      // User settings
+      userTimezone: profile?.timezone || 'UTC',
+      // Additional profit data for exit signals
+      profitPercentage: signalData.profitPercentage || null
     };
 
-    console.log('Enhanced signal data:', enhancedSignalData);
+    console.log('Enhanced signal data prepared:', enhancedSignalData);
 
     const notifications = [];
 

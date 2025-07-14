@@ -33,63 +33,14 @@ serve(async (req) => {
     console.log('Processing email notification for signal type:', signalType)
     console.log('Signal data received:', signalData)
 
-    // Get strategy details and user timezone with proper error handling
-    let timeframe = 'Unknown';
-    let userTimezone = 'UTC';
-    let targetAsset = signalData.targetAsset || signalData.asset || 'Unknown';
-    let price = signalData.price || 'N/A';
-    
-    if (signalData.strategyId) {
-      console.log('Fetching strategy details for ID:', signalData.strategyId)
-      
-      const { data: strategy, error: strategyError } = await supabaseClient
-        .from('strategies')
-        .select('timeframe, user_id, target_asset, target_asset_name')
-        .eq('id', signalData.strategyId)
-        .single();
-      
-      if (strategyError) {
-        console.error('Error fetching strategy:', strategyError)
-      } else if (strategy) {
-        timeframe = strategy.timeframe;
-        if (strategy.target_asset) {
-          targetAsset = strategy.target_asset_name || strategy.target_asset;
-        }
-        console.log('Strategy timeframe from database:', timeframe)
-        
-        // Get user's timezone preference
-        const { data: profile, error: profileError } = await supabaseClient
-          .from('profiles')
-          .select('timezone')
-          .eq('id', strategy.user_id)
-          .single();
-        
-        if (profileError) {
-          console.error('Error fetching user profile:', profileError)
-        } else if (profile?.timezone) {
-          userTimezone = profile.timezone;
-        }
-      }
-    } else {
-      console.warn('No strategyId found in signalData, using fallback timeframe')
-      // Fallback: try to get timeframe from signalData itself
-      if (signalData.timeframe) {
-        timeframe = signalData.timeframe;
-        console.log('Using timeframe from signalData:', timeframe)
-      }
-    }
+    // Extract data from the enhanced signal data that was prepared in the notification service
+    const strategyName = signalData.strategyName || 'Trading Strategy';
+    const targetAsset = signalData.targetAsset || 'Unknown';
+    const timeframe = signalData.timeframe || 'Unknown';
+    const price = signalData.currentPrice || signalData.price || 'N/A';
+    const userTimezone = signalData.userTimezone || 'UTC';
 
-    // Use the price from signal data if available
-    if (signalData.currentPrice) {
-      price = signalData.currentPrice;
-    } else if (signalData.price) {
-      price = signalData.price;
-    }
-
-    console.log('Final timeframe for email:', timeframe)
-    console.log('Target asset for email:', targetAsset)
-    console.log('Price for email:', price)
-    console.log('User timezone:', userTimezone)
+    console.log('Extracted data - Strategy:', strategyName, 'Asset:', targetAsset, 'Price:', price, 'Timezone:', userTimezone);
 
     // Format time according to user's timezone
     const now = new Date();
@@ -243,7 +194,7 @@ serve(async (req) => {
         <div class="signal-details">
             <div class="detail-row">
                 <span class="detail-label">Strategy:</span>
-                <span class="detail-value">${signalData.strategyName || 'Trading Strategy'}</span>
+                <span class="detail-value">${strategyName}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Asset:</span>
@@ -251,7 +202,7 @@ serve(async (req) => {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Price:</span>
-                <span class="detail-value">$${price}</span>
+                <span class="detail-value">${price !== 'N/A' ? `$${price}` : 'N/A'}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Timeframe:</span>
@@ -305,7 +256,7 @@ serve(async (req) => {
     const emailResponse = await resend.emails.send({
       from: 'StratAIge <notifications@strataige.cc>',
       to: [userEmail],
-      subject: `🚨 StratAIge ${signalType.toUpperCase()} Signal - ${signalData.strategyName || 'Trading Strategy'}`,
+      subject: `🚨 StratAIge ${signalType.toUpperCase()} Signal - ${strategyName}`,
       html: emailHtml
     });
 
@@ -335,7 +286,7 @@ serve(async (req) => {
       throw new Error(`Email API error: ${emailResponse.error.message}`);
     }
 
-    console.log('Email notification sent successfully with correct timeframe:', timeframe, 'and price:', price);
+    console.log('Email notification sent successfully with strategy:', strategyName, 'price:', price, 'timezone:', userTimezone);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email notification sent successfully' }),

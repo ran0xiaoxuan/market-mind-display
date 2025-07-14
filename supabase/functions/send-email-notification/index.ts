@@ -36,13 +36,15 @@ serve(async (req) => {
     // Get strategy details and user timezone with proper error handling
     let timeframe = 'Unknown';
     let userTimezone = 'UTC';
+    let targetAsset = signalData.targetAsset || signalData.asset || 'Unknown';
+    let price = signalData.price || 'N/A';
     
     if (signalData.strategyId) {
       console.log('Fetching strategy details for ID:', signalData.strategyId)
       
       const { data: strategy, error: strategyError } = await supabaseClient
         .from('strategies')
-        .select('timeframe, user_id')
+        .select('timeframe, user_id, target_asset, target_asset_name')
         .eq('id', signalData.strategyId)
         .single();
       
@@ -50,6 +52,9 @@ serve(async (req) => {
         console.error('Error fetching strategy:', strategyError)
       } else if (strategy) {
         timeframe = strategy.timeframe;
+        if (strategy.target_asset) {
+          targetAsset = strategy.target_asset_name || strategy.target_asset;
+        }
         console.log('Strategy timeframe from database:', timeframe)
         
         // Get user's timezone preference
@@ -74,7 +79,16 @@ serve(async (req) => {
       }
     }
 
+    // Use the price from signal data if available
+    if (signalData.currentPrice) {
+      price = signalData.currentPrice;
+    } else if (signalData.price) {
+      price = signalData.price;
+    }
+
     console.log('Final timeframe for email:', timeframe)
+    console.log('Target asset for email:', targetAsset)
+    console.log('Price for email:', price)
     console.log('User timezone:', userTimezone)
 
     // Format time according to user's timezone
@@ -233,11 +247,11 @@ serve(async (req) => {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Asset:</span>
-                <span class="detail-value">${signalData.targetAsset || signalData.asset || 'Unknown'}</span>
+                <span class="detail-value">${targetAsset}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Price:</span>
-                <span class="detail-value">$${signalData.price || 'N/A'}</span>
+                <span class="detail-value">$${price}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Timeframe:</span>
@@ -317,7 +331,7 @@ serve(async (req) => {
       throw new Error(`Email API error: ${emailResponse.error.message}`);
     }
 
-    console.log('Email notification sent successfully with correct timeframe:', timeframe);
+    console.log('Email notification sent successfully with correct timeframe:', timeframe, 'and price:', price);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email notification sent successfully' }),

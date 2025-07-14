@@ -235,12 +235,15 @@ export const sendNotificationForSignal = async (
       return [];
     }
 
-    // Prepare enhanced signal data
+    // Prepare enhanced signal data with current price
     const enhancedSignalData = {
       ...signalData,
       signalId: signalId,
       userId: userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Ensure price is properly passed - check multiple possible sources
+      price: signalData.currentPrice || signalData.price || signalData.signal_data?.price || 'N/A',
+      currentPrice: signalData.currentPrice || signalData.price || signalData.signal_data?.price || 'N/A'
     };
 
     const notifications = [];

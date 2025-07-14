@@ -45,16 +45,29 @@ serve(async (req) => {
 
     // Get strategy details to include timeframe
     let timeframe = 'Unknown';
+    let targetAsset = signalData.targetAsset || signalData.asset || 'Unknown';
+    let price = signalData.price || 'N/A';
+
     if (signalData.strategyId) {
       const { data: strategy } = await supabaseClient
         .from('strategies')
-        .select('timeframe')
+        .select('timeframe, target_asset, target_asset_name')
         .eq('id', signalData.strategyId)
         .single();
       
       if (strategy) {
         timeframe = strategy.timeframe;
+        if (strategy.target_asset) {
+          targetAsset = strategy.target_asset_name || strategy.target_asset;
+        }
       }
+    }
+
+    // Use the price from signal data if available
+    if (signalData.currentPrice) {
+      price = signalData.currentPrice;
+    } else if (signalData.price) {
+      price = signalData.price;
     }
 
     // Get user's timezone preference (default to UTC if not set)
@@ -87,8 +100,8 @@ serve(async (req) => {
 
 📊 <b>Signal Type:</b> ${signalType.toUpperCase()}
 📈 <b>Strategy:</b> ${signalData.strategyName || 'Trading Strategy'}
-💰 <b>Asset:</b> ${signalData.targetAsset || signalData.asset || 'Unknown'}
-💵 <b>Price:</b> $${signalData.price || 'N/A'}
+💰 <b>Asset:</b> ${targetAsset}
+💵 <b>Price:</b> $${price}
 ⏰ <b>Timeframe:</b> ${timeframe}
 🕐 <b>Time:</b> ${timeString}`;
 

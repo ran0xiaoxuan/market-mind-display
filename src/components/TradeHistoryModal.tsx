@@ -77,7 +77,7 @@ export const TradeHistoryModal = ({
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t pt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, trades.length)} of {trades.length} trades
+                Showing {startIndex + 1} to {Math.min(endIndex, trades.length)} of {trades.length} signals
               </div>
               
               <div className="flex items-center space-x-2">

@@ -47,7 +47,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Calculate date range
+      // Calculate date range for metrics only
       const now = new Date();
       let startDate = new Date();
       
@@ -92,19 +92,19 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         };
       }
 
-      // Count ALL trading signals for the user's strategies based on time range
+      // Count signals for metrics based on time range
       let signalCountQuery = supabase
         .from('trading_signals')
         .select('id', { count: 'exact', head: true })
         .in('strategy_id', userStrategyIds);
 
-      // Only apply date filter if not "all time"
+      // Only apply date filter for metrics if not "all time"
       if (timeRange !== 'all') {
         signalCountQuery = signalCountQuery.gte('created_at', startDate.toISOString());
       }
 
-      // Build the trading signals query for display
-      let signalsQuery = supabase
+      // Get ALL trading signals for Trade History (no time filter)
+      const allSignalsQuery = supabase
         .from('trading_signals')
         .select(`
           id,
@@ -116,12 +116,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         `)
         .eq('strategies.user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
-
-      // Only apply date filter if not "all time"
-      if (timeRange !== 'all') {
-        signalsQuery = signalsQuery.gte('created_at', startDate.toISOString());
-      }
+        .limit(100); // Increased limit to show more signals
 
       // Get rules count
       const rulesQuery = supabase
@@ -136,22 +131,22 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         .eq('rule_groups.strategies.user_id', user.id);
 
       // Parallel queries for better performance
-      const [signalCountResult, signalsResult, rulesResult] = await Promise.all([
+      const [signalCountResult, allSignalsResult, rulesResult] = await Promise.all([
         signalCountQuery,
-        signalsQuery,
+        allSignalsQuery,
         rulesQuery
       ]);
 
       const totalSignalCount = signalCountResult.count || 0;
-      const signals = signalsResult.data || [];
+      const allSignals = allSignalsResult.data || [];
       const rules = rulesResult.data || [];
 
       console.log(`Total strategies: ${userStrategies.length}`);
-      console.log(`Total signals count: ${totalSignalCount}`);
-      console.log(`Signals fetched for display: ${signals.length}`);
+      console.log(`Total signals count (for metrics): ${totalSignalCount}`);
+      console.log(`All signals fetched (for Trade History): ${allSignals.length}`);
       console.log(`Total rules: ${rules.length}`);
-      console.log(`Time range: ${timeRange}`);
-      console.log(`Date filter applied: ${timeRange !== 'all' ? startDate.toISOString() : 'No date filter (all time)'}`);
+      console.log(`Time range (metrics only): ${timeRange}`);
+      console.log(`Date filter applied to metrics: ${timeRange !== 'all' ? startDate.toISOString() : 'No date filter (all time)'}`);
 
       // Calculate metrics
       const totalStrategies = userStrategies.length;
@@ -164,8 +159,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       console.log(`Active strategies (with notifications enabled): ${activeStrategies}`);
       console.log(`Total conditions: ${totalRules}`);
 
-      // Format recent trades - includes signals for display
-      const recentTrades: DashboardTrade[] = signals.map(signal => {
+      // Format ALL trades for Trade History display
+      const recentTrades: DashboardTrade[] = allSignals.map(signal => {
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;
         
@@ -184,7 +179,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           signalPrice = 0;
         }
         
-        console.log('Processing signal:', {
+        console.log('Processing signal for Trade History:', {
           signalId: signal.id,
           signalType: signal.signal_type,
           extractedPrice: signalPrice,
@@ -209,6 +204,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           targetAsset: strategy?.target_asset || 'Unknown Asset'
         };
       });
+
+      console.log(`Formatted trades for display: ${recentTrades.length}`);
 
       return {
         metrics: {

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -141,21 +142,29 @@ const OptimizedDashboard = () => {
               <Card>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">Trade History</h2>
+                    <h2 className="text-xl font-bold">All Trading Signals</h2>
                     <p className="text-sm text-muted-foreground">
-                      Showing {Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of {recentTrades.length} signals
+                      {recentTrades.length > 0 
+                        ? `Showing ${Math.min(MAX_VISIBLE_TRADES, recentTrades.length)} of ${recentTrades.length} signals`
+                        : 'No signals available'
+                      }
                     </p>
                   </div>
-                </div>
-
-                <div className="px-6 pb-6">
-                  <TradeHistoryTable 
-                    trades={recentTrades} 
-                    maxRows={MAX_VISIBLE_TRADES}
-                    showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES}
-                    onViewAllClick={openTradeHistoryModal}
-                    enableRowClick={true}
-                  />
+                  
+                  {recentTrades.length > 0 ? (
+                    <TradeHistoryTable 
+                      trades={recentTrades} 
+                      maxRows={MAX_VISIBLE_TRADES}
+                      showViewAllButton={recentTrades.length > MAX_VISIBLE_TRADES}
+                      onViewAllClick={openTradeHistoryModal}
+                      enableRowClick={true}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No trading signals found.</p>
+                      <p className="text-sm mt-2">Create a strategy and enable notifications to start receiving signals.</p>
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>
@@ -170,12 +179,14 @@ const OptimizedDashboard = () => {
         </Container>
       </main>
 
-      <TradeHistoryModal 
-        isOpen={isTradeHistoryModalOpen} 
-        onClose={closeTradeHistoryModal} 
-        trades={recentTrades} 
-        title="All Trading Signals" 
-      />
+      {recentTrades.length > 0 && (
+        <TradeHistoryModal 
+          isOpen={isTradeHistoryModalOpen} 
+          onClose={closeTradeHistoryModal} 
+          trades={recentTrades} 
+          title="All Trading Signals" 
+        />
+      )}
     </div>
   );
 };

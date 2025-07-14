@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -28,34 +29,15 @@ serve(async (req) => {
     const { webhookUrl, signalData, signalType }: DiscordNotificationRequest = await req.json()
 
     console.log('Processing Discord notification for signal type:', signalType)
-    console.log('Signal data:', signalData)
+    console.log('Signal data received:', signalData)
 
-    // Get strategy details to include timeframe
-    let timeframe = 'Unknown';
-    let targetAsset = signalData.targetAsset || signalData.asset || 'Unknown';
-    let price = signalData.price || 'N/A';
+    // Use the enhanced signal data directly from the notification service
+    const timeframe = signalData.timeframe || 'Unknown';
+    const targetAsset = signalData.targetAsset || 'Unknown';
+    const price = signalData.currentPrice || signalData.price || 'N/A';
+    const strategyName = signalData.strategyName || 'Trading Strategy';
 
-    if (signalData.strategyId) {
-      const { data: strategy } = await supabaseClient
-        .from('strategies')
-        .select('timeframe, target_asset, target_asset_name')
-        .eq('id', signalData.strategyId)
-        .single();
-      
-      if (strategy) {
-        timeframe = strategy.timeframe;
-        if (strategy.target_asset) {
-          targetAsset = strategy.target_asset_name || strategy.target_asset;
-        }
-      }
-    }
-
-    // Use the price from signal data if available
-    if (signalData.currentPrice) {
-      price = signalData.currentPrice;
-    } else if (signalData.price) {
-      price = signalData.price;
-    }
+    console.log('Processed data - Timeframe:', timeframe, 'Asset:', targetAsset, 'Price:', price);
 
     // Get user's timezone preference (default to UTC if not set)
     let userTimezone = 'UTC';
@@ -92,7 +74,7 @@ serve(async (req) => {
         fields: [
           {
             name: "Strategy",
-            value: signalData.strategyName || "Trading Strategy",
+            value: strategyName,
             inline: true
           },
           {
@@ -102,7 +84,7 @@ serve(async (req) => {
           },
           {
             name: "Price",
-            value: `$${price}`,
+            value: price !== 'N/A' ? `$${price}` : 'N/A',
             inline: true
           },
           {
@@ -192,3 +174,4 @@ serve(async (req) => {
     )
   }
 })
+

@@ -235,16 +235,39 @@ export const sendNotificationForSignal = async (
       return [];
     }
 
-    // Prepare enhanced signal data with current price
+    // Get strategy details to ensure we have timeframe and asset information
+    let strategyDetails = null;
+    if (signalData.strategyId) {
+      const { data: strategy } = await supabase
+        .from('strategies')
+        .select('timeframe, target_asset, target_asset_name, name')
+        .eq('id', signalData.strategyId)
+        .single();
+      
+      if (strategy) {
+        strategyDetails = strategy;
+        console.log('Strategy details fetched:', strategyDetails);
+      }
+    }
+
+    // Prepare enhanced signal data with current price and strategy details
     const enhancedSignalData = {
       ...signalData,
       signalId: signalId,
       userId: userId,
       timestamp: new Date().toISOString(),
       // Ensure price is properly passed - check multiple possible sources
-      price: signalData.currentPrice || signalData.price || signalData.signal_data?.price || 'N/A',
-      currentPrice: signalData.currentPrice || signalData.price || signalData.signal_data?.price || 'N/A'
+      price: signalData.currentPrice || signalData.price || signalData.signal_data?.price || signalData.signal_data?.currentPrice || 'N/A',
+      currentPrice: signalData.currentPrice || signalData.price || signalData.signal_data?.price || signalData.signal_data?.currentPrice || 'N/A',
+      // Add strategy details
+      strategyName: signalData.strategyName || strategyDetails?.name || 'Trading Strategy',
+      timeframe: signalData.timeframe || strategyDetails?.timeframe || 'Unknown',
+      targetAsset: signalData.targetAsset || signalData.asset || strategyDetails?.target_asset_name || strategyDetails?.target_asset || 'Unknown',
+      // Pass strategy ID for edge functions to use if needed
+      strategyId: signalData.strategyId
     };
+
+    console.log('Enhanced signal data:', enhancedSignalData);
 
     const notifications = [];
 

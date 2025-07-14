@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -29,7 +30,7 @@ serve(async (req) => {
     const { botToken, chatId, signalData, signalType }: TelegramNotificationRequest = await req.json()
 
     console.log('Processing Telegram notification for signal type:', signalType)
-    console.log('Signal data:', signalData)
+    console.log('Signal data received:', signalData)
     console.log('Bot token (first 10 chars):', botToken?.substring(0, 10))
     console.log('Chat ID:', chatId)
 
@@ -43,32 +44,13 @@ serve(async (req) => {
       throw new Error('Chat ID is required');
     }
 
-    // Get strategy details to include timeframe
-    let timeframe = 'Unknown';
-    let targetAsset = signalData.targetAsset || signalData.asset || 'Unknown';
-    let price = signalData.price || 'N/A';
+    // Use the enhanced signal data directly from the notification service
+    const timeframe = signalData.timeframe || 'Unknown';
+    const targetAsset = signalData.targetAsset || 'Unknown';
+    const price = signalData.currentPrice || signalData.price || 'N/A';
+    const strategyName = signalData.strategyName || 'Trading Strategy';
 
-    if (signalData.strategyId) {
-      const { data: strategy } = await supabaseClient
-        .from('strategies')
-        .select('timeframe, target_asset, target_asset_name')
-        .eq('id', signalData.strategyId)
-        .single();
-      
-      if (strategy) {
-        timeframe = strategy.timeframe;
-        if (strategy.target_asset) {
-          targetAsset = strategy.target_asset_name || strategy.target_asset;
-        }
-      }
-    }
-
-    // Use the price from signal data if available
-    if (signalData.currentPrice) {
-      price = signalData.currentPrice;
-    } else if (signalData.price) {
-      price = signalData.price;
-    }
+    console.log('Processed data - Timeframe:', timeframe, 'Asset:', targetAsset, 'Price:', price);
 
     // Get user's timezone preference (default to UTC if not set)
     let userTimezone = 'UTC';
@@ -99,9 +81,9 @@ serve(async (req) => {
     let telegramMessage = `🚨 <b>StratAIge Trading Signal</b>
 
 📊 <b>Signal Type:</b> ${signalType.toUpperCase()}
-📈 <b>Strategy:</b> ${signalData.strategyName || 'Trading Strategy'}
+📈 <b>Strategy:</b> ${strategyName}
 💰 <b>Asset:</b> ${targetAsset}
-💵 <b>Price:</b> $${price}
+💵 <b>Price:</b> ${price !== 'N/A' ? `$${price}` : 'N/A'}
 ⏰ <b>Timeframe:</b> ${timeframe}
 🕐 <b>Time:</b> ${timeString}`;
 
@@ -212,3 +194,4 @@ serve(async (req) => {
     );
   }
 });
+

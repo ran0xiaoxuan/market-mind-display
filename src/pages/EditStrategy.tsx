@@ -48,7 +48,7 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("");
   const [targetAssetName, setTargetAssetName] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [dailySignalLimit, setDailySignalLimit] = useState<number | undefined>(undefined);
+  const [dailySignalLimit, setDailySignalLimit] = useState<number | null>(null);
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -72,7 +72,7 @@ const EditStrategy = () => {
     if (!description.trim()) errors.push("Description is required");
     if (!timeframe) errors.push("Timeframe is required");
     if (!targetAsset.trim()) errors.push("Target Asset is required");
-    if (dailySignalLimit !== undefined && (dailySignalLimit < 1 || dailySignalLimit > 390)) {
+    if (dailySignalLimit !== null && (dailySignalLimit < 1 || dailySignalLimit > 390)) {
       errors.push("Daily signal limit must be between 1 and 390");
     }
     return errors;
@@ -213,7 +213,8 @@ const EditStrategy = () => {
         setTargetAssetName(strategy.targetAssetName || "");
         setIsActive(strategy.isActive);
 
-        // Set daily signal limit exactly as stored in database - no defaults
+        // Set daily signal limit exactly as stored in database, including null
+        console.log('Daily signal limit from database:', strategy.dailySignalLimit);
         setDailySignalLimit(strategy.dailySignalLimit);
 
         // Fetch trading rules
@@ -770,21 +771,21 @@ const EditStrategy = () => {
                     type="number"
                     min="1"
                     max="390"
-                    value={dailySignalLimit ?? ""}
+                    value={dailySignalLimit !== null ? dailySignalLimit.toString() : ""}
                     onChange={(e) => {
-                      const value = e.target.value === "" ? undefined : parseInt(e.target.value);
-                      if (value === undefined || (value >= 1 && value <= 390)) {
+                      const value = e.target.value === "" ? null : parseInt(e.target.value);
+                      if (value === null || (value >= 1 && value <= 390)) {
                         setDailySignalLimit(value);
                       }
                     }}
-                    className={`w-32 ${dailySignalLimit !== undefined && (dailySignalLimit < 1 || dailySignalLimit > 390) && showValidation ? 'border-red-500' : ''}`}
+                    className={`w-32 ${dailySignalLimit !== null && (dailySignalLimit < 1 || dailySignalLimit > 390) && showValidation ? 'border-red-500' : ''}`}
                   />
                 ) : (
                   <div className="space-y-2">
                     <Input
                       id="daily-signal-limit"
                       type="number"
-                      value={dailySignalLimit ?? ""}
+                      value={dailySignalLimit !== null ? dailySignalLimit.toString() : ""}
                       disabled
                       className="w-32 bg-muted"
                     />

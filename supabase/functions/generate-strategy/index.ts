@@ -111,7 +111,10 @@ You must respond with a valid JSON object that follows this exact structure:
           "left": {
             "type": "INDICATOR",
             "indicator": "RSI",
-            "parameters": {"period": "14"},
+            "parameters": {
+              "period": "14",
+              "source": "Close"
+            },
             "valueType": "Value"
           },
           "condition": "LESS_THAN",
@@ -134,7 +137,10 @@ You must respond with a valid JSON object that follows this exact structure:
           "left": {
             "type": "INDICATOR",
             "indicator": "RSI", 
-            "parameters": {"period": "14"},
+            "parameters": {
+              "period": "14",
+              "source": "Close"
+            },
             "valueType": "Value"
           },
           "condition": "GREATER_THAN",
@@ -154,22 +160,80 @@ CRITICAL RULE GROUP REQUIREMENTS (in order of priority):
 2. OR groups MUST always contain at least 2 conditions
 3. Never create an OR group with just a single inequality
 
-Available indicators: RSI, MACD, Moving Average, SMA, EMA, Bollinger Bands, Stochastic, ADX, VWAP, ATR
+INDICATOR PARAMETER SPECIFICATIONS - YOU MUST INCLUDE ALL REQUIRED PARAMETERS:
+
+RSI:
+- parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "Value"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+Stochastic:
+- parameters: {"k": "number", "d": "number", "slowing": "number"}
+- valueType: "K Value" or "D Value"
+
+SMA:
+- parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "Value"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+EMA:
+- parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "Value"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+CCI:
+- parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "Value"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+Williams %R:
+- parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "Value"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+MACD:
+- parameters: {"fast": "number", "slow": "number", "signal": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "MACD Value" or "Signal Value" or "Histogram Value"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+MFI:
+- parameters: {"period": "number"}
+- valueType: "Value"
+
+Bollinger Bands:
+- parameters: {"period": "number", "deviation": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
+- valueType: "Upper Band" or "Middle Band" or "Lower Band"
+- source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
+
+ATR:
+- parameters: {"period": "number"}
+- valueType: "Value"
+
 Available conditions: GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL
 Available timeframes: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w
 Available side types: INDICATOR, PRICE, VALUE
 
-Make sure all indicators have proper parameters and valueType when needed.`;
+IMPORTANT: When using any indicator, you MUST include ALL required parameters and specify the appropriate valueType. Default values should be:
+- RSI: period=14, source=Close
+- Stochastic: k=14, d=3, slowing=3
+- SMA/EMA: period=20, source=Close
+- CCI: period=14, source=Close
+- Williams %R: period=14, source=Close
+- MACD: fast=12, slow=26, signal=9, source=Close
+- MFI: period=14
+- Bollinger Bands: period=20, deviation=2, source=Close
+- ATR: period=14`;
 
     const userPrompt = `Create a trading strategy for ${asset} (${assetType}) based on this description: ${description}
 
 Requirements:
 - Generate realistic entry and exit conditions
-- Use appropriate technical indicators
+- Use appropriate technical indicators with COMPLETE parameter specifications
 - Include clear explanations for each rule
 - Make the strategy suitable for the specified asset type
 - Ensure the JSON is valid and follows the exact structure provided
-- REMEMBER: OR groups must contain at least 2 conditions - if you have only 1 condition, use AND logic instead`;
+- REMEMBER: OR groups must contain at least 2 conditions - if you have only 1 condition, use AND logic instead
+- CRITICAL: Always include ALL required parameters and valueType for each indicator as specified above`;
 
     console.log('Sending request to OpenAI...');
 

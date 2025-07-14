@@ -74,18 +74,36 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
       const userStrategies = strategies || [];
       const userStrategyIds = userStrategies.map(s => s.id);
 
+      // If no strategies, return empty data
+      if (userStrategyIds.length === 0) {
+        return {
+          metrics: {
+            strategiesCount: '0',
+            activeStrategies: '0',
+            signalAmount: '0',
+            conditionsCount: '0',
+            strategiesChange: { value: "+0", positive: false },
+            activeChange: { value: "+0", positive: false },
+            signalChange: { value: "+0", positive: false },
+            conditionsChange: { value: "+0", positive: false }
+          },
+          recentTrades: [],
+          strategies: []
+        };
+      }
+
       // Count ALL trading signals for the user's strategies based on time range
       let signalCountQuery = supabase
         .from('trading_signals')
         .select('id', { count: 'exact', head: true })
-        .in('strategy_id', userStrategyIds.length > 0 ? userStrategyIds : ['']);
+        .in('strategy_id', userStrategyIds);
 
       // Only apply date filter if not "all time"
       if (timeRange !== 'all') {
         signalCountQuery = signalCountQuery.gte('created_at', startDate.toISOString());
       }
 
-      // Build the trading signals query for display (limited to recent trades)
+      // Build the trading signals query for display
       let signalsQuery = supabase
         .from('trading_signals')
         .select(`
@@ -97,33 +115,31 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           strategies!inner(name, target_asset, user_id)
         `)
         .eq('strategies.user_id', user.id)
-        .eq('processed', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       // Only apply date filter if not "all time"
       if (timeRange !== 'all') {
         signalsQuery = signalsQuery.gte('created_at', startDate.toISOString());
       }
 
+      // Get rules count
+      const rulesQuery = supabase
+        .from('trading_rules')
+        .select(`
+          id,
+          rule_groups!inner(
+            strategy_id,
+            strategies!inner(user_id)
+          )
+        `)
+        .eq('rule_groups.strategies.user_id', user.id);
+
       // Parallel queries for better performance
       const [signalCountResult, signalsResult, rulesResult] = await Promise.all([
-        // Count all signals for metrics
         signalCountQuery,
-        
-        // Get signals for display
         signalsQuery,
-        
-        // Get ALL trading rules count for all strategies of this user
-        supabase
-          .from('trading_rules')
-          .select(`
-            id,
-            rule_groups!inner(
-              strategy_id,
-              strategies!inner(user_id)
-            )
-          `)
-          .eq('rule_groups.strategies.user_id', user.id)
+        rulesQuery
       ]);
 
       const totalSignalCount = signalCountResult.count || 0;
@@ -153,26 +169,34 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
         const signalData = (signal.signal_data as any) || {};
         const strategy = signal.strategies;
         
-        // Debug logging to see what's in the signal_data
-        console.log('Signal data for debugging:', {
+        // Extract price from signal_data - try multiple possible fields
+        let signalPrice = 0;
+        if (signalData.current_price !== undefined && signalData.current_price !== null) {
+          signalPrice = Number(signalData.current_price);
+        } else if (signalData.price !== undefined && signalData.price !== null) {
+          signalPrice = Number(signalData.price);
+        } else if (signalData.close_price !== undefined && signalData.close_price !== null) {
+          signalPrice = Number(signalData.close_price);
+        }
+        
+        // Ensure price is a valid number
+        if (isNaN(signalPrice) || signalPrice <= 0) {
+          signalPrice = 0;
+        }
+        
+        console.log('Processing signal:', {
           signalId: signal.id,
-          signalData: signalData,
-          current_price: signalData.current_price,
-          price: signalData.price,
-          fullSignalDataStructure: JSON.stringify(signalData)
+          signalType: signal.signal_type,
+          extractedPrice: signalPrice,
+          signalData: signalData
         });
-        
-        // Use current_price from signal_data if available, fallback to price
-        const signalPrice = signalData.current_price || signalData.price || 0;
-        
-        console.log('Final signal price used:', signalPrice);
         
         return {
           id: signal.id,
           date: signal.created_at,
           type: signal.signal_type === 'entry' ? 'Buy' : 'Sell',
-          signal: signalData.reason || 'Trading Signal',
-          price: `$${signalPrice.toFixed(2)}`,
+          signal: signalData.reason || signalData.message || 'Trading Signal',
+          price: signalPrice > 0 ? `$${signalPrice.toFixed(2)}` : 'N/A',
           contracts: 1,
           profit: signalData.profit !== null && signalData.profit !== undefined 
             ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 

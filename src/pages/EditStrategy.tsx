@@ -48,7 +48,7 @@ const EditStrategy = () => {
   const [targetAsset, setTargetAsset] = useState("");
   const [targetAssetName, setTargetAssetName] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [dailySignalLimit, setDailySignalLimit] = useState(5);
+  const [dailySignalLimit, setDailySignalLimit] = useState(0); // Initialize with 0 instead of 5
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -213,7 +213,7 @@ const EditStrategy = () => {
         setTargetAssetName(strategy.targetAssetName || "");
         setIsActive(strategy.isActive);
 
-        // Set daily signal limit from the strategy data
+        // Set daily signal limit from the strategy data (use database value or default to 5)
         setDailySignalLimit(strategy.dailySignalLimit || 5);
 
         // Fetch trading rules

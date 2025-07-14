@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -5,6 +6,7 @@ import { StrategyHeader } from "@/components/strategy-detail/StrategyHeader";
 import { StrategyInfo } from "@/components/strategy-detail/StrategyInfo";
 import { TradingRules } from "@/components/strategy-detail/TradingRules";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
+import { DailySignalUsage } from "@/components/strategy-detail/DailySignalUsage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info, ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,6 +19,7 @@ import { getTradingRulesForStrategy, getStrategyById } from "@/services/strategy
 import { Navbar } from "@/components/Navbar";
 import { getStockPrice } from "@/services/marketDataService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
+import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 
 // Type for signal data structure
 interface SignalData {
@@ -38,6 +41,8 @@ const StrategyDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasValidTradingRules, setHasValidTradingRules] = useState(false);
+  const { tier, isLoading: subscriptionLoading } = useUserSubscription();
+  const userIsPro = isPro(tier);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,8 +91,19 @@ const StrategyDetail = () => {
       // Reset to first page when fetching new data
       setCurrentPage(1);
       
-      // Fetch strategy details using the service function
-      const strategyData = await getStrategyById(id);
+      // Fetch strategy details with all fields including daily_signal_limit
+      const { data: strategyData, error: strategyError } = await supabase
+        .from('strategies')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (strategyError) {
+        console.error('Error fetching strategy:', strategyError);
+        setError("Strategy not found");
+        setLoading(false);
+        return;
+      }
       
       if (!strategyData) {
         setError("Strategy not found");
@@ -95,9 +111,28 @@ const StrategyDetail = () => {
         return;
       }
       
-      setStrategy(strategyData);
+      // Transform the data to match our expected format
+      const transformedStrategy = {
+        id: strategyData.id,
+        name: strategyData.name,
+        description: strategyData.description,
+        timeframe: strategyData.timeframe,
+        targetAsset: strategyData.target_asset,
+        targetAssetName: strategyData.target_asset_name,
+        isActive: strategyData.is_active,
+        createdAt: strategyData.created_at,
+        updatedAt: strategyData.updated_at,
+        userId: strategyData.user_id,
+        canBeDeleted: strategyData.can_be_deleted,
+        dailySignalLimit: strategyData.daily_signal_limit, // Make sure this is included
+        signalNotificationsEnabled: strategyData.signal_notifications_enabled,
+        isRecommendedCopy: strategyData.is_recommended_copy,
+        sourceStrategyId: strategyData.source_strategy_id
+      };
       
-      console.log("Strategy data fetched:", strategyData);
+      setStrategy(transformedStrategy);
+      
+      console.log("Strategy data fetched with daily_signal_limit:", transformedStrategy.dailySignalLimit);
       
       // Fetch trading rules using the service function
       const rulesData = await getTradingRulesForStrategy(id);
@@ -137,18 +172,18 @@ const StrategyDetail = () => {
         const currentPrices = new Map();
         
         try {
-          const priceData = await getStockPrice(strategyData.targetAsset);
+          const priceData = await getStockPrice(transformedStrategy.targetAsset);
           if (priceData) {
-            currentPrices.set(strategyData.targetAsset, priceData.price);
+            currentPrices.set(transformedStrategy.targetAsset, priceData.price);
           }
         } catch (error) {
-          console.warn(`Failed to fetch price for ${strategyData.targetAsset}:`, error);
+          console.warn(`Failed to fetch price for ${transformedStrategy.targetAsset}:`, error);
         }
 
         // Format ONLY REAL trading signals for display
         const formattedTrades = signals.map(signal => {
           const signalData = (signal.signal_data as SignalData) || {};
-          const currentPrice = currentPrices.get(strategyData.targetAsset);
+          const currentPrice = currentPrices.get(transformedStrategy.targetAsset);
           
           // Use current_price from signal_data if available, fallback to price
           const signalPrice = signalData.current_price || signalData.price || 0;
@@ -181,8 +216,8 @@ const StrategyDetail = () => {
             profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
             strategyId: id,
-            strategyName: strategyData.name,
-            targetAsset: strategyData.targetAsset,
+            strategyName: transformedStrategy.name,
+            targetAsset: transformedStrategy.targetAsset,
             processed: signal.processed
           };
         });
@@ -252,7 +287,7 @@ const StrategyDetail = () => {
     );
   }
   
-  if (loading) {
+  if (loading || subscriptionLoading) {
     return (
       <>
         <Navbar />
@@ -338,10 +373,19 @@ const StrategyDetail = () => {
               updatedAt: strategy?.updatedAt,
               timeframe: strategy?.timeframe,
               targetAsset: strategy?.targetAsset,
-              dailySignalLimit: strategy?.dailySignalLimit,
+              dailySignalLimit: strategy?.dailySignalLimit, // Pass the actual value from database
               signalNotificationsEnabled: strategy?.signalNotificationsEnabled
             }} 
           />
+          
+          {/* Show DailySignalUsage for PRO users with external notifications enabled */}
+          {userIsPro && strategy?.signalNotificationsEnabled && (
+            <DailySignalUsage
+              strategyId={id || ""}
+              isProUser={userIsPro}
+              signalNotificationsEnabled={strategy?.signalNotificationsEnabled || false}
+            />
+          )}
           
           <TradingRules 
             entryRules={entryRules} 

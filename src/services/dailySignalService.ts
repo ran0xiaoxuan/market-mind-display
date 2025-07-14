@@ -17,7 +17,7 @@ export const dailySignalService = {
     try {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
-      // Get strategy's daily limit
+      // Get strategy's daily limit from database
       const { data: strategy, error: strategyError } = await supabase
         .from('strategies')
         .select('daily_signal_limit')
@@ -43,7 +43,7 @@ export const dailySignalService = {
       }
 
       const currentCount = dailyCount?.notification_count || 0;
-      const dailyLimit = strategy.daily_signal_limit || 5;
+      const dailyLimit = strategy.daily_signal_limit || 5; // Use actual limit from database
 
       return currentCount < dailyLimit;
     } catch (error) {
@@ -108,7 +108,7 @@ export const dailySignalService = {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Get strategy's daily limit
+      // Get strategy's daily limit from database
       const { data: strategy, error: strategyError } = await supabase
         .from('strategies')
         .select('daily_signal_limit')
@@ -117,7 +117,7 @@ export const dailySignalService = {
 
       if (strategyError || !strategy) {
         console.error('Error fetching strategy:', strategyError);
-        return { current: 0, limit: 5 };
+        return { current: 0, limit: 5 }; // Fallback to default
       }
 
       // Get current daily count
@@ -135,11 +135,11 @@ export const dailySignalService = {
 
       return {
         current: dailyCount?.notification_count || 0,
-        limit: strategy.daily_signal_limit || 5
+        limit: strategy.daily_signal_limit || 5 // Use actual limit from database
       };
     } catch (error) {
       console.error('Error getting daily signal count:', error);
-      return { current: 0, limit: 5 };
+      return { current: 0, limit: 5 }; // Fallback to default
     }
   },
 

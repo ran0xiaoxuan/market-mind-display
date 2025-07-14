@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Info, TrendingUp, Bell } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { dailySignalService } from "@/services/dailySignalService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DailySignalUsageProps {
   strategyId: string;
@@ -26,10 +26,45 @@ export const DailySignalUsage = ({
       if (!strategyId) return;
       
       try {
-        const count = await dailySignalService.getDailySignalCount(strategyId);
-        setDailyCount(count);
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get strategy's daily limit from the database
+        const { data: strategy, error: strategyError } = await supabase
+          .from('strategies')
+          .select('daily_signal_limit')
+          .eq('id', strategyId)
+          .single();
+
+        if (strategyError || !strategy) {
+          console.error('Error fetching strategy daily limit:', strategyError);
+          setDailyCount({ current: 0, limit: 5 }); // Fallback to default
+          return;
+        }
+
+        // Get current daily count
+        const { data: dailyCountData, error: countError } = await supabase
+          .from('daily_signal_counts')
+          .select('notification_count')
+          .eq('strategy_id', strategyId)
+          .eq('signal_date', today)
+          .single();
+
+        if (countError && countError.code !== 'PGRST116') {
+          console.error('Error fetching daily signal count:', countError);
+        }
+
+        const currentCount = dailyCountData?.notification_count || 0;
+        const dailyLimit = strategy.daily_signal_limit || 5;
+
+        setDailyCount({
+          current: currentCount,
+          limit: dailyLimit
+        });
+
+        console.log(`Daily signal usage: ${currentCount}/${dailyLimit} for strategy ${strategyId}`);
       } catch (error) {
         console.error('Error loading daily signal count:', error);
+        setDailyCount({ current: 0, limit: 5 }); // Fallback to default
       } finally {
         setIsLoading(false);
       }

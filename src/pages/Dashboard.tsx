@@ -5,7 +5,6 @@ import { Container } from "@/components/ui/container";
 import { MetricCard } from "@/components/MetricCard";
 import { Navbar } from "@/components/Navbar";
 import { StrategyList } from "@/components/StrategyList";
-import { SubscriptionManagement } from "@/components/SubscriptionManagement";
 import { useState } from "react";
 import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTable";
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
@@ -83,9 +82,8 @@ const Dashboard = () => {
                   </div>
                 </Card>
               </div>
-              <div className="lg:col-span-3 space-y-6">
+              <div className="lg:col-span-3">
                 <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
               </div>
             </div>
           </Container>
@@ -167,8 +165,7 @@ const Dashboard = () => {
                 </div>
               </Card>
             </div>
-            <div className="lg:col-span-3 space-y-6">
-              <SubscriptionManagement />
+            <div className="lg:col-span-3">
               <StrategyList />
             </div>
           </div>

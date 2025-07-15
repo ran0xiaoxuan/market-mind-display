@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -93,6 +94,22 @@ class TechnicalIndicators {
     }
     
     return ema;
+  }
+
+  // Weighted Moving Average
+  static calculateWMA(prices: number[], period: number): number {
+    if (prices.length < period) return 0;
+    
+    let weightedSum = 0;
+    let weightSum = 0;
+    
+    for (let i = 0; i < period; i++) {
+      const weight = i + 1;
+      weightedSum += prices[i] * weight;
+      weightSum += weight;
+    }
+    
+    return weightedSum / weightSum;
   }
 
   // Relative Strength Index
@@ -210,20 +227,6 @@ class TechnicalIndicators {
     }
     
     return trSum / period;
-  }
-
-  // Williams %R
-  static calculateWilliamsR(data: MarketData[], period: number = 14): number {
-    if (data.length < period) return 0;
-    
-    const highs = data.slice(0, period).map(d => d.high);
-    const lows = data.slice(0, period).map(d => d.low);
-    const closes = data.slice(0, period).map(d => d.close);
-    
-    const highestHigh = Math.max(...highs);
-    const lowestLow = Math.min(...lows);
-    
-    return ((highestHigh - closes[0]) / (highestHigh - lowestLow)) * -100;
   }
 
   // Money Flow Index
@@ -491,6 +494,15 @@ class StrategyEvaluator {
             indicatorValue = TechnicalIndicators.calculateEMA(emaPrices, emaPeriod);
             console.log(`[Indicator] EMA(${emaPeriod}, ${emaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
+
+          case 'wma':
+          case 'weightedmovingaverage':
+            const wmaPeriod = parseInt(params.period || '14');
+            const wmaSource = params.source || 'close';
+            const wmaPrices = PriceSourceCalculator.calculateSource(marketData, wmaSource);
+            indicatorValue = TechnicalIndicators.calculateWMA(wmaPrices, wmaPeriod);
+            console.log(`[Indicator] WMA(${wmaPeriod}, ${wmaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            break;
             
           case 'rsi':
             const rsiPeriod = parseInt(params.period || '14');
@@ -538,13 +550,6 @@ class StrategyEvaluator {
             const atrPeriod = parseInt(params.period || '14');
             indicatorValue = TechnicalIndicators.calculateATR(marketData, atrPeriod);
             console.log(`[Indicator] ATR(${atrPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
-            break;
-            
-          case 'williamsr':
-          case 'willr':
-            const willrPeriod = parseInt(params.period || '14');
-            indicatorValue = TechnicalIndicators.calculateWilliamsR(marketData, willrPeriod);
-            console.log(`[Indicator] WilliamsR(${willrPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'mfi':

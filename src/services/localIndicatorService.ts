@@ -120,6 +120,8 @@ export const mapParametersToLocal = (
   switch (indicator.toLowerCase()) {
     case "sma":
     case "ema":
+    case "wma":
+    case "weightedmovingaverage":
       params.period = parseInt(parameters.period || parameters.optInTimePeriod || "14");
       break;
       
@@ -142,7 +144,6 @@ export const mapParametersToLocal = (
       
     case "rsi":
     case "cci":
-    case "williams %r":
     case "mfi":
     case "atr":
       params.period = parseInt(parameters.period || parameters.rsiPeriod || "14");

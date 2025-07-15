@@ -1,374 +1,96 @@
-import { RuleGroupData } from "@/components/strategy-detail/types";
-import { getLocalIndicator, getLocalIndicatorValue, mapParametersToLocal, getCurrentPrice } from "./localIndicatorService";
+import { supabase } from "@/integrations/supabase/client";
+import { TradingRule } from "@/types/backtest";
 
-export interface RuleEvaluation {
-  signalGenerated: boolean;
-  matchedConditions: string[];
-  evaluationDetails: string[];
+export interface RuleEvaluationResult {
+  rule_id: string;
+  left_value: number;
+  right_value: number;
+  condition: string;
+  result: boolean;
+  explanation: string;
 }
 
-export const evaluateTradingRules = async (
-  ruleGroups: RuleGroupData[],
-  asset: string,
-  currentPrice: number,
-  timeframe: string = '1d'
-): Promise<RuleEvaluation> => {
-  try {
-    console.log(`[RuleEvaluation] Starting evaluation for ${asset} at price ${currentPrice} with timeframe ${timeframe}`);
-    console.log(`[RuleEvaluation] Rule groups:`, JSON.stringify(ruleGroups, null, 2));
+export interface GroupEvaluationResult {
+  group_id: string;
+  rule_type: 'entry' | 'exit';
+  logic: 'AND' | 'OR';
+  required_conditions?: number;
+  rule_results: RuleEvaluationResult[];
+  group_result: boolean;
+  explanation: string;
+}
 
-    const evaluation: RuleEvaluation = {
-      signalGenerated: false,
-      matchedConditions: [],
-      evaluationDetails: []
-    };
+export interface StrategyEvaluationResult {
+  strategy_id: string;
+  timestamp: string;
+  symbol: string;
+  current_price: number;
+  group_results: GroupEvaluationResult[];
+  entry_signal: boolean;
+  exit_signal: boolean;
+  overall_explanation: string;
+}
 
-    if (!ruleGroups || ruleGroups.length === 0) {
-      evaluation.evaluationDetails.push('No rule groups provided');
-      return evaluation;
-    }
-
-    // Separate AND and OR groups
-    const andGroups = ruleGroups.filter(group => group.logic === 'AND');
-    const orGroups = ruleGroups.filter(group => group.logic === 'OR');
-
-    console.log(`[RuleEvaluation] Found ${andGroups.length} AND groups and ${orGroups.length} OR groups`);
-
-    let allAndGroupsSatisfied = true;
-    let allOrGroupsSatisfied = true;
-
-    // Evaluate all AND groups - ALL must be satisfied
-    for (const andGroup of andGroups) {
-      const groupResult = await evaluateRuleGroup(andGroup, asset, currentPrice, timeframe);
-      
-      evaluation.evaluationDetails.push(`AND Group evaluation: ${groupResult.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
-      evaluation.evaluationDetails.push(...groupResult.details);
-      evaluation.matchedConditions.push(...groupResult.matchedConditions);
-
-      if (!groupResult.satisfied) {
-        allAndGroupsSatisfied = false;
-        console.log(`[RuleEvaluation] AND group failed - signal cannot be generated`);
-      }
-    }
-
-    // Evaluate all OR groups - each must meet its required conditions
-    for (const orGroup of orGroups) {
-      const groupResult = await evaluateRuleGroup(orGroup, asset, currentPrice, timeframe);
-      
-      evaluation.evaluationDetails.push(`OR Group evaluation: ${groupResult.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
-      evaluation.evaluationDetails.push(...groupResult.details);
-      evaluation.matchedConditions.push(...groupResult.matchedConditions);
-
-      if (!groupResult.satisfied) {
-        allOrGroupsSatisfied = false;
-        console.log(`[RuleEvaluation] OR group failed - signal cannot be generated`);
-      }
-    }
-
-    // Final decision: All AND groups AND all OR groups must be satisfied
-    evaluation.signalGenerated = allAndGroupsSatisfied && allOrGroupsSatisfied;
-
-    console.log(`[RuleEvaluation] Final result: AND groups=${allAndGroupsSatisfied}, OR groups=${allOrGroupsSatisfied}, Signal=${evaluation.signalGenerated}`);
-
-    return evaluation;
-  } catch (error) {
-    console.error('[RuleEvaluation] Error evaluating trading rules:', error);
-    return {
-      signalGenerated: false,
-      matchedConditions: [],
-      evaluationDetails: [`Error during evaluation: ${error.message}`]
-    };
-  }
+// Indicator name mapping for consistency
+const indicatorMap: Record<string, string> = {
+  'Simple Moving Average': 'SMA',
+  'Exponential Moving Average': 'EMA',
+  'Weighted Moving Average': 'WMA',
+  'Relative Strength Index': 'RSI',
+  'MACD': 'MACD',
+  'Bollinger Bands': 'BBANDS',
+  'Stochastic': 'STOCH',
+  'Average True Range': 'ATR',
+  'Commodity Channel Index': 'CCI',
+  'Money Flow Index': 'MFI',
+  'Moving Average': 'SMA',
+  'WMA': 'WMA'
 };
 
-interface GroupEvaluationResult {
-  satisfied: boolean;
-  matchedConditions: string[];
-  details: string[];
-  conditionsMetCount: number;
-  totalConditions: number;
-}
+// Map display names to service format
+export const mapIndicatorName = (displayName: string): string => {
+  return indicatorMap[displayName] || displayName;
+};
 
-const evaluateRuleGroup = async (
-  group: RuleGroupData,
-  asset: string,
-  currentPrice: number,
+// Service placeholder - would integrate with actual evaluation service
+export const evaluateStrategy = async (
+  strategyId: string,
+  symbol: string,
   timeframe: string
-): Promise<GroupEvaluationResult> => {
-  const result: GroupEvaluationResult = {
-    satisfied: false,
-    matchedConditions: [],
-    details: [],
-    conditionsMetCount: 0,
-    totalConditions: 0
-  };
-
-  if (!group.inequalities || group.inequalities.length === 0) {
-    result.details.push(`${group.logic} Group: No conditions defined`);
-    result.satisfied = group.logic === 'AND' ? true : false; // Empty AND group is satisfied, empty OR group is not
-    return result;
-  }
-
-  result.totalConditions = group.inequalities.length;
-  console.log(`[GroupEvaluation] Evaluating ${group.logic} group with ${result.totalConditions} conditions`);
-
-  // Evaluate each condition in the group
-  for (let i = 0; i < group.inequalities.length; i++) {
-    const inequality = group.inequalities[i];
-    try {
-      const conditionMet = await evaluateInequality(inequality, asset, currentPrice, timeframe);
-      const conditionDescription = formatConditionDescription(inequality);
-      
-      if (conditionMet) {
-        result.conditionsMetCount++;
-        result.matchedConditions.push(conditionDescription);
-        result.details.push(`  ✓ ${conditionDescription}`);
-        console.log(`[GroupEvaluation] Condition ${i + 1} MET: ${conditionDescription}`);
-      } else {
-        result.details.push(`  ✗ ${conditionDescription}`);
-        console.log(`[GroupEvaluation] Condition ${i + 1} NOT MET: ${conditionDescription}`);
-      }
-    } catch (error) {
-      console.error(`[GroupEvaluation] Error evaluating condition ${i + 1}:`, error);
-      result.details.push(`  ⚠ Error evaluating condition: ${error.message}`);
-    }
-  }
-
-  // Determine if group is satisfied based on logic
-  if (group.logic === 'AND') {
-    // AND group: ALL conditions must be met
-    result.satisfied = result.conditionsMetCount === result.totalConditions;
-    result.details.push(`AND Group Result: ${result.conditionsMetCount}/${result.totalConditions} conditions met - ${result.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
-  } else if (group.logic === 'OR') {
-    // OR group: Required number of conditions must be met
-    const requiredConditions = group.requiredConditions || 1;
-    result.satisfied = result.conditionsMetCount >= requiredConditions;
-    result.details.push(`OR Group Result: ${result.conditionsMetCount}/${result.totalConditions} conditions met (required: ${requiredConditions}) - ${result.satisfied ? 'SATISFIED' : 'NOT SATISFIED'}`);
-  }
-
-  return result;
-};
-
-const formatConditionDescription = (inequality: any): string => {
-  const leftSide = inequality.left?.type === 'INDICATOR' 
-    ? `${inequality.left.indicator}${inequality.left.valueType ? ` (${inequality.left.valueType})` : ''}`
-    : inequality.left?.type === 'PRICE' 
-    ? 'Price'
-    : inequality.left?.value || 'Unknown';
-
-  const rightSide = inequality.right?.type === 'INDICATOR'
-    ? `${inequality.right.indicator}${inequality.right.valueType ? ` (${inequality.right.valueType})` : ''}`
-    : inequality.right?.type === 'PRICE'
-    ? 'Price'
-    : inequality.right?.value || 'Unknown';
-
-  const operator = mapConditionToOperator(inequality.condition);
-  
-  return `${leftSide} ${operator} ${rightSide}`;
-};
-
-const mapConditionToOperator = (condition: string): string => {
-  const conditionMap: { [key: string]: string } = {
-    'GREATER_THAN': '>',
-    'LESS_THAN': '<', 
-    'GREATER_THAN_OR_EQUAL': '>=',
-    'LESS_THAN_OR_EQUAL': '<=',
-    'EQUAL': '==',
-    'NOT_EQUAL': '!=',
-    '>': '>',
-    '<': '<',
-    '>=': '>=',
-    '<=': '<=',
-    '==': '==',
-    '!=': '!='
-  };
-  
-  return conditionMap[condition] || condition;
-};
-
-const mapTimeframeToLocal = (timeframe: string): string => {
-  const timeframeMap: { [key: string]: string } = {
-    '1m': '1m',
-    '5m': '5m',
-    '15m': '15m',
-    '30m': '30m',
-    '1h': '1h',
-    '4h': '4h',
-    'Daily': 'Daily',
-    'Weekly': 'Weekly',
-    'Monthly': 'Monthly'
-  };
-  
-  return timeframeMap[timeframe] || 'Daily';
-};
-
-const getIndicatorValueWithType = async (
-  indicator: string, 
-  asset: string, 
-  parameters: any,
-  valueType?: string,
-  timeframe: string = 'Daily'
-): Promise<number | null> => {
+): Promise<StrategyEvaluationResult | null> => {
   try {
-    const indicatorMap: { [key: string]: string } = {
-      'RSI': 'RSI',
-      'MACD': 'MACD',
-      'Moving Average': 'SMA',
-      'SMA': 'SMA',
-      'EMA': 'EMA',
-      'Bollinger Bands': 'Bollinger Bands',
-      'Stochastic': 'Stochastic',
-      'ATR': 'ATR',
-      'CCI': 'CCI',
-      'Williams %R': 'Williams %R',
-      'MFI': 'MFI'
-    };
-
-    const localIndicator = indicatorMap[indicator];
-    if (!localIndicator) {
-      console.error('[LocalIndicatorValue] Unsupported indicator:', indicator);
-      return null;
-    }
-
-    const localTimeframe = mapTimeframeToLocal(timeframe);
-    console.log(`[LocalIndicatorValue] Getting ${indicator} for ${asset} with timeframe ${localTimeframe}`);
-
-    // Map parameters to local format
-    const localParams = mapParametersToLocal(indicator, {
-      symbol: asset,
-      interval: localTimeframe,
-      ...parameters
-    });
-
-    const indicatorData = await getLocalIndicator(localIndicator, localParams);
+    // This would integrate with the actual strategy evaluation service
+    // For now, return a placeholder
+    console.log(`Evaluating strategy ${strategyId} for ${symbol} on ${timeframe}`);
     
-    if (!indicatorData) {
-      console.error('[LocalIndicatorValue] Failed to get indicator data for:', indicator);
-      return null;
-    }
-
-    const value = getLocalIndicatorValue(indicator, indicatorData, valueType);
-    console.log(`[LocalIndicatorValue] ${indicator} value: ${value}`);
-    return value;
+    return {
+      strategy_id: strategyId,
+      timestamp: new Date().toISOString(),
+      symbol,
+      current_price: 150.0, // Placeholder
+      group_results: [],
+      entry_signal: false,
+      exit_signal: false,
+      overall_explanation: "Strategy evaluation not implemented"
+    };
   } catch (error) {
-    console.error('[LocalIndicatorValue] Error getting indicator value:', error);
+    console.error('Error evaluating strategy:', error);
     return null;
   }
 };
 
-const evaluateInequality = async (inequality: any, asset: string, currentPrice: number, timeframe: string): Promise<boolean> => {
+// Get recent evaluations for a strategy
+export const getRecentEvaluations = async (
+  strategyId: string,
+  limit: number = 10
+): Promise<StrategyEvaluationResult[]> => {
   try {
-    console.log(`[InequalityEval] Evaluating:`, JSON.stringify(inequality, null, 2));
-
-    // Get left side value - fix the data access
-    const leftValue = await getValueFromSide(inequality.left, asset, currentPrice, timeframe);
-    if (leftValue === null) {
-      console.log(`[InequalityEval] Left side value is null`);
-      return false;
-    }
-
-    // Get right side value - fix the data access
-    const rightValue = await getValueFromSide(inequality.right, asset, currentPrice, timeframe);
-    if (rightValue === null) {
-      console.log(`[InequalityEval] Right side value is null`);
-      return false;
-    }
-
-    const operator = mapConditionToOperator(inequality.condition);
-    console.log(`[InequalityEval] Comparing: ${leftValue} ${operator} ${rightValue}`);
-
-    // Evaluate condition
-    let result = false;
-    switch (operator) {
-      case '>':
-        result = leftValue > rightValue;
-        break;
-      case '<':
-        result = leftValue < rightValue;
-        break;
-      case '>=':
-        result = leftValue >= rightValue;
-        break;
-      case '<=':
-        result = leftValue <= rightValue;
-        break;
-      case '==':
-        result = Math.abs(leftValue - rightValue) < 0.0001; // Handle floating point comparison
-        break;
-      case '!=':
-        result = Math.abs(leftValue - rightValue) >= 0.0001;
-        break;
-      default:
-        console.error('[InequalityEval] Unknown condition:', inequality.condition);
-        return false;
-    }
-
-    console.log(`[InequalityEval] Result: ${result}`);
-    return result;
+    // This would fetch from the evaluations table
+    // For now, return empty array
+    console.log(`Fetching recent evaluations for strategy ${strategyId}`);
+    return [];
   } catch (error) {
-    console.error('[InequalityEval] Error evaluating inequality:', error);
-    return false;
-  }
-};
-
-const getValueFromSide = async (side: any, asset: string, currentPrice: number, timeframe: string): Promise<number | null> => {
-  try {
-    console.log(`[ValueFromSide] Getting value for side:`, JSON.stringify(side, null, 2));
-
-    // Handle malformed data structures
-    if (!side || typeof side !== 'object') {
-      console.log(`[ValueFromSide] Invalid side object:`, side);
-      return null;
-    }
-
-    switch (side.type) {
-      case 'INDICATOR':
-        if (!side.indicator) {
-          console.log(`[ValueFromSide] No indicator specified`);
-          return null;
-        }
-        
-        // Clean up parameters - handle the malformed data
-        let cleanParameters = {};
-        if (side.parameters && typeof side.parameters === 'object') {
-          // Remove any malformed properties
-          Object.keys(side.parameters).forEach(key => {
-            const value = side.parameters[key];
-            if (value && typeof value === 'object' && value._type !== 'undefined' && value._type !== 'MaxDepthReached') {
-              cleanParameters[key] = value;
-            } else if (typeof value === 'string' || typeof value === 'number') {
-              cleanParameters[key] = value;
-            }
-          });
-        }
-        
-        return await getIndicatorValueWithType(
-          side.indicator, 
-          asset, 
-          cleanParameters, 
-          side.valueType,
-          timeframe
-        );
-      
-      case 'PRICE':
-        console.log(`[ValueFromSide] Using current price: ${currentPrice}`);
-        return currentPrice;
-      
-      case 'VALUE':
-        const value = parseFloat(side.value);
-        if (isNaN(value)) {
-          console.log(`[ValueFromSide] Invalid value: ${side.value}`);
-          return null;
-        }
-        console.log(`[ValueFromSide] Using constant value: ${value}`);
-        return value;
-      
-      default:
-        console.error('[ValueFromSide] Unknown side type:', side.type);
-        return null;
-    }
-  } catch (error) {
-    console.error('[ValueFromSide] Error getting value from side:', error);
-    return null;
+    console.error('Error fetching recent evaluations:', error);
+    return [];
   }
 };

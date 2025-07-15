@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
       case "SMA":
       case "EMA":
       case "WMA":
+      case "WEIGHTEDMOVINGAVERAGE":
       case "TRIMA":
         if (getParam('period')) params.push(`Period: ${getParam('period')}`);
         if (getParam('source')) params.push(`Source: ${getParam('source')}`);
@@ -117,8 +119,6 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
         if (getParam('source')) params.push(`Source: ${getParam('source')}`);
         break;
         
-      case "WILLIAMS %R":
-      case "WILLR":
       case "MOMENTUM":
       case "MOM":
       case "ROC":

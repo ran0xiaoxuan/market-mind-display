@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface UserSubscription {
   tier: 'free' | 'pro' | 'premium' | null;
   isLoading: boolean;
+  subscriptionEnd?: string | null;
 }
 
 export const useUserSubscription = (): UserSubscription => {
@@ -26,31 +27,43 @@ export const useUserSubscription = (): UserSubscription => {
       }
 
       try {
-        // First check the profiles table for subscription_tier
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .single();
+        // Call the check-subscription edge function to get latest status from Stripe
+        const { data, error } = await supabase.functions.invoke('check-subscription');
+        
+        if (error) {
+          console.error('Error checking subscription:', error);
+          // Fallback to database check
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('subscription_tier')
+            .eq('id', user.id)
+            .single();
 
-        if (profileError) {
-          console.error('Error fetching user profile:', profileError);
+          if (profileError) {
+            console.error('Error fetching user profile:', profileError);
+            setSubscription({
+              tier: 'free',
+              isLoading: false
+            });
+            return;
+          }
+
+          const tier = profile?.subscription_tier as 'free' | 'pro' | 'premium' | null;
           setSubscription({
-            tier: 'free', // Default to free on error
+            tier: tier || 'free',
             isLoading: false
           });
-          return;
+        } else {
+          setSubscription({
+            tier: data.subscribed ? 'pro' : 'free',
+            subscriptionEnd: data.subscription_end,
+            isLoading: false
+          });
         }
-
-        const tier = profile?.subscription_tier as 'free' | 'pro' | 'premium' | null;
-        setSubscription({
-          tier: tier || 'free', // Default to free if null
-          isLoading: false
-        });
       } catch (error) {
         console.error('Error in fetchSubscription:', error);
         setSubscription({
-          tier: 'free', // Default to free on error
+          tier: 'free',
           isLoading: false
         });
       }

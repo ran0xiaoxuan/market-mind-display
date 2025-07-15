@@ -84,6 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && currentSession) {        
         console.log('User signed in successfully');
         
+        // Check subscription status on sign in
+        try {
+          await supabase.functions.invoke('check-subscription');
+        } catch (error) {
+          console.error('Failed to check subscription on sign in:', error);
+        }
+        
         // Only show toast if this is a different user or first sign in for this session
         const currentUserId = currentSession.user.id;
         if (lastSignInUserRef.current !== currentUserId) {
@@ -111,6 +118,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
+        // Check subscription status on token refresh
+        try {
+          await supabase.functions.invoke('check-subscription');
+        } catch (error) {
+          console.error('Failed to check subscription on token refresh:', error);
+        }
       }
     });
 
@@ -125,6 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set the last signed in user to prevent duplicate toast on initial load
         if (currentSession?.user) {
           lastSignInUserRef.current = currentSession.user.id;
+          // Check subscription status on initial load
+          supabase.functions.invoke('check-subscription').catch(error => {
+            console.error('Failed to check subscription on initial load:', error);
+          });
         }
       }
     });

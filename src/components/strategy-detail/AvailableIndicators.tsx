@@ -22,7 +22,6 @@ export const AvailableIndicators = ({
       "RSI", 
       "Stochastic",
       "CCI", 
-      "Williams %R", 
       "MACD",
       "MFI"
     ],

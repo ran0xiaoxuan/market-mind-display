@@ -1,3 +1,4 @@
+
 import React from "react";
 import { InequalitySide as InequalitySideType } from "../types";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -385,23 +386,6 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
               name="displacement" 
               value={sideObj.parameters?.displacement || '26'} 
               onChange={value => updateParameters(side, 'displacement', value)} 
-            />
-          </div>
-        );
-        
-      case 'williamsr':
-      case 'williams%r':
-        return (
-          <div className="grid grid-cols-2 gap-2">
-            <IndicatorParameter 
-              name="period" 
-              value={sideObj.parameters?.period || '14'} 
-              onChange={value => updateParameters(side, 'period', value)} 
-            />
-            <IndicatorParameter 
-              name="source" 
-              value={sideObj.parameters?.source || 'close'} 
-              onChange={value => updateParameters(side, 'source', value)} 
             />
           </div>
         );

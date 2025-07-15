@@ -227,25 +227,6 @@ export const calculateCCI = (
   return result;
 };
 
-// Williams %R
-export const calculateWilliamsR = (
-  high: number[], 
-  low: number[], 
-  close: number[], 
-  period: number = 14
-): number[] => {
-  const result: number[] = [];
-  
-  for (let i = period - 1; i < close.length; i++) {
-    const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
-    const lowestLow = Math.min(...low.slice(i - period + 1, i + 1));
-    const williamsR = ((highestHigh - close[i]) / (highestHigh - lowestLow)) * -100;
-    result.push(williamsR);
-  }
-  
-  return result;
-};
-
 // Money Flow Index
 export const calculateMFI = (
   high: number[], 
@@ -359,12 +340,6 @@ export const calculateIndicator = (
       const cciResult = calculateCCI(high, low, close, config.period || 20);
       return { value: cciResult[cciResult.length - 1], values: cciResult };
       
-    case 'williamsr':
-    case 'willr':
-      if (!high || !low) throw new Error('Williams %R requires high and low prices');
-      const willrResult = calculateWilliamsR(high, low, close, config.period || 14);
-      return { value: willrResult[willrResult.length - 1], values: willrResult };
-      
     case 'mfi':
       if (!high || !low || !volume) throw new Error('MFI requires high, low prices and volume');
       const mfiResult = calculateMFI(high, low, close, volume, config.period || 14);
@@ -379,7 +354,7 @@ export const calculateIndicator = (
 export const getSupportedIndicators = (): string[] => {
   return [
     'SMA', 'EMA', 'RSI', 'MACD', 'Bollinger Bands', 
-    'Stochastic', 'ATR', 'CCI', 'Williams %R', 'MFI'
+    'Stochastic', 'ATR', 'CCI', 'MFI'
   ];
 };
 
@@ -395,7 +370,6 @@ export const mapIndicatorName = (indicator: string): string => {
     'Stochastic': 'Stochastic',
     'Average True Range': 'ATR',
     'Commodity Channel Index': 'CCI',
-    'Williams %R': 'Williams %R',
     'Money Flow Index': 'MFI'
   };
   

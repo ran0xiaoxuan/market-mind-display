@@ -160,6 +160,10 @@ CRITICAL RULE GROUP REQUIREMENTS (in order of priority):
 2. OR groups MUST always contain at least 2 conditions
 3. Never create an OR group with just a single inequality
 
+CRITICAL VALIDATION RULES:
+1. When using SMA/EMA/WMA indicators compared to VALUE type: The value MUST be within 30% of the target asset's current price range. For example, if the asset trades around $100, acceptable values would be between $70-$130.
+2. When using PRICE type: You MUST only use "Open", "High", "Low", or "Close" as the value. No other content is allowed (no HL2, HLC3, OHLC4, etc.).
+
 INDICATOR PARAMETER SPECIFICATIONS - YOU MUST INCLUDE ALL REQUIRED PARAMETERS:
 
 RSI:
@@ -181,12 +185,12 @@ EMA:
 - valueType: "Value"
 - source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
 
-CCI:
+WMA:
 - parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
 - valueType: "Value"
 - source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
 
-Williams %R:
+CCI:
 - parameters: {"period": "number", "source": "Open|High|Low|Close|HL2|HLC3|OHLC4"}
 - valueType: "Value"
 - source options: Open, High, Low, Close, HL2 (High+Close)/2, HLC3 (High+Low+Close)/3, OHLC4 (Open+High+Low+Close)/4
@@ -216,9 +220,8 @@ Available side types: INDICATOR, PRICE, VALUE
 IMPORTANT: When using any indicator, you MUST include ALL required parameters and specify the appropriate valueType. Default values should be:
 - RSI: period=14, source=Close
 - Stochastic: k=14, d=3, slowing=3
-- SMA/EMA: period=20, source=Close
+- SMA/EMA/WMA: period=20, source=Close
 - CCI: period=14, source=Close
-- Williams %R: period=14, source=Close
 - MACD: fast=12, slow=26, signal=9, source=Close
 - MFI: period=14
 - Bollinger Bands: period=20, deviation=2, source=Close
@@ -233,7 +236,9 @@ Requirements:
 - Make the strategy suitable for the specified asset type
 - Ensure the JSON is valid and follows the exact structure provided
 - REMEMBER: OR groups must contain at least 2 conditions - if you have only 1 condition, use AND logic instead
-- CRITICAL: Always include ALL required parameters and valueType for each indicator as specified above`;
+- CRITICAL: Always include ALL required parameters and valueType for each indicator as specified above
+- VALIDATION: When using SMA/EMA/WMA compared to VALUE, ensure the value is within 30% of the asset's typical price range
+- VALIDATION: When using PRICE type, only use "Open", "High", "Low", or "Close" as values`;
 
     console.log('Sending request to OpenAI...');
 

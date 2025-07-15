@@ -29,7 +29,7 @@ export const StrategyDescription = ({
       />
       
       <div className="mt-3 text-xs text-muted-foreground">
-        <p>💡 <strong>Pro tip:</strong> Be specific with indicators, timeframes and risk parameters you want.</p>
+        <p>💡 <strong>Pro tip:</strong> Be specific with indicators, timeframes you want.</p>
       </div>
 
       {showValidation && description.trim().length < 20 && (

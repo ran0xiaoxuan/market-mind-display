@@ -1,4 +1,3 @@
-
 // Core technical indicators implementation using JavaScript
 // This replaces TAAPI with local calculations
 
@@ -61,6 +60,26 @@ export const calculateEMA = (data: number[], period: number): number[] => {
   for (let i = period; i < data.length; i++) {
     ema = (data[i] * multiplier) + (ema * (1 - multiplier));
     result.push(ema);
+  }
+  
+  return result;
+};
+
+// Weighted Moving Average
+export const calculateWMA = (data: number[], period: number): number[] => {
+  const result: number[] = [];
+  
+  for (let i = period - 1; i < data.length; i++) {
+    let weightedSum = 0;
+    let weightSum = 0;
+    
+    for (let j = 0; j < period; j++) {
+      const weight = j + 1; // Weight increases linearly
+      weightedSum += data[i - period + 1 + j] * weight;
+      weightSum += weight;
+    }
+    
+    result.push(weightedSum / weightSum);
   }
   
   return result;
@@ -285,6 +304,11 @@ export const calculateIndicator = (
       const emaResult = calculateEMA(close, config.period || 14);
       return { value: emaResult[emaResult.length - 1], values: emaResult };
       
+    case 'wma':
+    case 'weightedmovingaverage':
+      const wmaResult = calculateWMA(close, config.period || 14);
+      return { value: wmaResult[wmaResult.length - 1], values: wmaResult };
+      
     case 'rsi':
       const rsiResult = calculateRSI(close, config.period || 14);
       return { value: rsiResult[rsiResult.length - 1], values: rsiResult };
@@ -353,7 +377,7 @@ export const calculateIndicator = (
 // Get supported indicators list
 export const getSupportedIndicators = (): string[] => {
   return [
-    'SMA', 'EMA', 'RSI', 'MACD', 'Bollinger Bands', 
+    'SMA', 'EMA', 'WMA', 'RSI', 'MACD', 'Bollinger Bands', 
     'Stochastic', 'ATR', 'CCI', 'MFI'
   ];
 };
@@ -364,6 +388,7 @@ export const mapIndicatorName = (indicator: string): string => {
     'Moving Average': 'SMA',
     'Simple Moving Average': 'SMA',
     'Exponential Moving Average': 'EMA',
+    'Weighted Moving Average': 'WMA',
     'Relative Strength Index': 'RSI',
     'MACD': 'MACD',
     'Bollinger Bands': 'Bollinger Bands',

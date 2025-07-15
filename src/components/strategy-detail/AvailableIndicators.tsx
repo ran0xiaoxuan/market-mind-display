@@ -16,7 +16,8 @@ export const AvailableIndicators = ({
   const indicatorGroups = {
     "Moving Averages": [
       "SMA", 
-      "EMA"
+      "EMA",
+      "WMA"
     ],
     "Oscillators": [
       "RSI", 

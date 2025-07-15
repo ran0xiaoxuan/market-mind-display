@@ -46,6 +46,7 @@ serve(async (req) => {
     const now = new Date();
     const timeString = now.toLocaleString("en-US", {
       timeZone: userTimezone,
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
@@ -209,7 +210,7 @@ serve(async (req) => {
                 <span class="detail-value">${timeframe}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Time (${userTimezone}):</span>
+                <span class="detail-label">Time:</span>
                 <span class="detail-value">${timeString}</span>
             </div>
             ${signalData.profitPercentage ? `

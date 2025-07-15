@@ -814,6 +814,13 @@ class NotificationService {
         return;
       }
 
+      // Get user profile for timezone
+      const { data: profile } = await this.supabase
+        .from('profiles')
+        .select('timezone')
+        .eq('id', strategy.user_id)
+        .single();
+
       const signalType = signal.signal_type;
       const shouldSendEntry = signalType === 'entry' && settings.entry_signals;
       const shouldSendExit = signalType === 'exit' && settings.exit_signals;
@@ -823,6 +830,18 @@ class NotificationService {
         return;
       }
 
+      // Enhance signal data with user timezone and strategy info
+      const enhancedSignalData = {
+        ...signal.signal_data,
+        signalId: signal.id,
+        userId: strategy.user_id,
+        strategyName: strategy.name,
+        targetAsset: strategy.target_asset,
+        timeframe: strategy.timeframe,
+        currentPrice: signal.signal_data.current_price,
+        userTimezone: profile?.timezone || 'UTC'
+      };
+
       const notifications = [];
 
       // Send Discord notification
@@ -831,7 +850,7 @@ class NotificationService {
           const discordResult = await this.supabase.functions.invoke('send-discord-notification', {
             body: {
               webhookUrl: settings.discord_webhook_url,
-              signalData: signal.signal_data,
+              signalData: enhancedSignalData,
               signalType: signalType
             }
           });
@@ -851,7 +870,7 @@ class NotificationService {
             body: {
               botToken: settings.telegram_bot_token,
               chatId: settings.telegram_chat_id,
-              signalData: signal.signal_data,
+              signalData: enhancedSignalData,
               signalType: signalType
             }
           });
@@ -872,7 +891,7 @@ class NotificationService {
             const emailResult = await this.supabase.functions.invoke('send-email-notification', {
               body: {
                 userEmail: user.user.email,
-                signalData: signal.signal_data,
+                signalData: enhancedSignalData,
                 signalType: signalType
               }
             });

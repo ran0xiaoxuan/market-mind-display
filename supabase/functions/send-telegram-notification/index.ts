@@ -56,6 +56,7 @@ serve(async (req) => {
     const now = new Date();
     const timeString = now.toLocaleString("en-US", {
       timeZone: userTimezone,
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
       hour: 'numeric',

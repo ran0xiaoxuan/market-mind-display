@@ -1,4 +1,3 @@
-
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +27,8 @@ export const PricingSection = ({
     isFeatured: false
   }, {
     name: "Pro",
-    monthlyPrice: "$50",
-    annualPrice: "$480",
+    monthlyPrice: "$25",
+    annualPrice: "$240",
     priceDescription: isAnnual ? "/year" : "/month",
     description: "For professional traders and businesses.",
     features: ["Everything in the free plan", "Live signals to Email/Discord/Telegram", "Priority Customer Service"],
@@ -39,7 +38,7 @@ export const PricingSection = ({
   }];
 
   const TitleTag = isPage ? "h1" : "h2";
-  const annualSavings = 50 * 12 - 480; // $600 - $480 = $120 savings
+  const annualSavings = 25 * 12 - 240; // $300 - $240 = $60 savings
 
   return <section className={isPage ? "bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden py-16" : "py-20 bg-white"}>
       <Container>

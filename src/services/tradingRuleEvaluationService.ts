@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { TradingRule } from "@/types/backtest";
+import { TradingRule } from "@/components/strategy-detail/types";
 
 export interface RuleEvaluationResult {
   rule_id: string;
@@ -31,6 +32,12 @@ export interface StrategyEvaluationResult {
   overall_explanation: string;
 }
 
+export interface TradingRulesEvaluationResult {
+  signalGenerated: boolean;
+  matchedConditions: string[];
+  evaluationDetails: string[];
+}
+
 // Indicator name mapping for consistency
 const indicatorMap: Record<string, string> = {
   'Simple Moving Average': 'SMA',
@@ -50,6 +57,56 @@ const indicatorMap: Record<string, string> = {
 // Map display names to service format
 export const mapIndicatorName = (displayName: string): string => {
   return indicatorMap[displayName] || displayName;
+};
+
+// Implementation of evaluateTradingRules function that was missing
+export const evaluateTradingRules = async (
+  ruleGroups: any[],
+  symbol: string,
+  currentPrice: number,
+  timeframe: string
+): Promise<TradingRulesEvaluationResult> => {
+  try {
+    console.log(`[RuleEvaluator] Evaluating ${ruleGroups.length} rule groups for ${symbol}`);
+    
+    // Placeholder implementation - in a real system this would:
+    // 1. Fetch technical indicator data for the symbol
+    // 2. Evaluate each rule condition against current market data
+    // 3. Apply group logic (AND/OR) to determine if conditions are met
+    
+    const matchedConditions: string[] = [];
+    const evaluationDetails: string[] = [];
+    
+    // For now, simulate some evaluation logic
+    let signalGenerated = false;
+    
+    for (const group of ruleGroups) {
+      const groupMatched = Math.random() > 0.5; // Simulate evaluation
+      
+      if (groupMatched) {
+        matchedConditions.push(`Group ${group.id} conditions met`);
+        signalGenerated = true;
+      }
+      
+      evaluationDetails.push(`Group ${group.id}: ${groupMatched ? 'MATCHED' : 'NOT MATCHED'}`);
+    }
+    
+    console.log(`[RuleEvaluator] Evaluation complete. Signal: ${signalGenerated}`);
+    
+    return {
+      signalGenerated,
+      matchedConditions,
+      evaluationDetails
+    };
+    
+  } catch (error) {
+    console.error('[RuleEvaluator] Error evaluating trading rules:', error);
+    return {
+      signalGenerated: false,
+      matchedConditions: [],
+      evaluationDetails: [`Error: ${error.message}`]
+    };
+  }
 };
 
 // Service placeholder - would integrate with actual evaluation service

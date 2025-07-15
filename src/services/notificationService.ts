@@ -269,15 +269,15 @@ export const sendNotificationForSignal = async (
 
     console.log('Extracted current price:', currentPrice);
 
-    // Prepare comprehensive enhanced signal data
+    // Prepare comprehensive enhanced signal data with proper strategy name
     const enhancedSignalData = {
       ...signalData,
       signalId: signalId,
       userId: userId,
       timestamp: new Date().toISOString(),
-      // Strategy information
+      // Strategy information - FIXED: Ensure strategy name is properly set
       strategyId: strategy?.id || signalData.strategyId || signalData.strategy_id,
-      strategyName: strategy?.name || signalData.strategyName || 'Trading Strategy',
+      strategyName: strategy?.name || 'Trading Strategy', // This ensures we always have the correct strategy name
       timeframe: strategy?.timeframe || signalData.timeframe || 'Unknown',
       targetAsset: strategy?.target_asset_name || strategy?.target_asset || signalData.targetAsset || signalData.asset || 'Unknown',
       // Price information
@@ -289,7 +289,7 @@ export const sendNotificationForSignal = async (
       profitPercentage: signalData.profitPercentage || null
     };
 
-    console.log('Enhanced signal data prepared:', enhancedSignalData);
+    console.log('Enhanced signal data prepared with strategy name:', enhancedSignalData.strategyName);
 
     const notifications = [];
 

@@ -389,6 +389,23 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           </div>
         );
         
+      case 'williamsr':
+      case 'williams%r':
+        return (
+          <div className="grid grid-cols-2 gap-2">
+            <IndicatorParameter 
+              name="period" 
+              value={sideObj.parameters?.period || '14'} 
+              onChange={value => updateParameters(side, 'period', value)} 
+            />
+            <IndicatorParameter 
+              name="source" 
+              value={sideObj.parameters?.source || 'close'} 
+              onChange={value => updateParameters(side, 'source', value)} 
+            />
+          </div>
+        );
+        
       default:
         // For simple indicators with basic parameters
         return (

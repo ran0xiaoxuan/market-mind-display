@@ -95,6 +95,23 @@ class TechnicalIndicators {
     return ema;
   }
 
+  // Weighted Moving Average
+  static calculateWMA(prices: number[], period: number): number {
+    if (prices.length < period) return 0;
+    
+    const recentPrices = prices.slice(0, period);
+    let weightedSum = 0;
+    let weightSum = 0;
+    
+    for (let i = 0; i < period; i++) {
+      const weight = period - i; // Decreasing weights (most recent has highest weight)
+      weightedSum += recentPrices[i] * weight;
+      weightSum += weight;
+    }
+    
+    return weightedSum / weightSum;
+  }
+
   // Relative Strength Index
   static calculateRSI(prices: number[], period: number = 14): number {
     if (prices.length < period + 1) return 50;
@@ -490,6 +507,15 @@ class StrategyEvaluator {
             const emaPrices = PriceSourceCalculator.calculateSource(marketData, emaSource);
             indicatorValue = TechnicalIndicators.calculateEMA(emaPrices, emaPeriod);
             console.log(`[Indicator] EMA(${emaPeriod}, ${emaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            break;
+            
+          case 'wma':
+          case 'weightedmovingaverage':
+            const wmaPeriod = parseInt(params.period || '14');
+            const wmaSource = params.source || 'close';
+            const wmaPrices = PriceSourceCalculator.calculateSource(marketData, wmaSource);
+            indicatorValue = TechnicalIndicators.calculateWMA(wmaPrices, wmaPeriod);
+            console.log(`[Indicator] WMA(${wmaPeriod}, ${wmaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
             break;
             
           case 'rsi':

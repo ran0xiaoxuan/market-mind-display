@@ -1,361 +1,246 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { getTradingRulesForStrategy } from "./strategyService";
-import { batchGetCurrentPrices } from "./optimizedMarketDataService";
-import { evaluateTradingRules } from "./tradingRuleEvaluationService";
+import { evaluateRuleGroup } from "./tradingRuleEvaluationService";
+import { fetchMarketDataWithCache } from "./optimizedMarketDataService";
 
-export interface OptimizedSignalGenerationResult {
+interface SignalGenerationResult {
   signalGenerated: boolean;
   signalId?: string;
   reason?: string;
   matchedConditions?: string[];
   evaluationDetails?: string[];
   processingTime: number;
-  cacheHits: number;
+  cacheHits?: number;
+  testProcessingTime?: number;
 }
 
-export interface StrategyBatch {
-  strategies: any[];
-  assets: string[];
+interface Strategy {
+  id: string;
+  name: string;
+  target_asset: string;
+  timeframe: string;
+  user_id: string;
+  is_active: boolean;
+  signal_notifications_enabled: boolean;
+  rule_groups: Array<{
+    id: string;
+    rule_type: string;
+    logic: string;
+    required_conditions: number | null;
+    trading_rules: Array<{
+      id: string;
+      left_type: string;
+      left_indicator: string | null;
+      left_parameters: any;
+      left_value: string | null;
+      condition: string;
+      right_type: string;
+      right_indicator: string | null;
+      right_parameters: any;
+      right_value: string | null;
+    }>;
+  }>;
+}
+
+interface BatchSignalResult {
+  strategyId: string;
+  success: boolean;
+  result?: SignalGenerationResult;
+  error?: string;
   processingTime: number;
 }
 
-// Parallel signal generation for multiple strategies
-export const generateSignalsForStrategiesBatch = async (
-  strategyIds: string[],
-  userId: string
-): Promise<Map<string, OptimizedSignalGenerationResult>> => {
-  const startTime = Date.now();
-  const results = new Map<string, OptimizedSignalGenerationResult>();
+// Helper function to format conditions
+function formatConditions(conditions: any[]): string[] {
+  return conditions.map(condition => {
+    return `Condition: ${condition.condition}, Left: ${condition.left_indicator || condition.left_value}, Right: ${condition.right_indicator || condition.right_value}`;
+  });
+}
 
-  try {
-    console.log(`[BatchSignalGen] Processing ${strategyIds.length} strategies in parallel`);
+// Helper function to log signal details
+function logSignalDetails(strategy: Strategy, result: SignalGenerationResult) {
+  console.log(`Signal Details for Strategy ${strategy.name} (${strategy.id}):`);
+  console.log(`  Signal Generated: ${result.signalGenerated}`);
+  if (result.reason) console.log(`  Reason: ${result.reason}`);
+  if (result.matchedConditions) console.log(`  Matched Conditions: ${result.matchedConditions.join(', ')}`);
+  console.log(`  Processing Time: ${result.processingTime}ms`);
+}
 
-    // Fetch all strategies in parallel
-    const { data: strategies, error: strategiesError } = await supabase
-      .from('strategies')
-      .select('*')
-      .in('id', strategyIds)
-      .eq('user_id', userId)
-      .eq('is_active', true);
-
-    if (strategiesError || !strategies) {
-      console.error('[BatchSignalGen] Error fetching strategies:', strategiesError);
-      return results;
-    }
-
-    // Group strategies by asset for batch price fetching
-    const assetGroups = new Map<string, any[]>();
-    strategies.forEach(strategy => {
-      if (!assetGroups.has(strategy.target_asset)) {
-        assetGroups.set(strategy.target_asset, []);
-      }
-      assetGroups.get(strategy.target_asset)?.push(strategy);
-    });
-
-    // Batch fetch current prices for all unique assets
-    const uniqueAssets = Array.from(assetGroups.keys()).filter(Boolean);
-    console.log(`[BatchSignalGen] Fetching prices for ${uniqueAssets.length} unique assets`);
-    
-    const pricesMap = await batchGetCurrentPrices(uniqueAssets);
-    
-    // Check daily limits for all strategies in parallel
-    const today = new Date().toISOString().split('T')[0];
-    const { data: signalCounts } = await supabase
-      .from('trading_signals')
-      .select('strategy_id, id', { count: 'exact' })
-      .in('strategy_id', strategyIds)
-      .gte('created_at', `${today}T00:00:00.000Z`)
-      .lt('created_at', `${today}T23:59:59.999Z`);
-
-    const dailyCountsMap = new Map<string, number>();
-    signalCounts?.forEach(signal => {
-      const count = dailyCountsMap.get(signal.strategy_id) || 0;
-      dailyCountsMap.set(signal.strategy_id, count + 1);
-    });
-
-    // Process all strategies in parallel
-    const processingPromises = strategies.map(async (strategy) => {
-      const strategyStartTime = Date.now();
-      
-      try {
-        // Check daily limit
-        const dailyCount = dailyCountsMap.get(strategy.id) || 0;
-        const dailyLimit = strategy.daily_signal_limit || 5;
-        
-        if (dailyCount >= dailyLimit) {
-          return {
-            strategyId: strategy.id,
-            result: {
-              signalGenerated: false,
-              reason: `Daily signal limit reached (${dailyCount}/${dailyLimit})`,
-              processingTime: Date.now() - strategyStartTime,
-              cacheHits: 1
-            }
-          };
-        }
-
-        // Get current price from batch
-        const currentPrice = pricesMap.get(strategy.target_asset);
-        if (!currentPrice) {
-          return {
-            strategyId: strategy.id,
-            result: {
-              signalGenerated: false,
-              reason: `Failed to get current price for ${strategy.target_asset}`,
-              processingTime: Date.now() - strategyStartTime,
-              cacheHits: 0
-            }
-          };
-        }
-
-        // Get trading rules
-        const rulesData = await getTradingRulesForStrategy(strategy.id);
-        if (!rulesData || (!rulesData.entryRules?.length && !rulesData.exitRules?.length)) {
-          return {
-            strategyId: strategy.id,
-            result: {
-              signalGenerated: false,
-              reason: 'No trading rules defined for this strategy',
-              processingTime: Date.now() - strategyStartTime,
-              cacheHits: 1
-            }
-          };
-        }
-
-        // Evaluate rules for entry signals
-        let signalType: 'entry' | 'exit' | null = null;
-        let evaluation = null;
-
-        if (rulesData.entryRules?.length > 0) {
-          evaluation = await evaluateTradingRules(
-            rulesData.entryRules,
-            strategy.target_asset,
-            currentPrice,
-            strategy.timeframe
-          );
-
-          if (evaluation.signalGenerated && evaluation.matchedConditions?.length > 0) {
-            signalType = 'entry';
-          }
-        }
-
-        // Check exit rules if no entry signal
-        if (!signalType && rulesData.exitRules?.length > 0) {
-          evaluation = await evaluateTradingRules(
-            rulesData.exitRules,
-            strategy.target_asset,
-            currentPrice,
-            strategy.timeframe
-          );
-
-          if (evaluation.signalGenerated && evaluation.matchedConditions?.length > 0) {
-            signalType = 'exit';
-          }
-        }
-
-        // Generate signal if conditions are met
-        if (signalType && evaluation?.signalGenerated) {
-          const signalData = {
-            strategyId: strategy.id,
-            strategyName: strategy.name,
-            targetAsset: strategy.target_asset,
-            targetAssetName: strategy.target_asset_name || strategy.target_asset,
-            price: currentPrice,
-            userId: userId,
-            timestamp: new Date().toISOString(),
-            timeframe: strategy.timeframe,
-            signalType: signalType,
-            reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal - conditions verified and met`,
-            matchedConditions: evaluation.matchedConditions,
-            evaluationDetails: evaluation.evaluationDetails,
-            conditionsMetCount: evaluation.matchedConditions.length,
-            marketPrice: currentPrice,
-            dailySignalNumber: dailyCount + 1,
-            conditionsMet: true,
-            verifiedAt: new Date().toISOString(),
-            processingTime: Date.now() - strategyStartTime
-          };
-
-          const { data: signal, error: signalError } = await supabase
-            .from('trading_signals')
-            .insert({
-              strategy_id: strategy.id,
-              signal_type: signalType,
-              signal_data: signalData,
-              processed: false
-            })
-            .select()
-            .single();
-
-          if (signalError || !signal) {
-            return {
-              strategyId: strategy.id,
-              result: {
-                signalGenerated: false,
-                reason: `Failed to create signal in database: ${signalError?.message}`,
-                processingTime: Date.now() - strategyStartTime,
-                cacheHits: 1
-              }
-            };
-          }
-
-          return {
-            strategyId: strategy.id,
-            result: {
-              signalGenerated: true,
-              signalId: signal.id,
-              reason: `${signalType.charAt(0).toUpperCase() + signalType.slice(1)} signal generated - conditions verified and met`,
-              matchedConditions: evaluation.matchedConditions,
-              evaluationDetails: evaluation.evaluationDetails,
-              processingTime: Date.now() - strategyStartTime,
-              cacheHits: 2
-            }
-          };
-        }
-
-        return {
-          strategyId: strategy.id,
-          result: {
-            signalGenerated: false,
-            reason: 'Market conditions do not meet trading rule criteria',
-            evaluationDetails: evaluation?.evaluationDetails || [],
-            processingTime: Date.now() - strategyStartTime,
-            cacheHits: 1
-          }
-        };
-
-      } catch (error) {
-        console.error(`[BatchSignalGen] Error processing strategy ${strategy.id}:`, error);
-        return {
-          strategyId: strategy.id,
-          result: {
-            signalGenerated: false,
-            reason: `Error during signal generation: ${error.message}`,
-            processingTime: Date.now() - strategyStartTime,
-            cacheHits: 0
-          }
-        };
-      }
-    });
-
-    // Wait for all strategies to complete processing
-    const processingResults = await Promise.all(processingPromises);
-    
-    // Collect results
-    processingResults.forEach(({ strategyId, result }) => {
-      results.set(strategyId, result);
-    });
-
-    const totalTime = Date.now() - startTime;
-    console.log(`[BatchSignalGen] Completed processing ${strategies.length} strategies in ${totalTime}ms`);
-    console.log(`[BatchSignalGen] Generated ${Array.from(results.values()).filter(r => r.signalGenerated).length} signals`);
-
-  } catch (error) {
-    console.error('[BatchSignalGen] Error in batch signal generation:', error);
-  }
-
-  return results;
-};
-
-// Optimized single strategy signal generation
-export const generateOptimizedSignalForStrategy = async (
-  strategyId: string,
-  userId: string
-): Promise<OptimizedSignalGenerationResult> => {
-  const results = await generateSignalsForStrategiesBatch([strategyId], userId);
-  return results.get(strategyId) || {
-    signalGenerated: false,
-    reason: 'Strategy not found in batch results',
-    processingTime: 0,
-    cacheHits: 0
-  };
-};
-
-// Batch trigger for multiple strategies with performance monitoring
-export const triggerOptimizedSignalMonitoring = async () => {
+export async function generateSignalForStrategy(
+  strategy: Strategy,
+  marketData: any,
+  testMode: boolean = false
+): Promise<SignalGenerationResult> {
   const startTime = Date.now();
   
   try {
-    console.log('[OptimizedTrigger] Starting optimized signal monitoring...');
+    console.log(`Generating signal for strategy: ${strategy.name} (${strategy.id})`);
     
-    const { data, error } = await supabase.functions.invoke('monitor-trading-signals', {
-      body: { 
-        manual: true,
-        source: 'optimized_batch_trigger',
-        timestamp: new Date().toISOString(),
-        optimized: true,
-        parallel: true,
-        performance_tracking: true
-      }
-    });
-    
-    const processingTime = Date.now() - startTime;
-
-    if (error) {
-      console.error('[OptimizedTrigger] Error:', error);
-      return { 
-        success: false, 
-        error: error.message,
-        processingTime
+    // Check if strategy is active
+    if (!strategy.is_active) {
+      return {
+        signalGenerated: false,
+        reason: "Strategy is not active",
+        processingTime: Date.now() - startTime
       };
     }
 
-    console.log(`[OptimizedTrigger] Completed in ${processingTime}ms:`, data);
-    
-    return { 
-      success: true, 
-      data: {
-        ...data,
-        totalProcessingTime: processingTime,
-        optimization: 'parallel_processing'
-      }
+    // Get entry and exit rule groups
+    const entryGroups = strategy.rule_groups.filter(g => g.rule_type === 'entry');
+    const exitGroups = strategy.rule_groups.filter(g => g.rule_type === 'exit');
+
+    if (entryGroups.length === 0) {
+      return {
+        signalGenerated: false,
+        reason: "No entry rules defined",
+        processingTime: Date.now() - startTime
+      };
+    }
+
+    // Evaluate entry conditions
+    const entryResults = await Promise.all(
+      entryGroups.map(group => evaluateRuleGroup(group, marketData, strategy.target_asset))
+    );
+
+    const entryConditionMet = entryResults.some(result => result.conditionMet);
+
+    if (!entryConditionMet) {
+      return {
+        signalGenerated: false,
+        reason: "Entry conditions not met",
+        processingTime: Date.now() - startTime
+      };
+    }
+
+    // If we have exit rules, check them too
+    let exitConditionMet = false;
+    if (exitGroups.length > 0) {
+      const exitResults = await Promise.all(
+        exitGroups.map(group => evaluateRuleGroup(group, marketData, strategy.target_asset))
+      );
+      exitConditionMet = exitResults.some(result => result.conditionMet);
+    }
+
+    // Determine signal type
+    const signalType = exitConditionMet ? 'exit' : 'entry';
+
+    // Create signal data with proper typing
+    const signalData = {
+      strategy_id: strategy.id,
+      signal_type: signalType,
+      target_asset: strategy.target_asset,
+      timestamp: new Date().toISOString(),
+      conditions_met: entryResults.filter(r => r.conditionMet).map(r => r.details).flat(),
+      market_data: marketData,
+      processingTime: Date.now() - startTime
     };
+
+    if (testMode) {
+      // For test mode, don't save to database
+      return {
+        signalGenerated: true,
+        signalId: `test-${Date.now()}`,
+        reason: `${signalType} signal generated (test mode)`,
+        matchedConditions: signalData.conditions_met,
+        processingTime: Date.now() - startTime,
+        testProcessingTime: Date.now() - startTime
+      };
+    }
+
+    // Save signal to database
+    const { data: signal, error } = await supabase
+      .from('trading_signals')
+      .insert({
+        strategy_id: strategy.id,
+        signal_type: signalType,
+        signal_data: signalData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving signal:', error);
+      return {
+        signalGenerated: false,
+        reason: `Error saving signal: ${error.message}`,
+        processingTime: Date.now() - startTime
+      };
+    }
+
+    return {
+      signalGenerated: true,
+      signalId: signal.id,
+      reason: `${signalType} signal generated successfully`,
+      matchedConditions: signalData.conditions_met,
+      processingTime: Date.now() - startTime
+    };
+
   } catch (error) {
-    console.error('[OptimizedTrigger] Error in optimized monitoring:', error);
-    return { 
-      success: false, 
-      error: error.message,
+    console.error('Error in generateSignalForStrategy:', error);
+    return {
+      signalGenerated: false,
+      reason: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       processingTime: Date.now() - startTime
     };
   }
-};
+}
 
-// Performance analytics for signal generation
-export const getSignalGenerationPerformance = async (timeRange: string = '1h') => {
-  try {
-    const startTime = new Date();
-    startTime.setHours(startTime.getHours() - 1);
+export async function generateSignalsInBatch(
+  strategies: Strategy[],
+  testMode: boolean = false
+): Promise<BatchSignalResult[]> {
+  const batchStartTime = Date.now();
+  console.log(`Starting batch signal generation for ${strategies.length} strategies`);
 
-    const { data: recentSignals, error } = await supabase
-      .from('trading_signals')
-      .select('created_at, signal_data')
-      .gte('created_at', startTime.toISOString())
-      .order('created_at', { ascending: false });
+  // Process strategies in parallel with concurrency limit
+  const concurrencyLimit = 5;
+  const results: BatchSignalResult[] = [];
 
-    if (error) {
-      console.error('[Performance] Error fetching signals:', error);
-      return null;
-    }
+  for (let i = 0; i < strategies.length; i += concurrencyLimit) {
+    const batch = strategies.slice(i, i + concurrencyLimit);
+    
+    const batchPromises = batch.map(async (strategy) => {
+      const startTime = Date.now();
+      try {
+        // Fetch market data for this strategy
+        const marketData = await fetchMarketDataWithCache(
+          strategy.target_asset,
+          strategy.timeframe,
+          300 // 5 minute cache
+        );
 
-    const processingTimes = recentSignals
-      ?.map(signal => signal.signal_data?.processingTime)
-      .filter(time => typeof time === 'number') || [];
+        if (!marketData) {
+          return {
+            strategyId: strategy.id,
+            success: false,
+            error: 'Failed to fetch market data',
+            processingTime: Date.now() - startTime
+          };
+        }
 
-    const avgProcessingTime = processingTimes.length > 0 
-      ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length)
-      : 0;
+        const result = await generateSignalForStrategy(strategy, marketData, testMode);
+        
+        return {
+          strategyId: strategy.id,
+          success: true,
+          result,
+          processingTime: Date.now() - startTime
+        };
+      } catch (error) {
+        return {
+          strategyId: strategy.id,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          processingTime: Date.now() - startTime
+        };
+      }
+    });
 
-    return {
-      signalsGenerated: recentSignals?.length || 0,
-      avgProcessingTime,
-      minProcessingTime: processingTimes.length > 0 ? Math.min(...processingTimes) : 0,
-      maxProcessingTime: processingTimes.length > 0 ? Math.max(...processingTimes) : 0,
-      timeRange,
-      lastUpdated: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error('[Performance] Error calculating performance:', error);
-    return null;
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
   }
-};
+
+  const totalTime = Date.now() - batchStartTime;
+  console.log(`Batch signal generation completed in ${totalTime}ms`);
+
+  return results;
+}

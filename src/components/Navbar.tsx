@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { User, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 
 export function Navbar() {
@@ -163,6 +165,9 @@ export function Navbar() {
                         Settings
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <ThemeToggle />
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleSignOut}
                       className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 hover:text-red-600 hover:bg-red-50"

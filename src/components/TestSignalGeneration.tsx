@@ -1,166 +1,205 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { testSignalGeneration, triggerSignalMonitoring, refreshDashboardData } from '@/services/signalGenerationService';
-import { toast } from 'sonner';
-import { useParams } from 'react-router-dom';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { generateSignalForStrategy } from "@/services/optimizedSignalGenerationService";
+import { fetchMarketDataWithCache } from "@/services/optimizedMarketDataService";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, PlayCircle, CheckCircle, XCircle } from "lucide-react";
 
-export const TestSignalGeneration = () => {
-  const { id: strategyId } = useParams<{ id: string }>();
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
+interface TestResult {
+  signalGenerated: boolean;
+  signalId?: string;
+  reason?: string;
+  matchedConditions?: string[];
+  evaluationDetails?: string[];
+  processingTime: number;
+  cacheHits?: number;
+  testProcessingTime?: number;
+}
 
-  const handleTestSignalGeneration = async () => {
-    if (!strategyId) {
-      toast.error('No strategy ID found');
-      return;
+export function TestSignalGeneration() {
+  const [isTestingSignal, setIsTestingSignal] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  const { data: strategies = [] } = useQuery({
+    queryKey: ['test-strategies'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('strategies')
+        .select(`
+          id,
+          name,
+          target_asset,
+          timeframe,
+          user_id,
+          is_active,
+          signal_notifications_enabled,
+          rule_groups (
+            id,
+            rule_type,
+            logic,
+            required_conditions,
+            trading_rules (
+              id,
+              left_type,
+              left_indicator,
+              left_parameters,
+              left_value,
+              condition,
+              right_type,
+              right_indicator,
+              right_parameters,
+              right_value
+            )
+          )
+        `)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (error) throw error;
+      return data || [];
     }
+  });
 
-    setIsLoading(true);
+  const testSignalGeneration = async () => {
+    if (strategies.length === 0) return;
+
+    setIsTestingSignal(true);
+    setTestResult(null);
+
     try {
-      console.log(`[TestComponent] Testing signal generation for strategy: ${strategyId}`);
-      const result = await testSignalGeneration(strategyId);
-      setResults(result);
+      const strategy = strategies[0];
       
-      if (result.signalGenerated) {
-        toast.success('Signal generated and stored successfully!', {
-          description: `Signal ID: ${result.signalId}`
-        });
-        
-        // Refresh dashboard data to show new signal
-        setTimeout(() => {
-          refreshDashboardData();
-        }, 1000);
-      } else {
-        toast.warning(`No signal generated: ${result.reason}`);
-      }
-    } catch (error) {
-      console.error('[TestComponent] Error:', error);
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // Fetch market data
+      const marketData = await fetchMarketDataWithCache(
+        strategy.target_asset,
+        strategy.timeframe,
+        60 // 1 minute cache for testing
+      );
 
-  const handleTriggerMonitoring = async () => {
-    setIsLoading(true);
-    try {
-      console.log('[TestComponent] Triggering signal monitoring for all strategies');
-      const result = await triggerSignalMonitoring();
-      setResults(result);
-      
-      if (result.success) {
-        const signalsGenerated = result.data?.signalsGenerated || 0;
-        toast.success(`Signal monitoring completed successfully!`, {
-          description: `Generated ${signalsGenerated} new signals`
+      if (!marketData) {
+        setTestResult({
+          signalGenerated: false,
+          reason: "Failed to fetch market data",
+          processingTime: 0
         });
-        
-        // Refresh dashboard data to show new signals
-        if (signalsGenerated > 0) {
-          setTimeout(() => {
-            refreshDashboardData();
-          }, 1000);
-        }
-      } else {
-        toast.error(`Monitoring failed: ${result.error}`);
+        return;
       }
-    } catch (error) {
-      console.error('[TestComponent] Error:', error);
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleRefreshDashboard = async () => {
-    setIsLoading(true);
-    try {
-      console.log('[TestComponent] Refreshing dashboard data');
-      await refreshDashboardData();
-      toast.success('Dashboard data refreshed');
+      // Generate test signal
+      const result = await generateSignalForStrategy(strategy, marketData, true);
+      setTestResult(result);
+
     } catch (error) {
-      console.error('[TestComponent] Error:', error);
-      toast.error(`Error refreshing: ${error.message}`);
+      console.error('Test signal generation error:', error);
+      setTestResult({
+        signalGenerated: false,
+        reason: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        processingTime: 0
+      });
     } finally {
-      setIsLoading(false);
+      setIsTestingSignal(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card>
       <CardHeader>
-        <CardTitle>Test Signal Generation & Database Storage</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <PlayCircle className="h-5 w-5" />
+          Test Signal Generation
+        </CardTitle>
+        <CardDescription>
+          Test the optimized signal generation system with real market data
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Button 
-            onClick={handleTestSignalGeneration}
-            disabled={isLoading || !strategyId}
-            className="w-full"
-          >
-            {isLoading ? 'Testing...' : 'Test This Strategy Signal Generation'}
-          </Button>
-          
-          <Button 
-            onClick={handleTriggerMonitoring}
-            disabled={isLoading}
-            className="w-full"
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Available strategies: {strategies.length}
+            </p>
+            {strategies.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Testing with: {strategies[0].name} ({strategies[0].target_asset})
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={testSignalGeneration}
+            disabled={isTestingSignal || strategies.length === 0}
             variant="outline"
           >
-            {isLoading ? 'Processing...' : 'Trigger All Strategy Monitoring'}
-          </Button>
-
-          <Button 
-            onClick={handleRefreshDashboard}
-            disabled={isLoading}
-            className="w-full"
-            variant="secondary"
-          >
-            {isLoading ? 'Refreshing...' : 'Refresh Dashboard Data'}
+            {isTestingSignal ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Testing...
+              </>
+            ) : (
+              <>
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Test Signal
+              </>
+            )}
           </Button>
         </div>
 
-        {results && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Test Results:</h3>
-            <div className="space-y-2">
-              <div>
-                <strong>Signal Generated:</strong> {results.signalGenerated ? '✅ Yes' : '❌ No'}
-              </div>
-              {results.signalId && (
-                <div>
-                  <strong>Signal ID:</strong> {results.signalId}
-                </div>
+        {testResult && (
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              {testResult.signalGenerated ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-500" />
               )}
+              <Badge variant={testResult.signalGenerated ? "default" : "destructive"}>
+                {testResult.signalGenerated ? "Signal Generated" : "No Signal"}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <strong>Reason:</strong> {results.reason}
+                <span className="font-medium">Processing Time:</span>
+                <p className="text-muted-foreground">{testResult.processingTime}ms</p>
               </div>
-              {results.matchedConditions && results.matchedConditions.length > 0 && (
+              {testResult.signalId && (
                 <div>
-                  <strong>Matched Conditions:</strong> {results.matchedConditions.length}
+                  <span className="font-medium">Signal ID:</span>
+                  <p className="text-muted-foreground font-mono text-xs">{testResult.signalId}</p>
                 </div>
               )}
             </div>
-            <details className="mt-2">
-              <summary className="cursor-pointer font-medium">Full Details</summary>
-              <pre className="text-sm overflow-auto whitespace-pre-wrap mt-2 bg-white p-2 rounded border">
-                {JSON.stringify(results, null, 2)}
-              </pre>
-            </details>
+
+            {testResult.reason && (
+              <div>
+                <span className="font-medium text-sm">Reason:</span>
+                <p className="text-muted-foreground text-sm">{testResult.reason}</p>
+              </div>
+            )}
+
+            {testResult.matchedConditions && testResult.matchedConditions.length > 0 && (
+              <div>
+                <span className="font-medium text-sm">Matched Conditions:</span>
+                <ul className="text-muted-foreground text-sm list-disc list-inside">
+                  {testResult.matchedConditions.map((condition, index) => (
+                    <li key={index}>{condition}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {testResult.cacheHits !== undefined && (
+              <div>
+                <span className="font-medium text-sm">Cache Hits:</span>
+                <p className="text-muted-foreground text-sm">{testResult.cacheHits}</p>
+              </div>
+            )}
           </div>
         )}
-
-        <div className="text-sm text-gray-600 mt-4 p-3 bg-blue-50 rounded">
-          <strong>Usage:</strong>
-          <ul className="list-disc list-inside mt-1 space-y-1">
-            <li>Use "Test This Strategy" to generate a signal for this specific strategy</li>
-            <li>Use "Trigger All Strategy Monitoring" to check all active strategies</li>
-            <li>Use "Refresh Dashboard Data" to update the dashboard display</li>
-            <li>Generated signals should appear in both Strategy Details and Dashboard Trade History</li>
-          </ul>
-        </div>
       </CardContent>
     </Card>
   );
-};
+}

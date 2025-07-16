@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -249,19 +248,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Starting signup process for:', email);
 
-      // Get the current domain to ensure proper email redirect
+      // Use the current domain to ensure proper email redirect
       const currentOrigin = window.location.origin;
-      const redirectUrl = `${currentOrigin}/auth/callback`;
       
-      console.log('Using redirect URL for email confirmation:', redirectUrl);
+      console.log('Current origin:', currentOrigin);
+      console.log('Using redirect URL for email confirmation:', `${currentOrigin}/auth/callback`);
 
-      // Use native Supabase signup with proper email redirect
+      // Use native Supabase signup
       const result = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data,
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: `${currentOrigin}/auth/callback`
         }
       });
 
@@ -278,7 +277,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.data.user && !result.data.session) {
         console.log('User created, confirmation email should be sent to:', email);
-        console.log('Please check your email (including spam folder) for the confirmation link');
+        console.log('Email confirmation required. User ID:', result.data.user.id);
+        console.log('User email confirmed:', result.data.user.email_confirmed_at);
         toast({
           title: "Account created successfully",
           description: "Please check your email to verify your account before signing in. Check your spam folder if you don't see it."
@@ -356,15 +356,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Resending confirmation email for:', email);
       
       const currentOrigin = window.location.origin;
-      const redirectUrl = `${currentOrigin}/auth/callback`;
       
-      console.log('Using redirect URL for resend:', redirectUrl);
+      console.log('Using redirect URL for resend:', `${currentOrigin}/auth/callback`);
       
       const result = await supabase.auth.resend({
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: `${currentOrigin}/auth/callback`
         }
       });
       

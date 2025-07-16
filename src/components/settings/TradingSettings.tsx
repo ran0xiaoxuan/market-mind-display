@@ -194,11 +194,11 @@ export function TradingSettings() {
           <HelpCircle className="h-3 w-3" />
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="mt-3 p-4 bg-slate-50 rounded-md border">
+      <CollapsibleContent className="mt-3 p-4 bg-muted/50 rounded-md border border-border">
         <div className="space-y-4 text-sm">
           <div>
-            <h4 className="font-medium text-indigo-800 mb-2">Step-by-Step Guide:</h4>
-            <ol className="list-decimal list-inside space-y-2 text-slate-700">
+            <h4 className="font-medium text-foreground mb-2">Step-by-Step Guide:</h4>
+            <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
               <li>Open Discord and go to your server (or create one if needed)</li>
               <li>Right-click on your server name → <strong>Server Settings</strong></li>
               <li>In the left sidebar, click <strong>Integrations</strong></li>
@@ -210,9 +210,9 @@ export function TradingSettings() {
             </ol>
           </div>
           
-          <div className="border-t pt-3">
-            <h5 className="font-medium text-slate-800 mb-1">Example URL format:</h5>
-            <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
+          <div className="border-t border-border pt-3">
+            <h5 className="font-medium text-foreground mb-1">Example URL format:</h5>
+            <div className="bg-muted p-2 rounded text-xs font-mono flex items-center justify-between">
               <span>https://discord.com/api/webhooks/123456789/abcdef...</span>
               <Button variant="ghost" size="sm" onClick={() => copyToClipboard("https://discord.com/api/webhooks/123456789/abcdef...")} className="h-6 w-6 p-0">
                 <Copy className="h-3 w-3" />
@@ -220,9 +220,9 @@ export function TradingSettings() {
             </div>
           </div>
           
-          <div className="border-t pt-3">
-            <h5 className="font-medium text-slate-800 mb-1">Troubleshooting:</h5>
-            <ul className="list-disc list-inside space-y-1 text-slate-600 text-xs">
+          <div className="border-t border-border pt-3">
+            <h5 className="font-medium text-foreground mb-1">Troubleshooting:</h5>
+            <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
               <li>Make sure you have "Manage Webhooks" permission in the server</li>
               <li>The URL should start with "https://discord.com/api/webhooks/"</li>
               <li>Don't share your webhook URL publicly - it gives access to your channel</li>
@@ -250,22 +250,22 @@ export function TradingSettings() {
           <HelpCircle className="h-3 w-3" />
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="mt-3 p-4 bg-slate-50 rounded-md border">
+      <CollapsibleContent className="mt-3 p-4 bg-muted/50 rounded-md border border-border">
         <div className="space-y-6 text-sm">
           <div>
-            <h4 className="font-medium text-sky-800 mb-2">Getting Bot Token:</h4>
-            <ol className="list-decimal list-inside space-y-2 text-slate-700">
+            <h4 className="font-medium text-foreground mb-2">Getting Bot Token:</h4>
+            <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
               <li>Open Telegram and search for <strong>@BotFather</strong></li>
               <li>Start a chat with BotFather by clicking "Start"</li>
-              <li>Send the command: <code className="bg-slate-200 px-1 rounded">/newbot</code></li>
+              <li>Send the command: <code className="bg-muted px-1 rounded">/newbot</code></li>
               <li>Follow the prompts to choose a name for your bot</li>
               <li>Choose a username ending in "bot" (e.g., "mytradingbot")</li>
               <li>Copy the token provided by BotFather</li>
             </ol>
             
             <div className="mt-3">
-              <h5 className="font-medium text-slate-800 mb-1">Example Token format:</h5>
-              <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
+              <h5 className="font-medium text-foreground mb-1">Example Token format:</h5>
+              <div className="bg-muted p-2 rounded text-xs font-mono flex items-center justify-between">
                 <span>123456789:ABCdefGhIjkLmnOpqrStUvWxYz</span>
                 <Button variant="ghost" size="sm" onClick={() => copyToClipboard("123456789:ABCdefGhIjkLmnOpqrStUvWxYz")} className="h-6 w-6 p-0">
                   <Copy className="h-3 w-3" />
@@ -274,12 +274,12 @@ export function TradingSettings() {
             </div>
           </div>
 
-          <div className="border-t pt-4">
-            <h4 className="font-medium text-sky-800 mb-2">Getting Chat ID:</h4>
+          <div className="border-t border-border pt-4">
+            <h4 className="font-medium text-foreground mb-2">Getting Chat ID:</h4>
             
-            <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
-              <h5 className="font-medium text-green-800 mb-2">✅ EASIEST METHOD: Use @get_id_bot</h5>
-              <ol className="list-decimal list-inside space-y-1 text-green-700 text-sm">
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md p-3 mb-4">
+              <h5 className="font-medium text-green-800 dark:text-green-300 mb-2">✅ EASIEST METHOD: Use @get_id_bot</h5>
+              <ol className="list-decimal list-inside space-y-1 text-green-700 dark:text-green-400 text-sm">
                 <li>Search for <strong>@get_id_bot</strong> in Telegram</li>
                 <li>Start a chat and send any message (like "hello")</li>
                 <li>The bot will immediately reply with your chat ID</li>
@@ -287,34 +287,34 @@ export function TradingSettings() {
               </ol>
             </div>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <h5 className="font-medium text-blue-800 mb-2">Alternative: Manual API Method</h5>
-              <div className="space-y-3 text-blue-700 text-sm">
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
-                  <p className="font-medium text-yellow-800">⚠️ IMPORTANT: Send a message to your bot first!</p>
-                  <p className="text-yellow-700 text-xs mt-1">Search for your bot in Telegram and send it any message (like "hello"). Without this step, the API will return empty results.</p>
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+              <h5 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Alternative: Manual API Method</h5>
+              <div className="space-y-3 text-blue-700 dark:text-blue-400 text-sm">
+                <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded p-2">
+                  <p className="font-medium text-yellow-800 dark:text-yellow-300">⚠️ IMPORTANT: Send a message to your bot first!</p>
+                  <p className="text-yellow-700 dark:text-yellow-400 text-xs mt-1">Search for your bot in Telegram and send it any message (like "hello"). Without this step, the API will return empty results.</p>
                 </div>
                 
                 <ol className="list-decimal list-inside space-y-1">
                   <li>After messaging your bot, replace YOUR_BOT_TOKEN in this URL:</li>
-                  <li className="ml-4 font-mono text-xs bg-blue-100 p-2 rounded break-all">
+                  <li className="ml-4 font-mono text-xs bg-muted p-2 rounded break-all">
                     https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
                   </li>
                   <li>Visit the URL in your browser</li>
-                  <li>Look for <code className="bg-blue-200 px-1 rounded">"chat":{'{'}"id":123456789{'}'}</code> in the response</li>
+                  <li>Look for <code className="bg-muted px-1 rounded">"chat":{'{'}"id":123456789{'}'}</code> in the response</li>
                   <li>The number after "id": is your chat ID</li>
                 </ol>
                 
-                <div className="bg-red-50 border border-red-200 rounded p-2">
-                  <p className="text-red-800 text-xs"><strong>If you see empty result like</strong> <code>{'{'}"ok": true, "result": []{' }'}</code></p>
-                  <p className="text-red-700 text-xs">This means you haven't sent a message to your bot yet. Go back to step 1!</p>
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded p-2">
+                  <p className="text-red-800 dark:text-red-300 text-xs"><strong>If you see empty result like</strong> <code>{'{'}"ok": true, "result": []{' }'}</code></p>
+                  <p className="text-red-700 dark:text-red-400 text-xs">This means you haven't sent a message to your bot yet. Go back to step 1!</p>
                 </div>
               </div>
             </div>
             
             <div className="mt-4">
-              <h5 className="font-medium text-slate-800 mb-2">For Group Chats:</h5>
-              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
+              <h5 className="font-medium text-foreground mb-2">For Group Chats:</h5>
+              <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
                 <li>Add your bot to the group</li>
                 <li>Make your bot an admin (required for sending messages)</li>
                 <li>Send a message in the group mentioning your bot (e.g., "@yourbotname hello")</li>
@@ -324,15 +324,15 @@ export function TradingSettings() {
             </div>
             
             <div className="mt-3">
-              <h5 className="font-medium text-slate-800 mb-1">Example Chat ID formats:</h5>
+              <h5 className="font-medium text-foreground mb-1">Example Chat ID formats:</h5>
               <div className="space-y-1">
-                <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
+                <div className="bg-muted p-2 rounded text-xs font-mono flex items-center justify-between">
                   <span>Personal: 123456789</span>
                   <Button variant="ghost" size="sm" onClick={() => copyToClipboard("123456789")} className="h-6 w-6 p-0">
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="bg-slate-100 p-2 rounded text-xs font-mono flex items-center justify-between">
+                <div className="bg-muted p-2 rounded text-xs font-mono flex items-center justify-between">
                   <span>Group: -100123456789</span>
                   <Button variant="ghost" size="sm" onClick={() => copyToClipboard("-100123456789")} className="h-6 w-6 p-0">
                     <Copy className="h-3 w-3" />
@@ -342,9 +342,9 @@ export function TradingSettings() {
             </div>
           </div>
           
-          <div className="border-t pt-3">
-            <h5 className="font-medium text-slate-800 mb-1">Important Notes:</h5>
-            <ul className="list-disc list-inside space-y-1 text-slate-600 text-xs">
+          <div className="border-t border-border pt-3">
+            <h5 className="font-medium text-foreground mb-1">Important Notes:</h5>
+            <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
               <li>Keep your bot token secure - don't share it publicly</li>
               <li>You MUST send a message to your bot before using the API method</li>
               <li>For groups, make sure your bot has permission to send messages</li>
@@ -528,7 +528,7 @@ export function TradingSettings() {
                   </div>
                   
                   {form.watch("discord_enabled") && (
-                    <div className="space-y-2 rounded-md bg-slate-50 p-4 border border-slate-200">
+                    <div className="space-y-2 rounded-md bg-muted/50 p-4 border border-border">
                       <DiscordHelpSection />
                       
                       <FormField
@@ -610,7 +610,7 @@ export function TradingSettings() {
                   </div>
                   
                   {form.watch("telegram_enabled") && (
-                    <div className="space-y-4 rounded-md bg-slate-50 p-4 border border-slate-200">
+                    <div className="space-y-4 rounded-md bg-muted/50 p-4 border border-border">
                       <TelegramHelpSection />
                       
                       <div className="space-y-4">

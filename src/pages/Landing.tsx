@@ -9,8 +9,10 @@ import { CtaSection } from "@/components/CtaSection";
 import { Footer } from "@/components/Footer";
 import { PricingSection } from "@/components/PricingSection";
 import { usePageTitle } from "@/hooks/usePageTitle";
+
 const Landing = () => {
   usePageTitle("StratAIge - AI-Powered Trading Strategy Platform");
+
   const features = [{
     icon: Brain,
     title: "AI-Powered Strategy Creation",
@@ -36,7 +38,9 @@ const Landing = () => {
     delay: "300ms",
     gradient: "from-orange-500 to-red-500"
   }];
+
   const benefits = ["Create unlimited AI-powered trading strategies", "Receive real-time trading signals", "Multi-platform notification delivery", "Natural language strategy description", "No coding required", "Instant strategy activation"];
+
   const stats = [{
     label: "Active Strategies",
     value: "10,000+",
@@ -53,6 +57,7 @@ const Landing = () => {
     icon: Users,
     color: "text-green-600"
   }];
+
   const faqs = [{
     question: "How do I open a StratAIge account?",
     answer: "Click the 'Get Started' button and create an account. You can create a StratAIge account via Google or Email."
@@ -69,6 +74,7 @@ const Landing = () => {
     question: "How can I contact customer support for help?",
     answer: "If you have any questions or need assistance, please join our Discord community for support: https://discord.com/invite/EEEnGUwDEF"
   }];
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault();
     const section = document.getElementById(targetId);
@@ -97,6 +103,7 @@ const Landing = () => {
     };
     requestAnimationFrame(animateScroll);
   };
+
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
       {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50 transition-all duration-300 shadow-sm">
@@ -116,6 +123,9 @@ const Landing = () => {
                 </Link>
                 <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer" onClick={e => handleNavClick(e, 'faq')}>
                   FAQ
+                </a>
+                <a href="https://www.notion.so/StratAIge-Roadmap-232438a2e18280e1965af5afc1fdc5c4?source=copy_link" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  Roadmap
                 </a>
               </div>
             </div>
@@ -486,4 +496,5 @@ const Landing = () => {
       <Footer />
     </div>;
 };
+
 export default Landing;

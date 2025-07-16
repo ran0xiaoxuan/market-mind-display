@@ -115,7 +115,6 @@ export function AccountSettings() {
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>All your trading strategies</li>
-                <li>Backtest history and results</li>
                 <li>Profile information</li>
                 <li>Account settings and preferences</li>
                 <li>Notification settings</li>

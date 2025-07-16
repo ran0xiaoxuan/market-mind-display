@@ -1,5 +1,14 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  getOptimizedCurrentPrice,
+  batchGetCurrentPrices,
+  fetchOptimizedMarketData,
+  batchFetchMarketData,
+  cleanupOptimizedCaches,
+  warmUpCache,
+  getOptimizedCacheStats
+} from "./optimizedMarketDataService";
 
 export interface MarketData {
   date: string;
@@ -18,182 +27,49 @@ export interface MarketDataOptions {
   to?: string;
 }
 
-// Get FMP API key from Supabase secrets
-const getFmpApiKey = async (): Promise<string | null> => {
-  try {
-    const { data } = await supabase.functions.invoke('get-fmp-key');
-    return data?.key || null;
-  } catch (error) {
-    console.error("Error fetching FMP API key:", error);
-    return null;
-  }
+// Use optimized implementation for better performance
+export const getCurrentPrice = async (symbol: string): Promise<number | null> => {
+  return await getOptimizedCurrentPrice(symbol);
 };
 
-// Map timeframe to FMP API intervals
-const mapTimeframeToFmpInterval = (timeframe: string): string => {
-  const timeframeMap: { [key: string]: string } = {
-    '1m': '1min',
-    '5m': '5min',
-    '15m': '15min',
-    '30m': '30min',
-    '1h': '1hour',
-    '4h': '4hour',
-    'Daily': '1day',
-    'Weekly': '1week',
-    'Monthly': '1month'
-  };
-  
-  return timeframeMap[timeframe] || '1day';
+export const getStockPrice = async (symbol: string): Promise<{ price: number } | null> => {
+  const price = await getCurrentPrice(symbol);
+  if (price === null) return null;
+  return { price };
 };
 
-// Cache for market data
-const marketDataCache = new Map<string, { data: MarketData[]; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// Get cached data if available and not expired
-const getCachedData = (cacheKey: string): MarketData[] | null => {
-  const cached = marketDataCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`[MarketData] Cache hit for: ${cacheKey}`);
-    return cached.data;
-  }
-  return null;
-};
-
-// Set data in cache
-const setCachedData = (cacheKey: string, data: MarketData[]): void => {
-  marketDataCache.set(cacheKey, { data, timestamp: Date.now() });
-  console.log(`[MarketData] Cached data for: ${cacheKey}`);
-};
-
-// Fetch historical market data from FMP
 export const fetchMarketData = async (options: MarketDataOptions): Promise<MarketData[]> => {
   const { symbol, timeframe, limit = 100 } = options;
-  const cacheKey = `${symbol}_${timeframe}_${limit}`;
   
-  // Check cache first
-  const cachedData = getCachedData(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
-
   try {
-    const apiKey = await getFmpApiKey();
-    if (!apiKey) {
-      throw new Error('FMP API key not available');
-    }
-
-    const fmpInterval = mapTimeframeToFmpInterval(timeframe);
-    let endpoint: string;
+    const optimizedData = await fetchOptimizedMarketData(symbol, timeframe, limit);
     
-    // Choose the appropriate FMP endpoint based on timeframe
-    if (['1min', '5min', '15min', '30min', '1hour', '4hour'].includes(fmpInterval)) {
-      // Intraday data
-      endpoint = `https://financialmodelingprep.com/api/v3/historical-chart/${fmpInterval}/${symbol}?apikey=${apiKey}`;
-    } else {
-      // Daily, weekly, monthly data
-      endpoint = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${apiKey}`;
-    }
-
-    console.log(`[MarketData] Fetching data for ${symbol} with timeframe ${timeframe}`);
-    
-    const response = await fetch(endpoint);
-    
-    if (!response.ok) {
-      throw new Error(`FMP API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    let marketData: MarketData[] = [];
-    
-    if (fmpInterval === '1day' || fmpInterval === '1week' || fmpInterval === '1month') {
-      // Daily/weekly/monthly data format
-      if (data.historical && Array.isArray(data.historical)) {
-        marketData = data.historical
-          .slice(0, limit)
-          .map((item: any) => ({
-            date: item.date,
-            open: parseFloat(item.open),
-            high: parseFloat(item.high),
-            low: parseFloat(item.low),
-            close: parseFloat(item.close),
-            volume: parseInt(item.volume || 0)
-          }))
-          .reverse(); // FMP returns newest first, we want oldest first
-      }
-    } else {
-      // Intraday data format
-      if (Array.isArray(data)) {
-        marketData = data
-          .slice(0, limit)
-          .map((item: any) => ({
-            date: item.date,
-            open: parseFloat(item.open),
-            high: parseFloat(item.high),
-            low: parseFloat(item.low),
-            close: parseFloat(item.close),
-            volume: parseInt(item.volume || 0)
-          }))
-          .reverse(); // FMP returns newest first, we want oldest first
-      }
-    }
-
-    if (marketData.length === 0) {
-      throw new Error(`No market data found for ${symbol}`);
-    }
-
-    // Cache the data
-    setCachedData(cacheKey, marketData);
-    
-    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
-    return marketData;
-
+    // Convert to the expected format
+    return optimizedData.map(item => ({
+      date: item.date,
+      open: item.open,
+      high: item.high,
+      low: item.low,
+      close: item.close,
+      volume: item.volume
+    }));
   } catch (error) {
     console.error(`[MarketData] Error fetching data for ${symbol}:`, error);
     throw error;
   }
 };
 
-// Get current market price
-export const getCurrentPrice = async (symbol: string): Promise<number | null> => {
-  try {
-    const apiKey = await getFmpApiKey();
-    if (!apiKey) {
-      console.error('[MarketData] FMP API key not available');
-      return null;
-    }
-
-    const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`
-    );
-
-    if (!response.ok) {
-      console.error(`[MarketData] FMP API error: ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      console.error(`[MarketData] No price data for ${symbol}`);
-      return null;
-    }
-
-    const price = data[0].price;
-    console.log(`[MarketData] Current price for ${symbol}: $${price}`);
-    return price;
-  } catch (error) {
-    console.error(`[MarketData] Error fetching price for ${symbol}:`, error);
-    return null;
-  }
+// Batch operations for better performance
+export const batchGetPrices = async (symbols: string[]): Promise<Map<string, number>> => {
+  return await batchGetCurrentPrices(symbols);
 };
 
-// Alias for backward compatibility
-export const getStockPrice = async (symbol: string): Promise<{ price: number } | null> => {
-  const price = await getCurrentPrice(symbol);
-  if (price === null) return null;
-  return { price };
+export const batchGetMarketData = async (requests: Array<{
+  symbols: string[];
+  timeframe: string;
+  limit?: number;
+}>) => {
+  return await batchFetchMarketData(requests);
 };
 
 // Extract arrays from market data for indicator calculations
@@ -207,12 +83,11 @@ export const extractIndicatorData = (marketData: MarketData[]) => {
   };
 };
 
-// Calculate portfolio metrics for dashboard
+// Enhanced portfolio metrics calculation
 export const calculatePortfolioMetrics = async (timeRange: string = '7d') => {
   try {
-    console.log(`[Portfolio] Calculating metrics for timeRange: ${timeRange}`);
+    console.log(`[Portfolio] Calculating optimized metrics for timeRange: ${timeRange}`);
     
-    // Return basic metrics structure for now
     // This can be enhanced with real portfolio calculations later
     return {
       totalValue: "$0.00",
@@ -234,32 +109,103 @@ export const calculatePortfolioMetrics = async (timeRange: string = '7d') => {
       sharpeChange: {
         value: "+0.00",
         positive: true
-      }
+      },
+      lastUpdated: new Date().toISOString(),
+      processingTime: Date.now()
     };
   } catch (error) {
     console.error('[Portfolio] Error calculating metrics:', error);
-    // Return default metrics on error
     return {
       totalValue: "$0.00",
-      totalChange: {
-        value: "+$0.00",
-        positive: true
-      },
+      totalChange: { value: "+$0.00", positive: true },
       winRate: "0%",
-      winRateChange: {
-        value: "+0%",
-        positive: true
-      },
+      winRateChange: { value: "+0%", positive: true },
       avgReturn: "0%",
-      avgReturnChange: {
-        value: "+0%",
-        positive: true
-      },
+      avgReturnChange: { value: "+0%", positive: true },
       sharpeRatio: "0.00",
-      sharpeChange: {
-        value: "+0.00",
-        positive: true
-      }
+      sharpeChange: { value: "+0.00", positive: true },
+      lastUpdated: new Date().toISOString(),
+      processingTime: 0
     };
+  }
+};
+
+// Performance monitoring and cache management
+export const getMarketDataStats = () => {
+  return getOptimizedCacheStats();
+};
+
+export const cleanupMarketDataCache = () => {
+  return cleanupOptimizedCaches();
+};
+
+export const initializeMarketDataCache = async (symbols: string[] = [], timeframes: string[] = ['1h', '4h', 'Daily']) => {
+  try {
+    console.log('[MarketData] Initializing cache with commonly used symbols and timeframes...');
+    
+    // Get active strategy symbols if none provided
+    if (symbols.length === 0) {
+      const { data: strategies } = await supabase
+        .from('strategies')
+        .select('target_asset')
+        .eq('is_active', true);
+      
+      if (strategies) {
+        symbols = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+      }
+    }
+    
+    if (symbols.length > 0) {
+      await warmUpCache(symbols, timeframes);
+    }
+    
+    // Set up periodic cache cleanup
+    setInterval(() => {
+      cleanupOptimizedCaches();
+    }, 30000); // Clean up every 30 seconds
+    
+    console.log('[MarketData] Cache initialization completed');
+  } catch (error) {
+    console.error('[MarketData] Error initializing cache:', error);
+  }
+};
+
+// Real-time price monitoring for active strategies
+export const startRealTimePriceMonitoring = async () => {
+  try {
+    const { data: strategies } = await supabase
+      .from('strategies')
+      .select('target_asset')
+      .eq('is_active', true);
+
+    if (strategies && strategies.length > 0) {
+      const symbols = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+      
+      console.log(`[RealTimeMonitor] Starting real-time monitoring for ${symbols.length} symbols`);
+      
+      // Update prices every 15 seconds during market hours
+      const updatePrices = async () => {
+        try {
+          await batchGetCurrentPrices(symbols);
+        } catch (error) {
+          console.error('[RealTimeMonitor] Error updating prices:', error);
+        }
+      };
+      
+      // Initial update
+      await updatePrices();
+      
+      // Set up interval for continuous updates
+      const interval = setInterval(updatePrices, 15000);
+      
+      // Clean up on page unload
+      window.addEventListener('beforeunload', () => {
+        clearInterval(interval);
+      });
+      
+      return () => clearInterval(interval);
+    }
+  } catch (error) {
+    console.error('[RealTimeMonitor] Error starting real-time monitoring:', error);
   }
 };

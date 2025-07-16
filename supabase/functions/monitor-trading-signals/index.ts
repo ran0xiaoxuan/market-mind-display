@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.1'
 
 const corsHeaders = {
@@ -939,9 +938,14 @@ Deno.serve(async (req) => {
       throw new Error('FMP API key not found');
     }
 
+    // Parse request body JSON
+    const reqBody = await req.json().catch(() => ({}));
+    const isOptimized = reqBody?.optimized === true;
+    const enableParallel = reqBody?.parallel_processing === true;
+
     // Record the exact start time of the monitoring process
     const monitoringStartTime = new Date().toISOString();
-    console.log(`🚀 Starting REAL-TIME signal monitoring process at: ${monitoringStartTime}`);
+    console.log(`🚀 Starting ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} signal monitoring process at: ${monitoringStartTime}`);
 
     // Check market hours first - this is critical for timing
     if (!MarketHoursChecker.isMarketOpen()) {
@@ -949,7 +953,8 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           message: 'Market is closed',
-          timestamp: monitoringStartTime
+          timestamp: monitoringStartTime,
+          optimization: isOptimized ? 'enabled' : 'disabled'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -971,122 +976,274 @@ Deno.serve(async (req) => {
       throw strategiesError;
     }
 
-    console.log(`📋 Found ${strategies?.length || 0} active strategies`);
+    console.log(`📋 Found ${strategies?.length || 0} active strategies (${isOptimized ? 'OPTIMIZED' : 'STANDARD'} mode)`);
 
     const processedStrategies = [];
     const errors = [];
-    
+
     // Initialize services
     const marketDataService = new MarketDataService(fmpApiKey);
     const strategyEvaluator = new StrategyEvaluator();
     const notificationService = new NotificationService(supabase);
 
-    for (const strategy of strategies || []) {
+    if (enableParallel && strategies && strategies.length > 0) {
+      console.log('🔄 Using PARALLEL processing mode for maximum performance');
+      
       try {
-        const strategyProcessingStartTime = new Date().toISOString();
-        console.log(`\n🎯 Processing strategy: ${strategy.name} (${strategy.timeframe}) starting at REAL-TIME: ${strategyProcessingStartTime}`);
-        
-        if (!strategy.target_asset) {
-          console.log(`⚠️ Skipping strategy ${strategy.name} - no target asset`);
-          continue;
-        }
-
-        if (!strategy.rule_groups || strategy.rule_groups.length === 0) {
-          console.log(`⚠️ Skipping strategy ${strategy.name} - no rule groups`);
-          continue;
-        }
-
-        // Fetch current market data with real-time tracking
-        const marketData = await marketDataService.fetchCurrentMarketData(
-          strategy.target_asset, 
-          strategy.timeframe, 
-          100
-        );
-
-        console.log(`📈 Retrieved ${marketData.length} CURRENT data points for ${strategy.target_asset}`);
-
-        // Calculate indicators with current market data
-        await strategyEvaluator.calculateIndicatorsForStrategy(strategy, marketData);
-        
-        // Evaluate strategy conditions using current data
-        const evaluation = strategyEvaluator.evaluateStrategy(strategy);
-
-        if (evaluation.entrySignal || evaluation.exitSignal) {
-          console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using REAL-TIME data!`);
+        // Group strategies by asset to minimize API calls
+        const assetGroups = new Map<string, typeof strategies>();
+        strategies.forEach(strategy => {
+          if (!strategy.target_asset) return;
           
-          const signalType = evaluation.entrySignal ? 'entry' : 'exit';
-          
-          // Use CURRENT REAL-TIME timestamp for data_timestamp
-          const currentRealTime = new Date().toISOString();
-          
-          const signalData = {
-            strategy_id: strategy.id,
-            strategy_name: strategy.name,
-            asset: strategy.target_asset,
-            timeframe: strategy.timeframe,
-            signal_type: signalType,
-            timestamp: currentRealTime,
-            current_price: marketData[0].close,
-            data_timestamp: currentRealTime // This is now the REAL-TIME when all calculations were performed
-          };
-
-          console.log(`📊 Signal data_timestamp set to CURRENT REAL-TIME: ${currentRealTime}`);
-
-          // Create signal in database
-          const { data: signal, error: signalError } = await supabase
-            .from('trading_signals')
-            .insert({
-              strategy_id: strategy.id,
-              signal_type: signalType,
-              signal_data: signalData,
-              processed: false
-            })
-            .select()
-            .single();
-
-          if (signalError) {
-            throw signalError;
+          if (!assetGroups.has(strategy.target_asset)) {
+            assetGroups.set(strategy.target_asset, []);
           }
+          assetGroups.get(strategy.target_asset)?.push(strategy);
+        });
 
-          console.log(`✅ Signal ${signal.id} created successfully with REAL-TIME data_timestamp: ${currentRealTime}`);
-          
-          // Send notifications immediately
-          await notificationService.sendNotifications(signal, strategy);
-          
-          processedStrategies.push({
-            strategy_id: strategy.id,
-            strategy_name: strategy.name,
-            signal_type: signalType,
-            signal_id: signal.id,
-            data_timestamp: currentRealTime, // Real-time timestamp
-            processing_time: new Date().toISOString()
-          });
-        } else {
-          console.log(`❌ No signals generated for strategy ${strategy.name} with REAL-TIME data`);
-        }
+        console.log(`📊 Processing ${assetGroups.size} unique assets in parallel`);
+
+        // Process all asset groups in parallel
+        const assetProcessingPromises = Array.from(assetGroups.entries()).map(async ([asset, assetStrategies]) => {
+          const assetStartTime = new Date().toISOString();
+          console.log(`\n📈 Processing ${assetStrategies.length} strategies for ${asset} starting at: ${assetStartTime}`);
+
+          try {
+            // Fetch market data once per asset
+            const marketData = await marketDataService.fetchCurrentMarketData(asset, assetStrategies[0].timeframe, 100);
+            
+            // Process all strategies for this asset in parallel
+            const strategyPromises = assetStrategies.map(async (strategy) => {
+              const strategyProcessingStartTime = new Date().toISOString();
+              
+              try {
+                if (!strategy.rule_groups || strategy.rule_groups.length === 0) {
+                  console.log(`⚠️ Skipping strategy ${strategy.name} - no rule groups`);
+                  return null;
+                }
+
+                // Calculate indicators and evaluate strategy
+                await strategyEvaluator.calculateIndicatorsForStrategy(strategy, marketData);
+                const evaluation = strategyEvaluator.evaluateStrategy(strategy);
+
+                if (evaluation.entrySignal || evaluation.exitSignal) {
+                  console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using PARALLEL processing!`);
+                  
+                  const signalType = evaluation.entrySignal ? 'entry' : 'exit';
+                  const currentRealTime = new Date().toISOString();
+                  
+                  const signalData = {
+                    strategy_id: strategy.id,
+                    strategy_name: strategy.name,
+                    asset: strategy.target_asset,
+                    timeframe: strategy.timeframe,
+                    signal_type: signalType,
+                    timestamp: currentRealTime,
+                    current_price: marketData[0].close,
+                    data_timestamp: currentRealTime,
+                    processing_mode: 'parallel_optimized',
+                    asset_processing_start: assetStartTime,
+                    strategy_processing_start: strategyProcessingStartTime
+                  };
+
+                  // Create signal in database
+                  const { data: signal, error: signalError } = await supabase
+                    .from('trading_signals')
+                    .insert({
+                      strategy_id: strategy.id,
+                      signal_type: signalType,
+                      signal_data: signalData,
+                      processed: false
+                    })
+                    .select()
+                    .single();
+
+                  if (signalError) {
+                    throw signalError;
+                  }
+
+                  console.log(`✅ Signal ${signal.id} created with PARALLEL processing`);
+                  
+                  // Send notifications (non-blocking)
+                  notificationService.sendNotifications(signal, strategy).catch(error => {
+                    console.error(`❌ Notification error for signal ${signal.id}:`, error);
+                  });
+                  
+                  return {
+                    strategy_id: strategy.id,
+                    strategy_name: strategy.name,
+                    signal_type: signalType,
+                    signal_id: signal.id,
+                    data_timestamp: currentRealTime,
+                    processing_time: new Date().toISOString(),
+                    processing_mode: 'parallel'
+                  };
+                } else {
+                  console.log(`❌ No signals generated for strategy ${strategy.name} (parallel mode)`);
+                  return null;
+                }
+
+              } catch (error) {
+                console.error(`❌ Error processing strategy ${strategy.name} (parallel):`, error);
+                errors.push({
+                  strategy_id: strategy.id,
+                  strategy_name: strategy.name,
+                  error: error.message,
+                  processing_mode: 'parallel'
+                });
+                return null;
+              }
+            });
+
+            // Wait for all strategies for this asset to complete
+            const assetResults = await Promise.all(strategyPromises);
+            return assetResults.filter(result => result !== null);
+
+          } catch (error) {
+            console.error(`❌ Error processing asset ${asset}:`, error);
+            errors.push({
+              asset: asset,
+              error: error.message,
+              processing_mode: 'parallel'
+            });
+            return [];
+          }
+        });
+
+        // Wait for all assets to complete processing
+        const allAssetResults = await Promise.all(assetProcessingPromises);
+        processedStrategies.push(...allAssetResults.flat());
 
       } catch (error) {
-        console.error(`❌ Error processing strategy ${strategy.name}:`, error);
+        console.error(`💥 Error in parallel processing mode:`, error);
         errors.push({
-          strategy_id: strategy.id,
-          strategy_name: strategy.name,
-          error: error.message
+          error: 'Parallel processing failed: ' + error.message,
+          processing_mode: 'parallel'
         });
+      }
+    } else {
+      // Fallback to sequential processing (existing code)
+      console.log('🔄 Using SEQUENTIAL processing mode (fallback)');
+      
+      for (const strategy of strategies || []) {
+        try {
+          const strategyProcessingStartTime = new Date().toISOString();
+          console.log(`\n🎯 Processing strategy: ${strategy.name} (${strategy.timeframe}) starting at REAL-TIME: ${strategyProcessingStartTime}`);
+          
+          if (!strategy.target_asset) {
+            console.log(`⚠️ Skipping strategy ${strategy.name} - no target asset`);
+            continue;
+          }
+
+          if (!strategy.rule_groups || strategy.rule_groups.length === 0) {
+            console.log(`⚠️ Skipping strategy ${strategy.name} - no rule groups`);
+            continue;
+          }
+
+          // Fetch current market data with real-time tracking
+          const marketData = await marketDataService.fetchCurrentMarketData(
+            strategy.target_asset, 
+            strategy.timeframe, 
+            100
+          );
+
+          console.log(`📈 Retrieved ${marketData.length} CURRENT data points for ${strategy.target_asset}`);
+
+          // Calculate indicators with current market data
+          await strategyEvaluator.calculateIndicatorsForStrategy(strategy, marketData);
+          
+          // Evaluate strategy conditions using current data
+          const evaluation = strategyEvaluator.evaluateStrategy(strategy);
+
+          if (evaluation.entrySignal || evaluation.exitSignal) {
+            console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using REAL-TIME data!`);
+            
+            const signalType = evaluation.entrySignal ? 'entry' : 'exit';
+            
+            // Use CURRENT REAL-TIME timestamp for data_timestamp
+            const currentRealTime = new Date().toISOString();
+            
+            const signalData = {
+              strategy_id: strategy.id,
+              strategy_name: strategy.name,
+              asset: strategy.target_asset,
+              timeframe: strategy.timeframe,
+              signal_type: signalType,
+              timestamp: currentRealTime,
+              current_price: marketData[0].close,
+              data_timestamp: currentRealTime // This is now the REAL-TIME when all calculations were performed
+            };
+
+            console.log(`📊 Signal data_timestamp set to CURRENT REAL-TIME: ${currentRealTime}`);
+
+            // Create signal in database
+            const { data: signal, error: signalError } = await supabase
+              .from('trading_signals')
+              .insert({
+                strategy_id: strategy.id,
+                signal_type: signalType,
+                signal_data: signalData,
+                processed: false
+              })
+              .select()
+              .single();
+
+            if (signalError) {
+              throw signalError;
+            }
+
+            console.log(`✅ Signal ${signal.id} created successfully with REAL-TIME data_timestamp: ${currentRealTime}`);
+            
+            // Send notifications immediately
+            await notificationService.sendNotifications(signal, strategy);
+            
+            processedStrategies.push({
+              strategy_id: strategy.id,
+              strategy_name: strategy.name,
+              signal_type: signalType,
+              signal_id: signal.id,
+              data_timestamp: currentRealTime, // Real-time timestamp
+              processing_time: new Date().toISOString()
+            });
+          } else {
+            console.log(`❌ No signals generated for strategy ${strategy.name} with REAL-TIME data`);
+          }
+
+        } catch (error) {
+          console.error(`❌ Error processing strategy ${strategy.name}:`, error);
+          errors.push({
+            strategy_id: strategy.id,
+            strategy_name: strategy.name,
+            error: error.message
+          });
+        }
       }
     }
 
     const monitoringCompleteTime = new Date().toISOString();
     const response = {
       success: true,
-      message: `Processed ${strategies?.length || 0} strategies with REAL-TIME market data`,
+      message: `Processed ${strategies?.length || 0} strategies with ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} ${enableParallel ? 'PARALLEL' : 'SEQUENTIAL'} processing`,
       signals_generated: processedStrategies.length,
       processed_strategies: processedStrategies,
       errors: errors,
       monitoring_start_time: monitoringStartTime,
-      monitoring_complete_time: monitoringCompleteTime
+      monitoring_complete_time: monitoringCompleteTime,
+      processing_mode: enableParallel ? 'parallel' : 'sequential',
+      optimization_enabled: isOptimized,
+      performance_metrics: {
+        total_time_ms: new Date(monitoringCompleteTime).getTime() - new Date(monitoringStartTime).getTime(),
+        strategies_processed: strategies?.length || 0,
+        signals_generated: processedStrategies.length,
+        errors_count: errors.length,
+        avg_time_per_strategy: strategies?.length > 0 
+          ? Math.round((new Date(monitoringCompleteTime).getTime() - new Date(monitoringStartTime).getTime()) / strategies.length)
+          : 0
+      }
     };
 
-    console.log(`\n🏁 REAL-TIME signal monitoring completed at: ${monitoringCompleteTime}`);
+    console.log(`\n🏁 ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} signal monitoring completed at: ${monitoringCompleteTime}`);
+    console.log(`📊 Performance: ${response.performance_metrics.total_time_ms}ms total, ${response.performance_metrics.avg_time_per_strategy}ms per strategy`);
     console.log('Final response:', response);
 
     return new Response(

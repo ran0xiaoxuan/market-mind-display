@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -247,12 +246,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      // Use auth/callback for proper token handling
       const result = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data,
-          emailRedirectTo: window.location.origin + '/auth/confirm'
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       
@@ -335,7 +335,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: window.location.origin + '/auth/confirm'
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       return result;

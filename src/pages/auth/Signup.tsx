@@ -1,4 +1,3 @@
-
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,9 +73,15 @@ const Signup = () => {
 
     setIsLoading(true);
     try {
-      await signUp(email, password);
-      toast.success("Account created successfully! Please check your email to confirm your account.");
-      navigate("/confirm");
+      const { error } = await signUp(email, password);
+      
+      if (error) {
+        console.error("Signup error:", error);
+        toast.error(error.message || "Failed to create account");
+      } else {
+        toast.success("Account created successfully! Please check your email to verify your account.");
+        // Don't navigate immediately - let the user check their email
+      }
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Failed to create account");
@@ -98,9 +103,13 @@ const Signup = () => {
 
     setIsLoading(true);
     try {
-      await signInWithGoogle();
-      toast.success("Successfully signed up with Google!");
-      navigate("/dashboard");
+      const { error } = await signInWithGoogle();
+      
+      if (error) {
+        console.error("Google sign up error:", error);
+        toast.error(error.message || "Failed to sign up with Google");
+      }
+      // Don't navigate here - let the auth callback handle it
     } catch (error: any) {
       console.error("Google sign up error:", error);
       toast.error(error.message || "Failed to sign up with Google");

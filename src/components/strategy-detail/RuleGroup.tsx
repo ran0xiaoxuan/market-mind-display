@@ -107,10 +107,10 @@ export const RuleGroup = ({
   const shouldHaveMoreConditions = isOrGroup && inequalities.length < 2 && editable;
   
   return (
-    <div className={`rounded-lg p-4 ${className}`}>
+    <div className={`rounded-lg border bg-card p-4 ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-lg font-semibold text-card-foreground">
             {title}
             {isOrGroup && requiredConditions !== undefined && inequalities.length > 0 && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -133,12 +133,12 @@ export const RuleGroup = ({
         </div>
         
         {editable && isOrGroup && <div className="flex items-center space-x-2">
-            <Label htmlFor="requiredConditions">Required conditions:</Label>
+            <Label htmlFor="requiredConditions" className="text-sm text-muted-foreground">Required conditions:</Label>
             <Input id="requiredConditions" type="number" min="1" max={Math.max(1, inequalities.length)} value={requiredConditions === undefined ? "1" : requiredConditions} onChange={handleRequiredConditionsChange} className="w-16 h-8" placeholder="1" />
           </div>}
       </div>
 
-      {hasIncompleteRules && showValidation && <div className="text-sm text-red-500 mb-2">
+      {hasIncompleteRules && showValidation && <div className="text-sm text-destructive mb-2">
           Some conditions are incomplete
         </div>}
       
@@ -155,12 +155,12 @@ export const RuleGroup = ({
             isNewlyAdded={newlyAddedConditionId === inequality.id} 
             onEditingComplete={onClearNewlyAddedCondition} 
           />)}
-        </div> : <div className="bg-white p-4 rounded-md border text-center text-muted-foreground mt-4">
+        </div> : <div className="bg-muted/50 border border-dashed border-muted-foreground/20 p-4 rounded-md text-center text-muted-foreground mt-4">
           No conditions defined yet
         </div>}
       
       {editable && <div className="mt-4">
-          <Button variant="outline" size="sm" onClick={handleAddRule} className={`border-${color}-400 text-${color}-700`}>
+          <Button variant="outline" size="sm" onClick={handleAddRule} className="border-muted-foreground/20 text-foreground hover:bg-accent hover:text-accent-foreground">
             <Plus className="h-4 w-4 mr-2" /> Add Condition
           </Button>
         </div>}

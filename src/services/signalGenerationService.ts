@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  generateOptimizedSignalForStrategy,
-  generateSignalsForStrategiesBatch,
+  generateSignalForStrategy as generateOptimizedSignalForStrategy,
+  generateSignalsInBatch as generateSignalsForStrategiesBatch,
   triggerOptimizedSignalMonitoring,
   getSignalGenerationPerformance 
 } from "./optimizedSignalGenerationService";

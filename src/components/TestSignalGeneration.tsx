@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { generateSignalForStrategy } from "@/services/optimizedSignalGenerationService";
-import { fetchMarketDataWithCache } from "@/services/optimizedMarketDataService";
+import { fetchOptimizedMarketData } from "@/services/optimizedMarketDataService";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, PlayCircle, CheckCircle, XCircle } from "lucide-react";
@@ -74,7 +73,7 @@ export function TestSignalGeneration() {
       const strategy = strategies[0];
       
       // Fetch market data
-      const marketData = await fetchMarketDataWithCache(
+      const marketData = await fetchOptimizedMarketData(
         strategy.target_asset,
         strategy.timeframe,
         60 // 1 minute cache for testing

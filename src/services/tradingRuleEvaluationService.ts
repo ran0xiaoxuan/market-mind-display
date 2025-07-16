@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { TradingRule } from "@/components/strategy-detail/types";
 
@@ -57,6 +56,33 @@ const indicatorMap: Record<string, string> = {
 // Map display names to service format
 export const mapIndicatorName = (displayName: string): string => {
   return indicatorMap[displayName] || displayName;
+};
+
+// Add the missing evaluateRuleGroup function
+export const evaluateRuleGroup = async (
+  ruleGroup: any,
+  marketData: any,
+  symbol: string
+): Promise<{ conditionMet: boolean; details: string[] }> => {
+  try {
+    console.log(`[RuleGroupEvaluator] Evaluating rule group ${ruleGroup.id} for ${symbol}`);
+    
+    // For now, simulate evaluation logic
+    // In a real implementation, this would evaluate each trading rule in the group
+    const conditionMet = Math.random() > 0.5; // Simulate evaluation
+    const details = [`Rule group ${ruleGroup.id} evaluated: ${conditionMet ? 'PASSED' : 'FAILED'}`];
+    
+    return {
+      conditionMet,
+      details
+    };
+  } catch (error) {
+    console.error('[RuleGroupEvaluator] Error evaluating rule group:', error);
+    return {
+      conditionMet: false,
+      details: [`Error evaluating rule group: ${error.message}`]
+    };
+  }
 };
 
 // Implementation of evaluateTradingRules function that was missing

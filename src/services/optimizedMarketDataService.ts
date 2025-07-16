@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface OptimizedMarketData {
@@ -210,6 +209,9 @@ export const fetchOptimizedMarketData = async (
     throw error;
   }
 };
+
+// Export alias for backward compatibility
+export const fetchMarketDataWithCache = fetchOptimizedMarketData;
 
 // Helper function for timeframe mapping
 const mapTimeframeToFmpInterval = (timeframe: string): string => {

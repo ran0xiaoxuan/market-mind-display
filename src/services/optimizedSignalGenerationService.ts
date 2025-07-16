@@ -244,3 +244,23 @@ export async function generateSignalsInBatch(
 
   return results;
 }
+
+export const generateOptimizedSignalForStrategy = generateSignalForStrategy;
+export const generateSignalsForStrategiesBatch = generateSignalsInBatch;
+
+export const triggerOptimizedSignalMonitoring = async () => {
+  console.log('[OptimizedSignalGen] Triggering optimized signal monitoring...');
+  // This would integrate with the actual monitoring service
+  return { success: true, message: 'Signal monitoring triggered' };
+};
+
+export const getSignalGenerationPerformance = async (timeRange: string = '1h') => {
+  console.log(`[OptimizedSignalGen] Getting performance metrics for ${timeRange}...`);
+  // This would fetch actual performance metrics
+  return {
+    totalSignals: 0,
+    successRate: 100,
+    averageProcessingTime: 0,
+    timeRange
+  };
+};

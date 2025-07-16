@@ -119,9 +119,6 @@ export function AccountSettings() {
                 <li>Account settings and preferences</li>
                 <li>Notification settings</li>
               </ul>
-              <p className="pt-2">
-                Please make sure you have backed up any important data before proceeding.
-              </p>
             </div>
 
             <Button 

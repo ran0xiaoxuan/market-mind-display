@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Inequality } from "../types";
 import { Button } from "@/components/ui/button";
@@ -264,7 +263,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
     return (
       <div className="flex flex-wrap gap-1 mt-1 justify-center">
         {params.map((param, index) => (
-          <Badge key={index} variant="outline" className="text-xs bg-gray-50">
+          <Badge key={index} variant="outline" className="text-xs bg-muted">
             {param}
           </Badge>
         ))}
@@ -328,7 +327,7 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
   });
   
   return (
-    <div key={inequalityKey} className={`p-4 rounded-lg bg-white border ${isIncomplete && showValidation ? 'border-red-300' : 'border-gray-200'}`}>
+    <div key={inequalityKey} className={`p-4 rounded-lg bg-card border ${isIncomplete && showValidation ? 'border-destructive' : 'border-border'}`}>
       <div className="flex flex-col gap-2">
         <div className="flex justify-end items-center">
           {editable && (
@@ -346,21 +345,21 @@ export const CompactInequalityDisplay: React.FC<CompactInequalityDisplayProps> =
         </div>
         
         <div className="flex items-center justify-center gap-3 py-3">
-          <div className="px-4 py-2 rounded-md bg-gray-50 border border-gray-200 text-sm font-medium min-w-[120px] text-center">
+          <div className="px-4 py-2 rounded-md bg-muted border border-border text-sm font-medium min-w-[120px] text-center">
             {formatSideForDisplay(inequality.left)}
           </div>
           
-          <div className="flex items-center justify-center px-3 py-2 rounded-md bg-gray-100 border border-gray-200 font-bold text-lg min-w-[50px] text-center">
+          <div className="flex items-center justify-center px-3 py-2 rounded-md bg-muted/70 border border-border font-bold text-lg min-w-[50px] text-center">
             {conditionSymbol.icon || conditionSymbol.text}
           </div>
           
-          <div className="px-4 py-2 rounded-md bg-gray-50 border border-gray-200 text-sm font-medium min-w-[120px] text-center">
+          <div className="px-4 py-2 rounded-md bg-muted border border-border text-sm font-medium min-w-[120px] text-center">
             {formatSideForDisplay(inequality.right)}
           </div>
         </div>
         
         {inequality.explanation && (
-          <p className="text-xs text-muted-foreground mt-1 bg-gray-50 p-2 rounded border border-gray-100">
+          <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded border border-border">
             {inequality.explanation}
           </p>
         )}

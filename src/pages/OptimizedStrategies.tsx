@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StrategyCard } from "@/components/StrategyCard";
@@ -7,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowUp, ArrowDown, Plus, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useOptimizedStrategies } from "@/hooks/useOptimizedStrategies";
 
@@ -73,14 +72,12 @@ const OptimizedStrategies = () => {
             <h1 className="text-3xl font-bold">Strategies</h1>
             <div className="flex gap-2 mt-4 sm:mt-0">
               <Link to="/manual-strategy">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
+                <Button variant="outline">
                   Create Manually
                 </Button>
               </Link>
               <Link to="/ai-strategy">
-                <Button className="bg-black text-white hover:bg-black/90 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
+                <Button className="bg-black text-white hover:bg-black/90">
                   Create with AI
                 </Button>
               </Link>

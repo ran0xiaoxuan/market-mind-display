@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -209,12 +210,42 @@ export const TradingRules = ({
     }
   };
 
+  // Add AND group when it doesn't exist
+  const handleAddAndGroup = (isEntryRule: boolean) => {
+    if (isEntryRule && onEntryRulesChange) {
+      const updatedRules = [...validatedEntryRules];
+      // Add AND group at the beginning if it doesn't exist
+      const hasAndGroup = updatedRules.some(group => group.logic === 'AND');
+      if (!hasAndGroup) {
+        updatedRules.unshift({
+          id: Date.now(), // Simple ID generation
+          logic: "AND",
+          inequalities: []
+        });
+        onEntryRulesChange(updatedRules);
+      }
+    } else if (!isEntryRule && onExitRulesChange) {
+      const updatedRules = [...validatedExitRules];
+      // Add AND group at the beginning if it doesn't exist
+      const hasAndGroup = updatedRules.some(group => group.logic === 'AND');
+      if (!hasAndGroup) {
+        updatedRules.unshift({
+          id: Date.now(), // Simple ID generation
+          logic: "AND",
+          inequalities: []
+        });
+        onExitRulesChange(updatedRules);
+      }
+    }
+  };
+
   // Add OR group when it doesn't exist
   const handleAddOrGroup = (isEntryRule: boolean) => {
     if (isEntryRule && onEntryRulesChange) {
       const updatedRules = [...validatedEntryRules];
-      // Add OR group if it doesn't exist (should be at index 1)
-      if (updatedRules.length < 2) {
+      // Add OR group if it doesn't exist
+      const hasOrGroup = updatedRules.some(group => group.logic === 'OR');
+      if (!hasOrGroup) {
         updatedRules.push({
           id: Date.now(), // Simple ID generation
           logic: "OR",
@@ -225,8 +256,9 @@ export const TradingRules = ({
       }
     } else if (!isEntryRule && onExitRulesChange) {
       const updatedRules = [...validatedExitRules];
-      // Add OR group if it doesn't exist (should be at index 1)
-      if (updatedRules.length < 2) {
+      // Add OR group if it doesn't exist
+      const hasOrGroup = updatedRules.some(group => group.logic === 'OR');
+      if (!hasOrGroup) {
         updatedRules.push({
           id: Date.now(), // Simple ID generation
           logic: "OR",
@@ -339,7 +371,7 @@ export const TradingRules = ({
           <div className="space-y-6">
             {validatedEntryRules.length > 0 ? (
               <>
-                {entryAndGroup && (
+                {entryAndGroup ? (
                   <RuleGroup 
                     title="AND Group" 
                     color="blue" 
@@ -359,7 +391,23 @@ export const TradingRules = ({
                     newlyAddedConditionId={newlyAddedConditionId} 
                     onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
                   />
-                )}
+                ) : editable ? (
+                  <div className="p-4 border border-dashed border-blue-200 rounded-lg bg-blue-50/30">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Add an AND group to create essential entry conditions
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddAndGroup(true)}
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add AND Group
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 
                 {entryOrGroup ? (
                   <RuleGroup 
@@ -423,7 +471,7 @@ export const TradingRules = ({
           <div className="space-y-6">
             {validatedExitRules.length > 0 ? (
               <>
-                {exitAndGroup && (
+                {exitAndGroup ? (
                   <RuleGroup 
                     title="AND Group" 
                     color="blue" 
@@ -443,7 +491,23 @@ export const TradingRules = ({
                     newlyAddedConditionId={newlyAddedConditionId} 
                     onClearNewlyAddedCondition={handleClearNewlyAddedCondition} 
                   />
-                )}
+                ) : editable ? (
+                  <div className="p-4 border border-dashed border-blue-200 rounded-lg bg-blue-50/30">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Add an AND group to create essential exit conditions
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddAndGroup(false)}
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add AND Group
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 
                 {exitOrGroup ? (
                   <RuleGroup 

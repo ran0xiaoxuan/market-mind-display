@@ -246,7 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Use auth/callback for proper token handling
+      console.log('Starting signup process for:', email);
+
+      // First, create the user account with Supabase
       const result = await supabase.auth.signUp({ 
         email, 
         password,
@@ -256,10 +258,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
       
-      if (!result.error && result.data.user && !result.data.session) {
+      if (result.error) {
+        console.error('Supabase signup error:', result.error);
+        return result;
+      }
+
+      // If signup successful but no session (email confirmation required)
+      if (result.data.user && !result.data.session) {
+        console.log('User created, sending custom confirmation email...');
+        
+        try {
+          // Send custom confirmation email via our Edge Function
+          const confirmationUrl = `${window.location.origin}/auth/callback?token_hash=${result.data.user.email_confirmed_at || 'pending'}&type=email&email=${encodeURIComponent(email)}`;
+          
+          const emailResponse = await supabase.functions.invoke('send-confirmation-email', {
+            body: { 
+              email,
+              confirmationUrl
+            }
+          });
+          
+          if (emailResponse.error) {
+            console.error('Custom email sending failed:', emailResponse.error);
+            // Fall back to default Supabase behavior but still show success
+          } else {
+            console.log('Custom confirmation email sent successfully');
+          }
+        } catch (emailError) {
+          console.error('Error sending custom confirmation email:', emailError);
+          // Don't fail the signup process if email sending fails
+        }
+        
         toast({
           title: "Account created successfully",
-          description: "Please check your email to verify your account before signing in."
+          description: "Please check your email (including spam folder) to verify your account before signing in."
         });
       }
       
@@ -331,6 +363,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resendConfirmation = async (email: string) => {
     try {
+      console.log('Resending confirmation for:', email);
+      
       const result = await supabase.auth.resend({
         type: 'signup',
         email,
@@ -338,6 +372,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
+      
+      if (result.error) {
+        console.error('Resend confirmation error:', result.error);
+      } else {
+        console.log('Confirmation email resent successfully');
+        toast({
+          title: "Confirmation email sent",
+          description: "Please check your email (including spam folder) for the verification link."
+        });
+      }
+      
       return result;
     } catch (error) {
       console.error("Error resending confirmation:", error);

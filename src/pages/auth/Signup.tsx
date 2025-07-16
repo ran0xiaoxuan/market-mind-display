@@ -1,3 +1,4 @@
+
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,8 @@ const Signup = () => {
   });
   const [showResendOption, setShowResendOption] = useState(false);
   const [resendEmail, setResendEmail] = useState("");
+  const [resendAttempts, setResendAttempts] = useState(0);
+  const [lastResendTime, setLastResendTime] = useState<number | null>(null);
   
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, validatePassword, resendConfirmation } = useAuth();
@@ -81,12 +84,18 @@ const Signup = () => {
       
       if (error) {
         console.error("Signup error:", error);
-        toast.error(error.message || "Failed to create account");
+        if (error.message?.includes("User already registered")) {
+          toast.error("An account with this email already exists. Please try logging in instead.");
+        } else if (error.message?.includes("rate limit")) {
+          toast.error("Too many signup attempts. Please wait a few minutes before trying again.");
+        } else {
+          toast.error(error.message || "Failed to create account");
+        }
       } else {
         console.log('Signup successful, showing resend option');
         setShowResendOption(true);
         setResendEmail(email);
-        toast.success("Account created! Please check your email for verification link.");
+        toast.success("Account created! Please check your email (including spam folder) for verification link.");
       }
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -99,15 +108,34 @@ const Signup = () => {
   const handleResendConfirmation = async () => {
     if (!resendEmail) return;
 
+    // Rate limiting: prevent too frequent resend attempts
+    const now = Date.now();
+    if (lastResendTime && now - lastResendTime < 60000) { // 1 minute cooldown
+      const remainingTime = Math.ceil((60000 - (now - lastResendTime)) / 1000);
+      toast.error(`Please wait ${remainingTime} seconds before trying again`);
+      return;
+    }
+
+    if (resendAttempts >= 3) {
+      toast.error("Maximum resend attempts reached. Please contact support if you continue having issues.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { error } = await resendConfirmation(resendEmail);
       
       if (error) {
         console.error("Resend error:", error);
-        toast.error(error.message || "Failed to resend confirmation email");
+        if (error.message?.includes("rate limit")) {
+          toast.error("Too many email requests. Please wait before trying again.");
+        } else {
+          toast.error(error.message || "Failed to resend confirmation email");
+        }
       } else {
-        toast.success("Confirmation email sent! Please check your inbox.");
+        setResendAttempts(prev => prev + 1);
+        setLastResendTime(now);
+        toast.success("Confirmation email sent! Please check your inbox and spam folder.");
       }
     } catch (error: any) {
       console.error("Resend error:", error);
@@ -162,18 +190,26 @@ const Signup = () => {
                 <p className="text-green-700 text-sm mt-1">
                   We've sent a verification email to <strong>{resendEmail}</strong>
                 </p>
+                <p className="text-green-600 text-xs mt-2">
+                  Please check your spam folder if you don't see the email in your inbox.
+                </p>
               </div>
               
               <div className="space-y-2">
                 <p className="text-sm text-gray-600">Didn't receive the email?</p>
                 <Button 
                   onClick={handleResendConfirmation}
-                  disabled={isLoading}
+                  disabled={isLoading || resendAttempts >= 3}
                   variant="outline"
                   className="w-full"
                 >
-                  {isLoading ? "Sending..." : "Resend confirmation email"}
+                  {isLoading ? "Sending..." : `Resend confirmation email ${resendAttempts > 0 ? `(${resendAttempts}/3)` : ''}`}
                 </Button>
+                {resendAttempts > 0 && (
+                  <p className="text-xs text-gray-500">
+                    If you continue having issues, please contact support.
+                  </p>
+                )}
               </div>
               
               <div className="pt-4 border-t">

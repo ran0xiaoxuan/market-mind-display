@@ -249,13 +249,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Starting signup process for:', email);
 
+      // Get the current domain to ensure proper email redirect
+      const currentOrigin = window.location.origin;
+      const redirectUrl = `${currentOrigin}/auth/callback`;
+      
+      console.log('Using redirect URL for email confirmation:', redirectUrl);
+
       // Use native Supabase signup with proper email redirect
       const result = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data,
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: redirectUrl
         }
       });
 
@@ -271,10 +277,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (result.data.user && !result.data.session) {
-        console.log('User created, but no session (needs email verification)');
+        console.log('User created, confirmation email should be sent to:', email);
+        console.log('Please check your email (including spam folder) for the confirmation link');
         toast({
           title: "Account created successfully",
-          description: "Please check your email to verify your account before signing in."
+          description: "Please check your email to verify your account before signing in. Check your spam folder if you don't see it."
         });
       }
       
@@ -346,13 +353,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resendConfirmation = async (email: string) => {
     try {
+      console.log('Resending confirmation email for:', email);
+      
+      const currentOrigin = window.location.origin;
+      const redirectUrl = `${currentOrigin}/auth/callback`;
+      
+      console.log('Using redirect URL for resend:', redirectUrl);
+      
       const result = await supabase.auth.resend({
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: redirectUrl
         }
       });
+      
+      if (result.error) {
+        console.error('Resend confirmation error:', result.error);
+      } else {
+        console.log('Confirmation email resent successfully');
+        toast({
+          title: "Confirmation email sent",
+          description: "Please check your email (including spam folder) for the confirmation link."
+        });
+      }
+      
       return result;
     } catch (error) {
       console.error("Error resending confirmation:", error);

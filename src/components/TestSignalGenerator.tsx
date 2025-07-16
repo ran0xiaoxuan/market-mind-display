@@ -206,7 +206,7 @@ export function TestSignalGenerator() {
           <div className="p-3 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground">
               <strong>Note:</strong> Test signals are used only for testing notifications and are stored separately from your real trading history. 
-              You can generate up to 20 test signals per day. They will not appear in your strategy's trade history or affect your performance metrics.
+              You can generate up to 20 test signals per day. They will not appear in your strategy's trade history.
             </p>
           </div>
         </CardContent>

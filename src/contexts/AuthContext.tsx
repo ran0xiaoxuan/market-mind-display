@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -246,7 +247,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Use auth/callback for proper token handling
+      console.log('Starting signup process for:', email);
+
+      // Use native Supabase signup with proper email redirect
       const result = await supabase.auth.signUp({ 
         email, 
         password,
@@ -255,8 +258,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
+
+      console.log('Supabase signup result:', { 
+        user: !!result.data.user, 
+        session: !!result.data.session, 
+        error: result.error?.message 
+      });
       
-      if (!result.error && result.data.user && !result.data.session) {
+      if (result.error) {
+        console.error('Signup error:', result.error);
+        return result;
+      }
+
+      if (result.data.user && !result.data.session) {
+        console.log('User created, but no session (needs email verification)');
         toast({
           title: "Account created successfully",
           description: "Please check your email to verify your account before signing in."

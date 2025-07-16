@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -155,6 +154,28 @@ You must respond with a valid JSON object that follows this exact structure:
   ]
 }
 
+CRITICAL CONDITION MAPPING - YOU MUST BE EXTREMELY PRECISE:
+
+When the user mentions these terms in their description, map them EXACTLY as follows:
+
+**"greater than" / "above" / "higher than"** → GREATER_THAN (>)
+**"greater than or equal" / "at least" / "equal or above"** → GREATER_THAN_OR_EQUAL (≥)
+**"crosses above" / "crosses over" / "breaks above"** → CROSSES_ABOVE (crossover upward)
+
+**"less than" / "below" / "lower than"** → LESS_THAN (<)
+**"less than or equal" / "at most" / "equal or below"** → LESS_THAN_OR_EQUAL (≤)
+**"crosses below" / "crosses under" / "breaks below"** → CROSSES_BELOW (crossover downward)
+
+**"equal to" / "equals" / "is"** → EQUAL (=)
+**"not equal to" / "not equals"** → NOT_EQUAL (≠)
+
+CRITICAL DISTINCTION RULES:
+1. CROSSES_ABOVE vs GREATER_THAN: "Crosses above" implies a directional movement from below to above. "Greater than" is a static comparison at a point in time.
+2. CROSSES_BELOW vs LESS_THAN: "Crosses below" implies a directional movement from above to below. "Less than" is a static comparison at a point in time.
+3. If the user says "RSI crosses above 30", use CROSSES_ABOVE. If they say "RSI is above 30", use GREATER_THAN.
+4. If the user says "Price breaks below the moving average", use CROSSES_BELOW. If they say "Price is below the moving average", use LESS_THAN.
+5. When in doubt between static comparison and crossover, analyze the context carefully.
+
 CRITICAL RULE GROUP REQUIREMENTS (in order of priority):
 1. If you would create an OR group with only 1 condition, place that condition in the AND group instead.
 2. OR groups MUST always contain at least 2 conditions
@@ -213,7 +234,7 @@ ATR:
 - parameters: {"period": "number"}
 - valueType: "Value"
 
-Available conditions: GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL
+Available conditions: GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL, CROSSES_ABOVE, CROSSES_BELOW
 Available timeframes: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w
 Available side types: INDICATOR, PRICE, VALUE
 
@@ -238,7 +259,8 @@ Requirements:
 - REMEMBER: OR groups must contain at least 2 conditions - if you have only 1 condition, use AND logic instead
 - CRITICAL: Always include ALL required parameters and valueType for each indicator as specified above
 - VALIDATION: When using SMA/EMA/WMA compared to VALUE, ensure the value is within 30% of the asset's typical price range
-- VALIDATION: When using PRICE type, only use "Open", "High", "Low", or "Close" as values`;
+- VALIDATION: When using PRICE type, only use "Open", "High", "Low", or "Close" as values
+- CONDITION PRECISION: Pay extremely close attention to the user's exact wording for conditions. Distinguish carefully between static comparisons (>, <, ≥, ≤) and crossover conditions (crosses above, crosses below)`;
 
     console.log('Sending request to OpenAI...');
 

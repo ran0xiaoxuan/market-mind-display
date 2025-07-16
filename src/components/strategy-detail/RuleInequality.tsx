@@ -4,6 +4,8 @@ import { Inequality } from "./types";
 import { CompactInequalityDisplay } from "./components/CompactInequalityDisplay";
 import { EditModeInequality } from "./components/EditModeInequality";
 import { Toaster } from "@/components/ui/toaster";
+import { usePersistentEditState } from "@/hooks/usePersistentEditState";
+import { useLocation } from "react-router-dom";
 
 interface RuleInequalityProps {
   inequality: Inequality;
@@ -25,14 +27,34 @@ export const RuleInequality = ({
   isNewlyAdded = false,
   onEditingComplete
 }: RuleInequalityProps) => {
+  const location = useLocation();
+  const strategyId = location.pathname.split('/')[2]; // Extract strategy ID from URL
+  
+  const { loadEditState, saveEditState, clearEditState } = usePersistentEditState(
+    strategyId,
+    inequality.id
+  );
+
   const [isOpen, setIsOpen] = useState<boolean>(isNewlyAdded);
   const [localInequality, setLocalInequality] = useState<Inequality>(inequality);
   
-  // Update local state when parent inequality changes
+  // Load persistent edit state on component mount
   useEffect(() => {
-    console.log('RuleInequality: Parent inequality changed, updating local state:', inequality);
-    setLocalInequality(inequality);
-  }, [inequality]);
+    const savedState = loadEditState();
+    if (savedState && savedState.isEditing) {
+      setLocalInequality(savedState.localInequality);
+      setIsOpen(true);
+      console.log('RuleInequality: Restored edit state from localStorage:', savedState);
+    }
+  }, [loadEditState]);
+  
+  // Update local state when parent inequality changes (but preserve edits if currently editing)
+  useEffect(() => {
+    if (!isOpen) {
+      console.log('RuleInequality: Parent inequality changed, updating local state:', inequality);
+      setLocalInequality(inequality);
+    }
+  }, [inequality, isOpen]);
   
   useEffect(() => {
     // When newly added, auto-open the editor
@@ -40,6 +62,13 @@ export const RuleInequality = ({
       setIsOpen(true);
     }
   }, [isNewlyAdded]);
+
+  // Save edit state whenever localInequality or isOpen changes
+  useEffect(() => {
+    if (isOpen && editable) {
+      saveEditState(localInequality, true);
+    }
+  }, [localInequality, isOpen, editable, saveEditState]);
   
   const handleSaveChanges = () => {
     console.log('RuleInequality: Saving changes, local inequality:', localInequality);
@@ -66,7 +95,11 @@ export const RuleInequality = ({
       // Immediately call onChange to update parent state
       onChange(updatedInequality);
     }
+    
+    // Clear the saved edit state since changes are saved
+    clearEditState();
     setIsOpen(false);
+    
     if (onEditingComplete) {
       onEditingComplete();
     }
@@ -75,6 +108,9 @@ export const RuleInequality = ({
   const handleCancelChanges = () => {
     // Reset local inequality to the original
     setLocalInequality(inequality);
+    
+    // Clear the saved edit state
+    clearEditState();
     setIsOpen(false);
     
     // If this is a newly added condition, we want to delete it entirely
@@ -85,6 +121,12 @@ export const RuleInequality = ({
     if (onEditingComplete) {
       onEditingComplete();
     }
+  };
+
+  const handleEdit = () => {
+    setIsOpen(true);
+    // Save initial edit state when starting to edit
+    saveEditState(localInequality, true);
   };
 
   // Check if the inequality has empty/missing required fields
@@ -151,7 +193,7 @@ export const RuleInequality = ({
           editable={editable}
           isIncomplete={isIncomplete}
           showValidation={showValidation}
-          onEdit={() => setIsOpen(true)}
+          onEdit={handleEdit}
           onDelete={onDelete}
         />
       )}

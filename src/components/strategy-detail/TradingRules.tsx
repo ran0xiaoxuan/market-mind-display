@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { RuleGroup } from "./RuleGroup";
 import { RuleGroupData, Inequality } from "./types";
@@ -14,6 +13,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { validateTradingRules } from "@/services/ruleValidationService";
 import { RuleValidationDisplay } from "./RuleValidationDisplay";
+import { usePersistentEditState } from "@/hooks/usePersistentEditState";
+import { useLocation } from "react-router-dom";
 
 interface TradingRulesProps {
   entryRules: RuleGroupData[];
@@ -22,6 +23,7 @@ interface TradingRulesProps {
   onExitRulesChange?: (rules: RuleGroupData[]) => void;
   editable?: boolean;
   showValidation?: boolean;
+  onRulesSaved?: () => void; // New prop to notify when rules are saved
 }
 
 export const TradingRules = ({
@@ -30,10 +32,27 @@ export const TradingRules = ({
   onEntryRulesChange,
   onExitRulesChange,
   editable = false,
-  showValidation = false
+  showValidation = false,
+  onRulesSaved
 }: TradingRulesProps) => {
+  const location = useLocation();
+  const strategyId = location.pathname.split('/')[2]; // Extract strategy ID from URL
+  const { clearAllEditStates } = usePersistentEditState(strategyId, '');
+
   const [activeTab, setActiveTab] = useState<string>("entry");
   const [newlyAddedConditionId, setNewlyAddedConditionId] = useState<string | null>(null);
+
+  // Clear all edit states when rules are saved
+  useEffect(() => {
+    if (onRulesSaved) {
+      const originalOnRulesSaved = onRulesSaved;
+      // Override to clear edit states after saving
+      onRulesSaved = () => {
+        clearAllEditStates();
+        originalOnRulesSaved();
+      };
+    }
+  }, [onRulesSaved, clearAllEditStates]);
 
   // Ensure we work with valid arrays and properly validate structure
   const safeEntryRules = Array.isArray(entryRules) ? entryRules : [];

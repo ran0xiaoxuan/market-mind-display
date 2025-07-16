@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TimezoneSettings } from "./TimezoneSettings";
-import { Loader2 } from "lucide-react";
+import { DeleteAccountDialog } from "./DeleteAccountDialog";
+import { Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AccountSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { user } = useAuth();
 
   const handlePasswordReset = async () => {
@@ -97,6 +99,48 @@ export function AccountSettings() {
       </Card>
 
       <TimezoneSettings />
+
+      <Card className="border-destructive/20">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="w-5 h-5" />
+            Delete Account
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>
+                <strong>Warning:</strong> This action cannot be undone. Deleting your account will permanently remove:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>All your trading strategies</li>
+                <li>Backtest history and results</li>
+                <li>Profile information</li>
+                <li>Account settings and preferences</li>
+                <li>Notification settings</li>
+              </ul>
+              <p className="pt-2">
+                Please make sure you have backed up any important data before proceeding.
+              </p>
+            </div>
+
+            <Button 
+              onClick={() => setShowDeleteDialog(true)}
+              variant="destructive"
+              className="w-full"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete My Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <DeleteAccountDialog 
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+      />
     </div>
   );
 }

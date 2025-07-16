@@ -22,6 +22,14 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
   onSave,
   onCancel
 }) => {
+  // Store previous values to restore when switching back
+  const [previousLeftIndicator, setPreviousLeftIndicator] = React.useState<string | undefined>(undefined);
+  const [previousRightIndicator, setPreviousRightIndicator] = React.useState<string | undefined>(undefined);
+  const [previousLeftParameters, setPreviousLeftParameters] = React.useState<any>(undefined);
+  const [previousRightParameters, setPreviousRightParameters] = React.useState<any>(undefined);
+  const [previousLeftValueType, setPreviousLeftValueType] = React.useState<string | undefined>(undefined);
+  const [previousRightValueType, setPreviousRightValueType] = React.useState<string | undefined>(undefined);
+
   // Helper function to get default parameters for an indicator
   const getDefaultParameters = (indicator: string) => {
     const normalizedIndicator = indicator.toLowerCase().replace(/\s+/g, '');
@@ -126,18 +134,42 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
     
     setLocalInequality(prev => {
       const updatedSide = { ...prev[side] };
+      const currentType = prev[side].type;
       
       if (field === 'type') {
+        // Store current indicator data before switching types
+        if (currentType === 'INDICATOR' && value !== 'INDICATOR') {
+          if (side === 'left') {
+            setPreviousLeftIndicator(prev[side].indicator);
+            setPreviousLeftParameters(prev[side].parameters);
+            setPreviousLeftValueType(prev[side].valueType);
+          } else {
+            setPreviousRightIndicator(prev[side].indicator);
+            setPreviousRightParameters(prev[side].parameters);
+            setPreviousRightValueType(prev[side].valueType);
+          }
+        }
+        
         // When type changes, clear all fields except the type itself
         updatedSide.type = value;
         
         // Clear all other fields based on the new type
         if (value === 'INDICATOR') {
-          // For INDICATOR: clear value, keep other fields undefined initially
+          // For INDICATOR: restore previous values if available, otherwise clear
+          if (side === 'left' && previousLeftIndicator) {
+            updatedSide.indicator = previousLeftIndicator;
+            updatedSide.parameters = previousLeftParameters || {};
+            updatedSide.valueType = previousLeftValueType;
+          } else if (side === 'right' && previousRightIndicator) {
+            updatedSide.indicator = previousRightIndicator;
+            updatedSide.parameters = previousRightParameters || {};
+            updatedSide.valueType = previousRightValueType;
+          } else {
+            updatedSide.indicator = undefined;
+            updatedSide.parameters = undefined;
+            updatedSide.valueType = undefined;
+          }
           updatedSide.value = undefined;
-          updatedSide.indicator = undefined;
-          updatedSide.parameters = undefined;
-          updatedSide.valueType = undefined;
         } else if (value === 'PRICE') {
           // For PRICE: clear indicator fields, keep value undefined initially
           updatedSide.indicator = undefined;

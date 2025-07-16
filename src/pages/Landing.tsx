@@ -124,7 +124,7 @@ const Landing = () => {
                 <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer" onClick={e => handleNavClick(e, 'faq')}>
                   FAQ
                 </a>
-                <a href="https://heavenly-haumea-e52.notion.site/StratAIge-Roadmap-232438a2e18280e1965af5afc1fdc5c4?source=copy_link" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                <a href="https://heavenly-haumea-e52.notion.site/232438a2e1828039ae10deefbc597c1e?v=232438a2e18281849af0000ca72743a9&source=copy_link" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
                   Roadmap
                 </a>
               </div>

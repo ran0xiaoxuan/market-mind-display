@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Inequality } from "./types";
 import { CompactInequalityDisplay } from "./components/CompactInequalityDisplay";
@@ -32,7 +31,7 @@ export const RuleInequality = ({
   
   const { loadEditState, saveEditState, clearEditState } = usePersistentEditState(
     strategyId,
-    inequality.id
+    inequality.id.toString() // Convert to string to match expected type
   );
 
   const [isOpen, setIsOpen] = useState<boolean>(isNewlyAdded);

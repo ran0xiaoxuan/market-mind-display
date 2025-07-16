@@ -1,3 +1,4 @@
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Strategies from "@/pages/Strategies";
 import StrategyDetail from "@/pages/StrategyDetail";
 import EditStrategy from "@/pages/EditStrategy";
+import ManualStrategy from "@/pages/ManualStrategy";
 import AIStrategy from "@/pages/AIStrategy";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
@@ -65,6 +67,7 @@ function App() {
           <Route path="/strategies/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />
           <Route path="/strategies/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
           <Route path="/strategy/:id/edit" element={<ProtectedRoute><EditStrategy /></ProtectedRoute>} />
+          <Route path="/manual-strategy" element={<ProtectedRoute><ManualStrategy /></ProtectedRoute>} />
           <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />

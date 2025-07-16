@@ -72,7 +72,7 @@ const OptimizedStrategies = () => {
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 className="text-3xl font-bold">Strategies</h1>
             <div className="flex gap-2 mt-4 sm:mt-0">
-              <Link to="/edit-strategy">
+              <Link to="/manual-strategy">
                 <Button variant="outline" className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   Create Manually

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { sendNotificationForSignal } from "./notificationService";
+import { incrementDailyTestSignalCount, getDailyTestSignalUsage } from "./dailyTestSignalService";
 
 export interface TestSignalData {
   strategyId: string;
@@ -26,6 +27,12 @@ export const generateTestSignal = async (testData: TestSignalData) => {
     }
 
     console.log('Current user:', user.user.id);
+
+    // Check daily test signal quota before proceeding
+    const usage = await getDailyTestSignalUsage();
+    if (usage.isLimitReached) {
+      throw new Error(`Daily test signal limit reached. You have used ${usage.count}/${usage.limit} test signals today. Please try again tomorrow.`);
+    }
 
     // Verify user owns the strategy
     const { data: strategy, error: strategyError } = await supabase
@@ -77,6 +84,9 @@ export const generateTestSignal = async (testData: TestSignalData) => {
     }
 
     console.log('Test signal created successfully:', testSignal);
+
+    // Increment the daily test signal count
+    await incrementDailyTestSignalCount();
 
     // Send notifications for this test signal using the test signal ID
     console.log('Sending notifications for test signal:', testSignal.id);

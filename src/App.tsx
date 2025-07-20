@@ -22,7 +22,6 @@ import Confirmed from "@/pages/auth/Confirmed";
 import AuthCallback from "@/pages/auth/AuthCallback";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import StrategyPreview from "@/pages/StrategyPreview";
-import AITest from "@/pages/AITest";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import PricingPage from "./pages/Pricing";
@@ -71,7 +70,6 @@ function App() {
           <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
-          <Route path="/ai-test" element={<ProtectedRoute><AITest /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/pricing" element={<PricingPage />} />

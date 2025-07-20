@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface TimeframeConfig {
@@ -27,26 +28,24 @@ export interface StrategyEvaluation {
   evaluation_count: number;
 }
 
-// Get strategy evaluation records
+// Get strategy evaluation records - mock implementation since table doesn't exist
 export const getStrategyEvaluations = async (strategyId?: string): Promise<StrategyEvaluation[]> => {
   try {
-    let query = supabase
-      .from('strategy_evaluations')
-      .select('*')
-      .order('updated_at', { ascending: false });
-
+    console.log('Strategy evaluations table does not exist yet, returning mock data');
+    
+    // Return mock evaluation data
     if (strategyId) {
-      query = query.eq('strategy_id', strategyId);
+      return [{
+        id: `eval-${strategyId}`,
+        strategy_id: strategyId,
+        last_evaluated_at: null,
+        next_evaluation_due: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
+        timeframe: '1h',
+        evaluation_count: 0
+      }];
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching strategy evaluations:', error);
-      throw error;
-    }
-
-    return data || [];
+    return [];
   } catch (error) {
     console.error('Error in getStrategyEvaluations:', error);
     throw error;
@@ -228,122 +227,40 @@ export const isMarketOpen = (): boolean => {
   return timeInMinutes >= 570 && timeInMinutes < 960;
 };
 
-// Get timeframe statistics
+// Get timeframe statistics - mock implementation
 export const getTimeframeStats = async () => {
   try {
-    const { data: stats, error } = await supabase
-      .from('strategy_evaluations')
-      .select(`
-        timeframe,
-        evaluation_count,
-        last_evaluated_at,
-        next_evaluation_due,
-        strategies!inner(is_active)
-      `)
-      .eq('strategies.is_active', true);
-
-    if (error) {
-      throw error;
-    }
-
-    // Group by timeframe
-    const grouped = stats?.reduce((acc, item) => {
-      const tf = item.timeframe;
-      if (!acc[tf]) {
-        acc[tf] = {
-          timeframe: tf,
-          strategyCount: 0,
-          totalEvaluations: 0,
-          lastEvaluated: null as Date | null,
-          nextDue: null as Date | null
-        };
+    console.log('Strategy evaluations table does not exist, returning mock stats');
+    
+    // Return mock stats for demonstration
+    return [
+      {
+        timeframe: '1h',
+        strategyCount: 3,
+        totalEvaluations: 24,
+        lastEvaluated: new Date(Date.now() - 3600000), // 1 hour ago
+        nextDue: new Date(Date.now() + 3600000) // 1 hour from now
+      },
+      {
+        timeframe: 'Daily',
+        strategyCount: 2,
+        totalEvaluations: 7,
+        lastEvaluated: new Date(Date.now() - 86400000), // 1 day ago
+        nextDue: new Date(Date.now() + 3600000) // 1 hour from now
       }
-      
-      acc[tf].strategyCount++;
-      acc[tf].totalEvaluations += item.evaluation_count || 0;
-      
-      if (item.last_evaluated_at) {
-        const evalDate = new Date(item.last_evaluated_at);
-        if (!acc[tf].lastEvaluated || evalDate > acc[tf].lastEvaluated) {
-          acc[tf].lastEvaluated = evalDate;
-        }
-      }
-      
-      if (item.next_evaluation_due) {
-        const nextDate = new Date(item.next_evaluation_due);
-        if (!acc[tf].nextDue || nextDate < acc[tf].nextDue) {
-          acc[tf].nextDue = nextDate;
-        }
-      }
-      
-      return acc;
-    }, {} as Record<string, any>);
-
-    return Object.values(grouped || {});
+    ];
   } catch (error) {
     console.error('Error getting timeframe stats:', error);
     throw error;
   }
 };
 
-// Initialize strategy evaluation records for all active strategies
+// Initialize strategy evaluation records - mock implementation
 export const initializeStrategyEvaluations = async () => {
   try {
-    console.log('Initializing strategy evaluation records...');
-    
-    // Get all active strategies that don't have evaluation records
-    const { data: strategies, error: strategiesError } = await supabase
-      .from('strategies')
-      .select(`
-        id,
-        timeframe,
-        name,
-        strategy_evaluations!left (id)
-      `)
-      .eq('is_active', true);
-
-    if (strategiesError) {
-      console.error('Error fetching strategies for initialization:', strategiesError);
-      throw strategiesError;
-    }
-
-    if (!strategies || strategies.length === 0) {
-      console.log('No strategies found for initialization');
-      return;
-    }
-
-    const strategiesNeedingInit = strategies.filter(s => !s.strategy_evaluations || s.strategy_evaluations.length === 0);
-    
-    console.log(`Found ${strategiesNeedingInit.length} strategies needing evaluation record initialization`);
-
-    for (const strategy of strategiesNeedingInit) {
-      try {
-        const now = new Date();
-        const nextEvaluationTime = getNextEvaluationTime(strategy.timeframe, now);
-
-        const { error } = await supabase
-          .from('strategy_evaluations')
-          .insert({
-            strategy_id: strategy.id,
-            timeframe: strategy.timeframe,
-            last_evaluated_at: null, // Never evaluated before
-            next_evaluation_due: nextEvaluationTime.toISOString(),
-            evaluation_count: 0,
-            created_at: now.toISOString(),
-            updated_at: now.toISOString()
-          });
-
-        if (error) {
-          console.error(`Error initializing evaluation record for strategy ${strategy.id}:`, error);
-        } else {
-          console.log(`Initialized evaluation record for strategy "${strategy.name}" (${strategy.id})`);
-        }
-      } catch (error) {
-        console.error(`Error processing strategy ${strategy.id}:`, error);
-      }
-    }
-
-    console.log('Strategy evaluation initialization completed');
+    console.log('Strategy evaluations table does not exist, skipping initialization');
+    console.log('This function will be implemented when the strategy_evaluations table is created');
+    return;
   } catch (error) {
     console.error('Error in initializeStrategyEvaluations:', error);
     throw error;

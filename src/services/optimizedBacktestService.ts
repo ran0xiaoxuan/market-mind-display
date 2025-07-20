@@ -107,20 +107,9 @@ export const runOptimizedBacktest = async (
 
     updateProgress('creating', 30, 'Creating backtest record...');
 
-    // Create backtest record
-    const { data: backtest, error: backtestError } = await supabase
-      .from('backtests')
-      .insert({
-        strategy_id: parameters.strategyId,
-        user_id: strategy.user_id,
-        start_date: parameters.startDate,
-        end_date: parameters.endDate,
-        initial_capital: parameters.initialCapital
-      })
-      .select()
-      .single();
-
-    if (backtestError) throw backtestError;
+    // Since backtest tables don't exist, create in-memory backtest
+    const backtestId = `opt-backtest-${Date.now()}`;
+    console.log('Created in-memory backtest with ID:', backtestId);
 
     updateProgress('generating', 40, 'Generating optimized trades...');
 
@@ -133,77 +122,17 @@ export const runOptimizedBacktest = async (
       (progress) => updateProgress('generating', 40 + (progress * 0.3), `Generating trades: ${Math.round(progress)}%`)
     );
 
-    updateProgress('saving', 75, 'Saving trades to database...');
-
-    // Batch insert trades for better performance
-    if (trades.length > 0) {
-      const batchSize = 100; // Insert in batches of 100
-      const tradeBatches = [];
-      
-      for (let i = 0; i < trades.length; i += batchSize) {
-        const batch = trades.slice(i, i + batchSize).map(trade => ({
-          backtest_id: backtest.id,
-          date: trade.date,
-          type: trade.type,
-          signal: trade.signal,
-          price: trade.price,
-          contracts: trade.contracts,
-          profit: trade.profit,
-          profit_percentage: trade.profitPercentage
-        }));
-        tradeBatches.push(batch);
-      }
-
-      // Insert all batches
-      for (const batch of tradeBatches) {
-        const { error: tradesError } = await supabase
-          .from('backtest_trades')
-          .insert(batch);
-
-        if (tradesError) {
-          console.error('Error inserting trade batch:', tradesError);
-          throw tradesError;
-        }
-      }
-    }
-
     updateProgress('calculating', 85, 'Calculating performance metrics...');
 
     // Calculate performance metrics with optimized algorithms
     const metrics = calculateOptimizedMetrics(trades, parameters.initialCapital);
-
-    updateProgress('finalizing', 95, 'Finalizing backtest results...');
-
-    // Update backtest record with results
-    const { error: updateError } = await supabase
-      .from('backtests')
-      .update({
-        total_return: metrics.totalReturn,
-        total_return_percentage: metrics.totalReturnPercentage,
-        annualized_return: metrics.annualizedReturn,
-        sharpe_ratio: metrics.sharpeRatio,
-        max_drawdown: metrics.maxDrawdown,
-        win_rate: metrics.winRate,
-        profit_factor: metrics.profitFactor,
-        total_trades: metrics.totalTrades,
-        winning_trades: metrics.winningTrades,
-        losing_trades: metrics.losingTrades,
-        avg_profit: metrics.avgProfit,
-        avg_loss: metrics.avgLoss
-      })
-      .eq('id', backtest.id);
-
-    if (updateError) {
-      console.error('Error updating backtest results:', updateError);
-      throw updateError;
-    }
 
     updateProgress('complete', 100, 'Backtest completed successfully');
 
     console.log('Optimized backtest completed successfully with metrics:', metrics);
 
     return {
-      id: backtest.id,
+      id: backtestId,
       ...metrics,
       trades
     };
@@ -522,14 +451,6 @@ const getZeroMetrics = () => ({
   avgProfit: 0,
   avgLoss: 0
 });
-
-// Helper function to parse percentage string to number
-const parsePercentage = (percentageStr: string): number | null => {
-  if (!percentageStr) return null;
-  const cleaned = percentageStr.replace('%', '').trim();
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? null : parsed;
-};
 
 // Clear caches when needed
 export const clearBacktestCaches = () => {

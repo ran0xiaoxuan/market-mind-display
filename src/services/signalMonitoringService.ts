@@ -1,12 +1,14 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  getOptimizedSignalMonitoringStatus, 
-  triggerOptimizedSignalCheck,
-  isMarketOpenOptimized,
-  cleanupOptimizedCache,
-  warmCacheForActiveStrategies
-} from "./optimizedSignalMonitoringService";
+  getUltraFastMonitoringStatus, 
+  triggerUltraFastSignalCheck,
+  isMarketOpenUltraFast,
+  cleanupUltraFastCache,
+  initializeUltraFastMonitoring,
+  monitorUltraFastPerformance,
+  getUltraFastPerformanceStats
+} from "./ultraFastSignalMonitoringService";
 
 export interface SignalMonitoringStatus {
   isActive: boolean;
@@ -14,20 +16,23 @@ export interface SignalMonitoringStatus {
   signalsGenerated: number;
   strategiesMonitored: number;
   processingTime?: number;
+  avgTimePerStrategy?: number;
+  cacheHitRate?: string;
+  optimizationLevel?: string;
   error?: string;
 }
 
-// Use optimized implementation as the main implementation
+// Use ultra-fast implementation as the main implementation
 export const getSignalMonitoringStatus = async (): Promise<SignalMonitoringStatus> => {
-  return await getOptimizedSignalMonitoringStatus();
+  return await getUltraFastMonitoringStatus();
 };
 
 export const triggerManualSignalCheck = async () => {
-  return await triggerOptimizedSignalCheck();
+  return await triggerUltraFastSignalCheck();
 };
 
 export const isMarketOpen = (): boolean => {
-  return isMarketOpenOptimized();
+  return isMarketOpenUltraFast();
 };
 
 export const getNextMarketOpen = (): Date => {
@@ -58,59 +63,98 @@ export const getNextMarketOpen = (): Date => {
 };
 
 export const cleanupCache = () => {
-  return cleanupOptimizedCache();
+  return cleanupUltraFastCache();
 };
 
-// Initialize cache warming for better performance
+// Initialize ultra-fast monitoring for maximum performance
 export const initializeOptimizedMonitoring = async () => {
-  console.log('[SignalMonitoring] Initializing optimized monitoring...');
+  console.log('[SignalMonitoring] Initializing ultra-fast monitoring...');
   
   try {
-    // Warm up cache with active strategies
-    await warmCacheForActiveStrategies();
+    await initializeUltraFastMonitoring();
     
-    // Set up periodic cache cleanup
+    // Set up periodic performance monitoring
     setInterval(() => {
-      cleanupOptimizedCache();
-    }, 60000); // Clean up every minute
+      cleanupUltraFastCache();
+    }, 30000); // Clean up every 30 seconds
     
-    console.log('[SignalMonitoring] Optimized monitoring initialized');
+    // Performance monitoring every 5 minutes
+    setInterval(() => {
+      monitorUltraFastPerformance().catch(error => {
+        console.error('[SignalMonitoring] Performance monitoring error:', error);
+      });
+    }, 300000); // Every 5 minutes
+    
+    console.log('[SignalMonitoring] Ultra-fast monitoring initialized');
   } catch (error) {
-    console.error('[SignalMonitoring] Error initializing optimized monitoring:', error);
+    console.error('[SignalMonitoring] Error initializing ultra-fast monitoring:', error);
   }
 };
 
-// Performance monitoring
+// Enhanced monitoring statistics
 export const getMonitoringStats = () => {
   return {
-    optimizedCacheStats: cleanupOptimizedCache(),
+    ultraFastStats: getUltraFastPerformanceStats(),
     lastCleanup: Date.now(),
-    marketOpen: isMarketOpen()
+    marketOpen: isMarketOpen(),
+    optimizationLevel: 'ultra_fast'
   };
 };
 
-// Enhanced signal monitoring with performance tracking
+// Ultra-fast signal monitoring with advanced performance tracking
 export const monitorSignalsWithPerformance = async () => {
   const startTime = Date.now();
   
   try {
-    console.log('[PerformanceMonitor] Starting signal monitoring with performance tracking...');
+    console.log('[UltraFastMonitor] Starting ultra-fast signal monitoring...');
     
-    const result = await triggerOptimizedSignalCheck();
+    const result = await monitorUltraFastPerformance();
     const totalTime = Date.now() - startTime;
     
-    console.log(`[PerformanceMonitor] Total monitoring time: ${totalTime}ms`);
-    console.log(`[PerformanceMonitor] Signals generated: ${result.signals_generated || 0}`);
+    console.log(`[UltraFastMonitor] Total monitoring time: ${totalTime}ms`);
+    console.log(`[UltraFastMonitor] Performance grade: ${result.performance_grade}`);
+    console.log(`[UltraFastMonitor] Signals generated: ${result.signals_generated || 0}`);
     
     return {
       ...result,
       totalProcessingTime: totalTime,
-      averageTimePerStrategy: result.processed_strategies?.length 
-        ? Math.round(totalTime / result.processed_strategies.length)
-        : 0
+      performance_metrics: {
+        response_time: totalTime,
+        efficiency_score: Math.max(0, 100 - (totalTime / 100)), // Score out of 100
+        optimization_level: 'ultra_fast',
+        target_met: totalTime < 30000 // Target: under 30 seconds
+      }
     };
   } catch (error) {
-    console.error('[PerformanceMonitor] Error in performance monitoring:', error);
+    console.error('[UltraFastMonitor] Error in ultra-fast monitoring:', error);
     throw error;
   }
+};
+
+// Real-time performance tracking
+export const startRealTimePerformanceTracking = () => {
+  console.log('[RealTimeTracking] Starting real-time performance tracking...');
+  
+  // Track performance every minute during market hours
+  const trackingInterval = setInterval(() => {
+    if (isMarketOpen()) {
+      monitorSignalsWithPerformance().catch(error => {
+        console.error('[RealTimeTracking] Tracking error:', error);
+      });
+    }
+  }, 60000); // Every minute
+  
+  // Clean up tracking when market closes
+  const marketCloseCheck = setInterval(() => {
+    if (!isMarketOpen()) {
+      clearInterval(trackingInterval);
+      clearInterval(marketCloseCheck);
+      console.log('[RealTimeTracking] Market closed, stopping real-time tracking');
+    }
+  }, 300000); // Check every 5 minutes
+  
+  return () => {
+    clearInterval(trackingInterval);
+    clearInterval(marketCloseCheck);
+  };
 };

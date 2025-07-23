@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   getOptimizedCurrentPrice,
@@ -7,7 +6,8 @@ import {
   batchFetchMarketData,
   cleanupOptimizedCaches,
   warmUpCache,
-  getOptimizedCacheStats
+  getOptimizedCacheStats,
+  startRealTimePriceMonitoring
 } from "./optimizedMarketDataService";
 
 export interface MarketData {
@@ -139,9 +139,10 @@ export const cleanupMarketDataCache = () => {
   return cleanupOptimizedCaches();
 };
 
+// Enhanced initialization with WebSocket support
 export const initializeMarketDataCache = async (symbols: string[] = [], timeframes: string[] = ['1h', '4h', 'Daily']) => {
   try {
-    console.log('[MarketData] Initializing cache with commonly used symbols and timeframes...');
+    console.log('[MarketData] Initializing cache with WebSocket support...');
     
     // Get active strategy symbols if none provided
     if (symbols.length === 0) {
@@ -156,15 +157,19 @@ export const initializeMarketDataCache = async (symbols: string[] = [], timefram
     }
     
     if (symbols.length > 0) {
+      // Initialize WebSocket connection and subscriptions
       await warmUpCache(symbols, timeframes);
+      
+      // Start real-time monitoring
+      await startRealTimePriceMonitoring();
     }
     
     // Set up periodic cache cleanup
     setInterval(() => {
       cleanupOptimizedCaches();
-    }, 30000); // Clean up every 30 seconds
+    }, 30000);
     
-    console.log('[MarketData] Cache initialization completed');
+    console.log('[MarketData] Cache initialization completed with WebSocket integration');
   } catch (error) {
     console.error('[MarketData] Error initializing cache:', error);
   }

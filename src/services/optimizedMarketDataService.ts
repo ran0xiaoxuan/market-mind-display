@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import websocketMarketDataService, { RealTimePriceData } from "./websocketMarketDataService";
 
 export interface OptimizedMarketData {
   date: string;
@@ -46,25 +47,55 @@ const getOptimizedFmpApiKey = async (): Promise<string | null> => {
   }
 };
 
-// Batch fetch current prices for multiple symbols
+// Enhanced getCurrentPrice with WebSocket fallback
+export const getOptimizedCurrentPrice = async (symbol: string): Promise<number | null> => {
+  // First try WebSocket data (real-time)
+  const wsPrice = websocketMarketDataService.getCurrentPrice(symbol);
+  if (wsPrice && Date.now() - wsPrice.timestamp < 5000) { // Use if less than 5 seconds old
+    console.log(`[OptimizedPrice] Using WebSocket price for ${symbol}: $${wsPrice.price}`);
+    return wsPrice.price;
+  }
+
+  // Fallback to REST API with cache
+  const cached = priceCache.get(symbol);
+  if (cached && Date.now() - cached.timestamp < PRICE_CACHE_TTL) {
+    return cached.price;
+  }
+
+  try {
+    const prices = await batchGetCurrentPrices([symbol]);
+    return prices.get(symbol) || null;
+  } catch (error) {
+    console.error(`[OptimizedPrice] Error fetching price for ${symbol}:`, error);
+    return null;
+  }
+};
+
+// Enhanced batch price fetching with WebSocket integration
 export const batchGetCurrentPrices = async (symbols: string[]): Promise<Map<string, number>> => {
   const startTime = Date.now();
   const results = new Map<string, number>();
   const uncachedSymbols: string[] = [];
 
-  // Check cache first
+  // Check WebSocket data first
   symbols.forEach(symbol => {
-    const cached = priceCache.get(symbol);
-    if (cached && Date.now() - cached.timestamp < PRICE_CACHE_TTL) {
-      results.set(symbol, cached.price);
+    const wsPrice = websocketMarketDataService.getCurrentPrice(symbol);
+    if (wsPrice && Date.now() - wsPrice.timestamp < 5000) {
+      results.set(symbol, wsPrice.price);
     } else {
-      uncachedSymbols.push(symbol);
+      // Check REST cache
+      const cached = priceCache.get(symbol);
+      if (cached && Date.now() - cached.timestamp < PRICE_CACHE_TTL) {
+        results.set(symbol, cached.price);
+      } else {
+        uncachedSymbols.push(symbol);
+      }
     }
   });
 
-  console.log(`[BatchPrices] Cache hits: ${results.size}, Cache misses: ${uncachedSymbols.length}`);
+  console.log(`[BatchPrices] WebSocket hits: ${results.size}, Cache misses: ${uncachedSymbols.length}`);
 
-  // Fetch uncached symbols
+  // Fetch uncached symbols via REST API
   if (uncachedSymbols.length > 0) {
     try {
       const apiKey = await getOptimizedFmpApiKey();
@@ -72,7 +103,6 @@ export const batchGetCurrentPrices = async (symbols: string[]): Promise<Map<stri
         throw new Error('FMP API key not available');
       }
 
-      // Batch request - FMP supports multiple symbols in one call
       const symbolsQuery = uncachedSymbols.join(',');
       const response = await fetch(
         `https://financialmodelingprep.com/api/v3/quote/${symbolsQuery}?apikey=${apiKey}`
@@ -95,7 +125,7 @@ export const batchGetCurrentPrices = async (symbols: string[]): Promise<Map<stri
         });
       }
 
-      console.log(`[BatchPrices] Fetched ${data.length} prices in ${Date.now() - startTime}ms`);
+      console.log(`[BatchPrices] Fetched ${data.length} prices via REST in ${Date.now() - startTime}ms`);
     } catch (error) {
       console.error('[BatchPrices] Error fetching batch prices:', error);
     }
@@ -104,19 +134,73 @@ export const batchGetCurrentPrices = async (symbols: string[]): Promise<Map<stri
   return results;
 };
 
-// Optimized single price fetch with intelligent caching
-export const getOptimizedCurrentPrice = async (symbol: string): Promise<number | null> => {
-  const cached = priceCache.get(symbol);
-  if (cached && Date.now() - cached.timestamp < PRICE_CACHE_TTL) {
-    return cached.price;
-  }
-
+// Enhanced warmup with WebSocket subscription
+export const warmUpCache = async (symbols: string[], timeframes: string[]) => {
+  console.log(`[CacheWarmup] Warming cache for ${symbols.length} symbols, ${timeframes.length} timeframes`);
+  
   try {
-    const prices = await batchGetCurrentPrices([symbol]);
-    return prices.get(symbol) || null;
+    // Subscribe to WebSocket for real-time updates
+    websocketMarketDataService.subscribe(symbols);
+    
+    // Warm up current prices (will use WebSocket + REST fallback)
+    await batchGetCurrentPrices(symbols);
+    
+    // Warm up historical data for common timeframes
+    const requests: BatchMarketDataRequest[] = timeframes.map(timeframe => ({
+      symbols,
+      timeframe,
+      limit: 50
+    }));
+    
+    await batchFetchMarketData(requests);
+    
+    console.log('[CacheWarmup] Cache warmup completed with WebSocket integration');
   } catch (error) {
-    console.error(`[OptimizedPrice] Error fetching price for ${symbol}:`, error);
-    return null;
+    console.error('[CacheWarmup] Error during cache warmup:', error);
+  }
+};
+
+// Enhanced real-time monitoring with WebSocket
+export const startRealTimePriceMonitoring = async () => {
+  try {
+    const { data: strategies } = await supabase
+      .from('strategies')
+      .select('target_asset')
+      .eq('is_active', true);
+
+    if (strategies && strategies.length > 0) {
+      const symbols = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
+      
+      console.log(`[RealTimeMonitor] Starting WebSocket monitoring for ${symbols.length} symbols`);
+      
+      // Subscribe to WebSocket for instant updates
+      websocketMarketDataService.subscribe(symbols);
+      
+      // Set up periodic REST fallback for reliability
+      const updatePrices = async () => {
+        try {
+          await batchGetCurrentPrices(symbols);
+        } catch (error) {
+          console.error('[RealTimeMonitor] Error in fallback update:', error);
+        }
+      };
+      
+      // Fallback update every 30 seconds
+      const interval = setInterval(updatePrices, 30000);
+      
+      // Clean up on page unload
+      window.addEventListener('beforeunload', () => {
+        clearInterval(interval);
+        websocketMarketDataService.unsubscribe(symbols);
+      });
+      
+      return () => {
+        clearInterval(interval);
+        websocketMarketDataService.unsubscribe(symbols);
+      };
+    }
+  } catch (error) {
+    console.error('[RealTimeMonitor] Error starting real-time monitoring:', error);
   }
 };
 
@@ -315,27 +399,4 @@ export const cleanupOptimizedCaches = () => {
 
   console.log(`[CacheCleanup] Cleaned ${cleanedPrices} price entries, ${cleanedData} data entries`);
   return { cleanedPrices, cleanedData };
-};
-
-// Warm up cache for commonly requested symbols
-export const warmUpCache = async (symbols: string[], timeframes: string[]) => {
-  console.log(`[CacheWarmup] Warming cache for ${symbols.length} symbols, ${timeframes.length} timeframes`);
-  
-  try {
-    // Warm up current prices
-    await batchGetCurrentPrices(symbols);
-    
-    // Warm up historical data for common timeframes
-    const requests: BatchMarketDataRequest[] = timeframes.map(timeframe => ({
-      symbols,
-      timeframe,
-      limit: 50 // Smaller limit for warmup
-    }));
-    
-    await batchFetchMarketData(requests);
-    
-    console.log('[CacheWarmup] Cache warmup completed');
-  } catch (error) {
-    console.error('[CacheWarmup] Error during cache warmup:', error);
-  }
 };

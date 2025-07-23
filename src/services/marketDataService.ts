@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   getOptimizedCurrentPrice,
@@ -160,7 +161,7 @@ export const initializeMarketDataCache = async (symbols: string[] = [], timefram
       // Initialize WebSocket connection and subscriptions
       await warmUpCache(symbols, timeframes);
       
-      // Start real-time monitoring
+      // Start real-time monitoring using the imported function
       await startRealTimePriceMonitoring();
     }
     
@@ -175,42 +176,5 @@ export const initializeMarketDataCache = async (symbols: string[] = [], timefram
   }
 };
 
-// Real-time price monitoring for active strategies
-export const startRealTimePriceMonitoring = async () => {
-  try {
-    const { data: strategies } = await supabase
-      .from('strategies')
-      .select('target_asset')
-      .eq('is_active', true);
-
-    if (strategies && strategies.length > 0) {
-      const symbols = [...new Set(strategies.map(s => s.target_asset).filter(Boolean))];
-      
-      console.log(`[RealTimeMonitor] Starting real-time monitoring for ${symbols.length} symbols`);
-      
-      // Update prices every 15 seconds during market hours
-      const updatePrices = async () => {
-        try {
-          await batchGetCurrentPrices(symbols);
-        } catch (error) {
-          console.error('[RealTimeMonitor] Error updating prices:', error);
-        }
-      };
-      
-      // Initial update
-      await updatePrices();
-      
-      // Set up interval for continuous updates
-      const interval = setInterval(updatePrices, 15000);
-      
-      // Clean up on page unload
-      window.addEventListener('beforeunload', () => {
-        clearInterval(interval);
-      });
-      
-      return () => clearInterval(interval);
-    }
-  } catch (error) {
-    console.error('[RealTimeMonitor] Error starting real-time monitoring:', error);
-  }
-};
+// Export the imported function to maintain API compatibility
+export { startRealTimePriceMonitoring };

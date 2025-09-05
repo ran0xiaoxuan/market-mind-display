@@ -11,8 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Turnstile } from "@/components/Turnstile";
-
 export default function Login() {
   usePageTitle("Sign In - StratAIge");
 
@@ -20,18 +18,12 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const { signIn, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!turnstileToken) {
-      toast.error("Please complete the security verification");
-      return;
-    }
-
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
@@ -57,11 +49,6 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!turnstileToken) {
-      toast.error("Please complete the security verification");
-      return;
-    }
-
     setIsLoading(true);
     try {
       const result = await signInWithGoogle();
@@ -142,11 +129,7 @@ export default function Login() {
               </Link>
             </div>
 
-            <div className="flex justify-center">
-              <Turnstile onVerify={setTurnstileToken} />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
@@ -163,7 +146,7 @@ export default function Login() {
           <Button
             variant="outline"
             onClick={handleGoogleSignIn}
-            disabled={isLoading || !turnstileToken}
+            disabled={isLoading}
             className="w-full"
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

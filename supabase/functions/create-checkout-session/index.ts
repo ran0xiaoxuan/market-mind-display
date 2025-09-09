@@ -86,8 +86,8 @@ serve(async (req) => {
       try { return new URL(raw).origin; } catch { return ''; }
     };
     const siteUrl = 
-      resolveOrigin(envSiteUrl) || 
       resolveOrigin(clientSiteUrl) || 
+      resolveOrigin(envSiteUrl) || 
       resolveOrigin(originHeader) || 
       'http://localhost:5173';
 

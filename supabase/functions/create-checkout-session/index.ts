@@ -28,7 +28,23 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Stripe configuration missing' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { plan } = await req.json();
+    // Robustly parse JSON body; fallback to query param
+    let plan: string | null = null;
+    try {
+      const contentType = req.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const payload = await req.json().catch(() => null);
+        if (payload && typeof payload === 'object') {
+          plan = (payload as any).plan ?? null;
+        }
+      }
+    } catch (_) {
+      // ignore malformed JSON
+    }
+    if (!plan) {
+      const urlObj = new URL(req.url);
+      plan = urlObj.searchParams.get('plan');
+    }
     if (!plan || (plan !== 'monthly' && plan !== 'yearly')) {
       return new Response(JSON.stringify({ error: 'Invalid plan' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

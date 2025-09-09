@@ -1,7 +1,6 @@
 
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import Landing from "./Landing";
 
 const Index = () => {
   const { user } = useAuth();
@@ -11,8 +10,8 @@ const Index = () => {
     return <Navigate to="/dashboard" />;
   }
 
-  // If user is not authenticated, show landing page
-  return <Landing />;
+  // If user is not authenticated, redirect to signup
+  return <Navigate to="/signup" />;
 };
 
 export default Index;

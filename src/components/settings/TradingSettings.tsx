@@ -198,10 +198,9 @@ export function TradingSettings() {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
           'x-site-url': window.location.origin,
         },
-        body: JSON.stringify({ plan })
+        body: { plan }
       });
       if (error) {
         // Try to extract detailed error message from edge function response

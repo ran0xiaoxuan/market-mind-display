@@ -199,6 +199,7 @@ export function TradingSettings() {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
+          'x-site-url': window.location.origin,
         },
         body: JSON.stringify({ plan })
       });

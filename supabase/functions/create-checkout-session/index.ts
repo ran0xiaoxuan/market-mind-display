@@ -61,13 +61,19 @@ serve(async (req) => {
       customerId = created.id;
     }
 
+    const envSiteUrl = Deno.env.get('SITE_URL') || Deno.env.get('PUBLIC_SITE_URL') || '';
+    const clientSiteUrl = req.headers.get('x-site-url') || '';
     const originHeader = req.headers.get('Origin') || req.headers.get('Referer') || '';
-    let origin = 'http://localhost:5173';
-    try {
-      origin = new URL(originHeader).origin;
-    } catch {}
-    const successUrl = `${origin}/settings?upgrade=success`;
-    const cancelUrl = `${origin}/settings?upgrade=cancel`;
+    const resolveOrigin = (raw: string) => {
+      try { return new URL(raw).origin; } catch { return ''; }
+    };
+    const siteUrl = 
+      resolveOrigin(envSiteUrl) || 
+      resolveOrigin(clientSiteUrl) || 
+      resolveOrigin(originHeader) || 
+      'http://localhost:5173';
+    const successUrl = `${siteUrl}/settings?upgrade=success`;
+    const cancelUrl = `${siteUrl}/settings?upgrade=cancel`;
 
     const priceId = plan === 'monthly' ? PRICE_ID_MONTHLY : PRICE_ID_YEARLY;
 

@@ -24,7 +24,6 @@ import ResetPassword from "@/pages/auth/ResetPassword";
 import StrategyPreview from "@/pages/StrategyPreview";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
-import PricingPage from "./pages/Pricing";
 import OptimizedDashboard from "@/pages/OptimizedDashboard";
 import OptimizedStrategies from "@/pages/OptimizedStrategies";
 
@@ -70,7 +69,6 @@ function App() {
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/pricing" element={<PricingPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

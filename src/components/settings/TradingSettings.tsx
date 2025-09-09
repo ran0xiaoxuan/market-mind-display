@@ -13,6 +13,8 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { getNotificationSettings, saveNotificationSettings, verifyDiscordWebhook, verifyTelegramBot, NotificationSettings } from "@/services/notificationService";
 import { TestSignalGenerator } from "@/components/TestSignalGenerator";
+import { STRIPE_CHECKOUT_URL_YEARLY, STRIPE_CHECKOUT_URL_MONTHLY } from "@/lib/constants";
+import { supabase } from "@/integrations/supabase/client";
 
 export function TradingSettings() {
   const { user } = useAuth();
@@ -183,6 +185,34 @@ export function TradingSettings() {
         return '****';
       default:
         return '****';
+    }
+  };
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please log in again");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ plan })
+      });
+      if (error) {
+        throw error;
+      }
+      if (data?.url) {
+        window.location.href = data.url as string;
+      } else {
+        toast.error("Failed to start checkout");
+      }
+    } catch (e: any) {
+      console.error('Upgrade error:', e);
+      toast.error(e?.message || "Upgrade failed");
     }
   };
 
@@ -445,10 +475,15 @@ export function TradingSettings() {
                 </div>
 
                 <div className="space-y-4">
-                  <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-8 py-3">
-                    <Crown className="mr-2 h-5 w-5" />
-                    Upgrade to Pro
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button onClick={() => handleUpgrade('yearly')} size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-3" aria-label="Upgrade to Pro Yearly">
+                      <Crown className="mr-2 h-5 w-5" />
+                      Upgrade to Pro — Yearly
+                    </Button>
+                    <Button onClick={() => handleUpgrade('monthly')} size="lg" variant="outline" className="bg-white border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-500 px-6 py-3" aria-label="Upgrade to Pro Monthly">
+                      Upgrade to Pro — Monthly
+                    </Button>
+                  </div>
                   
                   <p className="text-sm text-amber-700">
                     Join thousands of traders getting real-time signal notifications

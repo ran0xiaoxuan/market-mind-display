@@ -88,7 +88,7 @@ export default function Confirm() {
   }
 
   if (isConfirmed) {
-    return <Navigate to="/auth/confirmed" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

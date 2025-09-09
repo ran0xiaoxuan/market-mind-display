@@ -30,7 +30,7 @@ export default function AuthCallback() {
         if (access_token && refresh_token) {
           console.log('Auth callback successful with tokens');
           toast.success("Email confirmed successfully!");
-          navigate('/auth/confirmed', { replace: true });
+          navigate('/dashboard', { replace: true });
           return;
         }
 
@@ -38,7 +38,7 @@ export default function AuthCallback() {
         if (token && type === 'email') {
           console.log('Email confirmation callback detected');
           toast.success("Email confirmed successfully!");
-          navigate('/auth/confirmed', { replace: true });
+          navigate('/dashboard', { replace: true });
           return;
         }
 

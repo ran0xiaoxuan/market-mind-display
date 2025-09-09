@@ -204,6 +204,14 @@ export function TradingSettings() {
         body: JSON.stringify({ plan })
       });
       if (error) {
+        // Try to extract detailed error message from edge function response
+        const contextBody = (error as any)?.context?.body;
+        try {
+          const parsed = typeof contextBody === 'string' ? JSON.parse(contextBody) : contextBody;
+          if (parsed?.error) {
+            throw new Error(parsed.error);
+          }
+        } catch (_) {}
         throw error;
       }
       if (data?.url) {
@@ -213,7 +221,8 @@ export function TradingSettings() {
       }
     } catch (e: any) {
       console.error('Upgrade error:', e);
-      toast.error(e?.message || "Upgrade failed");
+      const msg = e?.message || e?.toString?.() || "Upgrade failed";
+      toast.error(msg);
     }
   };
 

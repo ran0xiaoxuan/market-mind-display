@@ -14,6 +14,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[create-checkout-session] request start');
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -25,18 +26,16 @@ serve(async (req) => {
     const PRICE_ID_YEARLY = Deno.env.get('STRIPE_PRICE_ID_YEARLY');
 
     if (!STRIPE_SECRET_KEY || !PRICE_ID_MONTHLY || !PRICE_ID_YEARLY) {
+      console.error('[create-checkout-session] Missing Stripe configuration');
       return new Response(JSON.stringify({ error: 'Stripe configuration missing' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Robustly parse JSON body; fallback to query param
+    // Parse JSON body regardless of content-type; fallback to query param
     let plan: string | null = null;
     try {
-      const contentType = req.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const payload = await req.json().catch(() => null);
-        if (payload && typeof payload === 'object') {
-          plan = (payload as any).plan ?? null;
-        }
+      const payload = await req.json().catch(() => null);
+      if (payload && typeof payload === 'object') {
+        plan = (payload as any).plan ?? null;
       }
     } catch (_) {
       // ignore malformed JSON
@@ -46,17 +45,20 @@ serve(async (req) => {
       plan = urlObj.searchParams.get('plan');
     }
     if (!plan || (plan !== 'monthly' && plan !== 'yearly')) {
+      console.error('[create-checkout-session] Invalid plan:', plan);
       return new Response(JSON.stringify({ error: 'Invalid plan' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[create-checkout-session] Missing Authorization header');
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const jwt = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt)
     if (authError || !user) {
+      console.error('[create-checkout-session] getUser failed:', authError);
       return new Response(JSON.stringify({ error: 'Invalid token or user not found' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -88,25 +90,36 @@ serve(async (req) => {
       resolveOrigin(clientSiteUrl) || 
       resolveOrigin(originHeader) || 
       'http://localhost:5173';
+
+    console.log('[create-checkout-session] user:', { id: user.id, email: user.email });
+    console.log('[create-checkout-session] plan/siteUrl:', { plan, siteUrl });
+
     const successUrl = `${siteUrl}/settings?upgrade=success`;
     const cancelUrl = `${siteUrl}/settings?upgrade=cancel`;
 
     const priceId = plan === 'monthly' ? PRICE_ID_MONTHLY : PRICE_ID_YEARLY;
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      line_items: [
-        { price: priceId, quantity: 1 }
-      ],
-      customer: customerId || undefined,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      allow_promotion_codes: true,
-      metadata: {
-        supabase_user_id: user.id,
-        plan
-      }
-    });
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        line_items: [
+          { price: priceId, quantity: 1 }
+        ],
+        customer: customerId || undefined,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        allow_promotion_codes: true,
+        metadata: {
+          supabase_user_id: user.id,
+          plan
+        }
+      });
+    } catch (err: any) {
+      console.error('[create-checkout-session] Stripe error:', err?.message || err);
+      const message = err?.message || 'Stripe error';
+      return new Response(JSON.stringify({ error: message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     return new Response(JSON.stringify({ url: session.url }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {

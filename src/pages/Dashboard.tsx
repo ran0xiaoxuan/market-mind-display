@@ -10,6 +10,8 @@ import { TradeHistoryTable } from "@/components/strategy-detail/TradeHistoryTabl
 import { TradeHistoryModal } from "@/components/TradeHistoryModal";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useOptimizedDashboard } from "@/hooks/useOptimizedDashboard";
+import { Link } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 
 type TimeRange = "7d" | "30d" | "all";
 
@@ -57,6 +59,15 @@ const Dashboard = () => {
                 <Button variant={timeRange === "all" ? "default" : "outline"} onClick={() => handleTimeRangeChange("all")}>
                   All Time
                 </Button>
+                <Button variant="ghost" size="sm" onClick={handleRefresh}>
+                  🔄 Refresh
+                </Button>
+                <Link to="/ai-strategy">
+                  <Button className="bg-black text-white hover:bg-black/90 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Create with AI
+                  </Button>
+                </Link>
               </div>
             </div>
             
@@ -130,6 +141,12 @@ const Dashboard = () => {
               <Button variant="ghost" size="sm" onClick={handleRefresh}>
                 🔄 Refresh
               </Button>
+              <Link to="/ai-strategy">
+                <Button className="bg-black text-white hover:bg-black/90 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Create with AI
+                </Button>
+              </Link>
             </div>
           </div>
           

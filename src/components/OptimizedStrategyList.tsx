@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ChevronRight, Bell, BellOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
@@ -14,6 +14,7 @@ export function OptimizedStrategyList() {
   const { data: strategies = [], isLoading, error, refetch } = useOptimizedStrategies();
   const [filteredStrategies, setFilteredStrategies] = useState(strategies.slice(0, 6));
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const {
     tier
@@ -64,11 +65,24 @@ export function OptimizedStrategyList() {
       return "Unknown";
     }
   };
+
+  const handleCreateWithAI = () => {
+    if (!userIsPro && strategies.length >= 1) {
+      toast.error("Free plan limit reached", {
+        description: "Upgrade to Pro to create more strategies."
+      });
+      return;
+    }
+    navigate('/ai-strategy');
+  };
   
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-xl">Your Strategies</CardTitle>
+        <Button className="bg-black text-white hover:bg-black/90" onClick={handleCreateWithAI}>
+          Create with AI
+        </Button>
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <div className="divide-y">

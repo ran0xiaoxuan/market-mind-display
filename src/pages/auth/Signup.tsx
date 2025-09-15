@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Check, X } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Turnstile } from "@/components/Turnstile";
+import { supabase } from "@/integrations/supabase/client";
 
 const Signup = () => {
   usePageTitle("Create Account - StratAIge");
@@ -34,6 +35,7 @@ const Signup = () => {
   const [resendEmail, setResendEmail] = useState("");
   const [resendAttempts, setResendAttempts] = useState(0);
   const [lastResendTime, setLastResendTime] = useState<number | null>(null);
+  const [referralCode, setReferralCode] = useState<string>("");
   
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, validatePassword, resendConfirmation } = useAuth();
@@ -76,11 +78,32 @@ const Signup = () => {
       return;
     }
 
+    // Validate referral code if present
+    if (referralCode.trim()) {
+      try {
+        const { data, error } = await supabase.functions.invoke('validate-referral-code', {
+          body: { code: referralCode.trim() }
+        });
+        if (error || !data?.valid) {
+          toast.error("Invalid invite code. Please check and try again.");
+          return;
+        }
+      } catch (err) {
+        toast.error("Failed to validate invite code. Please try again.");
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       console.log('Submitting signup form for:', email);
       
-      const { error } = await signUp(email, password);
+      const metadata: any = {};
+      if (referralCode) {
+        metadata.referral_code_used = referralCode.trim().toUpperCase();
+      }
+      
+      const { error } = await signUp(email, password, metadata);
       
       if (error) {
         console.error("Signup error:", error);
@@ -354,6 +377,17 @@ const Signup = () => {
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="referralCode">Invite code (optional)</Label>
+                  <Input
+                    id="referralCode"
+                    placeholder="Enter invite code if you have one"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="terms"
@@ -398,7 +432,7 @@ const Signup = () => {
               <Button
                 variant="outline"
                 onClick={handleGoogleSignIn}
-                disabled={isLoading || !turnstileToken || !acceptedTerms}
+                disabled={isLoading}
                 className="w-full"
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

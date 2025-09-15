@@ -20,6 +20,9 @@ import { Navbar } from "@/components/Navbar";
 import { getStockPrice } from "@/services/marketDataService";
 import { cleanupInvalidSignals } from "@/services/signalGenerationService";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
+import { useAuth } from "@/contexts/AuthContext";
+import { shareStrategyToRecommendations } from "@/services/recommendationService";
+import { isStrategyShared, unshareStrategyFromRecommendations } from "@/services/recommendationService";
 
 // Type for signal data structure
 interface SignalData {
@@ -43,6 +46,9 @@ const StrategyDetail = () => {
   const [hasValidTradingRules, setHasValidTradingRules] = useState(false);
   const { tier, isLoading: subscriptionLoading } = useUserSubscription();
   const userIsPro = isPro(tier);
+  const { user } = useAuth();
+  const [isSharing, setIsSharing] = useState(false);
+  const [isShared, setIsShared] = useState<boolean>(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,6 +137,11 @@ const StrategyDetail = () => {
       };
       
       setStrategy(transformedStrategy);
+      // Check if shared
+      try {
+        const shared = await isStrategyShared(transformedStrategy.id);
+        setIsShared(shared);
+      } catch (_) {}
       
       console.log("Strategy data fetched with daily_signal_limit:", transformedStrategy.dailySignalLimit);
       
@@ -269,6 +280,28 @@ const StrategyDetail = () => {
       toast.error("Failed to cleanup invalid data");
     }
   };
+
+  const canShare = !!user && user.email?.toLowerCase() === 'ran0xiaoxuan@gmail.com' && strategy?.userId === user.id;
+
+  const handleShare = async () => {
+    if (!id) return;
+    try {
+      setIsSharing(true);
+      if (isShared) {
+        await unshareStrategyFromRecommendations(id);
+        setIsShared(false);
+        toast.success("Unshared successfully");
+      } else {
+        await shareStrategyToRecommendations(id);
+        setIsShared(true);
+        toast.success("Shared to Recommendation");
+      }
+    } catch (e: any) {
+      toast.error(isShared ? "Unshare failed" : "Share failed", { description: e.message });
+    } finally {
+      setIsSharing(false);
+    }
+  };
   
   if (!id || id === 'undefined') {
     return (
@@ -342,6 +375,11 @@ const StrategyDetail = () => {
           <StrategyHeader 
             strategyId={id || ""} 
             strategyName={strategy?.name || ""} 
+            showShareButton={canShare}
+            isSharing={isSharing}
+            onShare={handleShare}
+            shareButtonLabel={canShare ? (isShared ? 'Unshare' : 'Share') : undefined}
+            shareLoadingLabel={canShare ? (isShared ? 'Unsharing...' : 'Sharing...') : undefined}
           />
           
           {!hasValidTradingRules && (

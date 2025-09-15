@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from "npm:stripe@12.18.0";
@@ -24,6 +25,7 @@ serve(async (req) => {
     const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
     const PRICE_ID_MONTHLY = Deno.env.get('STRIPE_PRICE_ID_MONTHLY');
     const PRICE_ID_YEARLY = Deno.env.get('STRIPE_PRICE_ID_YEARLY');
+    const STRIPE_COUPON_20_OFF = Deno.env.get('STRIPE_COUPON_20_OFF');
 
     if (!STRIPE_SECRET_KEY || !PRICE_ID_MONTHLY || !PRICE_ID_YEARLY) {
       console.error('[create-checkout-session] Missing Stripe configuration');
@@ -99,20 +101,37 @@ serve(async (req) => {
 
     const priceId = plan === 'monthly' ? PRICE_ID_MONTHLY : PRICE_ID_YEARLY;
 
+    // Look up available discounts for this user
+    let discountIdToConsume: string | null = null;
+    if (STRIPE_COUPON_20_OFF) {
+      const { data: discounts } = await supabaseAdmin
+        .from('user_discounts')
+        .select('id, type, consumed')
+        .eq('user_id', user.id)
+        .eq('consumed', false)
+        .order('created_at', { ascending: true });
+      const firstPurchase = (discounts || []).find(d => d.type === 'first_purchase');
+      const referralCredit = (discounts || []).find(d => d.type === 'referral_credit');
+      const chosen = firstPurchase || referralCredit;
+      discountIdToConsume = chosen?.id || null;
+    }
+
     let session;
     try {
       session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         line_items: [
-          { price: priceId, quantity: 1 }
+          { price: priceId!, quantity: 1 }
         ],
         customer: customerId || undefined,
         success_url: successUrl,
         cancel_url: cancelUrl,
         allow_promotion_codes: true,
+        discounts: discountIdToConsume && STRIPE_COUPON_20_OFF ? [{ coupon: STRIPE_COUPON_20_OFF }] : undefined,
         metadata: {
           supabase_user_id: user.id,
-          plan
+          plan,
+          discount_id: discountIdToConsume || ''
         }
       });
     } catch (err: any) {

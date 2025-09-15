@@ -66,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const lastSignInUserRef = useRef<string | null>(null);
+  const isInitialAuthCheckRef = useRef<boolean>(true);
 
   useEffect(() => {
     let mounted = true;
@@ -83,9 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && currentSession) {        
         console.log('User signed in successfully');
         
-        // Only show toast if this is a different user or first sign in for this session
+        // Only show toast if not during initial auth check (page load/refresh)
         const currentUserId = currentSession.user.id;
-        if (lastSignInUserRef.current !== currentUserId) {
+        if (!isInitialAuthCheckRef.current && lastSignInUserRef.current !== currentUserId) {
           lastSignInUserRef.current = currentUserId;
           toast({
             title: "Logged in successfully",
@@ -125,6 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (currentSession?.user) {
           lastSignInUserRef.current = currentSession.user.id;
         }
+        
+        // Mark initial auth check complete so future SIGNED_IN events can show toast
+        isInitialAuthCheckRef.current = false;
       }
     });
 

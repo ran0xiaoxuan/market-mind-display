@@ -486,7 +486,6 @@ export function TradingSettings() {
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button onClick={() => handleUpgrade('yearly')} size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-3" aria-label="Upgrade to Pro Yearly">
-                      <Crown className="mr-2 h-5 w-5" />
                       Upgrade to Pro — Yearly
                     </Button>
                     <Button onClick={() => handleUpgrade('monthly')} size="lg" variant="outline" className="bg-white border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-500 px-6 py-3" aria-label="Upgrade to Pro Monthly">

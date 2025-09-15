@@ -1,7 +1,7 @@
 
 import { User, Bell, Contact } from "lucide-react";
 
-type SettingsTab = "account" | "trading" | "contact";
+type SettingsTab = "account" | "trading" | "contact" | "discounts";
 
 interface SettingsTabsProps {
   activeTab: SettingsTab;
@@ -12,6 +12,7 @@ export function SettingsTabs({ activeTab, setActiveTab }: SettingsTabsProps) {
   const tabs = [
     { id: "account" as const, label: "Account" },
     { id: "trading" as const, label: "Notifications" },
+    { id: "discounts" as const, label: "Discounts" },
     { id: "contact" as const, label: "Contact Us" },
   ];
 

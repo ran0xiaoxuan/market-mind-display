@@ -185,6 +185,8 @@ export const AssetTypeSelector = ({
   useEffect(() => {
     let isCancelled = false;
 
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
     const initializeConnection = async () => {
       if (connectionStatus === 'connected') return;
 
@@ -193,37 +195,54 @@ export const AssetTypeSelector = ({
         setConnectionStatus('connecting');
         console.log("Initializing FMP API connection...");
 
-        // Fetch API key with timeout
-        const key = await getFmpApiKey();
-        if (isCancelled) return;
-        
-        if (!key) {
-          throw new Error("Could not retrieve market data API key");
-        }
+        const MAX_CONNECT_RETRIES = 3;
+        for (let attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
+          if (isCancelled) return;
 
-        setApiKey(key);
-        console.log("API key retrieved, validating...");
+          // Fetch API key
+          const key = await getFmpApiKey();
+          if (isCancelled) return;
 
-        // Validate with longer timeout and retry logic
-        const isValid = await validateFmpApiKey(key);
-        if (isCancelled) return;
-
-        if (isValid) {
-          setConnectionStatus('connected');
-          if (!hasShownConnectionToast) {
-            toast.success("Market data connected successfully");
-            setHasShownConnectionToast(true);
+          if (!key) {
+            console.warn(`[AssetSelector] No API key on attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
+            if (attempt < MAX_CONNECT_RETRIES) {
+              await sleep(attempt * 800); // backoff before retrying
+              continue;
+            } else {
+              throw new Error("Could not retrieve market data API key");
+            }
           }
-          console.log("FMP API connection successful");
-        } else {
-          throw new Error("API key validation failed");
+
+          setApiKey(key);
+          console.log("API key retrieved, validating...");
+
+          // Validate with built-in retry
+          const isValid = await validateFmpApiKey(key);
+          if (isCancelled) return;
+
+          if (isValid) {
+            setConnectionStatus('connected');
+            if (!hasShownConnectionToast) {
+              toast.success("Market data connected successfully");
+              setHasShownConnectionToast(true);
+            }
+            console.log("FMP API connection successful");
+            return; // success
+          } else {
+            console.warn(`[AssetSelector] API key validation failed on attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
+            if (attempt < MAX_CONNECT_RETRIES) {
+              await sleep(attempt * 1000); // backoff before retrying
+              continue;
+            } else {
+              throw new Error("API key validation failed");
+            }
+          }
         }
       } catch (error) {
         if (isCancelled) return;
-        
         console.error("FMP API connection failed:", error);
         setConnectionStatus('failed');
-        
+
         if (!hasShownConnectionToast) {
           toast.error("Market data service unavailable", {
             description: "Please check your connection and try again"

@@ -11,10 +11,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Navbar } from "@/components/Navbar";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
+import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
+import { supabase } from "@/integrations/supabase/client";
+import { useOptimizedStrategies } from "@/hooks/useOptimizedStrategies";
 
 const AIStrategy = () => {
   const { user } = useAuth();
   const { logActivity } = useActivityLogger();
+  const { tier, isLoading: subscriptionLoading } = useUserSubscription();
+  const userIsPro = isPro(tier);
+  const { data: strategies = [], isLoading: strategiesLoading } = useOptimizedStrategies();
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [strategyDescription, setStrategyDescription] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -25,6 +31,44 @@ const AIStrategy = () => {
   const [isCheckingHealth, setIsCheckingHealth] = useState<boolean>(false);
   const [lastHealthCheck, setLastHealthCheck] = useState<Date | null>(null);
   const navigate = useNavigate();
+
+  const currentStrategyCount = strategies.length;
+  const shouldShowUpgradePrompt = !userIsPro && !subscriptionLoading && !strategiesLoading && currentStrategyCount >= 1;
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please log in again");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'x-site-url': window.location.origin,
+        },
+        body: { plan }
+      });
+      if (error) {
+        const contextBody = (error as any)?.context?.body;
+        try {
+          const parsed = typeof contextBody === 'string' ? JSON.parse(contextBody) : contextBody;
+          if (parsed?.error) {
+            throw new Error(parsed.error);
+          }
+        } catch (_) {}
+        throw error as any;
+      }
+      if (data?.url) {
+        window.location.href = data.url as string;
+      } else {
+        toast.error("Failed to start checkout");
+      }
+    } catch (err: any) {
+      console.error('Upgrade error:', err);
+      toast.error(err?.message || "Failed to start checkout");
+    }
+  };
 
   // Monitor network connectivity
   useEffect(() => {
@@ -118,6 +162,12 @@ const AIStrategy = () => {
 
     if (strategyDescription.trim().length < 10) {
       toast.error("Strategy description must be at least 10 characters long");
+      return;
+    }
+
+    // Free-tier gating: max 1 strategy
+    if (shouldShowUpgradePrompt) {
+      toast.error("Free plan allows up to 1 strategy. Upgrade to create more.");
       return;
     }
 
@@ -234,6 +284,23 @@ const AIStrategy = () => {
             Select your stock and describe your ideal trading strategy
           </p>
         </div>
+
+        {shouldShowUpgradePrompt && (
+          <Alert className="my-4 border-amber-200 bg-amber-50">
+            <AlertTitle className="text-amber-800 dark:text-amber-800">Strategy Limit Reached</AlertTitle>
+            <AlertDescription>
+              <p className="text-amber-800">Free plan allows up to 1 strategy. Upgrade to create more strategies.</p>
+              <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                <Button onClick={() => handleUpgrade('yearly')} size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-3" aria-label="Upgrade to Pro Yearly">
+                  Upgrade to Pro — Yearly
+                </Button>
+                <Button onClick={() => handleUpgrade('monthly')} size="lg" variant="outline" className="bg-white border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-500 px-6 py-3" aria-label="Upgrade to Pro Monthly">
+                  Upgrade to Pro — Monthly
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
         <StrategyDescription description={strategyDescription} onDescriptionChange={handleStrategyDescriptionChange} />

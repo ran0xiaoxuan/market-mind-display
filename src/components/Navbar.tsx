@@ -125,6 +125,16 @@ export function Navbar() {
                 >
                   Strategies
                 </Link>
+                <Link
+                  to="/recommendations"
+                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
+                    location.pathname.startsWith("/recommendation") || location.pathname.startsWith("/recommendations")
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
+                  }`}
+                >
+                  Recommendation
+                </Link>
               </div>
             )}
           </div>
@@ -212,6 +222,9 @@ export function Navbar() {
               </Link>
               <Link to="/strategies" className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={closeMobileMenu}>
                 Strategies
+              </Link>
+              <Link to="/recommendation" className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={closeMobileMenu}>
+                Recommendation
               </Link>
               <Link to="/settings" className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={closeMobileMenu}>
                 Settings

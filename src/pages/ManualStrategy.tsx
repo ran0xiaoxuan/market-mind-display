@@ -17,10 +17,11 @@ import { getFmpApiKey, searchStocks, Asset } from "@/services/assetApiService";
 import { debounce } from "lodash";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 import { useEffect } from "react";
+import { useOptimizedStrategies } from "@/hooks/useOptimizedStrategies";
 
 // Define standard timeframe options
 export const TIMEFRAME_OPTIONS = [
@@ -85,6 +86,44 @@ const ManualStrategy = () => {
   // Add subscription hook
   const { tier, isLoading: subscriptionLoading } = useUserSubscription();
   const userIsPro = isPro(tier);
+  const { data: strategies = [], isLoading: strategiesLoading } = useOptimizedStrategies();
+  const currentStrategyCount = strategies.length;
+  const shouldShowUpgradePrompt = !userIsPro && !subscriptionLoading && !strategiesLoading && currentStrategyCount >= 1;
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please log in again");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'x-site-url': window.location.origin,
+        },
+        body: { plan }
+      });
+      if (error) {
+        const contextBody = (error as any)?.context?.body;
+        try {
+          const parsed = typeof contextBody === 'string' ? JSON.parse(contextBody) : contextBody;
+          if (parsed?.error) {
+            throw new Error(parsed.error);
+          }
+        } catch (_) {}
+        throw error as any;
+      }
+      if (data?.url) {
+        window.location.href = data.url as string;
+      } else {
+        toast.error("Failed to start checkout");
+      }
+    } catch (err: any) {
+      console.error('Upgrade error:', err);
+      toast.error(err?.message || "Failed to start checkout");
+    }
+  };
 
   // Enhanced validation functions
   const validateBasicInfo = () => {
@@ -404,7 +443,24 @@ const ManualStrategy = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Link>
           </div>
-          
+
+          {shouldShowUpgradePrompt && (
+            <Alert className="my-4 border-amber-200 bg-amber-50">
+              <AlertTitle className="text-amber-800 dark:text-amber-800">Strategy Limit Reached</AlertTitle>
+              <AlertDescription>
+                <p className="text-amber-800">Free plan allows up to 1 strategy. Upgrade to create more strategies.</p>
+                <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                  <Button onClick={() => handleUpgrade('yearly')} size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-3" aria-label="Upgrade to Pro Yearly">
+                    Upgrade to Pro — Yearly
+                  </Button>
+                  <Button onClick={() => handleUpgrade('monthly')} size="lg" variant="outline" className="bg-white border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-500 px-6 py-3" aria-label="Upgrade to Pro Monthly">
+                    Upgrade to Pro — Monthly
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Create New Strategy</h1>
             
@@ -498,12 +554,14 @@ const ManualStrategy = () => {
                         </p>}
                     </CommandEmpty>
                     <CommandGroup heading="Search Results">
-                      {searchResults.map(asset => <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
+                      {searchResults.map(asset => (
+                        <CommandItem key={asset.symbol} value={`${asset.symbol} ${asset.name}`} onSelect={() => handleSelectAsset(asset)}>
                           <div className="flex flex-col">
                             <span>{asset.symbol}</span>
                             <span className="text-xs text-muted-foreground">{asset.name}</span>
                           </div>
-                        </CommandItem>)}
+                        </CommandItem>
+                      ))}
                     </CommandGroup>
                   </CommandList>
                 </CommandDialog>
@@ -572,7 +630,7 @@ const ManualStrategy = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   {userIsPro 
                     ? "Set the maximum number of notifications per trading day (1-390)"
-                    : "FREE users are limited to 5 notifications per trading day"
+                    : "FREE users are limited to 5 notifications per day"
                   }
                 </p>
               </div>

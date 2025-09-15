@@ -162,6 +162,53 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendations: {
+        Row: {
+          id: string
+          original_strategy_id: string
+          original_user_id: string
+          name: string
+          description: string | null
+          timeframe: string
+          target_asset: string | null
+          target_asset_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          original_strategy_id: string
+          original_user_id: string
+          name: string
+          description?: string | null
+          timeframe: string
+          target_asset?: string | null
+          target_asset_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          original_strategy_id?: string
+          original_user_id?: string
+          name?: string
+          description?: string | null
+          timeframe?: string
+          target_asset?: string | null
+          target_asset_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_original_strategy_id_fkey"
+            columns: ["original_strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

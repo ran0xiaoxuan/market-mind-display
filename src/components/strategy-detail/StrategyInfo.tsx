@@ -7,6 +7,9 @@ import { formatDistanceToNow } from "date-fns";
 import { NotificationToggle } from "./NotificationToggle";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StrategyInfoProps {
   strategy: {
@@ -19,10 +22,12 @@ interface StrategyInfoProps {
     dailySignalLimit?: number;
     signalNotificationsEnabled?: boolean;
   };
+  hideProBanner?: boolean;
 }
 
 export const StrategyInfo: React.FC<StrategyInfoProps> = ({
-  strategy
+  strategy,
+  hideProBanner
 }) => {
   const { tier, isLoading } = useUserSubscription();
   const userIsPro = isPro(tier);
@@ -35,6 +40,41 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Unknown";
+    }
+  };
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please log in again");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'x-site-url': window.location.origin,
+        },
+        body: { plan }
+      });
+      if (error) {
+        const contextBody = (error as any)?.context?.body;
+        try {
+          const parsed = typeof contextBody === 'string' ? JSON.parse(contextBody) : contextBody;
+          if (parsed?.error) {
+            throw new Error(parsed.error);
+          }
+        } catch (_) {}
+        throw error as any;
+      }
+      if (data?.url) {
+        window.location.href = data.url as string;
+      } else {
+        toast.error("Failed to start checkout");
+      }
+    } catch (err: any) {
+      console.error('Upgrade error:', err);
+      toast.error(err?.message || "Failed to start checkout");
     }
   };
 
@@ -111,7 +151,7 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
               onToggle={() => {}} // Component handles its own state
             />
           )
-        ) : (
+        ) : !hideProBanner ? (
           <Alert className="border-amber-200 bg-amber-50">
             <Crown className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-700">
@@ -120,9 +160,17 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
                 Upgrade to PRO to send trading signals to your Email, Discord, or Telegram channels. 
                 All signals are still recorded in the app.
               </p>
+              <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                <Button onClick={() => handleUpgrade('yearly')} size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-3" aria-label="Upgrade to Pro Yearly">
+                  Upgrade to Pro — Yearly
+                </Button>
+                <Button onClick={() => handleUpgrade('monthly')} size="lg" variant="outline" className="bg-white border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-500 px-6 py-3" aria-label="Upgrade to Pro Monthly">
+                  Upgrade to Pro — Monthly
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
-        )}
+        ) : null}
 
         {/* Daily Signal Limit - Only show for PRO users */}
         {userIsPro && strategy.dailySignalLimit && (

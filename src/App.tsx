@@ -26,6 +26,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import OptimizedDashboard from "@/pages/OptimizedDashboard";
 import OptimizedStrategies from "@/pages/OptimizedStrategies";
+import Recommendation from "@/pages/Recommendation";
+import RecommendationDetail from "@/pages/RecommendationDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +59,26 @@ function App() {
           <Route path="/strategies" element={
             <ProtectedRoute>
               <OptimizedStrategies />
+            </ProtectedRoute>
+          } />
+          <Route path="/recommendation" element={
+            <ProtectedRoute>
+              <Recommendation />
+            </ProtectedRoute>
+          } />
+          <Route path="/recommendation/:id" element={
+            <ProtectedRoute>
+              <RecommendationDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/recommendations" element={
+            <ProtectedRoute>
+              <Recommendation />
+            </ProtectedRoute>
+          } />
+          <Route path="/recommendations/:id" element={
+            <ProtectedRoute>
+              <RecommendationDetail />
             </ProtectedRoute>
           } />
           <Route path="/strategy/:id" element={<ProtectedRoute><StrategyDetail /></ProtectedRoute>} />

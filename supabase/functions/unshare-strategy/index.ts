@@ -1,0 +1,71 @@
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'OPTIONS, POST'
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { strategyId } = await req.json();
+    if (!strategyId) {
+      return new Response(JSON.stringify({ error: 'strategyId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token or user not found' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const allowedEmail = 'ran0xiaoxuan@gmail.com';
+    if (user.email?.toLowerCase() !== allowedEmail) {
+      return new Response(JSON.stringify({ error: 'Only the owner can unshare strategies' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Ensure ownership
+    const { data: strategy, error: strategyErr } = await supabaseAdmin
+      .from('strategies')
+      .select('id,user_id')
+      .eq('id', strategyId)
+      .single();
+    if (strategyErr || !strategy) {
+      return new Response(JSON.stringify({ error: 'Strategy not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (strategy.user_id !== user.id) {
+      return new Response(JSON.stringify({ error: 'You do not own this strategy' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Delete recommendation by original_strategy_id
+    const { error: delErr } = await supabaseAdmin
+      .from('recommendations')
+      .delete()
+      .eq('original_strategy_id', strategyId);
+    if (delErr) {
+      return new Response(JSON.stringify({ error: delErr.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (e) {
+    console.error('[unshare-strategy] error', e);
+    return new Response(JSON.stringify({ error: 'Server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+}); 

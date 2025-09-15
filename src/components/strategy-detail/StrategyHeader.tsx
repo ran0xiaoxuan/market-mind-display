@@ -20,11 +20,31 @@ import {
 interface StrategyHeaderProps {
   strategyId: string;
   strategyName: string;
+  showShareButton?: boolean;
+  isSharing?: boolean;
+  onShare?: () => void;
+  hideEditButton?: boolean;
+  hideDeleteButton?: boolean;
+  customActionLabel?: string;
+  customActionDisabled?: boolean;
+  onCustomAction?: () => void;
+  shareButtonLabel?: string;
+  shareLoadingLabel?: string;
 }
 
 export const StrategyHeader = ({
   strategyId,
-  strategyName
+  strategyName,
+  showShareButton,
+  isSharing,
+  onShare,
+  hideEditButton,
+  hideDeleteButton,
+  customActionLabel,
+  customActionDisabled,
+  onCustomAction,
+  shareButtonLabel,
+  shareLoadingLabel
 }: StrategyHeaderProps) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,6 +76,9 @@ export const StrategyHeader = ({
         description: "Your strategy has been successfully deleted"
       });
 
+      // Notify other pages to refresh their strategy lists
+      window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: { id: strategyId } }));
+
       // Navigate to strategies page after successful deletion
       navigate('/strategies');
     } catch (error) {
@@ -80,26 +103,52 @@ export const StrategyHeader = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-9 px-2.5 border border-input" 
-            onClick={() => navigate(`/strategy/${strategyId}/edit`)}
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Edit</span>
-          </Button>
+          {showShareButton && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-2.5 border border-input"
+              onClick={onShare}
+              disabled={isSharing}
+            >
+              {isSharing ? (shareLoadingLabel || 'Sharing...') : (shareButtonLabel || 'Share')}
+            </Button>
+          )}
+          {customActionLabel && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-2.5 border border-input"
+              onClick={onCustomAction}
+              disabled={!!customActionDisabled}
+            >
+              {customActionLabel}
+            </Button>
+          )}
+          {!hideEditButton && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-2.5 border border-input" 
+              onClick={() => navigate(`/strategy/${strategyId}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
+          )}
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-9 px-2.5 border border-input text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">{isDeleting ? "Deleting..." : "Delete"}</span>
-          </Button>
+          {!hideDeleteButton && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-2.5 border border-input text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">{isDeleting ? "Deleting..." : "Delete"}</span>
+            </Button>
+          )}
         </div>
       </div>
 

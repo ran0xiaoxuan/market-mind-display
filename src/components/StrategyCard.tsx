@@ -42,6 +42,9 @@ export function StrategyCard({
       await deleteStrategy(id);
       toast.success("Strategy deleted successfully");
 
+      // Dispatch a global event so list pages can refresh immediately
+      window.dispatchEvent(new CustomEvent('strategy-deleted', { detail: { id } }));
+
       // Call the onDeleted callback to refresh the parent component
       if (onDeleted) {
         onDeleted();

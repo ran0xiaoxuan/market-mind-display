@@ -41,6 +41,35 @@ const Strategies = () => {
     fetchStrategies();
   }, []);
 
+  // Auto-refresh strategies and optimistically remove deleted items
+  useEffect(() => {
+    const handleStrategyDeleted = (e: Event) => {
+      const custom = e as CustomEvent<{ id?: string }>; 
+      const deletedId = custom?.detail?.id;
+      if (deletedId) {
+        // Optimistically remove the deleted card immediately
+        setStrategies(prev => prev.filter(s => s.id !== deletedId));
+      }
+      // Then fetch fresh data (in case of cascades/side-effects)
+      // Use a micro-delay to avoid any eventual consistency race conditions
+      const t = setTimeout(() => fetchStrategies(), 200);
+      return () => clearTimeout(t);
+    };
+
+    const handleFocus = () => fetchStrategies();
+    const handleVisibility = () => { if (!document.hidden) fetchStrategies(); };
+
+    window.addEventListener('strategy-deleted', handleStrategyDeleted as EventListener);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('strategy-deleted', handleStrategyDeleted as EventListener);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
   const handleStrategyDeleted = () => {
     // Refresh the strategies list when a strategy is deleted
     fetchStrategies();

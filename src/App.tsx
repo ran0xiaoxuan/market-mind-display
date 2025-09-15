@@ -28,6 +28,8 @@ import OptimizedDashboard from "@/pages/OptimizedDashboard";
 import OptimizedStrategies from "@/pages/OptimizedStrategies";
 import Recommendation from "@/pages/Recommendation";
 import RecommendationDetail from "@/pages/RecommendationDetail";
+import PublicRecommendation from "@/pages/PublicRecommendation";
+import PublicStrategy from "@/pages/PublicStrategy";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,6 +93,11 @@ function App() {
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+
+          {/* Public shareable routes */}
+          <Route path="/p/recommendations/:id" element={<PublicRecommendation />} />
+          <Route path="/p/strategies/:id" element={<PublicStrategy />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

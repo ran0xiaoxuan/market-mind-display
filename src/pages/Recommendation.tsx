@@ -32,14 +32,22 @@ export default function Recommendation() {
   const handleCopy = async (id: string) => {
     try {
       setCopyingId(id);
-      const res = await copyRecommendationToMyStrategies(id);
-      toast.success('Copied to My Strategies');
+      await toast.promise(
+        copyRecommendationToMyStrategies(id),
+        {
+          loading: 'Copying...',
+          success: 'Copied to My Strategies',
+          error: 'Copy failed'
+        }
+      );
       // Invalidate strategies cache so next page shows fresh data
       queryClient.invalidateQueries({ queryKey: ['strategies', 'optimized'] });
       queryClient.invalidateQueries({ queryKey: ['strategies'] });
       navigate('/strategies');
     } catch (e: any) {
-      toast.error('Copy failed', { description: e.message });
+      if (e?.message) {
+        toast.error('Copy failed', { description: e.message });
+      }
     } finally {
       setCopyingId(null);
     }

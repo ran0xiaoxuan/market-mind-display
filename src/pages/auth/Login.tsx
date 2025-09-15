@@ -72,7 +72,7 @@ export default function Login() {
     <AuthLayout>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in to your account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Log in to your account</CardTitle>
           <CardDescription className="text-center">
             Enter your email and password to access your account
           </CardDescription>
@@ -130,7 +130,7 @@ export default function Login() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Logging in..." : "Log in"}
             </Button>
           </form>
 

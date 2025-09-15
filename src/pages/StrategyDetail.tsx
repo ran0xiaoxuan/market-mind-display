@@ -380,6 +380,29 @@ const StrategyDetail = () => {
             onShare={handleShare}
             shareButtonLabel={canShare ? (isShared ? 'Unshare' : 'Share') : undefined}
             shareLoadingLabel={canShare ? (isShared ? 'Unsharing...' : 'Sharing...') : undefined}
+            secondaryActionLabel={isShared ? 'Copy Public Link' : undefined}
+            onSecondaryAction={async () => {
+              const url = `${window.location.origin}/p/strategies/${id}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success('Link copied to clipboard');
+              } catch (_) {
+                try {
+                  const textarea = document.createElement('textarea');
+                  textarea.value = url;
+                  textarea.setAttribute('readonly', '');
+                  textarea.style.position = 'absolute';
+                  textarea.style.left = '-9999px';
+                  document.body.appendChild(textarea);
+                  textarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textarea);
+                  toast.success('Link copied to clipboard');
+                } catch (err) {
+                  toast.error('Failed to copy link');
+                }
+              }
+            }}
           />
           
           {!hasValidTradingRules && (

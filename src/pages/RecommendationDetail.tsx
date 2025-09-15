@@ -140,18 +140,28 @@ export default function RecommendationDetail() {
       }
 
       setIsCopying(true);
-      await copyRecommendationToMyStrategies(id);
-      toast.success('Copied to My Strategies');
+      await toast.promise(
+        copyRecommendationToMyStrategies(id),
+        {
+          loading: 'Copying...',
+          success: 'Copied to My Strategies',
+          error: 'Copy failed'
+        }
+      );
       // Invalidate strategies cache before navigating
       queryClient.invalidateQueries({ queryKey: ['strategies', 'optimized'] });
       queryClient.invalidateQueries({ queryKey: ['strategies'] });
       navigate('/strategies');
     } catch (e: any) {
-      toast.error('Copy failed', { description: e.message });
+      // handled by toast.promise above; keep a fallback description
+      if (e?.message) {
+        toast.error('Copy failed', { description: e.message });
+      }
     } finally {
       setIsCopying(false);
     }
   };
+
 
   if (!id || id === 'undefined') {
     return (
@@ -229,6 +239,29 @@ export default function RecommendationDetail() {
             customActionLabel={isCopying ? 'Copying...' : 'Copy to My Strategies'}
             customActionDisabled={isCopying}
             onCustomAction={handleCopy}
+            secondaryActionLabel={'Copy Public Link'}
+            onSecondaryAction={async () => {
+              const url = `${window.location.origin}/p/recommendations/${id}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success('Link copied to clipboard');
+              } catch (_) {
+                try {
+                  const textarea = document.createElement('textarea');
+                  textarea.value = url;
+                  textarea.setAttribute('readonly', '');
+                  textarea.style.position = 'absolute';
+                  textarea.style.left = '-9999px';
+                  document.body.appendChild(textarea);
+                  textarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textarea);
+                  toast.success('Link copied to clipboard');
+                } catch (err) {
+                  toast.error('Failed to copy link');
+                }
+              }
+            }}
           />
 
           {strategyInfo && (

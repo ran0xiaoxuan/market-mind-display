@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Share2, Copy as CopyIcon, Link as LinkIcon, Loader2 } from "lucide-react";
 
 interface StrategyHeaderProps {
   strategyId: string;
@@ -30,6 +31,9 @@ interface StrategyHeaderProps {
   onCustomAction?: () => void;
   shareButtonLabel?: string;
   shareLoadingLabel?: string;
+  secondaryActionLabel?: string;
+  secondaryActionDisabled?: boolean;
+  onSecondaryAction?: () => void;
 }
 
 export const StrategyHeader = ({
@@ -44,7 +48,10 @@ export const StrategyHeader = ({
   customActionDisabled,
   onCustomAction,
   shareButtonLabel,
-  shareLoadingLabel
+  shareLoadingLabel,
+  secondaryActionLabel,
+  secondaryActionDisabled,
+  onSecondaryAction
 }: StrategyHeaderProps) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -111,7 +118,17 @@ export const StrategyHeader = ({
               onClick={onShare}
               disabled={isSharing}
             >
-              {isSharing ? (shareLoadingLabel || 'Sharing...') : (shareButtonLabel || 'Share')}
+              {isSharing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {shareLoadingLabel || 'Sharing...'}
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  {shareButtonLabel || 'Share'}
+                </>
+              )}
             </Button>
           )}
           {customActionLabel && (
@@ -122,7 +139,20 @@ export const StrategyHeader = ({
               onClick={onCustomAction}
               disabled={!!customActionDisabled}
             >
+              <CopyIcon className="h-4 w-4 mr-2" />
               {customActionLabel}
+            </Button>
+          )}
+          {secondaryActionLabel && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-2.5 border border-input"
+              onClick={onSecondaryAction}
+              disabled={!!secondaryActionDisabled}
+            >
+              <LinkIcon className="h-4 w-4 mr-2" />
+              {secondaryActionLabel}
             </Button>
           )}
           {!hideEditButton && (

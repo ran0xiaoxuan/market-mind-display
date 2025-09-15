@@ -237,8 +237,8 @@ const Signup = () => {
               
               <div className="pt-4 border-t">
                 <p className="text-sm text-gray-600 mb-2">Already verified your email?</p>
-                <Button asChild variant="default" className="w-full">
-                  <Link to="/login">Sign in to your account</Link>
+                                  <Button asChild variant="default" className="w-full">
+                  <Link to="/login">Log in to your account</Link>
                 </Button>
               </div>
             </div>
@@ -459,7 +459,7 @@ const Signup = () => {
               <div className="text-center text-sm">
                 <span className="text-muted-foreground">Already have an account? </span>
                 <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
-                  Sign in
+                  Log in
                 </Link>
               </div>
             </>

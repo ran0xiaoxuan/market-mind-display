@@ -231,7 +231,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
   };
 
   return (
-    <div className="p-4 rounded-lg bg-white border border-gray-300 shadow-sm">
+    <div className="p-4 rounded-lg bg-card border border-border shadow-sm">
       <div className="space-y-4">
         {/* Left Side */}
         <div className="space-y-2">

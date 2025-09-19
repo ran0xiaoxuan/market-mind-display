@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { RecoveryGuard } from "@/components/RecoveryGuard";
 
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
@@ -44,6 +45,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <RecoveryGuard />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />

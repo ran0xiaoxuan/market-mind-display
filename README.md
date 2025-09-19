@@ -210,3 +210,16 @@ stripe listen --forward-to http://localhost:54321/functions/v1/stripe-webhook
   - 数据表：`public.recommendations`（RLS：所有人可读）。
   - 分享接口：Supabase Edge Function `share-strategy`（仅限指定邮箱）。
   - 复制接口：Supabase Edge Function `copy-recommended-strategy`（将推荐策略克隆到当前登录用户）。
+
+---
+
+## 密码重置流程（Supabase Recovery）
+
+- 用户在 “忘记密码” 页面提交邮箱后，系统会通过 `supabase.auth.resetPasswordForEmail()` 发送重置邮件，重定向地址为 `https://<你的域名>/auth/reset-password`。
+- 用户点击邮件中的“重置密码”按钮后：
+  - 若 Supabase 回调先到 `/auth/callback?type=recovery...`，应用会自动将带有完整查询参数与哈希的链接重定向到 `/auth/reset-password`，避免误跳到登录页。
+  - `auth/reset-password` 页面会解析 access_token / refresh_token 或 token_hash，并调用 `supabase.auth.setSession()` 或 `verifyOtp({ type: 'recovery' })` 验证链接有效性。
+  - 验证通过后，用户可填写新密码并提交，前端会调用 `supabase.auth.updateUser({ password })` 更新。
+- 常见问题：
+  - 链接过期或已使用：页面会提示并提供重新申请重置链接的入口。
+  - 浏览器剥离哈希：页面同时支持从 query 与 hash 读取令牌参数。

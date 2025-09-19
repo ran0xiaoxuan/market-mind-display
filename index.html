@@ -18,6 +18,34 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <script>
+      (function() {
+        try {
+          var loc = window.location;
+          var search = loc.search || '';
+          var hash = loc.hash || '';
+          var pathname = loc.pathname || '';
+
+          var searchParams = new URLSearchParams(search);
+          var hashParams = new URLSearchParams(hash ? hash.substring(1) : '');
+
+          var typeParam = searchParams.get('type') || hashParams.get('type');
+          var hasTokenHash = searchParams.has('token_hash') || hashParams.has('token_hash');
+          var hasAccessRecoveryTokens = (hashParams.has('access_token') || searchParams.has('access_token')) && (typeParam === 'recovery');
+
+          var shouldNormalize = (typeParam === 'recovery') || hasTokenHash || hasAccessRecoveryTokens;
+          var alreadyOnReset = pathname.indexOf('/auth/reset-password') === 0;
+          if (shouldNormalize && !alreadyOnReset) {
+            var target = loc.origin + '/auth/reset-password' + search + hash;
+            // Use replace to avoid polluting history
+            window.location.replace(target);
+          }
+        } catch (e) {
+          // no-op
+        }
+      })();
+    </script>
   </head>
 
   <body>

@@ -40,6 +40,21 @@ const Signup = () => {
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, validatePassword, resendConfirmation } = useAuth();
 
+  // Recovery guard on Signup page
+  useEffect(() => {
+    try {
+      const { search, hash } = window.location;
+      const searchParams = new URLSearchParams(search);
+      const hashParams = new URLSearchParams(hash ? hash.substring(1) : '');
+      const typeParam = searchParams.get('type') || hashParams.get('type');
+      const hasTokenHash = searchParams.has('token_hash') || hashParams.has('token_hash');
+      const hasAccessRecoveryTokens = (hashParams.has('access_token') || searchParams.has('access_token')) && (typeParam === 'recovery');
+      if (typeParam === 'recovery' || hasTokenHash || hasAccessRecoveryTokens) {
+        navigate(`/auth/reset-password${search}${hash}`, { replace: true });
+      }
+    } catch (_) {}
+  }, [navigate]);
+
   // Validate password in real-time
   useEffect(() => {
     if (password) {
@@ -237,7 +252,7 @@ const Signup = () => {
               
               <div className="pt-4 border-t">
                 <p className="text-sm text-gray-600 mb-2">Already verified your email?</p>
-                                  <Button asChild variant="default" className="w-full">
+                <Button asChild variant="default" className="w-full">
                   <Link to="/login">Log in to your account</Link>
                 </Button>
               </div>

@@ -27,6 +27,14 @@ export default function AuthCallback() {
           refresh_token: !!refresh_token 
         });
 
+        // Handle password recovery: redirect to reset-password with tokens preserved
+        if (type === 'recovery') {
+          const target = `/auth/reset-password${window.location.search}${window.location.hash}`;
+          console.log('Recovery callback detected, redirecting to:', target);
+          navigate(target, { replace: true });
+          return;
+        }
+
         // If we have auth tokens, this is a successful OAuth or email verification
         if (access_token && refresh_token) {
           console.log('Auth callback successful with tokens');

@@ -303,8 +303,8 @@ const Signup = () => {
                   
                   {/* Password Requirements */}
                   {showPasswordRequirements && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-md border">
-                      <p className="text-sm font-medium mb-2">Password Requirements:</p>
+                    <div className="mt-2 p-3 bg-gray-50 rounded-md border dark:bg-white dark:text-black dark:border-gray-200">
+                      <p className="text-sm font-medium mb-2 text-black dark:!text-black">Password Requirements:</p>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm">
                           {password.length >= 8 ? (

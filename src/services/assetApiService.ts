@@ -154,65 +154,88 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     if (!query.trim()) {
       return [];
     }
-    
-    // Define the search endpoint with better parameters
-    const endpoint = `search?query=${encodeURIComponent(query)}&limit=20&exchange=NASDAQ,NYSE`;
-    const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${apiKey}`;
-    
-    console.log(`[AssetAPI] Searching FMP API for: ${query}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout
-    
-    const response = await fetch(url, { 
-      method: 'GET',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'TradingApp/1.0'
-      },
-      mode: 'cors',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`[AssetAPI] Search API error (${response.status}): ${errorText}`);
-      throw new Error(`Search failed: ${response.status} ${response.statusText}`);
+
+    // Heuristic: detect if user likely typed a symbol (letters/numbers, no spaces, short)
+    const isLikelySymbol = (q: string) => /^[A-Za-z0-9\.\-]{1,7}$/.test(q.trim());
+
+    // Build stable endpoints (symbol + name)
+    // Examples: 
+    //  - https://financialmodelingprep.com/stable/search-symbol?query=SPY&apikey=...
+    //  - https://financialmodelingprep.com/stable/search-name?query=AA&apikey=...
+    const base = 'https://financialmodelingprep.com/stable';
+    const symbolUrl = `${base}/search-symbol?query=${encodeURIComponent(query)}&apikey=${apiKey}`;
+    const nameUrl = `${base}/search-name?query=${encodeURIComponent(query)}&apikey=${apiKey}`;
+
+    console.log(`[AssetAPI] Searching FMP stable endpoints for: ${query}`);
+
+    // Helper to fetch with timeout
+    const fetchJson = async (url: string, timeoutMs = 12000): Promise<any[]> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'TradingApp/1.0'
+          },
+          mode: 'cors',
+          signal: controller.signal
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    // Decide priority
+    const firstUrl = isLikelySymbol(query) ? symbolUrl : nameUrl;
+    const secondUrl = isLikelySymbol(query) ? nameUrl : symbolUrl;
+
+    // Fetch in parallel but with known priority (both go out at once)
+    const [primaryRes, secondaryRes] = await Promise.allSettled([
+      fetchJson(firstUrl),
+      fetchJson(secondUrl)
+    ]);
+
+    const primary = primaryRes.status === 'fulfilled' ? primaryRes.value : [];
+    const secondary = secondaryRes.status === 'fulfilled' ? secondaryRes.value : [];
+
+    // Normalize items from both endpoints
+    const normalize = (arr: any[]): Asset[] => arr
+      .filter((i: any) => i && typeof i.symbol === 'string' && (typeof i.name === 'string' || i.name === undefined))
+      .map((i: any) => ({ symbol: i.symbol, name: i.name || i.symbol }));
+
+    const listA = normalize(primary);
+    const listB = normalize(secondary);
+
+    // Merge & dedupe by symbol, keep order priority
+    const merged: Asset[] = [];
+    const seen = new Set<string>();
+    for (const item of [...listA, ...listB]) {
+      const key = item.symbol.toUpperCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(item);
+      }
     }
-    
-    const data = await response.json();
-    
-    if (!Array.isArray(data)) {
-      console.error("[AssetAPI] Search API returned non-array response:", data);
-      throw new Error("Invalid search response format");
-    }
-    
-    console.log(`[AssetAPI] FMP search returned ${data.length} results for "${query}"`);
-    
-    // If no results, return empty array
-    if (data.length === 0) {
-      return [];
-    }
-    
-    // Map and filter the results
-    return data
-      .filter((item: any) => item.symbol && item.name) // Filter out invalid entries
-      .map((item: any) => ({
-        symbol: item.symbol,
-        name: item.name || item.symbol
-      }))
-      .slice(0, 20); // Limit to 20 results
-      
-  } catch (error) {
+
+    // Cap to 20
+    return merged.slice(0, 20);
+
+  } catch (error: any) {
     console.error("[AssetAPI] Error searching stocks:", error);
     
     // If this is likely an API key issue, clear the cached key
-    if (error.message?.includes("401") || 
-        error.message?.includes("403") || 
-        error.message?.includes("apikey")) {
+    if (error?.message?.includes("401") || 
+        error?.message?.includes("403") || 
+        error?.message?.toLowerCase?.().includes("apikey")) {
       console.log("[AssetAPI] Clearing cached API key due to potential auth error");
       cachedApiKey = null;
       apiKeyCacheTime = 0;

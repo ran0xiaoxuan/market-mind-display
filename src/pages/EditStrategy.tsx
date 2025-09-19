@@ -84,6 +84,94 @@ const EditStrategy = () => {
     // Remove the validation checks for entry and exit rules
     // Users can now save strategies with 0 entry or exit rules
     
+    // Validate that when an inequality side is INDICATOR, its required parameters are not empty strings
+    const requiredParamsByIndicator = (indicatorRaw: string | undefined) => {
+      if (!indicatorRaw) return [] as string[];
+      const indicator = indicatorRaw.toLowerCase().replace(/\s+/g, '');
+      switch (indicator) {
+        // Moving averages
+        case 'sma':
+        case 'ema':
+        case 'wma':
+        case 'trima':
+          return ['period'];
+        case 'kama':
+          return ['period', 'fastEmaLength', 'slowEmaLength'];
+        case 'rsi':
+        case 'cci':
+          return ['period'];
+        case 'mom':
+        case 'momentum':
+        case 'roc':
+          return ['period'];
+        case 'stochastic':
+          return ['k', 'd', 'slowing'];
+        case 'stochrsi':
+          return ['rsiPeriod', 'stochasticLength', 'k', 'd'];
+        case 'ultimateoscillator':
+          return ['fastLineLength', 'middleLineLength', 'slowLineLength'];
+        case 'adx':
+        case 'dmi':
+          return ['adxSmoothing', 'diLength'];
+        case 'psar':
+        case 'parabolicsar':
+          return ['start', 'increment', 'maximum'];
+        case 'supertrend':
+          return ['atrPeriod', 'multiplier'];
+        case 'ttmsqueeze':
+          return ['period'];
+        case 'atr':
+          return ['period'];
+        case 'keltnerchannel':
+          return ['period', 'atrPeriod', 'multiplier'];
+        case 'donchianchannel':
+          return ['period'];
+        case 'chandelierexit':
+          return ['atrPeriod', 'multiplier'];
+        case 'chaikinmoneyflow':
+          return ['period'];
+        case 'volumeoscillator':
+          return ['shortLength', 'longLength'];
+        case 'heikinashi':
+          return ['emaSource', 'fastLength', 'slowLength'];
+        case 'mfi':
+          return ['period'];
+        case 'ichimokucloud':
+        case 'ichimoku':
+          return ['conversionPeriod', 'basePeriod', 'laggingSpan', 'displacement'];
+        default:
+          // Generic fallback for many indicators that only require period
+          return ['period'];
+      }
+    };
+
+    const checkSide = (side: any, path: string) => {
+      if (!side || side.type !== 'INDICATOR') return;
+      const required = requiredParamsByIndicator(side.indicator);
+      const params = side.parameters || {};
+      for (const key of required) {
+        const val = params[key];
+        if (val === undefined || val === null || String(val).trim() === '') {
+          errors.push(`${path}: parameter "${key}" cannot be empty`);
+        }
+      }
+    };
+
+    const scanRules = (groups: any[], label: 'Entry' | 'Exit') => {
+      for (let gi = 0; gi < (groups?.length || 0); gi++) {
+        const group = groups[gi];
+        const ineqs = group?.inequalities || [];
+        for (let ri = 0; ri < ineqs.length; ri++) {
+          const rule = ineqs[ri];
+          checkSide(rule.left, `${label} Group ${gi + 1} Rule ${ri + 1} (left)`);
+          checkSide(rule.right, `${label} Group ${gi + 1} Rule ${ri + 1} (right)`);
+        }
+      }
+    };
+
+    scanRules(entryRules, 'Entry');
+    scanRules(exitRules, 'Exit');
+
     return errors;
   };
 

@@ -118,11 +118,13 @@ export const getStrategies = async (): Promise<Strategy[]> => {
       description: strategy.description,
       timeframe: strategy.timeframe,
       targetAsset: strategy.target_asset,
+      targetAssetName: strategy.target_asset_name,
       isActive: strategy.is_active,
       userId: strategy.user_id,
       createdAt: strategy.created_at,
       updatedAt: strategy.updated_at,
-      signalNotificationsEnabled: strategy.signal_notifications_enabled
+      signalNotificationsEnabled: strategy.signal_notifications_enabled,
+      dailySignalLimit: strategy.daily_signal_limit
     }));
   } catch (error) {
     console.error('Error in getStrategies:', error);
@@ -152,11 +154,13 @@ export const getStrategyById = async (id: string): Promise<Strategy | null> => {
       description: data.description,
       timeframe: data.timeframe,
       targetAsset: data.target_asset,
+      targetAssetName: data.target_asset_name,
       isActive: data.is_active,
       userId: data.user_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      signalNotificationsEnabled: data.signal_notifications_enabled
+      signalNotificationsEnabled: data.signal_notifications_enabled,
+      dailySignalLimit: data.daily_signal_limit
     };
   } catch (error) {
     console.error('Error in getStrategyById:', error);

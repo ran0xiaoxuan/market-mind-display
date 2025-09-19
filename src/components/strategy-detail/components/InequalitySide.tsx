@@ -33,17 +33,20 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '14'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'period', value)} 
             />
             <IndicatorParameter 
               name="fastEmaLength" 
-              value={sideObj.parameters?.fastEmaLength || '2'} 
+              value={sideObj.parameters?.fastEmaLength ?? ''} 
+              placeholder="2"
               onChange={value => updateParameters(side, 'fastEmaLength', value)} 
             />
             <IndicatorParameter 
               name="slowEmaLength" 
-              value={sideObj.parameters?.slowEmaLength || '30'} 
+              value={sideObj.parameters?.slowEmaLength ?? ''} 
+              placeholder="30"
               onChange={value => updateParameters(side, 'slowEmaLength', value)} 
             />
           </div>
@@ -54,22 +57,25 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="fast" 
-              value={sideObj.parameters?.fast || '12'} 
+              value={sideObj.parameters?.fast ?? ''} 
+              placeholder="12"
               onChange={value => updateParameters(side, 'fast', value)} 
             />
             <IndicatorParameter 
               name="slow" 
-              value={sideObj.parameters?.slow || '26'} 
+              value={sideObj.parameters?.slow ?? ''} 
+              placeholder="26"
               onChange={value => updateParameters(side, 'slow', value)} 
             />
             <IndicatorParameter 
               name="signal" 
-              value={sideObj.parameters?.signal || '9'} 
+              value={sideObj.parameters?.signal ?? ''} 
+              placeholder="9"
               onChange={value => updateParameters(side, 'signal', value)} 
             />
             <IndicatorParameter 
               name="source" 
-              value={sideObj.parameters?.source || 'close'} 
+              value={sideObj.parameters?.source ?? ''} 
               onChange={value => updateParameters(side, 'source', value)} 
             />
           </div>
@@ -80,17 +86,19 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '20'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="20"
               onChange={value => updateParameters(side, 'period', value)} 
             />
             <IndicatorParameter 
               name="deviation" 
-              value={sideObj.parameters?.deviation || '2'} 
+              value={sideObj.parameters?.deviation ?? ''} 
+              placeholder="2"
               onChange={value => updateParameters(side, 'deviation', value)} 
             />
             <IndicatorParameter 
               name="source" 
-              value={sideObj.parameters?.source || 'close'} 
+              value={sideObj.parameters?.source ?? ''} 
               onChange={value => updateParameters(side, 'source', value)} 
             />
           </div>
@@ -101,17 +109,20 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="k" 
-              value={sideObj.parameters?.k || '14'} 
+              value={sideObj.parameters?.k ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'k', value)} 
             />
             <IndicatorParameter 
               name="d" 
-              value={sideObj.parameters?.d || '3'} 
+              value={sideObj.parameters?.d ?? ''} 
+              placeholder="3"
               onChange={value => updateParameters(side, 'd', value)} 
             />
             <IndicatorParameter 
               name="slowing" 
-              value={sideObj.parameters?.slowing || '3'} 
+              value={sideObj.parameters?.slowing ?? ''} 
+              placeholder="3"
               onChange={value => updateParameters(side, 'slowing', value)} 
             />
           </div>
@@ -122,22 +133,26 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="rsiPeriod" 
-              value={sideObj.parameters?.rsiPeriod || '14'} 
+              value={sideObj.parameters?.rsiPeriod ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'rsiPeriod', value)} 
             />
             <IndicatorParameter 
               name="stochasticLength" 
-              value={sideObj.parameters?.stochasticLength || '14'} 
+              value={sideObj.parameters?.stochasticLength ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'stochasticLength', value)} 
             />
             <IndicatorParameter 
               name="k" 
-              value={sideObj.parameters?.k || '14'} 
+              value={sideObj.parameters?.k ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'k', value)} 
             />
             <IndicatorParameter 
               name="d" 
-              value={sideObj.parameters?.d || '3'} 
+              value={sideObj.parameters?.d ?? ''} 
+              placeholder="3"
               onChange={value => updateParameters(side, 'd', value)} 
             />
           </div>
@@ -148,17 +163,20 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="fastLineLength" 
-              value={sideObj.parameters?.fastLineLength || '7'} 
+              value={sideObj.parameters?.fastLineLength ?? ''} 
+              placeholder="7"
               onChange={value => updateParameters(side, 'fastLineLength', value)} 
             />
             <IndicatorParameter 
               name="middleLineLength" 
-              value={sideObj.parameters?.middleLineLength || '14'} 
+              value={sideObj.parameters?.middleLineLength ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'middleLineLength', value)} 
             />
             <IndicatorParameter 
               name="slowLineLength" 
-              value={sideObj.parameters?.slowLineLength || '28'} 
+              value={sideObj.parameters?.slowLineLength ?? ''} 
+              placeholder="28"
               onChange={value => updateParameters(side, 'slowLineLength', value)} 
             />
           </div>
@@ -170,12 +188,14 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="adxSmoothing" 
-              value={sideObj.parameters?.adxSmoothing || '14'} 
+              value={sideObj.parameters?.adxSmoothing ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'adxSmoothing', value)} 
             />
             <IndicatorParameter 
               name="diLength" 
-              value={sideObj.parameters?.diLength || '14'} 
+              value={sideObj.parameters?.diLength ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'diLength', value)} 
             />
           </div>
@@ -186,17 +206,20 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="start" 
-              value={sideObj.parameters?.start || '0.02'} 
+              value={sideObj.parameters?.start ?? ''} 
+              placeholder="0.02"
               onChange={value => updateParameters(side, 'start', value)} 
             />
             <IndicatorParameter 
               name="increment" 
-              value={sideObj.parameters?.increment || '0.02'} 
+              value={sideObj.parameters?.increment ?? ''} 
+              placeholder="0.02"
               onChange={value => updateParameters(side, 'increment', value)} 
             />
             <IndicatorParameter 
               name="maximum" 
-              value={sideObj.parameters?.maximum || '0.2'} 
+              value={sideObj.parameters?.maximum ?? ''} 
+              placeholder="0.2"
               onChange={value => updateParameters(side, 'maximum', value)} 
             />
           </div>
@@ -207,7 +230,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
               name="source" 
-              value={sideObj.parameters?.source || 'close'} 
+              value={sideObj.parameters?.source ?? ''} 
               onChange={value => updateParameters(side, 'source', value)} 
             />
           </div>
@@ -218,12 +241,14 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="atrPeriod" 
-              value={sideObj.parameters?.atrPeriod || '10'} 
+              value={sideObj.parameters?.atrPeriod ?? ''} 
+              placeholder="10"
               onChange={value => updateParameters(side, 'atrPeriod', value)} 
             />
             <IndicatorParameter 
               name="multiplier" 
-              value={sideObj.parameters?.multiplier || '3'} 
+              value={sideObj.parameters?.multiplier ?? ''} 
+              placeholder="3"
               onChange={value => updateParameters(side, 'multiplier', value)} 
             />
           </div>
@@ -234,7 +259,8 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '20'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="20"
               onChange={value => updateParameters(side, 'period', value)} 
             />
           </div>
@@ -245,7 +271,8 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '14'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'period', value)} 
             />
           </div>
@@ -256,17 +283,20 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '20'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="20"
               onChange={value => updateParameters(side, 'period', value)} 
             />
             <IndicatorParameter 
               name="atrPeriod" 
-              value={sideObj.parameters?.atrPeriod || '20'} 
+              value={sideObj.parameters?.atrPeriod ?? ''} 
+              placeholder="20"
               onChange={value => updateParameters(side, 'atrPeriod', value)} 
             />
             <IndicatorParameter 
               name="multiplier" 
-              value={sideObj.parameters?.multiplier || '2'} 
+              value={sideObj.parameters?.multiplier ?? ''} 
+              placeholder="2"
               onChange={value => updateParameters(side, 'multiplier', value)} 
             />
           </div>
@@ -277,7 +307,8 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '20'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="20"
               onChange={value => updateParameters(side, 'period', value)} 
             />
           </div>
@@ -288,12 +319,14 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="atrPeriod" 
-              value={sideObj.parameters?.atrPeriod || '22'} 
+              value={sideObj.parameters?.atrPeriod ?? ''} 
+              placeholder="22"
               onChange={value => updateParameters(side, 'atrPeriod', value)} 
             />
             <IndicatorParameter 
               name="multiplier" 
-              value={sideObj.parameters?.multiplier || '3'} 
+              value={sideObj.parameters?.multiplier ?? ''} 
+              placeholder="3"
               onChange={value => updateParameters(side, 'multiplier', value)} 
             />
           </div>
@@ -307,7 +340,8 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '20'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="20"
               onChange={value => updateParameters(side, 'period', value)} 
             />
           </div>
@@ -318,12 +352,14 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="shortLength" 
-              value={sideObj.parameters?.shortLength || '5'} 
+              value={sideObj.parameters?.shortLength ?? ''} 
+              placeholder="5"
               onChange={value => updateParameters(side, 'shortLength', value)} 
             />
             <IndicatorParameter 
               name="longLength" 
-              value={sideObj.parameters?.longLength || '10'} 
+              value={sideObj.parameters?.longLength ?? ''} 
+              placeholder="10"
               onChange={value => updateParameters(side, 'longLength', value)} 
             />
           </div>
@@ -334,17 +370,19 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="emaSource" 
-              value={sideObj.parameters?.emaSource || 'close'} 
+              value={sideObj.parameters?.emaSource ?? ''} 
               onChange={value => updateParameters(side, 'emaSource', value)} 
             />
             <IndicatorParameter 
               name="fastLength" 
-              value={sideObj.parameters?.fastLength || '9'} 
+              value={sideObj.parameters?.fastLength ?? ''} 
+              placeholder="9"
               onChange={value => updateParameters(side, 'fastLength', value)} 
             />
             <IndicatorParameter 
               name="slowLength" 
-              value={sideObj.parameters?.slowLength || '21'} 
+              value={sideObj.parameters?.slowLength ?? ''} 
+              placeholder="21"
               onChange={value => updateParameters(side, 'slowLength', value)} 
             />
           </div>
@@ -358,7 +396,8 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '14'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'period', value)} 
             />
           </div>
@@ -369,22 +408,26 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="conversionPeriod" 
-              value={sideObj.parameters?.conversionPeriod || '9'} 
+              value={sideObj.parameters?.conversionPeriod ?? ''} 
+              placeholder="9"
               onChange={value => updateParameters(side, 'conversionPeriod', value)} 
             />
             <IndicatorParameter 
               name="basePeriod" 
-              value={sideObj.parameters?.basePeriod || '26'} 
+              value={sideObj.parameters?.basePeriod ?? ''} 
+              placeholder="26"
               onChange={value => updateParameters(side, 'basePeriod', value)} 
             />
             <IndicatorParameter 
               name="laggingSpan" 
-              value={sideObj.parameters?.laggingSpan || '52'} 
+              value={sideObj.parameters?.laggingSpan ?? ''} 
+              placeholder="52"
               onChange={value => updateParameters(side, 'laggingSpan', value)} 
             />
             <IndicatorParameter 
               name="displacement" 
-              value={sideObj.parameters?.displacement || '26'} 
+              value={sideObj.parameters?.displacement ?? ''} 
+              placeholder="26"
               onChange={value => updateParameters(side, 'displacement', value)} 
             />
           </div>
@@ -396,12 +439,13 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
               name="period" 
-              value={sideObj.parameters?.period || '14'} 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="14"
               onChange={value => updateParameters(side, 'period', value)} 
             />
             <IndicatorParameter 
               name="source" 
-              value={sideObj.parameters?.source || 'close'} 
+              value={sideObj.parameters?.source ?? ''} 
               onChange={value => updateParameters(side, 'source', value)} 
             />
           </div>

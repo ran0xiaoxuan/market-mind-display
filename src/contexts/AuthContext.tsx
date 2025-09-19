@@ -274,6 +274,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: result.error?.message 
       });
       
+      // Fallback: if signup failed with confirmation email error or server error, try our Edge Function
+      if (result.error && (/Error sending confirmation email/i.test(result.error.message) || /500|Internal Server Error/i.test(result.error.message))) {
+        try {
+          console.log('Attempting fallback confirmation email via Edge Function (widened condition)...');
+          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('send-signup-confirmation', {
+            body: {
+              email,
+              redirectTo: `${currentOrigin}/auth/callback`
+            }
+          });
+          if (fallbackError) {
+            console.error('Fallback confirmation failed:', fallbackError);
+            return result; // return original error
+          }
+          toast({
+            title: "Account created (pending confirmation)",
+            description: "We've sent a confirmation email via backup sender. Please check your inbox and spam folder.",
+          });
+          return { error: null, data: result.data } as any;
+        } catch (fallbackEx) {
+          console.error('Fallback confirmation exception:', fallbackEx);
+          return result;
+        }
+      }
+      
       if (result.error) {
         console.error('Signup error:', result.error);
         return result;
@@ -373,6 +398,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (result.error) {
         console.error('Resend confirmation error:', result.error);
+        // Fallback when resend fails
+        try {
+          console.log('Attempting fallback resend via Edge Function...');
+          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('send-signup-confirmation', {
+            body: {
+              email,
+              redirectTo: `${currentOrigin}/auth/callback`
+            }
+          });
+          if (fallbackError) {
+            console.error('Fallback resend failed:', fallbackError);
+            return result;
+          }
+          toast({
+            title: "Confirmation email sent",
+            description: "We've sent a confirmation email via backup sender. Please check your inbox and spam folder.",
+          });
+          return { error: null, data: result.data } as any;
+        } catch (fallbackEx) {
+          console.error('Fallback resend exception:', fallbackEx);
+          return result;
+        }
       } else {
         console.log('Confirmation email resent successfully');
         toast({

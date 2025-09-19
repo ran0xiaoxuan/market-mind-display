@@ -46,7 +46,7 @@ const TermsOfService = () => (
           <section className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Content and Intellectual Property Rights</h2>
             <p className="text-gray-700 mb-4 leading-relaxed">
-              All content generated through StratAIge, as well as the software and technology used to provide the service, are the intellectual property of strataige.cc. You may not reproduce, distribute, or create derivative works from any content without our express written permission.
+              All content generated through StratAIge, as well as the software and technology used to provide the service, are the intellectual property of strataige.top. You may not reproduce, distribute, or create derivative works from any content without our express written permission.
             </p>
           </section>
 
@@ -97,21 +97,21 @@ const TermsOfService = () => (
           <section className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Limitation of Liability</h2>
             <p className="text-gray-700 mb-4 leading-relaxed">
-              To the fullest extent permitted by law, in no event shall strataige.cc, its affiliates, or their respective officers, directors, employees, or agents be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of the service.
+              To the fullest extent permitted by law, in no event shall strataige.top, its affiliates, or their respective officers, directors, employees, or agents be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of the service.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Indemnification</h2>
             <p className="text-gray-700 mb-4 leading-relaxed">
-              You agree to indemnify, defend, and hold harmless strataige.cc and its affiliates from any claims, losses, liabilities, damages, costs, or expenses (including reasonable attorneys' fees) arising out of or related to your use of the service, your violation of these Terms, or your violation of any rights of another party.
+              You agree to indemnify, defend, and hold harmless strataige.top and its affiliates from any claims, losses, liabilities, damages, costs, or expenses (including reasonable attorneys' fees) arising out of or related to your use of the service, your violation of these Terms, or your violation of any rights of another party.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Governing Law and Dispute Resolution</h2>
             <p className="text-gray-700 mb-4 leading-relaxed">
-              These Terms shall be governed by and construed by the laws of the jurisdiction in which strataige.cc operates, without regard to its conflict of law principles. Any disputes arising out of or related to these Terms or the service shall be resolved through binding arbitration by the rules of the applicable arbitration association.
+              These Terms shall be governed by and construed by the laws of the jurisdiction in which strataige.top operates, without regard to its conflict of law principles. Any disputes arising out of or related to these Terms or the service shall be resolved through binding arbitration by the rules of the applicable arbitration association.
             </p>
           </section>
 

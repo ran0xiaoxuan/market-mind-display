@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Turnstile } from "@/components/Turnstile";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ForgotPassword() {
   usePageTitle("Reset Password - StratAIge");
@@ -20,10 +21,15 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset transient states on each submit
+    setFormError(null);
+    setIsEmailSent(false);
     
     if (!turnstileToken) {
       toast.error("Please complete the security verification");
@@ -38,11 +44,32 @@ export default function ForgotPassword() {
     setIsLoading(true);
 
     try {
+      // 1) Check if email is registered via Edge Function
+      const { data: checkData, error: checkError } = await supabase.functions.invoke('check-user-by-email', {
+        body: { email }
+      });
+
+      if (checkError) {
+        console.error('Email existence check error:', checkError);
+        setFormError("Failed to verify email. Please try again.");
+        toast.error("Failed to verify email. Please try again.");
+        return;
+      }
+
+      if (!checkData?.exists) {
+        // Requirement: Only registered emails can reset, otherwise show English prompt
+        setFormError("This email is not registered.");
+        toast.error("This email is not registered.");
+        return;
+      }
+
+      // 2) Proceed to request reset email
       console.log('Sending password reset email to:', email);
       const { error } = await resetPassword(email);
 
       if (error) {
         console.error('Password reset error:', error);
+        setFormError(error.message || "Failed to send reset email");
         toast.error(error.message || "Failed to send reset email");
       } else {
         console.log('Password reset email sent successfully');
@@ -51,67 +78,14 @@ export default function ForgotPassword() {
       }
     } catch (err: any) {
       console.error('Password reset exception:', err);
+      setFormError("An unexpected error occurred");
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isEmailSent) {
-    return (
-      <AuthLayout>
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-0">
-            <h1 className="text-xl font-semibold text-center">Check Your Email</h1>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Mail className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-medium">Reset Link Sent</h3>
-              <p className="text-sm text-muted-foreground">
-                We've sent a password reset link to <strong>{email}</strong>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Please check your email and click the "Reset Password" button. The link will open a new window where you can set your new password.
-              </p>
-              
-              <Alert className="text-left">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p><strong>Don't see the email?</strong> Check your spam or junk folder.</p>
-                    <p><strong>Reset link not working?</strong> Make sure to click the button in the email, not copy the link. If it still doesn't work, try requesting a new link.</p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-              
-              <div className="space-y-2 pt-4">
-                <Button asChild className="w-full">
-                  <Link to="/login">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Login
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsEmailSent(false);
-                    setEmail("");
-                    setTurnstileToken(null);
-                  }}
-                  className="w-full"
-                >
-                  Send Another Email
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </AuthLayout>
-    );
-  }
+  // Note: No separate success view. We keep the user on this page and show inline alerts.
 
   return (
     <AuthLayout>
@@ -124,6 +98,25 @@ export default function ForgotPassword() {
             <p className="text-sm text-muted-foreground text-center mb-4">
               Enter your email address and we'll send you a link to reset your password.
             </p>
+
+            {isEmailSent && (
+              <Alert className="text-left">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-1">
+                    <p className="font-medium">Reset Link Sent</p>
+                    <p className="text-sm text-muted-foreground">We've sent a password reset link to <strong>{email}</strong>. Please check your inbox.</p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {formError && (
+              <Alert className="text-left" variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{formError}</AlertDescription>
+              </Alert>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>

@@ -223,3 +223,8 @@ stripe listen --forward-to http://localhost:54321/functions/v1/stripe-webhook
 - 常见问题：
   - 链接过期或已使用：页面会提示并提供重新申请重置链接的入口。
   - 浏览器剥离哈希：页面同时支持从 query 与 hash 读取令牌参数。
+
+### 新增规则
+- 忘记密码页面仅允许“已注册邮箱”发送重置邮件。
+- 前端在提交前会调用 Edge Function `check-user-by-email` 校验邮箱是否存在；
+- 若邮箱不存在，将在页面以英文提示：`This email is not registered. Please sign up first.`

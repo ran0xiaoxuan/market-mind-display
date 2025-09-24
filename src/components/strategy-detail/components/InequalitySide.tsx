@@ -455,7 +455,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
   
   // Helper function to normalize price value for consistent display
   const normalizePriceValue = (value: string | undefined): string => {
-    if (!value) return 'close';
+    if (!value) return '';
     
     // Convert to lowercase and handle common variations
     const normalized = value.toLowerCase().trim();
@@ -498,7 +498,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
             
             <IndicatorValueSelector
               indicator={sideObj.indicator}
-              selectedValue={sideObj.valueType || 'Value'}
+              selectedValue={sideObj.valueType || ''}
               onValueChange={value => updateInequality(side, 'valueType', value)}
             />
           </div>
@@ -511,7 +511,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
     return (
       <div className="mt-2">
         <Select 
-          value={currentPriceValue} 
+          value={sideObj.value ? currentPriceValue : undefined}
           onValueChange={value => updateInequality(side, 'value', value)}
         >
           <SelectTrigger className={`${!sideObj.value && showValidation ? 'border-red-500' : ''}`}>

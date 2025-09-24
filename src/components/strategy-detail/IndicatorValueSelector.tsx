@@ -77,26 +77,19 @@ export const IndicatorValueSelector = ({
   // Set default value when indicator changes
   useEffect(() => {
     if (indicator) {
-      const defaultValue = getDefaultValue(indicator);
-      
-      // Always update the value when the indicator changes
-      // This ensures we don't keep old valueType from previous indicators
-      if (valueOptions.length === 1) {
-        // For single-value indicators, always set to 'Value'
-        if (selectedValue !== 'Value') {
-          onValueChange('Value');
-        }
-      } else {
-        // For multi-value indicators, check if current selection is valid
-        const hasValidSelection = selectedValue && valueOptions.includes(selectedValue);
-        if (!hasValidSelection) {
-          onValueChange(defaultValue);
+      // Do not auto-assign default; only clear invalid previous selections
+      const hasValidSelection = !!selectedValue && valueOptions.includes(selectedValue);
+      if (!hasValidSelection) {
+        // If previous selection is invalid for the new indicator, reset to empty
+        if (selectedValue) {
+          onValueChange('');
         }
       }
     }
   }, [indicator, valueOptions, selectedValue, onValueChange]);
   
   // If there's only one option, don't show the selector but ensure the value is set correctly
+  // We still show the selector to force explicit choice if multiple options; for single option we can hide but not auto-select.
   if (valueOptions.length === 1) {
     return null;
   }
@@ -105,7 +98,7 @@ export const IndicatorValueSelector = ({
     <div className="mt-2">
       <label className="text-xs text-muted-foreground mb-1 block">Value Type</label>
       <Select
-        value={selectedValue}
+        value={selectedValue || undefined}
         onValueChange={onValueChange}
       >
         <SelectTrigger className={className}>

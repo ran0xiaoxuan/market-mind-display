@@ -77,14 +77,14 @@ export const TradingRules = ({
         return {
           ...ineq,
           left: {
-            type: ineq.left?.type || "INDICATOR",
+            type: ineq.left?.type || "",
             indicator: ineq.left?.indicator,
             parameters: cleanParametersObject(ineq.left?.parameters),
             value: ineq.left?.value,
             valueType: ineq.left?.valueType
           },
           right: {
-            type: ineq.right?.type || "VALUE",
+            type: ineq.right?.type || "",
             indicator: ineq.right?.indicator,
             parameters: cleanParametersObject(ineq.right?.parameters),
             value: ineq.right?.value,
@@ -185,13 +185,13 @@ export const TradingRules = ({
       const newInequality: Inequality = {
         id: newInequalityId,
         left: {
-          type: 'INDICATOR',
+          type: '',
           indicator: '',
           parameters: {}
         },
         condition: '',
         right: {
-          type: 'VALUE',
+          type: '',
           value: '',
           indicator: '',
           parameters: {}
@@ -208,13 +208,13 @@ export const TradingRules = ({
       const newInequality: Inequality = {
         id: newInequalityId,
         left: {
-          type: 'INDICATOR',
+          type: '',
           indicator: '',
           parameters: {}
         },
         condition: '',
         right: {
-          type: 'VALUE',
+          type: '',
           value: '',
           indicator: '',
           parameters: {}

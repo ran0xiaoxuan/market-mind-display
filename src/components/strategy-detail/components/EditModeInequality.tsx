@@ -41,21 +41,26 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
       case 'wma':
       case 'trima':
         return { period: '20', source: 'close' };
+      case 'dema':
+      case 'tema':
+      case 'hma':
+        return { period: '14', source: 'close' };
       case 'kama':
         return { period: '14', fastEmaLength: '2', slowEmaLength: '30', source: 'close' };
       case 'vwap':
-        return {}; // VWAP typically doesn't need parameters
+        return { source: 'close' }; // VWAP only needs source parameter
       
       // Oscillators  
       case 'rsi':
         return { period: '14', source: 'close' };
       case 'cci':
         return { period: '14', source: 'close' };
-      case 'williamsর':
+      case 'williams%r':
       case 'willr':
         return { period: '14' };
       case 'momentum':
       case 'mom':
+        return { period: '14', source: 'close' };
       case 'roc':
         return { period: '14', source: 'close' };
       case 'cmo':
@@ -67,6 +72,7 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
       case 'stochastic':
         return { k: '14', d: '3', slowing: '3' };
       case 'stochrsi':
+      case 'stochasticrsi':
         return { rsiPeriod: '14', stochasticLength: '14', k: '3', d: '3' };
       case 'ultimateoscillator':
         return { fastLineLength: '7', middleLineLength: '14', slowLineLength: '28' };
@@ -94,6 +100,8 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
         return { period: '20', deviation: '2', source: 'close' };
       case 'atr':
         return { period: '14' };
+      case 'natr':
+        return { period: '14', source: 'close' };
       case 'keltnerchannel':
       case 'keltnerchannels':
         return { period: '20', atrPeriod: '20', multiplier: '2' };
@@ -107,7 +115,10 @@ export const EditModeInequality: React.FC<EditModeInequalityProps> = ({
       // Volume Indicators
       case 'volume':
         return {}; // Volume doesn't need parameters
+      case 'obv':
+        return {}; // OBV doesn't need parameters
       case 'chaikinmoneyflow':
+      case 'cmf':
         return { period: '20' }; // Only period, no source
       case 'volumeoscillator':
         return { shortLength: '5', longLength: '10' };

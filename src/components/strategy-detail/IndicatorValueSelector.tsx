@@ -23,6 +23,7 @@ export const IndicatorValueSelector = ({
       
       case 'stochastic':
       case 'stochrsi':
+      case 'stochasticrsi':
         return ['K Value', 'D Value'];
       
       case 'bollingerbands':

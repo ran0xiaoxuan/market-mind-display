@@ -225,6 +225,164 @@ stripe listen --forward-to http://localhost:54321/functions/v1/stripe-webhook
   - 浏览器剥离哈希：页面同时支持从 query 与 hash 读取令牌参数。
 
 ### 新增规则
-- 忘记密码页面仅允许“已注册邮箱”发送重置邮件。
+- 忘记密码页面仅允许"已注册邮箱"发送重置邮件。
 - 前端在提交前会调用 Edge Function `check-user-by-email` 校验邮箱是否存在；
-- 若邮箱不存在，将在页面以英文提示：`This email is not registered. Please sign up first.`
+- 若邮箱不存在,将在页面以英文提示：`This email is not registered. Please sign up first.`
+
+---
+
+## 技术指标库 (TAAPI Integration)
+
+本项目集成了 TAAPI.IO 作为技术指标数据源，支持多种常用技术指标用于策略构建和回测。
+
+### 当前支持的25个指标
+
+#### 📈 移动平均线 (7个)
+- **SMA** - 简单移动平均线 (Simple Moving Average)
+  - 参数: period (周期), source (数据源)
+  - 默认: period=14
+  
+- **EMA** - 指数移动平均线 (Exponential Moving Average)
+  - 参数: period, source
+  - 默认: period=14
+  
+- **WMA** - 加权移动平均线 (Weighted Moving Average)
+  - 参数: period, source
+  - 默认: period=14
+  
+- **DEMA** - 双指数移动平均线 (Double Exponential Moving Average)
+  - 参数: period, source
+  - 默认: period=14
+  
+- **TEMA** - 三指数移动平均线 (Triple Exponential Moving Average)
+  - 参数: period, source
+  - 默认: period=14
+  
+- **HMA** - 赫尔移动平均线 (Hull Moving Average)
+  - 参数: period, source
+  - 默认: period=14
+  
+- **VWAP** - 成交量加权平均价 (Volume Weighted Average Price)
+  - 参数: source
+  - 说明: 常用于日内交易
+
+#### 📊 振荡器指标 (9个)
+- **RSI** - 相对强弱指标 (Relative Strength Index)
+  - 参数: period, source
+  - 默认: period=14
+  - 范围: 0-100，常用阈值 30/70
+  
+- **Stochastic** - 随机指标
+  - 参数: k (K周期), d (D周期), slowing (平滑)
+  - 默认: k=14, d=3, slowing=3
+  - 值类型: K Value, D Value
+  
+- **Stochastic RSI** - 随机相对强弱指标
+  - 参数: rsiPeriod, stochasticLength, k, d
+  - 默认: rsiPeriod=14, stochasticLength=14, k=14, d=3
+  - 值类型: K Value, D Value
+  
+- **CCI** - 商品通道指标 (Commodity Channel Index)
+  - 参数: period, source
+  - 默认: period=20
+  
+- **MACD** - 异同移动平均线 (Moving Average Convergence Divergence)
+  - 参数: fast, slow, signal, source
+  - 默认: fast=12, slow=26, signal=9
+  - 值类型: MACD Value, Signal Value, Histogram Value
+  
+- **MFI** - 资金流量指标 (Money Flow Index)
+  - 参数: period
+  - 默认: period=14
+  
+- **ROC** - 变动率 (Rate of Change)
+  - 参数: period, source
+  - 默认: period=14
+  
+- **Williams %R** - 威廉指标
+  - 参数: period
+  - 默认: period=14
+  - 范围: -100 到 0
+  
+- **CMO** - 钱德动量摆动指标 (Chande Momentum Oscillator)
+  - 参数: period, source
+  - 默认: period=14
+
+#### 📉 趋势指标 (2个)
+- **ADX** - 平均趋向指标 (Average Directional Index)
+  - 参数: adxSmoothing, diLength
+  - 默认: adxSmoothing=14, diLength=14
+  - 说明: 值>25表示强趋势
+  
+- **SuperTrend** - 超级趋势
+  - 参数: atrPeriod, multiplier
+  - 默认: atrPeriod=10, multiplier=3
+  - 说明: 动态支撑阻力指标
+
+#### 📏 波动性指标 (5个)
+- **Bollinger Bands** - 布林带
+  - 参数: period, deviation, source
+  - 默认: period=20, deviation=2
+  - 值类型: Upper Band, Middle Band, Lower Band
+  
+- **ATR** - 平均真实波幅 (Average True Range)
+  - 参数: period
+  - 默认: period=14
+  
+- **NATR** - 标准化平均真实波幅 (Normalized ATR)
+  - 参数: period, source
+  - 默认: period=14
+  - 说明: 百分比表示的ATR
+  
+- **Keltner Channel** - 肯特纳通道
+  - 参数: period, atrPeriod, multiplier
+  - 默认: period=20, atrPeriod=20, multiplier=2
+  - 值类型: Upper Band, Middle Band, Lower Band
+  
+- **Donchian Channel** - 唐奇安通道
+  - 参数: period
+  - 默认: period=20
+  - 值类型: Upper Band, Middle Band, Lower Band
+
+#### 📦 成交量指标 (2个)
+- **OBV** - 能量潮 (On Balance Volume)
+  - 无参数
+  - 说明: 累积成交量指标
+  
+- **CMF** - 蔡金资金流量 (Chaikin Money Flow)
+  - 参数: period
+  - 默认: period=20
+
+### 指标使用说明
+
+1. **在策略中使用指标**
+   - 进入策略编辑页面
+   - 在交易规则中选择"指标"类型
+   - 从下拉菜单选择所需指标
+   - 配置指标参数（或使用默认值）
+   - 选择值类型（对于多值指标如MACD、布林带等）
+
+2. **参数说明**
+   - `period`: 计算周期，数值越大越平滑但滞后性越强
+   - `source`: 价格数据源 (open/high/low/close/hl2/hlc3/ohlc4)
+   - 所有参数都有合理的默认值，新手可直接使用默认配置
+
+3. **指标组合建议**
+   - 趋势 + 振荡器: 如 EMA + RSI
+   - 趋势 + 波动性: 如 SMA + Bollinger Bands
+   - 多重确认: 如 MACD + RSI + ADX
+
+### 扩展性
+
+项目已集成 TAAPI.IO 服务，理论上支持100+指标。当前展示的25个指标是经过精心挑选的最常用指标。如需添加更多指标：
+
+1. 在 `src/components/strategy-detail/AvailableIndicators.tsx` 中添加指标名称
+2. 在 `src/components/strategy-detail/components/InequalitySide.tsx` 中配置参数
+3. 在 `src/services/taapiService.ts` 中添加参数映射
+4. 如需多值支持，在 `src/components/strategy-detail/IndicatorValueSelector.tsx` 中配置
+
+### 相关文件
+- `src/services/taapiService.ts` - TAAPI API 集成服务
+- `src/services/technicalIndicators.ts` - 本地指标计算（备用）
+- `src/components/strategy-detail/AvailableIndicators.tsx` - 指标选择器UI
+- `src/components/strategy-detail/IndicatorParameter.tsx` - 参数输入组件

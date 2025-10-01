@@ -12,23 +12,42 @@ export const AvailableIndicators = ({
   onSelectIndicator,
   className = "" 
 }: AvailableIndicatorsProps) => {
-  // Updated to reflect locally supported indicators
+  // Extended TAAPI indicator support - expanded from 10 to 25 indicators
   const indicatorGroups = {
     "Moving Averages": [
-      "SMA", 
+      "SMA",
       "EMA",
-      "WMA"
+      "WMA",
+      "DEMA",
+      "TEMA",
+      "HMA",
+      "VWAP"
     ],
     "Oscillators": [
-      "RSI", 
+      "RSI",
       "Stochastic",
-      "CCI", 
+      "Stochastic RSI",
+      "CCI",
       "MACD",
-      "MFI"
+      "MFI",
+      "ROC",
+      "Williams %R",
+      "CMO"
+    ],
+    "Trend Indicators": [
+      "ADX",
+      "SuperTrend"
     ],
     "Volatility Indicators": [
-      "Bollinger Bands", 
-      "ATR"
+      "Bollinger Bands",
+      "ATR",
+      "NATR",
+      "Keltner Channel",
+      "Donchian Channel"
+    ],
+    "Volume Indicators": [
+      "OBV",
+      "CMF"
     ]
   };
 

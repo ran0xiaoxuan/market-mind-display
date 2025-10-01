@@ -129,6 +129,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
         );
         
       case 'stochrsi':
+      case 'stochasticrsi':
         return (
           <div className="grid grid-cols-2 gap-2">
             <IndicatorParameter 
@@ -146,7 +147,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
             <IndicatorParameter 
               name="k" 
               value={sideObj.parameters?.k ?? ''} 
-              placeholder="14"
+              placeholder="3"
               onChange={value => updateParameters(side, 'k', value)} 
             />
             <IndicatorParameter 
@@ -336,6 +337,7 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
         return null; // No parameters for Volume
         
       case 'chaikinmoneyflow':
+      case 'cmf':
         return (
           <div className="grid grid-cols-1 gap-2">
             <IndicatorParameter 
@@ -432,6 +434,44 @@ export const InequalitySide: React.FC<InequalitySideProps> = ({
             />
           </div>
         );
+        
+      // New indicator parameter configurations
+      case 'dema':
+      case 'tema':
+      case 'hma':
+      case 'natr':
+      case 'roc':
+      case 'cmo':
+        return (
+          <div className="grid grid-cols-2 gap-2">
+            <IndicatorParameter 
+              name="period" 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="14"
+              onChange={value => updateParameters(side, 'period', value)} 
+            />
+            <IndicatorParameter 
+              name="source" 
+              value={sideObj.parameters?.source ?? ''} 
+              onChange={value => updateParameters(side, 'source', value)} 
+            />
+          </div>
+        );
+        
+      case 'williams%r':
+        return (
+          <div className="grid grid-cols-1 gap-2">
+            <IndicatorParameter 
+              name="period" 
+              value={sideObj.parameters?.period ?? ''} 
+              placeholder="14"
+              onChange={value => updateParameters(side, 'period', value)} 
+            />
+          </div>
+        );
+        
+      case 'obv':
+        return null; // OBV has no parameters
         
       default:
         // For simple indicators with basic parameters

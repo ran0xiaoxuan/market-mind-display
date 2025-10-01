@@ -308,8 +308,8 @@ export const mapParametersToTaapi = (
   const params: TaapiIndicatorParams = {};
   
   // Default symbol and interval if not provided
-  params.symbol = parameters.symbol || "BTC/USDT"; 
-  params.exchange = parameters.exchange || "binance";
+  params.symbol = parameters.symbol || "AAPL"; 
+  params.exchange = parameters.exchange || "nasdaq";
   params.interval = parameters.interval || "1h";
   
   // Map common parameters
@@ -363,7 +363,7 @@ export const mapParametersToTaapi = (
     case "stochrsi": // Stochastic RSI
       params.rsiPeriod = parseInt(parameters.rsiPeriod || "14");
       params.stochasticLength = parseInt(parameters.stochasticLength || "14");
-      params.kPeriod = parseInt(parameters.k || parameters.kPeriod || parameters.fastK || "14");
+      params.kPeriod = parseInt(parameters.k || parameters.kPeriod || parameters.fastK || "3");
       params.dPeriod = parseInt(parameters.d || parameters.dPeriod || parameters.fastD || "3");
       break;
       
@@ -458,6 +458,21 @@ export const mapParametersToTaapi = (
     case "roc":
     case "mom": // Momentum
       params.period = parseInt(parameters.period || parameters.rsiPeriod || "14");
+      break;
+      
+    case "dema":
+    case "tema":
+    case "hma":
+    case "natr":
+      params.period = parseInt(parameters.period || parameters.optInTimePeriod || "14");
+      break;
+      
+    case "obv":
+      // OBV has no parameters
+      break;
+      
+    case "williams %r":
+      params.period = parseInt(parameters.period || "14");
       break;
   }
   

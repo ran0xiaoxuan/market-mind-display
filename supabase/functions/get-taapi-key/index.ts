@@ -48,7 +48,7 @@ serve(async (req) => {
         meta: {
           supportedIndicators: 80,
           supportedTimeframes: ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d", "1w"],
-          supportedExchanges: ["binance", "coinbase", "kucoin", "kraken", "ftx"],
+          supportedExchanges: ["nasdaq", "nyse", "amex", "otc"],
           documentation: "https://taapi.io/documentation/"
         }
       }),

@@ -262,5 +262,6 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
     },
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard data
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs/windows
   });
 };

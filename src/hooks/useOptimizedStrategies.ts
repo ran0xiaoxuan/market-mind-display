@@ -71,5 +71,6 @@ export const useOptimizedStrategies = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs/windows
   });
 };

@@ -259,22 +259,6 @@ const StrategyDetail = () => {
     fetchStrategyDetails();
   }, [id]);
 
-  // Add effect to refresh data when returning from edit page
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log("Page became visible, refreshing strategy data");
-        fetchStrategyDetails();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [id]);
-
   const handleCleanupInvalidData = async () => {
     try {
       await cleanupInvalidSignals();

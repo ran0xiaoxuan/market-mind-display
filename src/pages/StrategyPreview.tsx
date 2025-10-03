@@ -125,7 +125,7 @@ const StrategyPreview = () => {
                   <p className="font-medium">{generatedStrategy.targetAsset || "Not specified"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Account Capital</p>
+                  <p className="text-sm text-muted-foreground">Strategy Capital</p>
                   <p className="font-medium">${(generatedStrategy.accountCapital || 10000).toLocaleString()}</p>
                 </div>
                 <div>

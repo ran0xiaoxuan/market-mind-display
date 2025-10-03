@@ -133,7 +133,7 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
           <div className="flex items-center space-x-2">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Account Capital</p>
+              <p className="text-xs text-muted-foreground">Strategy Capital</p>
               <p className="text-sm font-medium">
                 ${(strategy.accountCapital || 10000).toLocaleString()}
               </p>

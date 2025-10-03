@@ -60,7 +60,8 @@ export function TestSignalGeneration() {
 
       if (error) throw error;
       return data || [];
-    }
+    },
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs/windows
   });
 
   const testSignalGeneration = async () => {

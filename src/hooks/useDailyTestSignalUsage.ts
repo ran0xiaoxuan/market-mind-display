@@ -14,7 +14,7 @@ export const useDailyTestSignalUsage = () => {
   } = useQuery({
     queryKey: ['daily-test-signal-usage'],
     queryFn: getDailyTestSignalUsage,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     staleTime: 30000, // 30 seconds
   });
 

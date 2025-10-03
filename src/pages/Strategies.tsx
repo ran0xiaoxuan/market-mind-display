@@ -41,7 +41,7 @@ const Strategies = () => {
     fetchStrategies();
   }, []);
 
-  // Auto-refresh strategies and optimistically remove deleted items
+  // Auto-refresh strategies when deleted (optimistically remove deleted items)
   useEffect(() => {
     const handleStrategyDeleted = (e: Event) => {
       const custom = e as CustomEvent<{ id?: string }>; 
@@ -56,17 +56,10 @@ const Strategies = () => {
       return () => clearTimeout(t);
     };
 
-    const handleFocus = () => fetchStrategies();
-    const handleVisibility = () => { if (!document.hidden) fetchStrategies(); };
-
     window.addEventListener('strategy-deleted', handleStrategyDeleted as EventListener);
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       window.removeEventListener('strategy-deleted', handleStrategyDeleted as EventListener);
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 

@@ -46,16 +46,10 @@ export function StrategyList() {
       fetchStrategies();
     };
 
-    // Event listeners for navigation and focus - useful when user navigates back to a page after strategy deletion
-    window.addEventListener('popstate', handleStrategyUpdate);
-    window.addEventListener('focus', handleStrategyUpdate);
-
     // Listen for custom event that might be dispatched when strategies are updated or deleted
     window.addEventListener('strategy-updated', handleStrategyUpdate);
     window.addEventListener('strategy-deleted', handleStrategyUpdate);
     return () => {
-      window.removeEventListener('popstate', handleStrategyUpdate);
-      window.removeEventListener('focus', handleStrategyUpdate);
       window.removeEventListener('strategy-updated', handleStrategyUpdate);
       window.removeEventListener('strategy-deleted', handleStrategyUpdate);
     };

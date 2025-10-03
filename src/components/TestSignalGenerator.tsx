@@ -26,7 +26,8 @@ export function TestSignalGenerator() {
   } = useQuery({
     queryKey: ['test-strategies'],
     queryFn: getTestStrategies,
-    retry: 1
+    retry: 1,
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs/windows
   });
 
   const handleGenerateSignal = async () => {

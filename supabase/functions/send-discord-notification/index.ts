@@ -35,9 +35,11 @@ serve(async (req) => {
     const targetAsset = signalData.targetAsset || 'Unknown';
     const timeframe = signalData.timeframe || 'Unknown';
     const price = signalData.currentPrice || signalData.price || 'N/A';
+    const quantity = signalData.quantity || null;
+    const amount = signalData.amount || null;
     const userTimezone = signalData.userTimezone || 'UTC';
 
-    console.log('Extracted data - Strategy:', strategyName, 'Asset:', targetAsset, 'Price:', price, 'Timezone:', userTimezone);
+    console.log('Extracted data - Strategy:', strategyName, 'Asset:', targetAsset, 'Price:', price, 'Quantity:', quantity, 'Amount:', amount, 'Timezone:', userTimezone);
 
     // Create user-friendly time in user's timezone
     const now = new Date();
@@ -74,6 +76,16 @@ serve(async (req) => {
             value: price !== 'N/A' ? `$${price}` : 'N/A',
             inline: true
           },
+          ...(quantity !== null ? [{
+            name: "Quantity",
+            value: `${quantity}`,
+            inline: true
+          }] : []),
+          ...(amount !== null ? [{
+            name: "Trade Amount",
+            value: `$${amount.toFixed(2)}`,
+            inline: true
+          }] : []),
           {
             name: "Timeframe",
             value: timeframe,

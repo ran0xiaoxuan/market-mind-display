@@ -133,7 +133,9 @@ const StrategyDetail = () => {
         dailySignalLimit: strategyData.daily_signal_limit, // Make sure this is included
         signalNotificationsEnabled: strategyData.signal_notifications_enabled,
         isRecommendedCopy: strategyData.is_recommended_copy,
-        sourceStrategyId: strategyData.source_strategy_id
+        sourceStrategyId: strategyData.source_strategy_id,
+        accountCapital: strategyData.account_capital,
+        riskTolerance: strategyData.risk_tolerance
       };
       
       setStrategy(transformedStrategy);
@@ -224,11 +226,14 @@ const StrategyDetail = () => {
             signal: signalData.reason || 'Trading Signal',
             price: `$${signalPrice.toFixed(2)}`,
             contracts: 1, // Set to 1 since volume is removed but still needed for interface compatibility
+            quantity: signalData.quantity,
+            amount: signalData.amount,
             profit: calculatedProfit !== null && calculatedProfit !== undefined ? `${calculatedProfit >= 0 ? '+' : ''}$${calculatedProfit.toFixed(2)}` : null,
             profitPercentage: calculatedProfitPercentage !== null && calculatedProfitPercentage !== undefined ? `${calculatedProfitPercentage >= 0 ? '+' : ''}${calculatedProfitPercentage.toFixed(2)}%` : null,
             strategyId: id,
             strategyName: transformedStrategy.name,
             targetAsset: transformedStrategy.targetAsset,
+            targetAssetName: transformedStrategy.targetAssetName,
             processed: signal.processed
           };
         });
@@ -434,8 +439,11 @@ const StrategyDetail = () => {
               updatedAt: strategy?.updatedAt,
               timeframe: strategy?.timeframe,
               targetAsset: strategy?.targetAsset,
+              targetAssetName: strategy?.targetAssetName,
               dailySignalLimit: strategy?.dailySignalLimit, // Pass the actual value from database
-              signalNotificationsEnabled: strategy?.signalNotificationsEnabled
+              signalNotificationsEnabled: strategy?.signalNotificationsEnabled,
+              accountCapital: strategy?.accountCapital,
+              riskTolerance: strategy?.riskTolerance
             }} 
           />
           

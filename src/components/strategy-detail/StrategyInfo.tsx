@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Clock, Target, Calendar, Crown } from "lucide-react";
+import { Clock, Target, Calendar, Crown, DollarSign, TrendingUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { NotificationToggle } from "./NotificationToggle";
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
@@ -19,8 +19,11 @@ interface StrategyInfoProps {
     updatedAt?: string;
     timeframe?: string;
     targetAsset?: string;
+    targetAssetName?: string;
     dailySignalLimit?: number;
     signalNotificationsEnabled?: boolean;
+    accountCapital?: number;
+    riskTolerance?: string;
   };
   hideProBanner?: boolean;
 }
@@ -111,7 +114,11 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
             <Target className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Asset</p>
-              <p className="text-sm font-medium">{strategy.targetAsset || "Not specified"}</p>
+              <p className="text-sm font-medium">
+                {strategy.targetAsset && strategy.targetAssetName 
+                  ? `${strategy.targetAsset} - ${strategy.targetAssetName}`
+                  : strategy.targetAsset || "Not specified"}
+              </p>
             </div>
           </div>
 
@@ -120,6 +127,31 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
             <div>
               <p className="text-xs text-muted-foreground">Timeframe</p>
               <p className="text-sm font-medium">{strategy.timeframe || "Not specified"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Account Capital</p>
+              <p className="text-sm font-medium">
+                ${(strategy.accountCapital || 10000).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Risk Tolerance</p>
+              <p className="text-sm font-medium capitalize">
+                {strategy.riskTolerance || 'moderate'}
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({strategy.riskTolerance === 'conservative' ? '5-10%' : 
+                    strategy.riskTolerance === 'aggressive' ? '15-25%' : 
+                    '10-15%'})
+                </span>
+              </p>
             </div>
           </div>
 

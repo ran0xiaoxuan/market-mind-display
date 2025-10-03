@@ -49,6 +49,8 @@ const ManualStrategy = () => {
   const [targetAssetName, setTargetAssetName] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [dailySignalLimit, setDailySignalLimit] = useState<number | null>(null);
+  const [accountCapital, setAccountCapital] = useState<number>(10000);
+  const [riskTolerance, setRiskTolerance] = useState<string>("moderate");
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -134,6 +136,12 @@ const ManualStrategy = () => {
     if (!targetAsset.trim()) errors.push("Target Asset is required");
     if (dailySignalLimit !== null && dailySignalLimit !== undefined && (dailySignalLimit < 1 || dailySignalLimit > 390)) {
       errors.push("Daily signal limit must be between 1 and 390");
+    }
+    if (!accountCapital || accountCapital < 100) {
+      errors.push("Account Capital must be at least $100");
+    }
+    if (!riskTolerance || !["conservative", "moderate", "aggressive"].includes(riskTolerance)) {
+      errors.push("Risk Tolerance must be selected");
     }
     return errors;
   };
@@ -259,6 +267,8 @@ const ManualStrategy = () => {
         target_asset_name: targetAssetName,
         is_active: isActive,
         daily_signal_limit: dailySignalLimit,
+        account_capital: accountCapital,
+        risk_tolerance: riskTolerance,
         user_id: user.id
       }).select().single();
       
@@ -565,6 +575,88 @@ const ManualStrategy = () => {
                     </CommandGroup>
                   </CommandList>
                 </CommandDialog>
+              </div>
+
+              {/* Account Capital */}
+              <div>
+                <Label htmlFor="account-capital">Account Capital ($)</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          id="account-capital"
+                          type="number"
+                          min="100"
+                          step="100"
+                          value={accountCapital}
+                          onChange={(e) => setAccountCapital(parseFloat(e.target.value) || 0)}
+                          className={`${(!accountCapital || accountCapital < 100) && showValidation ? 'border-red-500' : ''}`}
+                          placeholder="Enter account capital (minimum $100)"
+                        />
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-sm">
+                        Total capital allocated to this strategy. This determines position sizes for each trade signal based on your risk tolerance.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Minimum: $100. This amount will be used to calculate position sizes for trading signals.
+                </p>
+              </div>
+
+              {/* Risk Tolerance */}
+              <div>
+                <Label htmlFor="risk-tolerance">Risk Tolerance</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Select value={riskTolerance} onValueChange={setRiskTolerance}>
+                          <SelectTrigger 
+                            id="risk-tolerance" 
+                            className={`${(!riskTolerance || !["conservative", "moderate", "aggressive"].includes(riskTolerance)) && showValidation ? 'border-red-500' : ''}`}
+                          >
+                            <SelectValue placeholder="Select Risk Tolerance" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="conservative">
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Conservative</span>
+                                <span className="text-xs text-muted-foreground">Defensive - Smaller position sizes (5-10% per trade)</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="moderate">
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Moderate</span>
+                                <span className="text-xs text-muted-foreground">Balanced - Medium position sizes (10-15% per trade)</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="aggressive">
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Aggressive</span>
+                                <span className="text-xs text-muted-foreground">Offensive - Larger position sizes (15-25% per trade)</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-sm">
+                        Your risk preference affects position sizing for each trade. Conservative uses smaller positions, Aggressive uses larger positions.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select your investment style: Conservative (defensive), Moderate (balanced), or Aggressive (offensive)
+                </p>
               </div>
 
               {/* Daily Signal Limit Setting - PRO only */}

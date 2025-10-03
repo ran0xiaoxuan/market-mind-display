@@ -48,9 +48,11 @@ serve(async (req) => {
     const targetAsset = signalData.targetAsset || 'Unknown';
     const timeframe = signalData.timeframe || 'Unknown';
     const price = signalData.currentPrice || signalData.price || 'N/A';
+    const quantity = signalData.quantity || null;
+    const amount = signalData.amount || null;
     const userTimezone = signalData.userTimezone || 'UTC';
 
-    console.log('Extracted data - Strategy:', strategyName, 'Asset:', targetAsset, 'Price:', price, 'Timezone:', userTimezone);
+    console.log('Extracted data - Strategy:', strategyName, 'Asset:', targetAsset, 'Price:', price, 'Quantity:', quantity, 'Amount:', amount, 'Timezone:', userTimezone);
 
     // Create user-friendly time in user's timezone
     const now = new Date();
@@ -70,8 +72,17 @@ serve(async (req) => {
 📊 <b>Signal Type:</b> ${signalType.toUpperCase()}
 📈 <b>Strategy:</b> ${strategyName}
 💰 <b>Asset:</b> ${targetAsset}
-💵 <b>Price:</b> ${price !== 'N/A' ? `$${price}` : 'N/A'}
-⏰ <b>Timeframe:</b> ${timeframe}
+💵 <b>Price:</b> ${price !== 'N/A' ? `$${price}` : 'N/A'}`;
+
+    if (quantity !== null) {
+      telegramMessage += `\n📦 <b>Quantity:</b> ${quantity}`;
+    }
+
+    if (amount !== null) {
+      telegramMessage += `\n💸 <b>Trade Amount:</b> $${amount.toFixed(2)}`;
+    }
+
+    telegramMessage += `\n⏰ <b>Timeframe:</b> ${timeframe}
 🕐 <b>Time:</b> ${timeString}`;
 
     if (signalData.profitPercentage) {

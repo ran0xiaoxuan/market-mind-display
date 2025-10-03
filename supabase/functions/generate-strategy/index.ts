@@ -72,7 +72,7 @@ serve(async (req) => {
     }
 
     // Validate required fields
-    const { assetType, asset, description } = body;
+    const { assetType, asset, description, accountCapital = 10000 } = body;
     
     if (!assetType || !asset || !description) {
       console.error('Missing required fields:', { assetType, asset, description });
@@ -90,6 +90,7 @@ serve(async (req) => {
     }
 
     console.log(`Generating strategy for ${asset} (${assetType}): ${description}`);
+    console.log(`Account capital: $${accountCapital}`);
 
     // Create the system prompt for strategy generation
     const systemPrompt = `You are an expert trading strategy generator. Generate a comprehensive trading strategy based on the user's requirements.
@@ -107,6 +108,7 @@ EXAMPLE 1 - Simple Oscillator Strategy (shows correct OR group with 2 conditions
   "description": "Buy when RSI indicates oversold, sell when overbought",
   "timeframe": "1d",
   "targetAsset": "AAPL",
+  "riskTolerance": "moderate",
   "entryRules": [
     {
       "logic": "AND",
@@ -185,6 +187,7 @@ EXAMPLE 2 - Trend Following with New Indicators:
   "description": "Enter when strong trend confirmed by ADX and price above VWAP",
   "timeframe": "1h",
   "targetAsset": "TSLA",
+  "riskTolerance": "aggressive",
   "entryRules": [
     {
       "logic": "AND",
@@ -468,12 +471,28 @@ IMPORTANT NOTES:
 
     const userPrompt = `Create a trading strategy for ${asset} (${assetType}) based on this description: ${description}
 
+User's Investment Profile:
+- Account Capital: $${accountCapital}
+
+IMPORTANT - Risk Tolerance Analysis:
+You MUST analyze the user's description and determine their risk tolerance. Look for keywords and phrases:
+- CONSERVATIVE/DEFENSIVE indicators: "safe", "low risk", "stable", "defensive", "conservative", "protect capital", "avoid losses", "long-term"
+- AGGRESSIVE/OFFENSIVE indicators: "aggressive", "high risk", "quick profits", "momentum", "volatile", "short-term", "active trading"
+- MODERATE/BALANCED indicators: "balanced", "moderate", "steady growth", or no specific risk keywords mentioned
+
+Based on your analysis, respond with a JSON that MUST include a "riskTolerance" field at the root level with one of these exact values: "conservative", "moderate", or "aggressive"
+
+When designing this strategy, align it with the inferred risk tolerance:
+- For CONSERVATIVE strategies: Multiple confirmation signals, stable indicators (longer-period moving averages, ADX for trend confirmation), defensive approach
+- For MODERATE strategies: Balance between opportunity and safety, mix of trend and oscillator indicators
+- For AGGRESSIVE strategies: Volatile indicators, momentum-based entries, strategies that capture quick moves
+
 Requirements:
-- Generate realistic entry and exit conditions
+- Generate realistic entry and exit conditions that match the user's risk tolerance
 - Use appropriate technical indicators from the 25 supported indicators (Moving Averages, Oscillators, Trend, Volatility, Volume)
 - Include COMPLETE parameter specifications for each indicator as detailed in the specifications
 - Include clear explanations for each rule
-- Make the strategy suitable for the specified asset type and timeframe
+- Make the strategy suitable for the specified asset type, timeframe, and user's risk profile
 - Ensure the JSON is valid and follows the exact structure provided
 - REMEMBER: OR groups must contain at least 2 conditions - if you have only 1 condition, use AND logic instead
 - **CRITICAL OR GROUP LOGIC**: In OR groups, requiredConditions MUST be LESS THAN the total number of inequalities. If requiredConditions equals the number of inequalities, use AND group instead.

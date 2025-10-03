@@ -20,10 +20,13 @@ export interface DashboardTrade {
   signal: string;
   price: string;
   contracts: number;
+  quantity?: number;
+  amount?: number;
   profit: string | null;
   profitPercentage?: string | null;
   strategyName?: string;
   targetAsset?: string;
+  targetAssetName?: string;
   strategyId?: string;
 }
 
@@ -124,7 +127,7 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           signal_type,
           signal_data,
           strategy_id,
-          strategies!inner(name, target_asset, user_id)
+          strategies!inner(name, target_asset, target_asset_name, user_id)
         `)
         .eq('strategies.user_id', user.id)
         .order('created_at', { ascending: false })
@@ -206,6 +209,10 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           signalData: signalData
         });
         
+        // Extract quantity and amount from signal data
+        const quantity = signalData.quantity || null;
+        const amount = signalData.amount || null;
+        
         return {
           id: signal.id,
           date: signal.created_at,
@@ -213,6 +220,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
           signal: signalData.reason || signalData.message || 'Trading Signal',
           price: signalPrice > 0 ? `$${signalPrice.toFixed(2)}` : 'N/A',
           contracts: 1,
+          quantity: quantity,
+          amount: amount,
           profit: signalData.profit !== null && signalData.profit !== undefined 
             ? `${signalData.profit >= 0 ? '+' : ''}$${signalData.profit.toFixed(2)}` 
             : null,
@@ -221,7 +230,8 @@ export const useOptimizedDashboard = (timeRange: '7d' | '30d' | 'all' = '7d') =>
             : null,
           strategyId: signal.strategy_id,
           strategyName: strategy?.name || 'Unknown Strategy',
-          targetAsset: strategy?.target_asset || 'Unknown Asset'
+          targetAsset: strategy?.target_asset || 'Unknown Asset',
+          targetAssetName: strategy?.target_asset_name || null
         };
       });
 

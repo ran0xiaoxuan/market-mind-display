@@ -14,6 +14,8 @@ interface Strategy {
   user_id: string;
   daily_signal_limit?: number;
   is_active: boolean;
+  account_capital?: number;
+  risk_tolerance?: string;
   rule_groups: RuleGroup[];
 }
 
@@ -47,6 +49,45 @@ interface MarketData {
   low: number;
   close: number;
   volume: number;
+}
+
+// Position sizing calculator
+class PositionSizeCalculator {
+  static getRiskPercentageRange(riskTolerance: string): { min: number; max: number } {
+    switch (riskTolerance) {
+      case 'conservative':
+        return { min: 0.05, max: 0.10 }; // 5-10%
+      case 'moderate':
+        return { min: 0.10, max: 0.15 }; // 10-15%
+      case 'aggressive':
+        return { min: 0.15, max: 0.25 }; // 15-25%
+      default:
+        return { min: 0.10, max: 0.15 }; // Default to moderate
+    }
+  }
+
+  static calculatePositionSize(accountCapital: number, riskTolerance: string, assetPrice: number): {
+    quantity: number;
+    amount: number;
+    positionPercentage: number;
+  } {
+    if (accountCapital <= 0 || assetPrice <= 0) {
+      return { quantity: 0, amount: 0, positionPercentage: 0 };
+    }
+
+    const { min, max } = this.getRiskPercentageRange(riskTolerance);
+    const positionPercentage = (min + max) / 2;
+    const positionValue = accountCapital * positionPercentage;
+    const quantity = Math.floor(positionValue / assetPrice);
+    const actualAmount = quantity * assetPrice;
+    const actualPercentage = (actualAmount / accountCapital) * 100;
+
+    return {
+      quantity,
+      amount: actualAmount,
+      positionPercentage: actualPercentage
+    };
+  }
 }
 
 // Price source calculation helper
@@ -1032,6 +1073,16 @@ Deno.serve(async (req) => {
                   const signalType = evaluation.entrySignal ? 'entry' : 'exit';
                   const currentRealTime = new Date().toISOString();
                   
+                  // Calculate position size based on strategy parameters
+                  const accountCapital = strategy.account_capital || 10000;
+                  const riskTolerance = strategy.risk_tolerance || 'moderate';
+                  const currentPrice = marketData[0].close;
+                  const positionSize = PositionSizeCalculator.calculatePositionSize(
+                    accountCapital,
+                    riskTolerance,
+                    currentPrice
+                  );
+                  
                   const signalData = {
                     strategy_id: strategy.id,
                     strategy_name: strategy.name,
@@ -1039,7 +1090,12 @@ Deno.serve(async (req) => {
                     timeframe: strategy.timeframe,
                     signal_type: signalType,
                     timestamp: currentRealTime,
-                    current_price: marketData[0].close,
+                    current_price: currentPrice,
+                    quantity: positionSize.quantity,
+                    amount: positionSize.amount,
+                    position_percentage: positionSize.positionPercentage,
+                    account_capital: accountCapital,
+                    risk_tolerance: riskTolerance,
                     data_timestamp: currentRealTime,
                     processing_mode: 'parallel_optimized',
                     asset_processing_start: assetStartTime,
@@ -1163,6 +1219,16 @@ Deno.serve(async (req) => {
             // Use CURRENT REAL-TIME timestamp for data_timestamp
             const currentRealTime = new Date().toISOString();
             
+            // Calculate position size based on strategy parameters
+            const accountCapital = strategy.account_capital || 10000;
+            const riskTolerance = strategy.risk_tolerance || 'moderate';
+            const currentPrice = marketData[0].close;
+            const positionSize = PositionSizeCalculator.calculatePositionSize(
+              accountCapital,
+              riskTolerance,
+              currentPrice
+            );
+            
             const signalData = {
               strategy_id: strategy.id,
               strategy_name: strategy.name,
@@ -1170,7 +1236,12 @@ Deno.serve(async (req) => {
               timeframe: strategy.timeframe,
               signal_type: signalType,
               timestamp: currentRealTime,
-              current_price: marketData[0].close,
+              current_price: currentPrice,
+              quantity: positionSize.quantity,
+              amount: positionSize.amount,
+              position_percentage: positionSize.positionPercentage,
+              account_capital: accountCapital,
+              risk_tolerance: riskTolerance,
               data_timestamp: currentRealTime // This is now the REAL-TIME when all calculations were performed
             };
 

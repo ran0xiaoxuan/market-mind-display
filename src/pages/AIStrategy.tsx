@@ -1,12 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card } from "@/components/ui/card";
 import { AssetTypeSelector } from "@/components/strategy/AssetTypeSelector";
 import { StrategyDescription } from "@/components/strategy/StrategyDescription";
 import { useNavigate } from "react-router-dom";
 import { generateStrategy, GeneratedStrategy, checkAIServiceHealth, ServiceError } from "@/services/strategyService";
 import { toast } from "sonner";
-import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw, Wifi, WifiOff, Activity } from "lucide-react";
+import { Loader2, AlertCircle, ExternalLink, CheckCircle, RefreshCcw, Wifi, WifiOff, Activity, Info } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Navbar } from "@/components/Navbar";
@@ -23,6 +27,7 @@ const AIStrategy = () => {
   const { data: strategies = [], isLoading: strategiesLoading } = useOptimizedStrategies();
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [strategyDescription, setStrategyDescription] = useState<string>("");
+  const [accountCapital, setAccountCapital] = useState<number>(10000);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<ServiceError | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
@@ -183,9 +188,16 @@ const AIStrategy = () => {
         `Generating strategy for ${selectedAsset}`
       );
       
-      const strategy = await generateStrategy('stocks', selectedAsset, strategyDescription);
+      // AI will infer risk tolerance from the strategy description
+      // If not mentioned, it defaults to 'moderate'
+      const strategy = await generateStrategy('stocks', selectedAsset, strategyDescription, accountCapital);
+      
+      // Ensure accountCapital is included in the strategy object
+      // (AI returns riskTolerance, we add accountCapital from user input)
+      strategy.accountCapital = accountCapital;
       
       console.log('Strategy generated successfully:', strategy.name);
+      console.log('Account capital:', strategy.accountCapital, 'Risk tolerance:', strategy.riskTolerance);
       setRetryCount(0);
       setError(null);
 
@@ -303,6 +315,41 @@ const AIStrategy = () => {
         )}
 
         <AssetTypeSelector selectedAsset={selectedAsset} onAssetSelect={handleAssetSelect} />
+
+        {/* Strategy Capital */}
+        <Card className="p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4">Strategy Capital</h3>
+          <div>
+            <Label htmlFor="ai-account-capital">Investment Amount ($)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      id="ai-account-capital"
+                      type="number"
+                      min="100"
+                      step="100"
+                      value={accountCapital}
+                      onChange={(e) => setAccountCapital(parseFloat(e.target.value) || 0)}
+                      placeholder="Enter account capital (minimum $100)"
+                    />
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-sm">
+                    Total capital allocated to this strategy. Position sizes will be calculated based on your risk preference mentioned in the strategy description.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <p className="text-xs text-muted-foreground mt-1">
+              Minimum: $100. Position sizes will be automatically calculated based on your strategy's risk level.
+            </p>
+          </div>
+        </Card>
+
         <StrategyDescription description={strategyDescription} onDescriptionChange={handleStrategyDescriptionChange} />
 
         {error && (

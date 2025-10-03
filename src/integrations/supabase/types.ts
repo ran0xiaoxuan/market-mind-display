@@ -285,6 +285,7 @@ export type Database = {
       }
       strategies: {
         Row: {
+          account_capital: number | null
           can_be_deleted: boolean
           created_at: string
           daily_signal_limit: number | null
@@ -293,6 +294,7 @@ export type Database = {
           is_active: boolean
           is_recommended_copy: boolean
           name: string
+          risk_tolerance: string | null
           signal_notifications_enabled: boolean | null
           source_strategy_id: string | null
           target_asset: string | null
@@ -302,6 +304,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_capital?: number | null
           can_be_deleted?: boolean
           created_at?: string
           daily_signal_limit?: number | null
@@ -310,6 +313,7 @@ export type Database = {
           is_active?: boolean
           is_recommended_copy?: boolean
           name: string
+          risk_tolerance?: string | null
           signal_notifications_enabled?: boolean | null
           source_strategy_id?: string | null
           target_asset?: string | null
@@ -319,6 +323,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_capital?: number | null
           can_be_deleted?: boolean
           created_at?: string
           daily_signal_limit?: number | null
@@ -327,6 +332,7 @@ export type Database = {
           is_active?: boolean
           is_recommended_copy?: boolean
           name?: string
+          risk_tolerance?: string | null
           signal_notifications_enabled?: boolean | null
           source_strategy_id?: string | null
           target_asset?: string | null

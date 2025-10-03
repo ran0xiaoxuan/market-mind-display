@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { sendChatCompletion, createSystemMessage, createUserMessage, extractAssistantMessage } from "./moonshotService";
+import { searchStocks } from "./assetApiService";
 
 // Type definitions for Supabase tables
 export interface Strategy {
@@ -10,6 +11,8 @@ export interface Strategy {
   targetAsset: string | null;
   targetAssetName?: string | null;
   dailySignalLimit?: number | null;
+  accountCapital?: number | null;
+  riskTolerance?: string | null;
   isActive: boolean;
   userId: string;
   createdAt: string;
@@ -58,6 +61,8 @@ export interface GeneratedStrategy {
   description: string;
   timeframe: string;
   targetAsset?: string;
+  accountCapital?: number;
+  riskTolerance?: string;
   entryRules: GeneratedRuleGroup[];
   exitRules: GeneratedRuleGroup[];
 }
@@ -246,7 +251,8 @@ export const deleteStrategy = async (id: string): Promise<void> => {
 export const generateStrategy = async (
   assetType: string,
   asset: string,
-  description: string
+  description: string,
+  accountCapital?: number
 ): Promise<GeneratedStrategy> => {
   try {
     console.log('=== Strategy generation started ===');
@@ -258,7 +264,8 @@ export const generateStrategy = async (
         body: {
           assetType,
           asset,
-          description
+          description,
+          accountCapital: accountCapital || 10000
         }
       });
 
@@ -446,6 +453,24 @@ export const saveGeneratedStrategy = async (
   try {
     console.log('Saving generated strategy:', strategy.name);
 
+    // Try to get the asset name if we have a target asset
+    let targetAssetName: string | null = null;
+    if (strategy.targetAsset) {
+      try {
+        const searchResults = await searchStocks(strategy.targetAsset);
+        const matchedAsset = searchResults.find(
+          asset => asset.symbol.toLowerCase() === strategy.targetAsset?.toLowerCase()
+        );
+        if (matchedAsset) {
+          targetAssetName = matchedAsset.name;
+          console.log(`Found asset name for ${strategy.targetAsset}: ${targetAssetName}`);
+        }
+      } catch (error) {
+        console.warn('Could not fetch asset name:', error);
+        // Continue without the name - it's not critical
+      }
+    }
+
     // Create the strategy record
     const { data: strategyData, error: strategyError } = await supabase
       .from('strategies')
@@ -454,6 +479,9 @@ export const saveGeneratedStrategy = async (
         description: strategy.description,
         timeframe: strategy.timeframe,
         target_asset: strategy.targetAsset,
+        target_asset_name: targetAssetName,
+        account_capital: strategy.accountCapital || 10000,
+        risk_tolerance: strategy.riskTolerance || 'moderate',
         user_id: userId,
         is_active: true
       })

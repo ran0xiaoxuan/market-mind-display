@@ -14,10 +14,13 @@ interface Trade {
   signal: string;
   price: string;
   contracts: number;
+  quantity?: number; // Number of shares/units
+  amount?: number; // Total trade amount in dollars
   profit: string | null;
   profitPercentage?: string | null;
   strategyName?: string;
   targetAsset?: string;
+  targetAssetName?: string;
   strategyId?: string;
 }
 
@@ -80,6 +83,8 @@ export const TradeHistoryTable = ({
             <TableHead className="whitespace-nowrap font-medium">Type</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Time</TableHead>
             <TableHead className="whitespace-nowrap font-medium">Price</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Quantity</TableHead>
+            <TableHead className="whitespace-nowrap font-medium">Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -101,9 +106,9 @@ export const TradeHistoryTable = ({
                             {trade.targetAsset || "—"}
                           </div>
                         </TooltipTrigger>
-                        {trade.targetAsset && (
+                        {(trade.targetAssetName || trade.targetAsset) && (
                           <TooltipContent side="top" className="max-w-xs">
-                            <p>{trade.targetAsset}</p>
+                            <p>{trade.targetAssetName || trade.targetAsset}</p>
                           </TooltipContent>
                         )}
                       </Tooltip>
@@ -125,12 +130,26 @@ export const TradeHistoryTable = ({
                   <TableCell>
                     {trade.price}
                   </TableCell>
+                  <TableCell>
+                    {trade.quantity !== undefined && trade.quantity !== null ? (
+                      <span className="font-medium">{trade.quantity}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {trade.amount !== undefined && trade.amount !== null ? (
+                      <span className="font-medium">${trade.amount.toFixed(2)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                 </TableRow>
               );
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No trade history available
               </TableCell>
             </TableRow>

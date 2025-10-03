@@ -124,6 +124,21 @@ const StrategyPreview = () => {
                   <p className="text-sm text-muted-foreground">Target Asset</p>
                   <p className="font-medium">{generatedStrategy.targetAsset || "Not specified"}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Account Capital</p>
+                  <p className="font-medium">${(generatedStrategy.accountCapital || 10000).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Risk Tolerance</p>
+                  <p className="font-medium capitalize">
+                    {generatedStrategy.riskTolerance || 'moderate'}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({generatedStrategy.riskTolerance === 'conservative' ? '5-10% per trade' : 
+                        generatedStrategy.riskTolerance === 'aggressive' ? '15-25% per trade' : 
+                        '10-15% per trade'})
+                    </span>
+                  </p>
+                </div>
               </div>
             </Card>
           </div>

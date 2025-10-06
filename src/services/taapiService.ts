@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { IndicatorParameters } from "@/types/backtest";
+import { buildSafeUrl, sanitizeForLog } from "./apiWrapper";
 
 // Define TAAPI indicator parameters interface
 export interface TaapiIndicatorParams {
@@ -176,28 +177,25 @@ export const getIndicatorData = async (
         return null;
       }
       
+      // SECURITY: Build URL safely with automatic encoding
       const baseUrl = "https://api.taapi.io";
-      const url = new URL(`/${indicator}`, baseUrl);
+      const urlParams: Record<string, any> = {
+        secret: apiKey,
+        ...params
+      };
       
-      // Add API key
-      url.searchParams.append("secret", apiKey);
+      const url = buildSafeUrl(`${baseUrl}/${indicator}`, urlParams);
       
-      // Add all parameters
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, value.toString());
-        }
-      });
+      // SECURITY: Log without exposing API key
+      console.log(`[TaapiService] Making request to TAAPI for ${indicator} with params:`, sanitizeForLog({ indicator, params }));
       
-      console.log(`[TaapiService] Making request to TAAPI for ${indicator} with params:`, params);
-      
-      const response = await fetch(url.toString());
+      const response = await fetch(url);
       
       if (response.status === 429) {
         console.error("[TaapiService] Rate limit exceeded (429). Waiting before retry...");
         // Wait longer and retry once
         await new Promise(resolve => setTimeout(resolve, 5000));
-        const retryResponse = await fetch(url.toString());
+        const retryResponse = await fetch(url);
         
         if (!retryResponse.ok) {
           const errorText = await retryResponse.text();

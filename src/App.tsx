@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { RecoveryGuard } from "@/components/RecoveryGuard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
@@ -43,10 +44,11 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RecoveryGuard />
-        <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RecoveryGuard />
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -101,10 +103,11 @@ function App() {
           <Route path="/p/strategies/:id" element={<PublicStrategy />} />
 
           <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+          </Routes>
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

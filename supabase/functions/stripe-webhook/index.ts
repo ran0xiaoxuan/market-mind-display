@@ -88,7 +88,40 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
-    console.error('Webhook handler error:', e);
-    return new Response('Server Error', { status: 500, headers: corsHeaders });
+    const errorDetails = {
+      error: e?.message || 'Unknown error',
+      stack: e?.stack || '',
+      event_type: event?.type || 'unknown',
+      event_id: event?.id || 'unknown',
+      timestamp: new Date().toISOString()
+    };
+    
+    console.error('[Stripe Webhook] Processing failed:', errorDetails);
+    
+    // Log error to database for monitoring
+    try {
+      await supabaseAdmin?.from('webhook_errors')?.insert({
+        webhook_type: 'stripe',
+        event_id: event?.id,
+        event_type: event?.type,
+        error_message: e?.message,
+        error_stack: e?.stack,
+        created_at: new Date().toISOString()
+      });
+    } catch (logError) {
+      console.error('[Stripe Webhook] Failed to log error:', logError);
+    }
+    
+    // Return appropriate error response
+    return new Response(
+      JSON.stringify({ 
+        error: 'Webhook processing failed',
+        message: import.meta.env?.DEV ? e?.message : 'Internal server error'
+      }), 
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 }); 

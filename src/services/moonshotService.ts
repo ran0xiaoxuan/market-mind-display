@@ -35,7 +35,8 @@ export const sendChatCompletion = async (
   request: ChatCompletionRequest
 ): Promise<ChatCompletionResponse> => {
   try {
-    console.log('Sending chat completion request:', request);
+    // SECURITY: Log without sensitive user data
+    console.log('Sending chat completion request with model:', request.model || 'moonshot-v1-8k');
     
     const { data, error } = await supabase.functions.invoke("moonshot-chat", {
       body: {
@@ -67,7 +68,7 @@ export const sendChatCompletion = async (
       throw new Error('No response received from AI service');
     }
 
-    console.log('Chat completion response received:', data);
+    console.log('Chat completion response received successfully');
     return data;
   } catch (error) {
     console.error("Error in sendChatCompletion:", error);

@@ -15,9 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    console.log('=== Strategy Generation Function Started ===');
-    console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('[generate-strategy] Function started');
+    console.log('[generate-strategy] Request method:', req.method);
+    // SECURITY: Don't log request headers which may contain authorization tokens
 
     // Validate API key first
     if (!OPENAI_API_KEY) {
@@ -35,13 +35,14 @@ serve(async (req) => {
       );
     }
 
-    console.log('OpenAI API key is configured');
+    console.log('[generate-strategy] OpenAI API key is configured');
 
     // Parse request body
     let body;
     try {
       body = await req.json();
-      console.log('Request body:', body);
+      // SECURITY: Don't log full request body which may contain user data
+      console.log('[generate-strategy] Request received with description length:', body?.description?.length || 0);
     } catch (error) {
       console.error('Error parsing request body:', error);
       return new Response(
@@ -508,7 +509,7 @@ Requirements:
 - INDICATOR SELECTION: Choose indicators that make sense together (e.g., trend + momentum + volume confirmation)
 - STRATEGY COHERENCE: For trend-following strategies, use ADX, SuperTrend, or moving averages; for mean reversion, use oscillators like RSI, Stochastic, or Williams %R`;
 
-    console.log('Sending request to OpenAI...');
+    console.log('[generate-strategy] Sending request to OpenAI...');
 
     // Make request to OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -528,8 +529,8 @@ Requirements:
       }),
     });
 
-    console.log('OpenAI response status:', openAIResponse.status);
-    console.log('OpenAI response headers:', Object.fromEntries(openAIResponse.headers.entries()));
+    console.log('[generate-strategy] OpenAI response status:', openAIResponse.status);
+    // SECURITY: Don't log headers which may contain sensitive information
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
@@ -567,7 +568,7 @@ Requirements:
     }
 
     const openAIData = await openAIResponse.json();
-    console.log('OpenAI response received:', openAIData);
+    console.log('[generate-strategy] OpenAI response received successfully');
 
     if (!openAIData.choices || !openAIData.choices[0] || !openAIData.choices[0].message) {
       console.error('Invalid OpenAI response structure:', openAIData);

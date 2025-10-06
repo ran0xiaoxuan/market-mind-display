@@ -50,7 +50,7 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
       }
 
       try {
-        console.log('Fetching Turnstile site key...');
+        console.log('[Turnstile] Fetching site key...');
         
         const { data, error } = await supabase.functions.invoke('get-turnstile-key', {
           body: JSON.stringify({ 
@@ -64,13 +64,14 @@ export function Turnstile({ onVerify, onError, onExpire, className }: TurnstileP
         }
 
         if (data?.siteKey && isMounted) {
+          console.log('[Turnstile] Site key received successfully');
           setSiteKey(data.siteKey);
           setHasError(false);
         } else {
           throw new Error('No site key received');
         }
       } catch (error: any) {
-        console.error('Site key fetch error:', error);
+        console.error('[Turnstile] Site key fetch error:', error);
         if (isMounted) {
           setHasError(true);
           if (onError) onError();

@@ -41,6 +41,63 @@ export const validateAndSanitizeInput = (input: string, maxLength: number = 1000
   return sanitizeHtml(input.trim());
 };
 
+// Enhanced strategy name validation
+export const validateStrategyName = (name: string): { isValid: boolean; error?: string } => {
+  if (!name || typeof name !== 'string') {
+    return { isValid: false, error: 'Strategy name is required' };
+  }
+  
+  const trimmedName = name.trim();
+  
+  if (trimmedName.length === 0) {
+    return { isValid: false, error: 'Strategy name cannot be empty' };
+  }
+  
+  if (trimmedName.length > 100) {
+    return { isValid: false, error: 'Strategy name must be less than 100 characters' };
+  }
+  
+  // Only allow alphanumeric, spaces, hyphens, and underscores
+  if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedName)) {
+    return { isValid: false, error: 'Strategy name contains invalid characters. Only letters, numbers, spaces, hyphens, and underscores are allowed' };
+  }
+  
+  return { isValid: true };
+};
+
+// Enhanced description validation
+export const validateDescription = (description: string, maxLength: number = 1000): { isValid: boolean; error?: string } => {
+  if (!description || typeof description !== 'string') {
+    return { isValid: false, error: 'Description is required' };
+  }
+  
+  const trimmedDesc = description.trim();
+  
+  if (trimmedDesc.length === 0) {
+    return { isValid: false, error: 'Description cannot be empty' };
+  }
+  
+  if (trimmedDesc.length > maxLength) {
+    return { isValid: false, error: `Description must be less than ${maxLength} characters` };
+  }
+  
+  // Check for potentially dangerous patterns
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /onerror=/i,
+    /onclick=/i,
+  ];
+  
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(trimmedDesc)) {
+      return { isValid: false, error: 'Description contains potentially unsafe content' };
+    }
+  }
+  
+  return { isValid: true };
+};
+
 // Rate limiting utility
 export class RateLimiter {
   private attempts: Map<string, { count: number; lastAttempt: number }> = new Map();

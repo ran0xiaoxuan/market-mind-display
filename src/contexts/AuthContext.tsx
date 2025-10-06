@@ -176,27 +176,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const verifyTurnstile = async (token: string): Promise<boolean> => {
-    // Security: Check if we're in development environment
-    const isDevelopment = window.location.hostname.includes('lovableproject.com') || 
-                          window.location.hostname.includes('localhost');
-    
-    if (isDevelopment && token.startsWith('dev-')) {
-      return true;
-    }
-    
+    // SECURITY: 所有验证都通过服务端进行，包括开发环境
+    // 服务端会根据环境自动处理bypass逻辑
     try {
       const { data, error } = await supabase.functions.invoke('verify-turnstile', {
         body: { token }
       });
       
       if (error) {
-        console.error('Turnstile verification error:', error);
+        console.error('[Turnstile] Verification error:', error.message);
         return false;
       }
       
-      return data?.success === true;
+      if (!data?.success) {
+        console.warn('[Turnstile] Verification failed');
+        return false;
+      }
+      
+      console.log('[Turnstile] Verification successful');
+      return true;
     } catch (error) {
-      console.error('Turnstile verification failed:', error);
+      console.error('[Turnstile] Verification exception:', error);
       return false;
     }
   };

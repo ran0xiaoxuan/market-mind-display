@@ -103,8 +103,7 @@ git push -u origin main
   - Build command: `npm run build`
   - Publish directory: `dist`
 - 环境变量（在 Netlify → Site settings → Environment variables 设置）：
-  - `VITE_SUPABASE_URL`（可选，若不使用硬编码 URL）
-  - `VITE_SUPABASE_ANON_KEY`（可选，若不使用硬编码 Key）
+  - Supabase URL 和 ANON_KEY 已在代码中配置，无需额外设置
   - 其他前端用到的 `VITE_*` 变量（如果你迁移为环境注入）
 - 连接完成后点击 “Deploy site”。
 
@@ -127,8 +126,7 @@ git push -u origin main
 在项目根目录创建 `.env.local`（不会提交到 git）：
 
 ```
-VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<your-anon-key>
+# Supabase配置已在代码中设置，无需在.env文件中配置
 # 指向本地 functions serve（详见下文第 2 步）
 VITE_SUPABASE_FUNCTIONS_URL=http://localhost:54321/functions/v1
 ```

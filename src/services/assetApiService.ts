@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { buildSafeUrl, sanitizeForLog, sanitizeInput } from "./apiWrapper";
 
 export interface Asset {
   symbol: string;
@@ -150,23 +151,22 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
       throw new Error("Unable to access market data: API key not available");
     }
     
-    // If no query, return empty array
-    if (!query.trim()) {
+    // SECURITY: Sanitize and validate user input
+    const sanitizedQuery = sanitizeInput(query, 50);
+    if (!sanitizedQuery.trim()) {
       return [];
     }
 
     // Heuristic: detect if user likely typed a symbol (letters/numbers, no spaces, short)
     const isLikelySymbol = (q: string) => /^[A-Za-z0-9\.\-]{1,7}$/.test(q.trim());
 
-    // Build stable endpoints (symbol + name)
-    // Examples: 
-    //  - https://financialmodelingprep.com/stable/search-symbol?query=SPY&apikey=...
-    //  - https://financialmodelingprep.com/stable/search-name?query=AA&apikey=...
+    // SECURITY: Build URLs using safe method with automatic encoding
     const base = 'https://financialmodelingprep.com/stable';
-    const symbolUrl = `${base}/search-symbol?query=${encodeURIComponent(query)}&apikey=${apiKey}`;
-    const nameUrl = `${base}/search-name?query=${encodeURIComponent(query)}&apikey=${apiKey}`;
+    const symbolUrl = buildSafeUrl(`${base}/search-symbol`, { query: sanitizedQuery, apikey: apiKey });
+    const nameUrl = buildSafeUrl(`${base}/search-name`, { query: sanitizedQuery, apikey: apiKey });
 
-    console.log(`[AssetAPI] Searching FMP stable endpoints for: ${query}`);
+    // SECURITY: Log without exposing API key
+    console.log(`[AssetAPI] Searching FMP for:`, sanitizeForLog(symbolUrl));
 
     // Helper to fetch with timeout
     const fetchJson = async (url: string, timeoutMs = 12000): Promise<any[]> => {
@@ -195,8 +195,8 @@ export const searchStocks = async (query: string, apiKey?: string | null): Promi
     };
 
     // Decide priority
-    const firstUrl = isLikelySymbol(query) ? symbolUrl : nameUrl;
-    const secondUrl = isLikelySymbol(query) ? nameUrl : symbolUrl;
+    const firstUrl = isLikelySymbol(sanitizedQuery) ? symbolUrl : nameUrl;
+    const secondUrl = isLikelySymbol(sanitizedQuery) ? nameUrl : symbolUrl;
 
     // Fetch in parallel but with known priority (both go out at once)
     const [primaryRes, secondaryRes] = await Promise.allSettled([

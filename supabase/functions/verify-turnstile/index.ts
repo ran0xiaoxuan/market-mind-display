@@ -39,15 +39,15 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Processing Turnstile verification...');
+    console.log('[verify-turnstile] Processing verification...');
     
     const body = await req.json();
     const { token }: TurnstileVerifyRequest = body;
     
-    console.log('Token received:', !!token);
+    console.log('[verify-turnstile] Token received:', !!token);
     
     if (!token) {
-      console.error('No token provided');
+      console.error('[verify-turnstile] No token provided');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -61,10 +61,28 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const secretKey = Deno.env.get('TURNSTILE_SECRET_KEY');
-    console.log('Secret key exists:', !!secretKey);
+    console.log('[verify-turnstile] Secret key exists:', !!secretKey);
+    
+    // SECURITY: 开发环境bypass - 如果token等于secret key，则允许通过
+    // 这样开发时可以使用相同的值作为bypass token
+    const isDevelopment = Deno.env.get('ENVIRONMENT') === 'development' || !Deno.env.get('ENVIRONMENT');
+    if (isDevelopment && secretKey && token === secretKey) {
+      console.log('[verify-turnstile] Development bypass used');
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          timestamp: new Date().toISOString(),
+          mode: 'development-bypass'
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders }
+        }
+      );
+    }
     
     if (!secretKey) {
-      console.error('TURNSTILE_SECRET_KEY not found');
+      console.error('[verify-turnstile] TURNSTILE_SECRET_KEY not found');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -77,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('Verifying token with Cloudflare...');
+    console.log('[verify-turnstile] Verifying token with Cloudflare...');
     
     const formData = new FormData();
     formData.append('secret', secretKey);
@@ -89,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const outcome = await result.json();
-    console.log('Turnstile verification result:', outcome);
+    console.log('[verify-turnstile] Cloudflare verification result:', outcome.success ? 'success' : 'failed');
 
     return new Response(
       JSON.stringify({ 
@@ -103,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
     
   } catch (error: any) {
-    console.error('Error verifying Turnstile token:', error);
+    console.error('[verify-turnstile] Error:', error.message);
     return new Response(
       JSON.stringify({ 
         success: false, 

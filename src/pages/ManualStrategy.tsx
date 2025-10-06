@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 import { useEffect } from "react";
 import { useOptimizedStrategies } from "@/hooks/useOptimizedStrategies";
+import { validateStrategyName, validateDescription } from "@/services/securityService";
 
 // Define standard timeframe options
 // Note: 1m, Weekly, and Monthly are not supported for backtesting
@@ -276,145 +277,155 @@ const ManualStrategy = () => {
       }
       console.log('New strategy created successfully:', strategy);
 
-      // Create new entry rule groups and rules
+      // PERFORMANCE FIX: Batch insert rule groups and rules to avoid N+1 queries
       console.log('Creating entry rules:', entryRules);
-      for (let groupIndex = 0; groupIndex < entryRules.length; groupIndex++) {
-        const group = entryRules[groupIndex];
-        console.log(`Processing entry group ${groupIndex + 1}:`, group);
-
-        // Skip groups with no inequalities
-        if (!group.inequalities || group.inequalities.length === 0) {
-          console.log(`Skipping entry group ${groupIndex + 1} - no inequalities`);
-          continue;
-        }
-
-        // Insert the rule group
-        const {
-          data: entryGroup,
-          error: entryGroupError
-        } = await supabase.from('rule_groups').insert({
+      
+      // Step 1: Prepare all entry rule groups for batch insert
+      const entryRuleGroupsData = entryRules
+        .filter(group => group.inequalities && group.inequalities.length > 0)
+        .map((group, groupIndex) => ({
           strategy_id: strategy.id,
           rule_type: 'entry',
           group_order: groupIndex + 1,
           logic: group.logic || 'AND',
           required_conditions: group.logic === 'OR' ? group.requiredConditions : null
-        }).select().single();
-        
-        if (entryGroupError) {
-          console.error('Error creating entry rule group:', entryGroupError);
-          throw new Error(`Error creating entry rule group: ${entryGroupError.message}`);
-        }
-        console.log('Created entry rule group:', entryGroup);
+        }));
 
-        // Add each inequality as a trading rule
-        for (let i = 0; i < group.inequalities.length; i++) {
-          const inequality = group.inequalities[i];
-          console.log(`Processing entry inequality ${i + 1}:`, inequality);
+      if (entryRuleGroupsData.length === 0) {
+        console.log('No entry rule groups to create');
+      } else {
+        // Batch insert all entry rule groups
+        const { data: entryRuleGroups, error: entryGroupsError } = await supabase
+          .from('rule_groups')
+          .insert(entryRuleGroupsData)
+          .select();
+
+        if (entryGroupsError) {
+          console.error('Error creating entry rule groups:', entryGroupsError);
+          throw new Error(`Error creating entry rule groups: ${entryGroupsError.message}`);
+        }
+
+        console.log(`Created ${entryRuleGroups.length} entry rule groups`);
+
+        // Step 2: Prepare all trading rules for batch insert
+        const allEntryTradingRules: any[] = [];
+        
+        entryRules.forEach((group, groupIndex) => {
+          if (!group.inequalities || group.inequalities.length === 0) return;
           
-          const tradingRuleData = {
-            rule_group_id: entryGroup.id,
-            inequality_order: i + 1,
-            left_type: inequality.left?.type || '',
-            left_indicator: inequality.left?.type === 'INDICATOR' ? (inequality.left?.indicator || null) : null,
-            left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
-              JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
-            left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
-              inequality.left?.value : null,
-            left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
-            condition: inequality.condition || '',
-            right_type: inequality.right?.type || '',
-            right_indicator: inequality.right?.type === 'INDICATOR' ? (inequality.right?.indicator || null) : null,
-            right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
-              JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
-            right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
-              inequality.right?.value : null,
-            right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
-            explanation: inequality.explanation || null
-          };
-          
-          console.log('Inserting trading rule data:', JSON.stringify(tradingRuleData, null, 2));
-          
-          const {
-            error: ruleError
-          } = await supabase.from('trading_rules').insert(tradingRuleData);
-          
-          if (ruleError) {
-            console.error('Error saving entry rule:', ruleError);
-            console.error('Failed rule data:', tradingRuleData);
-            throw new Error(`Error saving entry rule: ${ruleError.message}`);
+          const ruleGroup = entryRuleGroups[groupIndex];
+          if (!ruleGroup) return;
+
+          group.inequalities.forEach((inequality, i) => {
+            allEntryTradingRules.push({
+              rule_group_id: ruleGroup.id,
+              inequality_order: i + 1,
+              left_type: inequality.left?.type || '',
+              left_indicator: inequality.left?.type === 'INDICATOR' ? (inequality.left?.indicator || null) : null,
+              left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
+                JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
+              left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
+                inequality.left?.value : null,
+              left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
+              condition: inequality.condition || '',
+              right_type: inequality.right?.type || '',
+              right_indicator: inequality.right?.type === 'INDICATOR' ? (inequality.right?.indicator || null) : null,
+              right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
+                JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
+              right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
+                inequality.right?.value : null,
+              right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
+              explanation: inequality.explanation || null
+            });
+          });
+        });
+
+        // Batch insert all entry trading rules
+        if (allEntryTradingRules.length > 0) {
+          const { error: entryRulesError } = await supabase
+            .from('trading_rules')
+            .insert(allEntryTradingRules);
+
+          if (entryRulesError) {
+            console.error('Error creating entry trading rules:', entryRulesError);
+            throw new Error(`Error creating entry trading rules: ${entryRulesError.message}`);
           }
-          console.log(`Entry rule ${i + 1} saved successfully`);
+
+          console.log(`Created ${allEntryTradingRules.length} entry trading rules in batch`);
         }
       }
 
-      // Create new exit rule groups and rules
+      // PERFORMANCE FIX: Batch insert exit rule groups and rules
       console.log('Creating exit rules:', exitRules);
-      for (let groupIndex = 0; groupIndex < exitRules.length; groupIndex++) {
-        const group = exitRules[groupIndex];
-        console.log(`Processing exit group ${groupIndex + 1}:`, group);
-
-        // Skip groups with no inequalities
-        if (!group.inequalities || group.inequalities.length === 0) {
-          console.log(`Skipping exit group ${groupIndex + 1} - no inequalities`);
-          continue;
-        }
-
-        // Insert the rule group
-        const {
-          data: exitGroup,
-          error: exitGroupError
-        } = await supabase.from('rule_groups').insert({
+      
+      const exitRuleGroupsData = exitRules
+        .filter(group => group.inequalities && group.inequalities.length > 0)
+        .map((group, groupIndex) => ({
           strategy_id: strategy.id,
           rule_type: 'exit',
           group_order: groupIndex + 1,
           logic: group.logic || 'AND',
           required_conditions: group.logic === 'OR' ? group.requiredConditions : null
-        }).select().single();
-        
-        if (exitGroupError) {
-          console.error('Error creating exit rule group:', exitGroupError);
-          throw new Error(`Error creating exit rule group: ${exitGroupError.message}`);
-        }
-        console.log('Created exit rule group:', exitGroup);
+        }));
 
-        // Add each inequality as a trading rule
-        for (let i = 0; i < group.inequalities.length; i++) {
-          const inequality = group.inequalities[i];
-          console.log(`Processing exit inequality ${i + 1}:`, inequality);
+      if (exitRuleGroupsData.length === 0) {
+        console.log('No exit rule groups to create');
+      } else {
+        const { data: exitRuleGroups, error: exitGroupsError } = await supabase
+          .from('rule_groups')
+          .insert(exitRuleGroupsData)
+          .select();
+
+        if (exitGroupsError) {
+          console.error('Error creating exit rule groups:', exitGroupsError);
+          throw new Error(`Error creating exit rule groups: ${exitGroupsError.message}`);
+        }
+
+        console.log(`Created ${exitRuleGroups.length} exit rule groups`);
+
+        const allExitTradingRules: any[] = [];
+        
+        exitRules.forEach((group, groupIndex) => {
+          if (!group.inequalities || group.inequalities.length === 0) return;
           
-          const tradingRuleData = {
-            rule_group_id: exitGroup.id,
-            inequality_order: i + 1,
-            left_type: inequality.left?.type || '',
-            left_indicator: inequality.left?.type === 'INDICATOR' ? (inequality.left?.indicator || null) : null,
-            left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
-              JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
-            left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
-              inequality.left?.value : null,
-            left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
-            condition: inequality.condition || '',
-            right_type: inequality.right?.type || '',
-            right_indicator: inequality.right?.type === 'INDICATOR' ? (inequality.right?.indicator || null) : null,
-            right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
-              JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
-            right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
-              inequality.right?.value : null,
-            right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
-            explanation: inequality.explanation || null
-          };
-          
-          console.log('Inserting trading rule data:', JSON.stringify(tradingRuleData, null, 2));
-          
-          const {
-            error: ruleError
-          } = await supabase.from('trading_rules').insert(tradingRuleData);
-          
-          if (ruleError) {
-            console.error('Error saving exit rule:', ruleError);
-            console.error('Failed rule data:', tradingRuleData);
-            throw new Error(`Error saving exit rule: ${ruleError.message}`);
+          const ruleGroup = exitRuleGroups[groupIndex];
+          if (!ruleGroup) return;
+
+          group.inequalities.forEach((inequality, i) => {
+            allExitTradingRules.push({
+              rule_group_id: ruleGroup.id,
+              inequality_order: i + 1,
+              left_type: inequality.left?.type || '',
+              left_indicator: inequality.left?.type === 'INDICATOR' ? (inequality.left?.indicator || null) : null,
+              left_parameters: inequality.left?.type === 'INDICATOR' && inequality.left?.parameters ? 
+                JSON.parse(JSON.stringify(inequality.left.parameters)) : null,
+              left_value: (inequality.left?.type === 'PRICE' || inequality.left?.type === 'VALUE') ? 
+                inequality.left?.value : null,
+              left_value_type: inequality.left?.type === 'INDICATOR' ? (inequality.left?.valueType || null) : null,
+              condition: inequality.condition || '',
+              right_type: inequality.right?.type || '',
+              right_indicator: inequality.right?.type === 'INDICATOR' ? (inequality.right?.indicator || null) : null,
+              right_parameters: inequality.right?.type === 'INDICATOR' && inequality.right?.parameters ? 
+                JSON.parse(JSON.stringify(inequality.right.parameters)) : null,
+              right_value: (inequality.right?.type === 'PRICE' || inequality.right?.type === 'VALUE') ? 
+                inequality.right?.value : null,
+              right_value_type: inequality.right?.type === 'INDICATOR' ? (inequality.right?.valueType || null) : null,
+              explanation: inequality.explanation || null
+            });
+          });
+        });
+
+        if (allExitTradingRules.length > 0) {
+          const { error: exitRulesError } = await supabase
+            .from('trading_rules')
+            .insert(allExitTradingRules);
+
+          if (exitRulesError) {
+            console.error('Error creating exit trading rules:', exitRulesError);
+            throw new Error(`Error creating exit trading rules: ${exitRulesError.message}`);
           }
-          console.log(`Exit rule ${i + 1} saved successfully`);
+
+          console.log(`Created ${allExitTradingRules.length} exit trading rules in batch`);
         }
       }
       

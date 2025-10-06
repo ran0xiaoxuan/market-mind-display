@@ -36,10 +36,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Invalid token or user not found' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Only allow the specific email to share
-    const allowedEmail = 'ran0xiaoxuan@gmail.com';
-    if (user.email?.toLowerCase() !== allowedEmail) {
-      return new Response(JSON.stringify({ error: 'Only the owner can share strategies' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // SECURITY: Check admin permissions using environment variable
+    const adminEmails = (Deno.env.get('ADMIN_EMAILS') || 'ran0xiaoxuan@gmail.com')
+      .split(',')
+      .map(email => email.trim().toLowerCase());
+    
+    if (!user.email || !adminEmails.includes(user.email.toLowerCase())) {
+      console.log(`[share-strategy] Unauthorized access attempt by: ${user.email || 'unknown'}`);
+      return new Response(JSON.stringify({ error: 'Insufficient permissions to share strategies' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Load strategy and ensure ownership

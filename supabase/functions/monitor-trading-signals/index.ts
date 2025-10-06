@@ -5,6 +5,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Constants
+const CCI_CONSTANT = 0.015; // Standard CCI constant multiplier
+const DEFAULT_ACCOUNT_CAPITAL = 10000;
+const DEFAULT_RSI_PERIOD = 14;
+const DEFAULT_MACD_FAST = 12;
+const DEFAULT_MACD_SLOW = 26;
+const DEFAULT_MACD_SIGNAL = 9;
+const DEFAULT_BB_PERIOD = 20;
+const DEFAULT_BB_DEVIATION = 2;
+
+// Logging configuration
+const LOG_LEVEL = Deno.env.get('LOG_LEVEL') || 'INFO'; // DEBUG, INFO, WARN, ERROR
+const shouldLog = (level: string): boolean => {
+  const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+  const currentLevel = levels.indexOf(LOG_LEVEL);
+  const messageLevel = levels.indexOf(level);
+  return messageLevel >= currentLevel;
+};
+
+const logDebug = (...args: any[]) => shouldLog('DEBUG') && console.log(...args);
+const logInfo = (...args: any[]) => shouldLog('INFO') && console.log(...args);
+const logWarn = (...args: any[]) => shouldLog('WARN') && console.warn(...args);
+const logError = (...args: any[]) => shouldLog('ERROR') && console.error(...args);
+
 // Type definitions
 interface Strategy {
   id: string;
@@ -53,8 +77,18 @@ interface MarketData {
 
 // Position sizing calculator
 class PositionSizeCalculator {
+  private static readonly VALID_RISK_TOLERANCES = ['conservative', 'moderate', 'aggressive'];
+  
   static getRiskPercentage(riskTolerance: string): number {
-    switch (riskTolerance) {
+    // Input validation
+    if (!riskTolerance || typeof riskTolerance !== 'string') {
+      logWarn('[PositionSize] Invalid risk tolerance, using default moderate');
+      return 0.25;
+    }
+    
+    const normalizedTolerance = riskTolerance.toLowerCase();
+    
+    switch (normalizedTolerance) {
       case 'conservative':
         return 0.15; // 15%
       case 'moderate':
@@ -62,6 +96,7 @@ class PositionSizeCalculator {
       case 'aggressive':
         return 0.35; // 35%
       default:
+        logWarn(`[PositionSize] Unknown risk tolerance: ${riskTolerance}, using moderate`);
         return 0.25; // Default to moderate
     }
   }
@@ -71,7 +106,14 @@ class PositionSizeCalculator {
     amount: number;
     positionPercentage: number;
   } {
-    if (accountCapital <= 0 || assetPrice <= 0) {
+    // Input validation
+    if (!accountCapital || accountCapital <= 0) {
+      logWarn(`[PositionSize] Invalid account capital: ${accountCapital}`);
+      return { quantity: 0, amount: 0, positionPercentage: 0 };
+    }
+    
+    if (!assetPrice || assetPrice <= 0) {
+      logWarn(`[PositionSize] Invalid asset price: ${assetPrice}`);
       return { quantity: 0, amount: 0, positionPercentage: 0 };
     }
 
@@ -116,14 +158,20 @@ class PriceSourceCalculator {
 class TechnicalIndicators {
   // Simple Moving Average
   static calculateSMA(prices: number[], period: number): number {
-    if (prices.length < period) return 0;
+    if (!prices || prices.length < period) {
+      logWarn(`[SMA] Insufficient data: ${prices?.length || 0} < ${period}`);
+      throw new Error(`Insufficient data for SMA calculation: need ${period} points, have ${prices?.length || 0}`);
+    }
     const sum = prices.slice(0, period).reduce((a, b) => a + b, 0);
     return sum / period;
   }
 
   // Exponential Moving Average
   static calculateEMA(prices: number[], period: number): number {
-    if (prices.length < period) return 0;
+    if (!prices || prices.length < period) {
+      logWarn(`[EMA] Insufficient data: ${prices?.length || 0} < ${period}`);
+      throw new Error(`Insufficient data for EMA calculation: need ${period} points, have ${prices?.length || 0}`);
+    }
     
     const multiplier = 2 / (period + 1);
     let ema = this.calculateSMA(prices.slice(0, period), period);
@@ -134,16 +182,41 @@ class TechnicalIndicators {
     
     return ema;
   }
+  
+  // Calculate EMA array for MACD signal line
+  static calculateEMAArray(prices: number[], period: number): number[] {
+    if (!prices || prices.length < period) {
+      throw new Error(`Insufficient data for EMA array: need ${period} points, have ${prices?.length || 0}`);
+    }
+    
+    const result: number[] = [];
+    const multiplier = 2 / (period + 1);
+    
+    // Initialize with SMA
+    const initialSMA = this.calculateSMA(prices.slice(0, period), period);
+    result.push(initialSMA);
+    
+    // Calculate EMA for remaining points
+    for (let i = period; i < prices.length; i++) {
+      const ema = (prices[i] * multiplier) + (result[result.length - 1] * (1 - multiplier));
+      result.push(ema);
+    }
+    
+    return result;
+  }
 
   // Weighted Moving Average
   static calculateWMA(prices: number[], period: number): number {
-    if (prices.length < period) return 0;
+    if (!prices || prices.length < period) {
+      logWarn(`[WMA] Insufficient data: ${prices?.length || 0} < ${period}`);
+      throw new Error(`Insufficient data for WMA calculation: need ${period} points, have ${prices?.length || 0}`);
+    }
     
     let weightedSum = 0;
     let weightSum = 0;
     
     for (let i = 0; i < period; i++) {
-      const weight = i + 1;
+      const weight = period - i; // Weight decreases with older data
       weightedSum += prices[i] * weight;
       weightSum += weight;
     }
@@ -151,15 +224,20 @@ class TechnicalIndicators {
     return weightedSum / weightSum;
   }
 
-  // Relative Strength Index
-  static calculateRSI(prices: number[], period: number = 14): number {
-    if (prices.length < period + 1) return 50;
+  // Relative Strength Index - FIXED: Correct price change direction
+  static calculateRSI(prices: number[], period: number = DEFAULT_RSI_PERIOD): number {
+    if (!prices || prices.length < period + 1) {
+      logWarn(`[RSI] Insufficient data: ${prices?.length || 0} < ${period + 1}`);
+      throw new Error(`Insufficient data for RSI calculation: need ${period + 1} points, have ${prices?.length || 0}`);
+    }
     
     let gains = 0;
     let losses = 0;
     
-    for (let i = 1; i <= period; i++) {
-      const change = prices[i - 1] - prices[i];
+    // FIX: Calculate price changes from older to newer (i+1 to i)
+    // prices[0] is newest, so we compare prices[i+1] (older) to prices[i] (newer)
+    for (let i = 0; i < period; i++) {
+      const change = prices[i] - prices[i + 1]; // Newer - Older
       if (change > 0) {
         gains += change;
       } else {
@@ -176,44 +254,68 @@ class TechnicalIndicators {
     return 100 - (100 / (1 + rs));
   }
 
-  // MACD
-  static calculateMACD(prices: number[], fastPeriod: number = 12, slowPeriod: number = 26, signalPeriod: number = 9): { line: number, signal: number, histogram: number } {
-    if (prices.length < slowPeriod) return { line: 0, signal: 0, histogram: 0 };
+  // MACD - FIXED: Proper signal line calculation using EMA
+  static calculateMACD(prices: number[], fastPeriod: number = DEFAULT_MACD_FAST, slowPeriod: number = DEFAULT_MACD_SLOW, signalPeriod: number = DEFAULT_MACD_SIGNAL): { line: number, signal: number, histogram: number } {
+    if (!prices || prices.length < slowPeriod + signalPeriod) {
+      logWarn(`[MACD] Insufficient data: ${prices?.length || 0} < ${slowPeriod + signalPeriod}`);
+      throw new Error(`Insufficient data for MACD calculation: need ${slowPeriod + signalPeriod} points, have ${prices?.length || 0}`);
+    }
     
     const fastEMA = this.calculateEMA(prices, fastPeriod);
     const slowEMA = this.calculateEMA(prices, slowPeriod);
     const macdLine = fastEMA - slowEMA;
     
-    // Simplified signal line calculation
-    const signalLine = macdLine * 0.9;
+    // FIX: Calculate proper MACD signal line using EMA of MACD line
+    // We need historical MACD values to calculate signal line properly
+    const macdHistory: number[] = [];
+    for (let i = 0; i <= Math.min(signalPeriod * 2, prices.length - slowPeriod); i++) {
+      const slicedPrices = prices.slice(i);
+      if (slicedPrices.length >= slowPeriod) {
+        const fastEMAHist = this.calculateEMA(slicedPrices, fastPeriod);
+        const slowEMAHist = this.calculateEMA(slicedPrices, slowPeriod);
+        macdHistory.push(fastEMAHist - slowEMAHist);
+      }
+    }
+    
+    const signalLine = macdHistory.length >= signalPeriod 
+      ? this.calculateEMA(macdHistory, signalPeriod)
+      : macdLine; // Fallback if not enough data
+    
     const histogram = macdLine - signalLine;
     
     return { line: macdLine, signal: signalLine, histogram };
   }
 
-  // Commodity Channel Index with proper source handling
+  // Commodity Channel Index with proper source handling - FIXED: Error handling and constant
   static calculateCCI(data: MarketData[], period: number = 20, source: string = 'hlc3'): number {
-    if (data.length < period) return 0;
-    
-    let typicalPrices: number[];
+    if (!data || data.length < period) {
+      logWarn(`[CCI] Insufficient data: ${data?.length || 0} < ${period}`);
+      throw new Error(`Insufficient data for CCI calculation: need ${period} points, have ${data?.length || 0}`);
+    }
     
     // Use proper source calculation
-    typicalPrices = PriceSourceCalculator.calculateSource(data.slice(0, period), source);
+    const typicalPrices = PriceSourceCalculator.calculateSource(data.slice(0, period), source);
     
     const sma = typicalPrices.reduce((a, b) => a + b, 0) / period;
     const meanDeviation = typicalPrices.reduce((sum, price) => 
       sum + Math.abs(price - sma), 0
     ) / period;
     
-    if (meanDeviation === 0) return 0;
+    if (meanDeviation === 0) {
+      logWarn('[CCI] Mean deviation is 0, returning 0');
+      return 0;
+    }
     
-    const currentTypicalPrice = typicalPrices[0];
-    return (currentTypicalPrice - sma) / (0.015 * meanDeviation);
+    const currentTypicalPrice = typicalPrices[0]; // First element is most recent
+    return (currentTypicalPrice - sma) / (CCI_CONSTANT * meanDeviation);
   }
 
-  // Bollinger Bands
-  static calculateBollingerBands(prices: number[], period: number = 20, deviation: number = 2): { upper: number, middle: number, lower: number } {
-    if (prices.length < period) return { upper: 0, middle: 0, lower: 0 };
+  // Bollinger Bands - FIXED: Error handling
+  static calculateBollingerBands(prices: number[], period: number = DEFAULT_BB_PERIOD, deviation: number = DEFAULT_BB_DEVIATION): { upper: number, middle: number, lower: number } {
+    if (!prices || prices.length < period) {
+      logWarn(`[BollingerBands] Insufficient data: ${prices?.length || 0} < ${period}`);
+      throw new Error(`Insufficient data for Bollinger Bands: need ${period} points, have ${prices?.length || 0}`);
+    }
     
     const sma = this.calculateSMA(prices, period);
     const variance = prices.slice(0, period).reduce((sum, price) => 
@@ -228,33 +330,54 @@ class TechnicalIndicators {
     };
   }
 
-  // Stochastic Oscillator
+  // Stochastic Oscillator - FIXED: Proper D value calculation using SMA
   static calculateStochastic(data: MarketData[], kPeriod: number = 14, dPeriod: number = 3): { k: number, d: number } {
-    if (data.length < kPeriod) return { k: 0, d: 0 };
+    if (!data || data.length < kPeriod + dPeriod - 1) {
+      logWarn(`[Stochastic] Insufficient data: ${data?.length || 0} < ${kPeriod + dPeriod - 1}`);
+      throw new Error(`Insufficient data for Stochastic: need ${kPeriod + dPeriod - 1} points, have ${data?.length || 0}`);
+    }
     
-    const highs = data.slice(0, kPeriod).map(d => d.high);
-    const lows = data.slice(0, kPeriod).map(d => d.low);
-    const closes = data.slice(0, kPeriod).map(d => d.close);
+    // Calculate K values for D period
+    const kValues: number[] = [];
     
-    const highestHigh = Math.max(...highs);
-    const lowestLow = Math.min(...lows);
+    for (let j = 0; j < dPeriod; j++) {
+      const periodData = data.slice(j, j + kPeriod);
+      const highs = periodData.map(d => d.high);
+      const lows = periodData.map(d => d.low);
+      const currentClose = periodData[0].close;
+      
+      const highestHigh = Math.max(...highs);
+      const lowestLow = Math.min(...lows);
+      
+      if (highestHigh === lowestLow) {
+        kValues.push(50); // Neutral value when no range
+      } else {
+        const k = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+        kValues.push(k);
+      }
+    }
     
-    const k = ((closes[0] - lowestLow) / (highestHigh - lowestLow)) * 100;
-    const d = k * 0.9; // Simplified
+    // FIX: D is the SMA of K values
+    const d = kValues.reduce((a, b) => a + b, 0) / kValues.length;
     
-    return { k, d };
+    return { k: kValues[0], d: d };
   }
 
-  // Average True Range
+  // Average True Range - FIXED: Boundary check
   static calculateATR(data: MarketData[], period: number = 14): number {
-    if (data.length < period + 1) return 0;
+    if (!data || data.length < period + 1) {
+      logWarn(`[ATR] Insufficient data: ${data?.length || 0} < ${period + 1}`);
+      throw new Error(`Insufficient data for ATR: need ${period + 1} points, have ${data?.length || 0}`);
+    }
     
     let trSum = 0;
     
+    // FIX: Proper boundary check - ensure we have previous close
     for (let i = 0; i < period; i++) {
       const high = data[i].high;
       const low = data[i].low;
-      const prevClose = i < data.length - 1 ? data[i + 1].close : data[i].close;
+      // Safe access to previous close
+      const prevClose = (i + 1 < data.length) ? data[i + 1].close : data[i].close;
       
       const tr = Math.max(
         high - low,
@@ -268,16 +391,19 @@ class TechnicalIndicators {
     return trSum / period;
   }
 
-  // Money Flow Index
+  // Money Flow Index - FIXED: Error handling
   static calculateMFI(data: MarketData[], period: number = 14): number {
-    if (data.length < period + 1) return 50;
+    if (!data || data.length < period + 1) {
+      logWarn(`[MFI] Insufficient data: ${data?.length || 0} < ${period + 1}`);
+      throw new Error(`Insufficient data for MFI: need ${period + 1} points, have ${data?.length || 0}`);
+    }
     
     let positiveFlow = 0;
     let negativeFlow = 0;
     
     for (let i = 0; i < period; i++) {
       const typicalPrice = (data[i].high + data[i].low + data[i].close) / 3;
-      const prevTypicalPrice = i < data.length - 1 ? 
+      const prevTypicalPrice = (i + 1 < data.length) ? 
         (data[i + 1].high + data[i + 1].low + data[i + 1].close) / 3 : typicalPrice;
       
       const moneyFlow = typicalPrice * data[i].volume;
@@ -296,55 +422,89 @@ class TechnicalIndicators {
   }
 }
 
-// Market Hours Checker
+// Market Hours Checker - FIXED: Improved timezone handling with fallback
 class MarketHoursChecker {
   static isMarketOpen(): boolean {
     try {
       const now = new Date();
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/New_York',
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        weekday: 'long',
-        hour12: false
-      });
       
-      const parts = formatter.formatToParts(now);
-      const partsObj = parts.reduce((acc, part) => {
-        acc[part.type] = part.value;
-        return acc;
-      }, {} as any);
-      
-      const dayName = partsObj.weekday;
-      const hour = parseInt(partsObj.hour);
-      const minute = parseInt(partsObj.minute);
-      
-      console.log(`[MarketHours] Current EST time: ${dayName} ${partsObj.hour}:${partsObj.minute}`);
-      
-      // Check if it's a weekday
-      const isWeekday = !['Saturday', 'Sunday'].includes(dayName);
-      
-      if (!isWeekday) {
-        console.log(`[MarketHours] Market closed - Weekend`);
-        return false;
+      // Method 1: Try using Intl API (preferred)
+      try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          year: 'numeric',
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          weekday: 'long',
+          hour12: false
+        });
+        
+        const parts = formatter.formatToParts(now);
+        const partsObj = parts.reduce((acc, part) => {
+          acc[part.type] = part.value;
+          return acc;
+        }, {} as any);
+        
+        const dayName = partsObj.weekday;
+        const hour = parseInt(partsObj.hour);
+        const minute = parseInt(partsObj.minute);
+        
+        logInfo(`[MarketHours] Current EST time: ${dayName} ${partsObj.hour}:${partsObj.minute}`);
+        
+        return this.checkMarketHours(dayName, hour, minute);
+        
+      } catch (intlError) {
+        logWarn('[MarketHours] Intl API failed, using fallback method:', intlError);
+        
+        // Method 2: Fallback - Manual UTC to EST conversion
+        // EST is UTC-5, EDT is UTC-4 (we'll use EST for simplicity)
+        const utcHour = now.getUTCHours();
+        const utcMinute = now.getUTCMinutes();
+        const utcDay = now.getUTCDay();
+        
+        // Convert UTC to EST (UTC-5)
+        let estHour = utcHour - 5;
+        let estDay = utcDay;
+        
+        if (estHour < 0) {
+          estHour += 24;
+          estDay = (estDay - 1 + 7) % 7;
+        }
+        
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const estDayName = dayNames[estDay];
+        
+        logInfo(`[MarketHours] Fallback EST time: ${estDayName} ${estHour}:${utcMinute}`);
+        
+        return this.checkMarketHours(estDayName, estHour, utcMinute);
       }
       
-      // Market hours: 9:30 AM to 4:00 PM EST
-      const currentMinutes = hour * 60 + minute;
-      const marketOpen = 9 * 60 + 30; // 9:30 AM
-      const marketClose = 16 * 60; // 4:00 PM
-      
-      const isOpen = currentMinutes >= marketOpen && currentMinutes < marketClose;
-      console.log(`[MarketHours] Market is ${isOpen ? 'OPEN' : 'CLOSED'}`);
-      
-      return isOpen;
     } catch (error) {
-      console.error('[MarketHours] Error checking market hours:', error);
+      logError('[MarketHours] Error checking market hours:', error);
       return false;
     }
+  }
+  
+  private static checkMarketHours(dayName: string, hour: number, minute: number): boolean {
+    // Check if it's a weekday
+    const isWeekday = !['Saturday', 'Sunday'].includes(dayName);
+    
+    if (!isWeekday) {
+      logInfo(`[MarketHours] Market closed - Weekend`);
+      return false;
+    }
+    
+    // Market hours: 9:30 AM to 4:00 PM EST
+    const currentMinutes = hour * 60 + minute;
+    const marketOpen = 9 * 60 + 30; // 9:30 AM
+    const marketClose = 16 * 60; // 4:00 PM
+    
+    const isOpen = currentMinutes >= marketOpen && currentMinutes < marketClose;
+    logInfo(`[MarketHours] Market is ${isOpen ? 'OPEN' : 'CLOSED'}`);
+    
+    return isOpen;
   }
 }
 
@@ -379,7 +539,7 @@ class MarketDataService {
     
     // Record the exact time when we start fetching data
     const dataExtractionTime = new Date().toISOString();
-    console.log(`[MarketData] Starting data extraction for ${symbol} at REAL-TIME: ${dataExtractionTime}`);
+    logDebug(`[MarketData] Starting data extraction for ${symbol} at: ${dataExtractionTime}`);
     
     if (['1min', '5min', '15min', '30min', '1hour', '4hour'].includes(fmpInterval)) {
       endpoint = `https://financialmodelingprep.com/api/v3/historical-chart/${fmpInterval}/${symbol}?apikey=${this.fmpApiKey}`;
@@ -434,19 +594,15 @@ class MarketDataService {
       throw new Error(`No current market data found for ${symbol}`);
     }
 
-    // Record completion time for accurate timestamp tracking
-    const dataProcessingCompleteTime = new Date().toISOString();
-    console.log(`[MarketData] Data extraction and processing completed at REAL-TIME: ${dataProcessingCompleteTime}`);
-    console.log(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
-    console.log(`[MarketData] Latest data point from API: ${marketData[0].date}`);
+    logDebug(`[MarketData] Successfully fetched ${marketData.length} data points for ${symbol}`);
+    logDebug(`[MarketData] Latest data point: ${marketData[0].date}`);
     
     return marketData;
   }
 
   // Get current price quote with real-time timestamp tracking
   async getCurrentPrice(symbol: string): Promise<number> {
-    const priceRequestTime = new Date().toISOString();
-    console.log(`[MarketData] Requesting CURRENT real-time price for ${symbol} at: ${priceRequestTime}`);
+    logDebug(`[MarketData] Requesting current price for ${symbol}`);
     
     const response = await fetch(
       `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${this.fmpApiKey}`
@@ -463,8 +619,7 @@ class MarketDataService {
     }
 
     const currentPrice = data[0].price;
-    const priceReceivedTime = new Date().toISOString();
-    console.log(`[MarketData] REAL-TIME price for ${symbol}: $${currentPrice} received at: ${priceReceivedTime}`);
+    logDebug(`[MarketData] Price for ${symbol}: $${currentPrice}`);
     return currentPrice;
   }
 
@@ -485,28 +640,22 @@ class MarketDataService {
   }
 }
 
-// Strategy Evaluator
+// Strategy Evaluator - FIXED: Optimized memory usage
 class StrategyEvaluator {
   private indicators: Map<string, any> = new Map();
 
   async calculateIndicatorsForStrategy(strategy: Strategy, marketData: MarketData[]): Promise<void> {
     this.indicators.clear();
     
-    const calculationStartTime = new Date().toISOString();
-    console.log(`[StrategyEvaluator] Starting indicator calculations for strategy ${strategy.name} at REAL-TIME: ${calculationStartTime}`);
+    logDebug(`[StrategyEvaluator] Calculating indicators for strategy: ${strategy.name}`);
     
-    const closes = marketData.map(d => d.close);
-    const highs = marketData.map(d => d.high);
-    const lows = marketData.map(d => d.low);
-    const volumes = marketData.map(d => d.volume);
-    
-    // Store current prices with real-time context
-    this.indicators.set('PRICE_close', closes[0]);
+    // OPTIMIZATION: Store current prices directly without creating separate arrays
+    this.indicators.set('PRICE_close', marketData[0].close);
     this.indicators.set('PRICE_open', marketData[0].open);
-    this.indicators.set('PRICE_high', highs[0]);
-    this.indicators.set('PRICE_low', lows[0]);
+    this.indicators.set('PRICE_high', marketData[0].high);
+    this.indicators.set('PRICE_low', marketData[0].low);
     
-    console.log(`[StrategyEvaluator] Using REAL-TIME prices calculated at ${calculationStartTime} - Close: ${closes[0]}, Open: ${marketData[0].open}, High: ${highs[0]}, Low: ${lows[0]}`);
+    logDebug(`[StrategyEvaluator] Current prices - Close: ${marketData[0].close}, Open: ${marketData[0].open}`);
     
     // Calculate indicators based on strategy rules using current data
     const indicatorConfigs = this.extractIndicatorConfigs(strategy);
@@ -523,7 +672,7 @@ class StrategyEvaluator {
             const smaSource = params.source || 'close';
             const smaPrices = PriceSourceCalculator.calculateSource(marketData, smaSource);
             indicatorValue = TechnicalIndicators.calculateSMA(smaPrices, period);
-            console.log(`[Indicator] SMA(${period}, ${smaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] SMA(${period}, ${smaSource}): ${indicatorValue}`);
             break;
             
           case 'ema':
@@ -531,7 +680,7 @@ class StrategyEvaluator {
             const emaSource = params.source || 'close';
             const emaPrices = PriceSourceCalculator.calculateSource(marketData, emaSource);
             indicatorValue = TechnicalIndicators.calculateEMA(emaPrices, emaPeriod);
-            console.log(`[Indicator] EMA(${emaPeriod}, ${emaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] EMA(${emaPeriod}, ${emaSource}): ${indicatorValue}`);
             break;
 
           case 'wma':
@@ -540,7 +689,7 @@ class StrategyEvaluator {
             const wmaSource = params.source || 'close';
             const wmaPrices = PriceSourceCalculator.calculateSource(marketData, wmaSource);
             indicatorValue = TechnicalIndicators.calculateWMA(wmaPrices, wmaPeriod);
-            console.log(`[Indicator] WMA(${wmaPeriod}, ${wmaSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] WMA(${wmaPeriod}, ${wmaSource}): ${indicatorValue}`);
             break;
             
           case 'rsi':
@@ -548,7 +697,7 @@ class StrategyEvaluator {
             const rsiSource = params.source || 'close';
             const rsiPrices = PriceSourceCalculator.calculateSource(marketData, rsiSource);
             indicatorValue = TechnicalIndicators.calculateRSI(rsiPrices, rsiPeriod);
-            console.log(`[Indicator] RSI(${rsiPeriod}, ${rsiSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] RSI(${rsiPeriod}, ${rsiSource}): ${indicatorValue}`);
             break;
             
           case 'macd':
@@ -558,14 +707,14 @@ class StrategyEvaluator {
             const macdSource = params.source || 'close';
             const macdPrices = PriceSourceCalculator.calculateSource(marketData, macdSource);
             indicatorValue = TechnicalIndicators.calculateMACD(macdPrices, fastPeriod, slowPeriod, signalPeriod);
-            console.log(`[Indicator] MACD(${fastPeriod}, ${slowPeriod}, ${signalPeriod}, ${macdSource}) calculated with REAL-TIME data:`, indicatorValue);
+            logDebug(`[Indicator] MACD(${fastPeriod}, ${slowPeriod}, ${signalPeriod}):`, indicatorValue);
             break;
             
           case 'cci':
             const cciPeriod = parseInt(params.period || '20');
             const cciSource = params.source || 'hlc3';
             indicatorValue = TechnicalIndicators.calculateCCI(marketData, cciPeriod, cciSource);
-            console.log(`[Indicator] CCI(${cciPeriod}, ${cciSource}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] CCI(${cciPeriod}, ${cciSource}): ${indicatorValue}`);
             break;
             
           case 'bollingerbands':
@@ -575,43 +724,42 @@ class StrategyEvaluator {
             const bbSource = params.source || 'close';
             const bbPrices = PriceSourceCalculator.calculateSource(marketData, bbSource);
             indicatorValue = TechnicalIndicators.calculateBollingerBands(bbPrices, bbPeriod, deviation);
-            console.log(`[Indicator] BollingerBands(${bbPeriod}, ${deviation}, ${bbSource}) calculated with REAL-TIME data:`, indicatorValue);
+            logDebug(`[Indicator] BollingerBands(${bbPeriod}, ${deviation}):`, indicatorValue);
             break;
             
           case 'stochastic':
             const kPeriod = parseInt(params.k || params.kPeriod || '14');
             const dPeriod = parseInt(params.d || params.dPeriod || '3');
             indicatorValue = TechnicalIndicators.calculateStochastic(marketData, kPeriod, dPeriod);
-            console.log(`[Indicator] Stochastic(${kPeriod}, ${dPeriod}) calculated with REAL-TIME data:`, indicatorValue);
+            logDebug(`[Indicator] Stochastic(${kPeriod}, ${dPeriod}):`, indicatorValue);
             break;
             
           case 'atr':
             const atrPeriod = parseInt(params.period || '14');
             indicatorValue = TechnicalIndicators.calculateATR(marketData, atrPeriod);
-            console.log(`[Indicator] ATR(${atrPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] ATR(${atrPeriod}): ${indicatorValue}`);
             break;
             
           case 'mfi':
             const mfiPeriod = parseInt(params.period || '14');
             indicatorValue = TechnicalIndicators.calculateMFI(marketData, mfiPeriod);
-            console.log(`[Indicator] MFI(${mfiPeriod}) calculated with REAL-TIME data: ${indicatorValue}`);
+            logDebug(`[Indicator] MFI(${mfiPeriod}): ${indicatorValue}`);
             break;
             
           default:
-            console.warn(`[StrategyEvaluator] Unknown indicator: ${indicatorName}`);
-            indicatorValue = 0;
+            logWarn(`[StrategyEvaluator] Unknown indicator: ${indicatorName}`);
+            throw new Error(`Unknown indicator: ${indicatorName}`);
         }
         
         this.indicators.set(configKey, indicatorValue);
         
       } catch (error) {
-        console.error(`[StrategyEvaluator] Error calculating ${indicatorName}:`, error);
-        this.indicators.set(configKey, 0);
+        logError(`[StrategyEvaluator] Error calculating ${indicatorName}:`, error);
+        throw error; // Re-throw to handle at strategy level
       }
     }
 
-    const calculationEndTime = new Date().toISOString();
-    console.log(`[StrategyEvaluator] Completed indicator calculations at REAL-TIME: ${calculationEndTime}`);
+    logDebug(`[StrategyEvaluator] Completed indicator calculations for ${strategy.name}`);
   }
 
   private extractIndicatorConfigs(strategy: Strategy): Map<string, Record<string, any>> {
@@ -664,7 +812,7 @@ class StrategyEvaluator {
   }
 
   private evaluateCondition(condition: string, leftValue: number, rightValue: number): boolean {
-    console.log(`[Condition] Evaluating: ${leftValue} ${condition} ${rightValue}`);
+    logDebug(`[Condition] Evaluating: ${leftValue} ${condition} ${rightValue}`);
     
     switch (condition) {
       case 'GREATER_THAN': return leftValue > rightValue;
@@ -683,8 +831,7 @@ class StrategyEvaluator {
       return false;
     }
 
-    console.log(`[RuleGroup] Evaluating group ${group.id} (${group.rule_type})`);
-    console.log(`[RuleGroup] Logic: ${group.logic}, Rules: ${group.trading_rules.length}`);
+    logDebug(`[RuleGroup] Evaluating group ${group.id} (${group.rule_type}) with ${group.logic} logic`);
 
     const results = group.trading_rules.map((rule, index) => {
       // Get left side value
@@ -704,7 +851,7 @@ class StrategyEvaluator {
       }
       
       const result = this.evaluateCondition(rule.condition, leftValue, rightValue);
-      console.log(`[RuleGroup] Rule ${index + 1}: ${leftValue} ${rule.condition} ${rightValue} = ${result}`);
+      logDebug(`[RuleGroup] Rule ${index + 1}: ${leftValue} ${rule.condition} ${rightValue} = ${result}`);
       
       return result;
     });
@@ -719,13 +866,12 @@ class StrategyEvaluator {
       groupResult = results.every(Boolean);
     }
 
-    console.log(`[RuleGroup] Group result: ${groupResult}`);
+    logDebug(`[RuleGroup] Group result: ${groupResult}`);
     return groupResult;
   }
 
   evaluateStrategy(strategy: Strategy): { entrySignal: boolean, exitSignal: boolean } {
-    const evaluationTime = new Date().toISOString();
-    console.log(`[Strategy] Evaluating strategy: ${strategy.name} with REAL-TIME data at: ${evaluationTime}`);
+    logInfo(`[Strategy] Evaluating strategy: ${strategy.name}`);
     
     const entryGroups = strategy.rule_groups.filter(group => group.rule_type === 'entry');
     const exitGroups = strategy.rule_groups.filter(group => group.rule_type === 'exit');
@@ -733,7 +879,7 @@ class StrategyEvaluator {
     const entrySignal = entryGroups.some(group => this.evaluateRuleGroup(group));
     const exitSignal = exitGroups.some(group => this.evaluateRuleGroup(group));
 
-    console.log(`[Strategy] Final result using REAL-TIME data - Entry: ${entrySignal}, Exit: ${exitSignal}`);
+    logInfo(`[Strategy] Result - Entry: ${entrySignal}, Exit: ${exitSignal}`);
     return { entrySignal, exitSignal };
   }
 }
@@ -795,55 +941,58 @@ class NotificationService {
     }
   }
 
+  // FIXED: Use atomic upsert to prevent race conditions
   private async incrementDailySignalCount(strategyId: string, userId: string): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      const { data: existingCount, error: fetchError } = await this.supabase
-        .from('daily_signal_counts')
-        .select('*')
-        .eq('strategy_id', strategyId)
-        .eq('signal_date', today)
-        .single();
+      // Use PostgreSQL's ON CONFLICT DO UPDATE (upsert) for atomic operation
+      // This prevents race conditions when multiple signals are generated simultaneously
+      const { error } = await this.supabase.rpc('increment_daily_signal_count', {
+        p_strategy_id: strategyId,
+        p_user_id: userId,
+        p_signal_date: today
+      });
 
-      if (fetchError && fetchError.code !== 'PGRST116') return;
-
-      if (existingCount) {
-        await this.supabase
+      if (error) {
+        // Fallback to manual upsert if RPC function doesn't exist
+        logWarn('[NotificationService] RPC function not found, using fallback method');
+        
+        const { error: upsertError } = await this.supabase
           .from('daily_signal_counts')
-          .update({ 
-            notification_count: existingCount.notification_count + 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingCount.id);
-      } else {
-        await this.supabase
-          .from('daily_signal_counts')
-          .insert({
+          .upsert({
             strategy_id: strategyId,
             user_id: userId,
             signal_date: today,
             notification_count: 1
+          }, {
+            onConflict: 'strategy_id,signal_date',
+            // Note: This fallback may still have minor race conditions
+            // Consider creating the RPC function for production use
           });
+        
+        if (upsertError) {
+          logError('[NotificationService] Error in fallback upsert:', upsertError);
+        }
       }
     } catch (error) {
-      console.error('Error incrementing daily signal count:', error);
+      logError('[NotificationService] Error incrementing daily signal count:', error);
     }
   }
 
   async sendNotifications(signal: any, strategy: Strategy): Promise<void> {
-    console.log(`[Notifications] Processing notifications for signal ${signal.id}`);
+    logInfo(`[Notifications] Processing notifications for signal ${signal.id}`);
     
     try {
       const isPro = await this.checkUserProStatus(strategy.user_id);
       if (!isPro) {
-        console.log(`[Notifications] User is not Pro - skipping external notifications`);
+        logDebug(`[Notifications] User is not Pro - skipping external notifications`);
         return;
       }
 
       const withinLimit = await this.checkDailySignalLimit(strategy.id, strategy.user_id);
       if (!withinLimit) {
-        console.log(`[Notifications] Daily signal limit reached - skipping notifications`);
+        logInfo(`[Notifications] Daily signal limit reached - skipping notifications`);
         return;
       }
 
@@ -854,7 +1003,7 @@ class NotificationService {
         .single();
 
       if (!settings) {
-        console.log('[Notifications] No notification settings found');
+        logDebug('[Notifications] No notification settings found');
         return;
       }
 
@@ -870,7 +1019,7 @@ class NotificationService {
       const shouldSendExit = signalType === 'exit' && settings.exit_signals;
       
       if (!shouldSendEntry && !shouldSendExit) {
-        console.log(`[Notifications] Signal type ${signalType} not enabled`);
+        logDebug(`[Notifications] Signal type ${signalType} not enabled`);
         return;
       }
 
@@ -886,7 +1035,7 @@ class NotificationService {
         userTimezone: profile?.timezone || 'UTC'
       };
 
-      const notifications = [];
+      const notifications: string[] = [];
 
       // Send Discord notification
       if (settings.discord_enabled && settings.discord_webhook_url) {
@@ -903,7 +1052,7 @@ class NotificationService {
             notifications.push('discord');
           }
         } catch (error) {
-          console.error('Discord notification error:', error);
+          logError('[Notifications] Discord notification error:', error);
         }
       }
 
@@ -923,7 +1072,7 @@ class NotificationService {
             notifications.push('telegram');
           }
         } catch (error) {
-          console.error('Telegram notification error:', error);
+          logError('[Notifications] Telegram notification error:', error);
         }
       }
 
@@ -945,7 +1094,7 @@ class NotificationService {
             }
           }
         } catch (error) {
-          console.error('Email notification error:', error);
+          logError('[Notifications] Email notification error:', error);
         }
       }
 
@@ -953,10 +1102,10 @@ class NotificationService {
         await this.incrementDailySignalCount(strategy.id, strategy.user_id);
       }
 
-      console.log(`[Notifications] Sent via: ${notifications.join(', ')}`);
+      logInfo(`[Notifications] Sent via: ${notifications.join(', ') || 'none'}`);
 
     } catch (error) {
-      console.error('[Notifications] Error in sendNotifications:', error);
+      logError('[Notifications] Error in sendNotifications:', error);
     }
   }
 }
@@ -985,10 +1134,11 @@ Deno.serve(async (req) => {
 
     // Record the exact start time of the monitoring process
     const monitoringStartTime = new Date().toISOString();
-    console.log(`🚀 Starting ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} signal monitoring process at: ${monitoringStartTime}`);
+    logInfo(`🚀 Starting ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} signal monitoring at: ${monitoringStartTime}`);
 
     // Check market hours first - this is critical for timing
     if (!MarketHoursChecker.isMarketOpen()) {
+      logInfo('Market is closed - exiting early');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -1016,10 +1166,10 @@ Deno.serve(async (req) => {
       throw strategiesError;
     }
 
-    console.log(`📋 Found ${strategies?.length || 0} active strategies (${isOptimized ? 'OPTIMIZED' : 'STANDARD'} mode)`);
+    logInfo(`📋 Found ${strategies?.length || 0} active strategies`);
 
-    const processedStrategies = [];
-    const errors = [];
+    const processedStrategies: any[] = [];
+    const errors: any[] = [];
 
     // Initialize services
     const marketDataService = new MarketDataService(fmpApiKey);
@@ -1027,7 +1177,7 @@ Deno.serve(async (req) => {
     const notificationService = new NotificationService(supabase);
 
     if (enableParallel && strategies && strategies.length > 0) {
-      console.log('🔄 Using PARALLEL processing mode for maximum performance');
+      logInfo('🔄 Using PARALLEL processing mode');
       
       try {
         // Group strategies by asset to minimize API calls
@@ -1041,12 +1191,12 @@ Deno.serve(async (req) => {
           assetGroups.get(strategy.target_asset)?.push(strategy);
         });
 
-        console.log(`📊 Processing ${assetGroups.size} unique assets in parallel`);
+        logInfo(`📊 Processing ${assetGroups.size} unique assets in parallel`);
 
         // Process all asset groups in parallel
         const assetProcessingPromises = Array.from(assetGroups.entries()).map(async ([asset, assetStrategies]) => {
           const assetStartTime = new Date().toISOString();
-          console.log(`\n📈 Processing ${assetStrategies.length} strategies for ${asset} starting at: ${assetStartTime}`);
+          logDebug(`📈 Processing ${assetStrategies.length} strategies for ${asset}`);
 
           try {
             // Fetch market data once per asset
@@ -1058,7 +1208,7 @@ Deno.serve(async (req) => {
               
               try {
                 if (!strategy.rule_groups || strategy.rule_groups.length === 0) {
-                  console.log(`⚠️ Skipping strategy ${strategy.name} - no rule groups`);
+                  logWarn(`⚠️ Skipping strategy ${strategy.name} - no rule groups`);
                   return null;
                 }
 
@@ -1067,13 +1217,13 @@ Deno.serve(async (req) => {
                 const evaluation = strategyEvaluator.evaluateStrategy(strategy);
 
                 if (evaluation.entrySignal || evaluation.exitSignal) {
-                  console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using PARALLEL processing!`);
+                  logInfo(`🚨 SIGNAL DETECTED: ${strategy.name} (parallel)`);
                   
                   const signalType = evaluation.entrySignal ? 'entry' : 'exit';
                   const currentRealTime = new Date().toISOString();
                   
                   // Calculate position size based on strategy parameters
-                  const accountCapital = strategy.account_capital || 10000;
+                  const accountCapital = strategy.account_capital || DEFAULT_ACCOUNT_CAPITAL;
                   const riskTolerance = strategy.risk_tolerance || 'moderate';
                   const currentPrice = marketData[0].close;
                   const positionSize = PositionSizeCalculator.calculatePositionSize(
@@ -1117,11 +1267,11 @@ Deno.serve(async (req) => {
                     throw signalError;
                   }
 
-                  console.log(`✅ Signal ${signal.id} created with PARALLEL processing`);
+                  logInfo(`✅ Signal ${signal.id} created (parallel)`);
                   
                   // Send notifications (non-blocking)
                   notificationService.sendNotifications(signal, strategy).catch(error => {
-                    console.error(`❌ Notification error for signal ${signal.id}:`, error);
+                    logError(`❌ Notification error for signal ${signal.id}:`, error);
                   });
                   
                   return {
@@ -1134,12 +1284,12 @@ Deno.serve(async (req) => {
                     processing_mode: 'parallel'
                   };
                 } else {
-                  console.log(`❌ No signals generated for strategy ${strategy.name} (parallel mode)`);
+                  logDebug(`No signals for strategy ${strategy.name}`);
                   return null;
                 }
 
               } catch (error) {
-                console.error(`❌ Error processing strategy ${strategy.name} (parallel):`, error);
+                logError(`❌ Error processing strategy ${strategy.name}:`, error);
                 errors.push({
                   strategy_id: strategy.id,
                   strategy_name: strategy.name,
@@ -1155,7 +1305,7 @@ Deno.serve(async (req) => {
             return assetResults.filter(result => result !== null);
 
           } catch (error) {
-            console.error(`❌ Error processing asset ${asset}:`, error);
+            logError(`❌ Error processing asset ${asset}:`, error);
             errors.push({
               asset: asset,
               error: error.message,
@@ -1170,7 +1320,7 @@ Deno.serve(async (req) => {
         processedStrategies.push(...allAssetResults.flat());
 
       } catch (error) {
-        console.error(`💥 Error in parallel processing mode:`, error);
+        logError(`💥 Error in parallel processing:`, error);
         errors.push({
           error: 'Parallel processing failed: ' + error.message,
           processing_mode: 'parallel'
@@ -1178,48 +1328,43 @@ Deno.serve(async (req) => {
       }
     } else {
       // Fallback to sequential processing (existing code)
-      console.log('🔄 Using SEQUENTIAL processing mode (fallback)');
+      logInfo('🔄 Using SEQUENTIAL processing mode');
       
       for (const strategy of strategies || []) {
         try {
-          const strategyProcessingStartTime = new Date().toISOString();
-          console.log(`\n🎯 Processing strategy: ${strategy.name} (${strategy.timeframe}) starting at REAL-TIME: ${strategyProcessingStartTime}`);
+          logDebug(`🎯 Processing strategy: ${strategy.name}`);
           
           if (!strategy.target_asset) {
-            console.log(`⚠️ Skipping strategy ${strategy.name} - no target asset`);
+            logWarn(`⚠️ Skipping ${strategy.name} - no target asset`);
             continue;
           }
 
           if (!strategy.rule_groups || strategy.rule_groups.length === 0) {
-            console.log(`⚠️ Skipping strategy ${strategy.name} - no rule groups`);
+            logWarn(`⚠️ Skipping ${strategy.name} - no rule groups`);
             continue;
           }
 
-          // Fetch current market data with real-time tracking
+          // Fetch current market data
           const marketData = await marketDataService.fetchCurrentMarketData(
             strategy.target_asset, 
             strategy.timeframe, 
             100
           );
 
-          console.log(`📈 Retrieved ${marketData.length} CURRENT data points for ${strategy.target_asset}`);
-
           // Calculate indicators with current market data
           await strategyEvaluator.calculateIndicatorsForStrategy(strategy, marketData);
           
-          // Evaluate strategy conditions using current data
+          // Evaluate strategy conditions
           const evaluation = strategyEvaluator.evaluateStrategy(strategy);
 
           if (evaluation.entrySignal || evaluation.exitSignal) {
-            console.log(`🚨 SIGNAL DETECTED for strategy ${strategy.name} using REAL-TIME data!`);
+            logInfo(`🚨 SIGNAL DETECTED: ${strategy.name}`);
             
             const signalType = evaluation.entrySignal ? 'entry' : 'exit';
-            
-            // Use CURRENT REAL-TIME timestamp for data_timestamp
             const currentRealTime = new Date().toISOString();
             
             // Calculate position size based on strategy parameters
-            const accountCapital = strategy.account_capital || 10000;
+            const accountCapital = strategy.account_capital || DEFAULT_ACCOUNT_CAPITAL;
             const riskTolerance = strategy.risk_tolerance || 'moderate';
             const currentPrice = marketData[0].close;
             const positionSize = PositionSizeCalculator.calculatePositionSize(
@@ -1241,10 +1386,8 @@ Deno.serve(async (req) => {
               position_percentage: positionSize.positionPercentage,
               account_capital: accountCapital,
               risk_tolerance: riskTolerance,
-              data_timestamp: currentRealTime // This is now the REAL-TIME when all calculations were performed
+              data_timestamp: currentRealTime
             };
-
-            console.log(`📊 Signal data_timestamp set to CURRENT REAL-TIME: ${currentRealTime}`);
 
             // Create signal in database
             const { data: signal, error: signalError } = await supabase
@@ -1262,7 +1405,7 @@ Deno.serve(async (req) => {
               throw signalError;
             }
 
-            console.log(`✅ Signal ${signal.id} created successfully with REAL-TIME data_timestamp: ${currentRealTime}`);
+            logInfo(`✅ Signal ${signal.id} created`);
             
             // Send notifications immediately
             await notificationService.sendNotifications(signal, strategy);
@@ -1272,15 +1415,15 @@ Deno.serve(async (req) => {
               strategy_name: strategy.name,
               signal_type: signalType,
               signal_id: signal.id,
-              data_timestamp: currentRealTime, // Real-time timestamp
+              data_timestamp: currentRealTime,
               processing_time: new Date().toISOString()
             });
           } else {
-            console.log(`❌ No signals generated for strategy ${strategy.name} with REAL-TIME data`);
+            logDebug(`No signals for ${strategy.name}`);
           }
 
         } catch (error) {
-          console.error(`❌ Error processing strategy ${strategy.name}:`, error);
+          logError(`❌ Error processing ${strategy.name}:`, error);
           errors.push({
             strategy_id: strategy.id,
             strategy_name: strategy.name,
@@ -1312,9 +1455,8 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`\n🏁 ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} signal monitoring completed at: ${monitoringCompleteTime}`);
-    console.log(`📊 Performance: ${response.performance_metrics.total_time_ms}ms total, ${response.performance_metrics.avg_time_per_strategy}ms per strategy`);
-    console.log('Final response:', response);
+    logInfo(`🏁 Monitoring completed: ${processedStrategies.length} signals, ${errors.length} errors`);
+    logInfo(`📊 Performance: ${response.performance_metrics.total_time_ms}ms total`);
 
     return new Response(
       JSON.stringify(response),
@@ -1322,7 +1464,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('💥 Error in monitor-trading-signals:', error);
+    logError('💥 Error in monitor-trading-signals:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

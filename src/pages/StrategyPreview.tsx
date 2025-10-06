@@ -133,9 +133,9 @@ const StrategyPreview = () => {
                   <p className="font-medium capitalize">
                     {generatedStrategy.riskTolerance || 'moderate'}
                     <span className="text-xs text-muted-foreground ml-2">
-                      ({generatedStrategy.riskTolerance === 'conservative' ? '5-10% per trade' : 
-                        generatedStrategy.riskTolerance === 'aggressive' ? '15-25% per trade' : 
-                        '10-15% per trade'})
+                      ({generatedStrategy.riskTolerance === 'conservative' ? '15% per trade' : 
+                        generatedStrategy.riskTolerance === 'aggressive' ? '35% per trade' : 
+                        '25% per trade'})
                     </span>
                   </p>
                 </div>

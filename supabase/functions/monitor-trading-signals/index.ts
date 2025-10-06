@@ -53,16 +53,16 @@ interface MarketData {
 
 // Position sizing calculator
 class PositionSizeCalculator {
-  static getRiskPercentageRange(riskTolerance: string): { min: number; max: number } {
+  static getRiskPercentage(riskTolerance: string): number {
     switch (riskTolerance) {
       case 'conservative':
-        return { min: 0.05, max: 0.10 }; // 5-10%
+        return 0.15; // 15%
       case 'moderate':
-        return { min: 0.10, max: 0.15 }; // 10-15%
+        return 0.25; // 25%
       case 'aggressive':
-        return { min: 0.15, max: 0.25 }; // 15-25%
+        return 0.35; // 35%
       default:
-        return { min: 0.10, max: 0.15 }; // Default to moderate
+        return 0.25; // Default to moderate
     }
   }
 
@@ -75,8 +75,7 @@ class PositionSizeCalculator {
       return { quantity: 0, amount: 0, positionPercentage: 0 };
     }
 
-    const { min, max } = this.getRiskPercentageRange(riskTolerance);
-    const positionPercentage = (min + max) / 2;
+    const positionPercentage = this.getRiskPercentage(riskTolerance);
     const positionValue = accountCapital * positionPercentage;
     const quantity = Math.floor(positionValue / assetPrice);
     const actualAmount = quantity * assetPrice;

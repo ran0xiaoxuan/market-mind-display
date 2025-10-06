@@ -22,16 +22,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useUserSubscription, isPro } from "@/hooks/useUserSubscription";
 
 // Define standard timeframe options to ensure consistency across the application
+// Note: 1m, Weekly, and Monthly are not supported for backtesting
 export const TIMEFRAME_OPTIONS = [
-  { value: "1m", label: "1 Minute" },
   { value: "5m", label: "5 Minutes" },
   { value: "15m", label: "15 Minutes" },
   { value: "30m", label: "30 Minutes" },
   { value: "1h", label: "1 Hour" },
   { value: "4h", label: "4 Hours" },
   { value: "Daily", label: "Daily" },
-  { value: "Weekly", label: "Weekly" },
-  { value: "Monthly", label: "Monthly" },
 ];
 
 const EditStrategy = () => {
@@ -191,24 +189,27 @@ const EditStrategy = () => {
     if (!dbTimeframe) return "Daily";
     
     // Create comprehensive mapping from database formats to TIMEFRAME_OPTIONS values
+    // Note: Unsupported timeframes (1m, Weekly, Monthly) are mapped to closest supported alternatives
     const timeframeMappings: { [key: string]: string } = {
-      // Direct matches (already correct)
-      "1m": "1m",
+      // Direct matches (supported timeframes)
       "5m": "5m", 
       "15m": "15m",
       "30m": "30m",
       "1h": "1h",
       "4h": "4h",
       "Daily": "Daily",
-      "Weekly": "Weekly",
-      "Monthly": "Monthly",
       
-      // Common variations that need mapping
-      "1 minute": "1m",
-      "1minute": "1m",
-      "1-minute": "1m",
-      "1 min": "1m",
-      "1min": "1m",
+      // Unsupported timeframes mapped to closest alternatives
+      "1m": "5m", // Map 1 minute to 5 minutes
+      "Weekly": "Daily", // Map weekly to daily
+      "Monthly": "Daily", // Map monthly to daily
+      
+      // Common variations for 1 minute (map to 5m)
+      "1 minute": "5m",
+      "1minute": "5m",
+      "1-minute": "5m",
+      "1 min": "5m",
+      "1min": "5m",
       
       "5 minutes": "5m",
       "5minutes": "5m", 
@@ -246,15 +247,17 @@ const EditStrategy = () => {
       "1-day": "Daily", 
       "daily": "Daily",
       
-      "1w": "Weekly",
-      "1week": "Weekly",
-      "1-week": "Weekly",
-      "weekly": "Weekly",
+      // Weekly variations (map to Daily)
+      "1w": "Daily",
+      "1week": "Daily",
+      "1-week": "Daily",
+      "weekly": "Daily",
       
-      "1M": "Monthly",
-      "1month": "Monthly", 
-      "1-month": "Monthly",
-      "monthly": "Monthly"
+      // Monthly variations (map to Daily)
+      "1M": "Daily",
+      "1month": "Daily", 
+      "1-month": "Daily",
+      "monthly": "Daily"
     };
     
     // Try direct mapping first (case-insensitive)
@@ -905,19 +908,19 @@ const EditStrategy = () => {
                             <SelectItem value="conservative">
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Conservative</span>
-                                <span className="text-xs text-muted-foreground">Defensive - Smaller position sizes (5-10% per trade)</span>
+                                <span className="text-xs text-muted-foreground">Defensive - Smaller position sizes (15% per trade)</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="moderate">
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Moderate</span>
-                                <span className="text-xs text-muted-foreground">Balanced - Medium position sizes (10-15% per trade)</span>
+                                <span className="text-xs text-muted-foreground">Balanced - Medium position sizes (25% per trade)</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="aggressive">
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Aggressive</span>
-                                <span className="text-xs text-muted-foreground">Offensive - Larger position sizes (15-25% per trade)</span>
+                                <span className="text-xs text-muted-foreground">Offensive - Larger position sizes (35% per trade)</span>
                               </div>
                             </SelectItem>
                           </SelectContent>

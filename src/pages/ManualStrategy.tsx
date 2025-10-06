@@ -24,16 +24,14 @@ import { useEffect } from "react";
 import { useOptimizedStrategies } from "@/hooks/useOptimizedStrategies";
 
 // Define standard timeframe options
+// Note: 1m, Weekly, and Monthly are not supported for backtesting
 export const TIMEFRAME_OPTIONS = [
-  { value: "1m", label: "1 Minute" },
   { value: "5m", label: "5 Minutes" },
   { value: "15m", label: "15 Minutes" },
   { value: "30m", label: "30 Minutes" },
   { value: "1h", label: "1 Hour" },
   { value: "4h", label: "4 Hours" },
   { value: "Daily", label: "Daily" },
-  { value: "Weekly", label: "Weekly" },
-  { value: "Monthly", label: "Monthly" },
 ];
 
 const ManualStrategy = () => {
@@ -627,19 +625,19 @@ const ManualStrategy = () => {
                             <SelectItem value="conservative">
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Conservative</span>
-                                <span className="text-xs text-muted-foreground">Defensive - Smaller position sizes (5-10% per trade)</span>
+                                <span className="text-xs text-muted-foreground">Defensive - Smaller position sizes (15% per trade)</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="moderate">
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Moderate</span>
-                                <span className="text-xs text-muted-foreground">Balanced - Medium position sizes (10-15% per trade)</span>
+                                <span className="text-xs text-muted-foreground">Balanced - Medium position sizes (25% per trade)</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="aggressive">
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Aggressive</span>
-                                <span className="text-xs text-muted-foreground">Offensive - Larger position sizes (15-25% per trade)</span>
+                                <span className="text-xs text-muted-foreground">Offensive - Larger position sizes (35% per trade)</span>
                               </div>
                             </SelectItem>
                           </SelectContent>

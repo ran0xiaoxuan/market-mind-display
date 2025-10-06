@@ -19,20 +19,20 @@ interface PositionSizeResult {
 
 /**
  * Get position size percentage based on risk tolerance
- * Conservative: 5-10% per trade
- * Moderate: 10-15% per trade  
- * Aggressive: 15-25% per trade
+ * Conservative: 15% per trade
+ * Moderate: 25% per trade  
+ * Aggressive: 35% per trade
  */
-const getRiskPercentageRange = (riskTolerance: RiskTolerance): { min: number; max: number } => {
+const getRiskPercentage = (riskTolerance: RiskTolerance): number => {
   switch (riskTolerance) {
     case 'conservative':
-      return { min: 0.05, max: 0.10 }; // 5-10%
+      return 0.15; // 15%
     case 'moderate':
-      return { min: 0.10, max: 0.15 }; // 10-15%
+      return 0.25; // 25%
     case 'aggressive':
-      return { min: 0.15, max: 0.25 }; // 15-25%
+      return 0.35; // 35%
     default:
-      return { min: 0.10, max: 0.15 }; // Default to moderate
+      return 0.25; // Default to moderate
   }
 };
 
@@ -54,11 +54,8 @@ export const calculatePositionSize = ({
     };
   }
 
-  // Get risk percentage range based on tolerance
-  const { min, max } = getRiskPercentageRange(riskTolerance);
-  
-  // Use middle of the range for consistency
-  const positionPercentage = (min + max) / 2;
+  // Get risk percentage based on tolerance
+  const positionPercentage = getRiskPercentage(riskTolerance);
   
   // Calculate position value in dollars
   const positionValue = accountCapital * positionPercentage;
@@ -91,13 +88,13 @@ export const formatPositionSize = (positionSize: PositionSizeResult): string => 
 export const getRiskToleranceDescription = (riskTolerance: RiskTolerance): string => {
   switch (riskTolerance) {
     case 'conservative':
-      return 'Conservative (5-10% per trade)';
+      return 'Conservative (15% per trade)';
     case 'moderate':
-      return 'Moderate (10-15% per trade)';
+      return 'Moderate (25% per trade)';
     case 'aggressive':
-      return 'Aggressive (15-25% per trade)';
+      return 'Aggressive (35% per trade)';
     default:
-      return 'Moderate (10-15% per trade)';
+      return 'Moderate (25% per trade)';
   }
 };
 

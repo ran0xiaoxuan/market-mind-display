@@ -449,8 +449,10 @@ CMF (Chaikin Money Flow):
 - range: -1 to +1 (>0.25 strong buying, <-0.25 strong selling)
 
 Available conditions: GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL, CROSSES_ABOVE, CROSSES_BELOW
-Available timeframes: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w
+Available timeframes: 5m, 15m, 30m, 1h, 4h, 1d
 Available side types: INDICATOR, PRICE, VALUE
+
+IMPORTANT: DO NOT use 1m (1 minute), 1w (weekly), or monthly timeframes as they are not supported for backtesting.
 
 SUPPORTED INDICATORS (25 total):
 Moving Averages: SMA, EMA, WMA, DEMA, TEMA, HMA, VWAP

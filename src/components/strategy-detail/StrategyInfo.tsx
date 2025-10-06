@@ -147,9 +147,9 @@ export const StrategyInfo: React.FC<StrategyInfoProps> = ({
               <p className="text-sm font-medium capitalize">
                 {strategy.riskTolerance || 'moderate'}
                 <span className="text-xs text-muted-foreground ml-1">
-                  ({strategy.riskTolerance === 'conservative' ? '5-10%' : 
-                    strategy.riskTolerance === 'aggressive' ? '15-25%' : 
-                    '10-15%'})
+                  ({strategy.riskTolerance === 'conservative' ? '15%' : 
+                    strategy.riskTolerance === 'aggressive' ? '35%' : 
+                    '25%'} per trade)
                 </span>
               </p>
             </div>

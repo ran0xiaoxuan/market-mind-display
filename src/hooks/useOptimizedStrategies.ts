@@ -18,6 +18,8 @@ export interface OptimizedStrategy {
   signalNotificationsEnabled?: boolean;
   isRecommendedCopy?: boolean;
   sourceStrategyId?: string;
+  accountCapital?: number;
+  riskTolerance?: string;
   // Optimized fields
   totalSignals?: number;
   totalRules?: number;
@@ -64,6 +66,8 @@ export const useOptimizedStrategies = () => {
         signalNotificationsEnabled: strategy.signal_notifications_enabled,
         isRecommendedCopy: strategy.is_recommended_copy,
         sourceStrategyId: strategy.source_strategy_id,
+        accountCapital: strategy.account_capital,
+        riskTolerance: strategy.risk_tolerance,
         totalSignals: strategy.trading_signals?.[0]?.count || 0,
         totalRules: strategy.rule_groups?.reduce((total: number, rg: any) => 
           total + (rg.trading_rules?.[0]?.count || 0), 0) || 0

@@ -59,12 +59,12 @@ serve(async (req) => {
       );
     }
 
-    // Return the API key in the expected format (as 'key', not 'apiKey')
+    // Return the API key in the expected format
     console.log("[get-fmp-key] Successfully providing FMP API key to client");
     
     return new Response(
       JSON.stringify({ 
-        key: fmpApiKey,  // Changed from 'apiKey' to 'key' to match client expectations
+        apiKey: fmpApiKey,
         success: true 
       }),
       { 

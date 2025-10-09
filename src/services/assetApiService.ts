@@ -43,13 +43,25 @@ export const getFmpApiKey = async (): Promise<string | null> => {
   
   try {
     console.log("[AssetAPI] Fetching FMP API key from edge function...");
-    const { data, error } = await supabase.functions.invoke('get-fmp-key', {
+    
+    // 创建一个超时 Promise（8秒超时）
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("FMP API key fetch timeout after 8 seconds"));
+      }, 8000);
+    });
+    
+    // 创建实际的 API 调用 Promise
+    const fetchPromise = supabase.functions.invoke('get-fmp-key', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
       }
     });
+    
+    // 使用 Promise.race 来实现超时控制
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
     
     if (error) {
       console.error("[AssetAPI] Error from edge function:", error);

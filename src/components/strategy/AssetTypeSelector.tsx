@@ -190,62 +190,82 @@ export const AssetTypeSelector = ({
     const initializeConnection = async () => {
       if (connectionStatus === 'connected') return;
 
+      // 创建一个整体超时保护（15秒）
+      const overallTimeout = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("Connection initialization timeout after 15 seconds"));
+        }, 15000);
+      });
+
       try {
         setIsConnecting(true);
         setConnectionStatus('connecting');
         console.log("Initializing FMP API connection...");
 
-        const MAX_CONNECT_RETRIES = 3;
-        for (let attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
-          if (isCancelled) return;
+        // 将整个连接过程包裹在超时控制中
+        await Promise.race([
+          (async () => {
+            const MAX_CONNECT_RETRIES = 3;
+            for (let attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
+              if (isCancelled) return;
 
-          // Fetch API key
-          const key = await getFmpApiKey();
-          if (isCancelled) return;
+              console.log(`[AssetSelector] Connection attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
 
-          if (!key) {
-            console.warn(`[AssetSelector] No API key on attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
-            if (attempt < MAX_CONNECT_RETRIES) {
-              await sleep(attempt * 800); // backoff before retrying
-              continue;
-            } else {
-              throw new Error("Could not retrieve market data API key");
+              // Fetch API key
+              const key = await getFmpApiKey();
+              if (isCancelled) return;
+
+              if (!key) {
+                console.warn(`[AssetSelector] No API key on attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
+                if (attempt < MAX_CONNECT_RETRIES) {
+                  await sleep(attempt * 800); // backoff before retrying
+                  continue;
+                } else {
+                  throw new Error("Could not retrieve market data API key");
+                }
+              }
+
+              setApiKey(key);
+              console.log("API key retrieved, validating...");
+
+              // Validate with built-in retry
+              const isValid = await validateFmpApiKey(key);
+              if (isCancelled) return;
+
+              if (isValid) {
+                setConnectionStatus('connected');
+                if (!hasShownConnectionToast) {
+                  toast.success("Market data connected successfully");
+                  setHasShownConnectionToast(true);
+                }
+                console.log("FMP API connection successful");
+                return; // success
+              } else {
+                console.warn(`[AssetSelector] API key validation failed on attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
+                if (attempt < MAX_CONNECT_RETRIES) {
+                  await sleep(attempt * 1000); // backoff before retrying
+                  continue;
+                } else {
+                  throw new Error("API key validation failed");
+                }
+              }
             }
-          }
-
-          setApiKey(key);
-          console.log("API key retrieved, validating...");
-
-          // Validate with built-in retry
-          const isValid = await validateFmpApiKey(key);
-          if (isCancelled) return;
-
-          if (isValid) {
-            setConnectionStatus('connected');
-            if (!hasShownConnectionToast) {
-              toast.success("Market data connected successfully");
-              setHasShownConnectionToast(true);
-            }
-            console.log("FMP API connection successful");
-            return; // success
-          } else {
-            console.warn(`[AssetSelector] API key validation failed on attempt ${attempt}/${MAX_CONNECT_RETRIES}`);
-            if (attempt < MAX_CONNECT_RETRIES) {
-              await sleep(attempt * 1000); // backoff before retrying
-              continue;
-            } else {
-              throw new Error("API key validation failed");
-            }
-          }
-        }
+          })(),
+          overallTimeout
+        ]);
       } catch (error) {
         if (isCancelled) return;
         console.error("FMP API connection failed:", error);
         setConnectionStatus('failed');
 
         if (!hasShownConnectionToast) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          const isTimeout = errorMessage.includes("timeout");
+          
           toast.error("Market data service unavailable", {
-            description: "Please check your connection and try again"
+            description: isTimeout 
+              ? "Connection timeout. Please check your network and try again." 
+              : "Please check your connection and try again"
           });
           setHasShownConnectionToast(true);
         }

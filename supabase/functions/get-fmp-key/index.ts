@@ -64,7 +64,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        apiKey: fmpApiKey,
+        key: fmpApiKey,
         success: true 
       }),
       { 

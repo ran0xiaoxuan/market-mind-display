@@ -22,14 +22,14 @@ export const StrategyDescription = ({
       </p>
       
       <Textarea 
-        placeholder="Describe your ideal trading strategy in detail. For example: 'I want a momentum-based strategy using RSI and MACD indicators, with a medium risk tolerance. Focus on mid-term investment time zones, with a profit-loss ratio of 2:1.'"
+        placeholder="Describe your ideal trading strategy in detail. For example: 'I want a momentum-based 5-min strategy using RSI and MACD indicators, with a medium risk tolerance.'"
         className="min-h-[150px]"
         value={description}
         onChange={(e) => onDescriptionChange(e.target.value)}
       />
       
       <div className="mt-3 text-xs text-muted-foreground">
-        <p>💡 <strong>Pro tip:</strong> Be specific with indicators, timeframes you want.</p>
+        <p>💡 <strong>Pro tip:</strong> Be specific with indicators, timeframes and risk tolerance you want.</p>
       </div>
 
       {showValidation && description.trim().length < 20 && (

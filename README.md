@@ -384,3 +384,135 @@ stripe listen --forward-to http://localhost:54321/functions/v1/stripe-webhook
 - `src/services/technicalIndicators.ts` - 本地指标计算（备用）
 - `src/components/strategy-detail/AvailableIndicators.tsx` - 指标选择器UI
 - `src/components/strategy-detail/IndicatorParameter.tsx` - 参数输入组件
+
+---
+
+## 交易信号生成 - 智能 Timeframe 调度
+
+### 功能说明
+
+系统现在会根据每个策略的 **timeframe（时间周期）** 来智能决定检测频率，而不是对所有策略都每分钟检测一次。这样可以：
+- ✅ 减少不必要的计算和API调用
+- ✅ 提高系统性能和响应速度
+- ✅ 更符合实际交易逻辑
+- ✅ 降低服务器成本
+
+### 工作原理
+
+**举例说明（用通俗的话解释）：**
+
+假设你有三个交易策略：
+1. **策略A**：使用 `5分钟` (5m) 的timeframe
+2. **策略B**：使用 `1小时` (1h) 的timeframe
+3. **策略C**：使用 `每日` (Daily) 的timeframe
+
+**以前的做法（问题）：**
+- 每分钟都检测所有策略，看是否该发送交易信号
+- 策略A每5分钟才需要检测一次，却被检测了5次（浪费4次）
+- 策略B每60分钟才需要检测一次，却被检测了60次（浪费59次）
+- 策略C每天只需检测一次，却被检测了1440次（浪费1439次！）
+
+**现在的做法（改进）：**
+- 策略A：只在第0、5、10、15...分钟时检测（每5分钟一次）
+- 策略B：只在整点时检测（每1小时一次）
+- 策略C：只在每天下午4点收盘时检测（每天一次）
+- 其他时间这些策略会被跳过，大幅节省资源
+
+### 技术实现
+
+#### 1. 数据库表：`strategy_evaluations`
+
+这个表记录每个策略的评估状态：
+- `strategy_id`: 策略ID
+- `timeframe`: 时间周期（如 "5m", "1h", "Daily"）
+- `last_evaluated_at`: 上次评估的时间
+- `next_evaluation_due`: 下次应该评估的时间
+- `evaluation_count`: 累计评估次数
+
+#### 2. Timeframe 调度规则
+
+| Timeframe | 检测频率 | 对齐规则 |
+|-----------|---------|----------|
+| 5m        | 每5分钟 | 对齐到0、5、10、15...分钟 |
+| 15m       | 每15分钟 | 对齐到0、15、30、45分钟 |
+| 30m       | 每30分钟 | 对齐到0、30分钟 |
+| 1h        | 每1小时 | 对齐到整点 |
+| 4h        | 每4小时 | 对齐到0、4、8、12、16、20点 |
+| Daily     | 每天一次 | 美东时间下午4:00（收盘时） |
+
+#### 3. 核心流程
+
+```
+1. Cron Job 每分钟触发 monitor-trading-signals
+   ↓
+2. 查询所有激活的策略
+   ↓
+3. 查询 strategy_evaluations 表，获取评估记录
+   ↓
+4. 过滤：只处理 next_evaluation_due <= 当前时间 的策略
+   ↓
+5. 处理筛选后的策略，生成交易信号（如果条件满足）
+   ↓
+6. 更新 strategy_evaluations 表：
+   - last_evaluated_at = 当前时间
+   - next_evaluation_due = 根据timeframe计算的下次评估时间
+   - evaluation_count += 1
+```
+
+### 日志示例
+
+当系统运行时，你会看到类似的日志：
+
+```
+🚀 Starting OPTIMIZED signal monitoring at: 2025-01-15T14:05:00Z
+📋 Found 10 active strategies
+✅ Strategy "RSI Breakout 5m": Due for evaluation (5m)
+⏭️ Strategy "MACD Cross 1h": Skipping - next check in 25 minutes
+⏭️ Strategy "Daily Trend": Skipping - next check in 360 minutes
+🎯 Processing 3 strategies (filtered by timeframe schedule)
+...
+📝 Updated evaluation record for RSI Breakout 5m
+```
+
+### 相关文件
+
+**Edge Function:**
+- `supabase/functions/monitor-trading-signals/index.ts` - 主函数，包含 TimeframeEvaluationManager 类
+
+**数据库迁移:**
+- `supabase/migrations/20250627154858-cc37d108-9240-4a0e-9c86-106237eb0266.sql` - 创建 strategy_evaluations 表
+
+**前端服务:**
+- `src/services/timeframeOptimizedMonitoringService.ts` - Timeframe 优化监控服务
+
+### 常见问题
+
+**Q: 新创建的策略什么时候第一次被评估？**
+A: 新策略会在下一次 cron job 运行时立即被评估（因为没有评估记录）。
+
+**Q: 如果我修改了策略的 timeframe，会发生什么？**
+A: 系统会在下次评估时使用新的 timeframe 计算下次评估时间。
+
+**Q: Daily 策略为什么只在收盘时评估？**
+A: Daily 策略基于每日收盘价，只在市场收盘时（美东时间下午4:00）评估才有意义。
+
+**Q: 如果服务器宕机，错过了某个策略的评估时间怎么办？**
+A: 系统会在恢复后的下一次运行中检测到该策略已经过期（current_time > next_evaluation_due），并立即评估。
+
+### 性能优化效果
+
+假设你有以下策略分布：
+- 5个 5分钟 (5m) 策略
+- 3个 1小时 (1h) 策略
+- 2个 每日 (Daily) 策略
+
+**优化前：**
+- 每分钟检测：10个策略
+- 每小时检测：600次 (10个策略 × 60分钟)
+- 每天检测：14,400次 (10个策略 × 1440分钟)
+
+**优化后：**
+- 每分钟平均检测：~1.5个策略
+- 每小时检测：~63次 (5个×12次 + 3个×1次)
+- 每天检测：~1,536次 (5个×288次 + 3个×24次 + 2个×1次)
+- **性能提升：约 89% 减少！**

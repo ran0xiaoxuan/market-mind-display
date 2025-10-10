@@ -941,12 +941,12 @@ class NotificationService {
     }
   }
 
-  // FIXED: Use atomic upsert to prevent race conditions
+  // FIXED: Use atomic increment to prevent race conditions and correctly count signals
   private async incrementDailySignalCount(strategyId: string, userId: string): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Use PostgreSQL's ON CONFLICT DO UPDATE (upsert) for atomic operation
+      // Use PostgreSQL RPC function for atomic increment operation
       // This prevents race conditions when multiple signals are generated simultaneously
       const { error } = await this.supabase.rpc('increment_daily_signal_count', {
         p_strategy_id: strategyId,
@@ -955,25 +955,56 @@ class NotificationService {
       });
 
       if (error) {
-        // Fallback to manual upsert if RPC function doesn't exist
+        // Fallback to manual increment if RPC function doesn't exist
         logWarn('[NotificationService] RPC function not found, using fallback method');
         
-        const { error: upsertError } = await this.supabase
+        // First, try to get existing count
+        const { data: existingCount, error: fetchError } = await this.supabase
           .from('daily_signal_counts')
-          .upsert({
-            strategy_id: strategyId,
-            user_id: userId,
-            signal_date: today,
-            notification_count: 1
-          }, {
-            onConflict: 'strategy_id,signal_date',
-            // Note: This fallback may still have minor race conditions
-            // Consider creating the RPC function for production use
-          });
-        
-        if (upsertError) {
-          logError('[NotificationService] Error in fallback upsert:', upsertError);
+          .select('*')
+          .eq('strategy_id', strategyId)
+          .eq('signal_date', today)
+          .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          logError('[NotificationService] Error fetching daily signal count:', fetchError);
+          return;
         }
+
+        if (existingCount) {
+          // Update existing count - INCREMENT it
+          const { error: updateError } = await this.supabase
+            .from('daily_signal_counts')
+            .update({ 
+              notification_count: existingCount.notification_count + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingCount.id);
+
+          if (updateError) {
+            logError('[NotificationService] Error updating daily signal count:', updateError);
+          } else {
+            logInfo(`[NotificationService] Daily signal count incremented to ${existingCount.notification_count + 1}`);
+          }
+        } else {
+          // Create new count record - START at 1
+          const { error: insertError } = await this.supabase
+            .from('daily_signal_counts')
+            .insert({
+              strategy_id: strategyId,
+              user_id: userId,
+              signal_date: today,
+              notification_count: 1
+            });
+
+          if (insertError) {
+            logError('[NotificationService] Error creating daily signal count:', insertError);
+          } else {
+            logInfo(`[NotificationService] Daily signal count initialized to 1`);
+          }
+        }
+      } else {
+        logDebug(`[NotificationService] Daily signal count incremented via RPC`);
       }
     } catch (error) {
       logError('[NotificationService] Error incrementing daily signal count:', error);
@@ -1110,6 +1141,86 @@ class NotificationService {
   }
 }
 
+// Helper class to manage timeframe-based evaluation scheduling
+class TimeframeEvaluationManager {
+  // 计算下次评估的时间（基于策略的timeframe）
+  static calculateNextEvaluationTime(timeframe: string, currentTime: Date = new Date()): Date {
+    const nextEval = new Date(currentTime);
+    
+    switch (timeframe) {
+      case '5m':
+        // 对齐到下一个5分钟边界
+        const next5Min = Math.ceil(nextEval.getMinutes() / 5) * 5;
+        nextEval.setMinutes(next5Min);
+        nextEval.setSeconds(0, 0);
+        break;
+      case '15m':
+        // 对齐到下一个15分钟边界
+        const next15Min = Math.ceil(nextEval.getMinutes() / 15) * 15;
+        nextEval.setMinutes(next15Min);
+        nextEval.setSeconds(0, 0);
+        break;
+      case '30m':
+        // 对齐到下一个30分钟边界
+        const next30Min = Math.ceil(nextEval.getMinutes() / 30) * 30;
+        nextEval.setMinutes(next30Min);
+        nextEval.setSeconds(0, 0);
+        break;
+      case '1h':
+        nextEval.setHours(nextEval.getHours() + 1);
+        nextEval.setMinutes(0, 0, 0);
+        break;
+      case '4h':
+        // 对齐到下一个4小时边界
+        const next4Hour = Math.ceil(nextEval.getHours() / 4) * 4;
+        nextEval.setHours(next4Hour);
+        nextEval.setMinutes(0, 0, 0);
+        break;
+      case 'Daily':
+        // 下一个交易日的收盘时间 (4:00 PM ET)
+        nextEval.setDate(nextEval.getDate() + 1);
+        nextEval.setHours(16, 0, 0, 0);
+        // 跳过周末
+        while (nextEval.getDay() === 0 || nextEval.getDay() === 6) {
+          nextEval.setDate(nextEval.getDate() + 1);
+        }
+        break;
+      default:
+        // 默认1小时后（用于未知的timeframe）
+        logWarn(`⚠️ Unknown timeframe: ${timeframe}, defaulting to 1 hour`);
+        nextEval.setHours(nextEval.getHours() + 1);
+    }
+    
+    return nextEval;
+  }
+
+  // 判断策略是否应该在当前时间被评估
+  static shouldEvaluateNow(
+    strategy: Strategy,
+    evaluationRecord: any | null,
+    currentTime: Date = new Date()
+  ): boolean {
+    // 如果没有评估记录，说明是新策略，应该立即评估
+    if (!evaluationRecord || !evaluationRecord.next_evaluation_due) {
+      logInfo(`✅ Strategy ${strategy.name}: First evaluation (no record)`);
+      return true;
+    }
+
+    const nextDue = new Date(evaluationRecord.next_evaluation_due);
+    
+    // 如果当前时间 >= 下次应该评估的时间，则评估
+    if (currentTime >= nextDue) {
+      logInfo(`✅ Strategy ${strategy.name}: Due for evaluation (${strategy.timeframe})`);
+      return true;
+    }
+
+    // 否则跳过
+    const minutesUntilNext = Math.round((nextDue.getTime() - currentTime.getTime()) / 60000);
+    logInfo(`⏭️ Strategy ${strategy.name}: Skipping - next check in ${minutesUntilNext} minutes`);
+    return false;
+  }
+}
+
 // Main handler
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -1150,7 +1261,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get active strategies
+    // Get active strategies with their evaluation records
     const { data: strategies, error: strategiesError } = await supabase
       .from('strategies')
       .select(`
@@ -1168,21 +1279,48 @@ Deno.serve(async (req) => {
 
     logInfo(`📋 Found ${strategies?.length || 0} active strategies`);
 
+    // Get all strategy evaluation records
+    const { data: evaluations, error: evaluationsError } = await supabase
+      .from('strategy_evaluations')
+      .select('*')
+      .in('strategy_id', strategies?.map(s => s.id) || []);
+
+    if (evaluationsError) {
+      logWarn('⚠️ Could not fetch strategy evaluations:', evaluationsError);
+      // Continue without evaluation records
+    }
+
+    // Create a map of strategy_id -> evaluation record for quick lookup
+    const evaluationMap = new Map();
+    if (evaluations) {
+      evaluations.forEach(evaluation => evaluationMap.set(evaluation.strategy_id, evaluation));
+    }
+
+    // Filter strategies based on timeframe schedule
+    const currentTime = new Date();
+    const strategiesToProcess = strategies?.filter(strategy => {
+      const evaluation = evaluationMap.get(strategy.id);
+      return TimeframeEvaluationManager.shouldEvaluateNow(strategy, evaluation, currentTime);
+    }) || [];
+
+    logInfo(`🎯 Processing ${strategiesToProcess.length} strategies (filtered by timeframe schedule)`);
+
     const processedStrategies: any[] = [];
     const errors: any[] = [];
+    const evaluatedStrategyIds: string[] = []; // 跟踪已评估的策略ID
 
     // Initialize services
     const marketDataService = new MarketDataService(fmpApiKey);
     const strategyEvaluator = new StrategyEvaluator();
     const notificationService = new NotificationService(supabase);
 
-    if (enableParallel && strategies && strategies.length > 0) {
+    if (enableParallel && strategiesToProcess && strategiesToProcess.length > 0) {
       logInfo('🔄 Using PARALLEL processing mode');
       
       try {
         // Group strategies by asset to minimize API calls
-        const assetGroups = new Map<string, typeof strategies>();
-        strategies.forEach(strategy => {
+        const assetGroups = new Map<string, typeof strategiesToProcess>();
+        strategiesToProcess.forEach(strategy => {
           if (!strategy.target_asset) return;
           
           if (!assetGroups.has(strategy.target_asset)) {
@@ -1274,6 +1412,25 @@ Deno.serve(async (req) => {
                     logError(`❌ Notification error for signal ${signal.id}:`, error);
                   });
                   
+                  // 更新策略评估记录（不阻塞主流程）
+                  const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
+                    strategy.timeframe,
+                    new Date()
+                  );
+                  supabase
+                    .from('strategy_evaluations')
+                    .upsert({
+                      strategy_id: strategy.id,
+                      timeframe: strategy.timeframe,
+                      last_evaluated_at: new Date().toISOString(),
+                      next_evaluation_due: nextEvalTime.toISOString(),
+                      evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
+                    }, { onConflict: 'strategy_id' })
+                    .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
+                    .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+                  
+                  evaluatedStrategyIds.push(strategy.id);
+                  
                   return {
                     strategy_id: strategy.id,
                     strategy_name: strategy.name,
@@ -1285,6 +1442,26 @@ Deno.serve(async (req) => {
                   };
                 } else {
                   logDebug(`No signals for strategy ${strategy.name}`);
+                  
+                  // 即使没有生成信号，也要更新评估记录
+                  const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
+                    strategy.timeframe,
+                    new Date()
+                  );
+                  supabase
+                    .from('strategy_evaluations')
+                    .upsert({
+                      strategy_id: strategy.id,
+                      timeframe: strategy.timeframe,
+                      last_evaluated_at: new Date().toISOString(),
+                      next_evaluation_due: nextEvalTime.toISOString(),
+                      evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
+                    }, { onConflict: 'strategy_id' })
+                    .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
+                    .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+                  
+                  evaluatedStrategyIds.push(strategy.id);
+                  
                   return null;
                 }
 
@@ -1297,6 +1474,24 @@ Deno.serve(async (req) => {
                   processing_mode: 'parallel'
                 });
                 return null;
+              } finally {
+                // 确保即使出错也记录评估尝试
+                if (!evaluatedStrategyIds.includes(strategy.id)) {
+                  const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
+                    strategy.timeframe,
+                    new Date()
+                  );
+                  supabase
+                    .from('strategy_evaluations')
+                    .upsert({
+                      strategy_id: strategy.id,
+                      timeframe: strategy.timeframe,
+                      last_evaluated_at: new Date().toISOString(),
+                      next_evaluation_due: nextEvalTime.toISOString(),
+                      evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
+                    }, { onConflict: 'strategy_id' })
+                    .catch(err => logWarn(`⚠️ Failed to update evaluation record in finally: ${err.message}`));
+                }
               }
             });
 
@@ -1330,7 +1525,7 @@ Deno.serve(async (req) => {
       // Fallback to sequential processing (existing code)
       logInfo('🔄 Using SEQUENTIAL processing mode');
       
-      for (const strategy of strategies || []) {
+      for (const strategy of strategiesToProcess || []) {
         try {
           logDebug(`🎯 Processing strategy: ${strategy.name}`);
           
@@ -1410,6 +1605,25 @@ Deno.serve(async (req) => {
             // Send notifications immediately
             await notificationService.sendNotifications(signal, strategy);
             
+            // 更新策略评估记录
+            const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
+              strategy.timeframe,
+              new Date()
+            );
+            await supabase
+              .from('strategy_evaluations')
+              .upsert({
+                strategy_id: strategy.id,
+                timeframe: strategy.timeframe,
+                last_evaluated_at: new Date().toISOString(),
+                next_evaluation_due: nextEvalTime.toISOString(),
+                evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
+              }, { onConflict: 'strategy_id' })
+              .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
+              .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+            
+            evaluatedStrategyIds.push(strategy.id);
+            
             processedStrategies.push({
               strategy_id: strategy.id,
               strategy_name: strategy.name,
@@ -1420,6 +1634,25 @@ Deno.serve(async (req) => {
             });
           } else {
             logDebug(`No signals for ${strategy.name}`);
+            
+            // 即使没有生成信号，也要更新评估记录
+            const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
+              strategy.timeframe,
+              new Date()
+            );
+            await supabase
+              .from('strategy_evaluations')
+              .upsert({
+                strategy_id: strategy.id,
+                timeframe: strategy.timeframe,
+                last_evaluated_at: new Date().toISOString(),
+                next_evaluation_due: nextEvalTime.toISOString(),
+                evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
+              }, { onConflict: 'strategy_id' })
+              .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
+              .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+            
+            evaluatedStrategyIds.push(strategy.id);
           }
 
         } catch (error) {
@@ -1429,6 +1662,24 @@ Deno.serve(async (req) => {
             strategy_name: strategy.name,
             error: error.message
           });
+        } finally {
+          // 确保即使出错也记录评估尝试
+          if (!evaluatedStrategyIds.includes(strategy.id)) {
+            const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
+              strategy.timeframe,
+              new Date()
+            );
+            supabase
+              .from('strategy_evaluations')
+              .upsert({
+                strategy_id: strategy.id,
+                timeframe: strategy.timeframe,
+                last_evaluated_at: new Date().toISOString(),
+                next_evaluation_due: nextEvalTime.toISOString(),
+                evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
+              }, { onConflict: 'strategy_id' })
+              .catch(err => logWarn(`⚠️ Failed to update evaluation record in finally: ${err.message}`));
+          }
         }
       }
     }
@@ -1436,7 +1687,7 @@ Deno.serve(async (req) => {
     const monitoringCompleteTime = new Date().toISOString();
     const response = {
       success: true,
-      message: `Processed ${strategies?.length || 0} strategies with ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} ${enableParallel ? 'PARALLEL' : 'SEQUENTIAL'} processing`,
+      message: `Processed ${strategiesToProcess.length}/${strategies?.length || 0} strategies (filtered by timeframe) with ${isOptimized ? 'OPTIMIZED' : 'STANDARD'} ${enableParallel ? 'PARALLEL' : 'SEQUENTIAL'} processing`,
       signals_generated: processedStrategies.length,
       processed_strategies: processedStrategies,
       errors: errors,
@@ -1444,13 +1695,19 @@ Deno.serve(async (req) => {
       monitoring_complete_time: monitoringCompleteTime,
       processing_mode: enableParallel ? 'parallel' : 'sequential',
       optimization_enabled: isOptimized,
+      timeframe_filtering: {
+        total_active_strategies: strategies?.length || 0,
+        strategies_due_for_evaluation: strategiesToProcess.length,
+        strategies_skipped: (strategies?.length || 0) - strategiesToProcess.length,
+        evaluated_count: evaluatedStrategyIds.length
+      },
       performance_metrics: {
         total_time_ms: new Date(monitoringCompleteTime).getTime() - new Date(monitoringStartTime).getTime(),
-        strategies_processed: strategies?.length || 0,
+        strategies_processed: strategiesToProcess.length,
         signals_generated: processedStrategies.length,
         errors_count: errors.length,
-        avg_time_per_strategy: strategies?.length > 0 
-          ? Math.round((new Date(monitoringCompleteTime).getTime() - new Date(monitoringStartTime).getTime()) / strategies.length)
+        avg_time_per_strategy: strategiesToProcess.length > 0 
+          ? Math.round((new Date(monitoringCompleteTime).getTime() - new Date(monitoringStartTime).getTime()) / strategiesToProcess.length)
           : 0
       }
     };

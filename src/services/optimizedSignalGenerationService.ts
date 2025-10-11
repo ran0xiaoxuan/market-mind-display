@@ -98,7 +98,7 @@ export async function generateSignalForStrategy(
 
     // Evaluate entry conditions
     const entryResults = await Promise.all(
-      entryGroups.map(group => evaluateRuleGroup(group, marketData, strategy.target_asset))
+      entryGroups.map(group => evaluateRuleGroup(group, marketData, strategy.target_asset, strategy.timeframe))
     );
 
     const entryConditionMet = entryResults.some(result => result.conditionMet);
@@ -115,7 +115,7 @@ export async function generateSignalForStrategy(
     let exitConditionMet = false;
     if (exitGroups.length > 0) {
       const exitResults = await Promise.all(
-        exitGroups.map(group => evaluateRuleGroup(group, marketData, strategy.target_asset))
+        exitGroups.map(group => evaluateRuleGroup(group, marketData, strategy.target_asset, strategy.timeframe))
       );
       exitConditionMet = exitResults.some(result => result.conditionMet);
     }

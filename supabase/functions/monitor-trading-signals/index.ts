@@ -661,12 +661,15 @@ class StrategyEvaluator {
     const indicatorConfigs = this.extractIndicatorConfigs(strategy);
     
     for (const [configKey, params] of indicatorConfigs) {
-      const indicatorName = configKey.split('_')[0];
+      // Extract indicator name - handle names with spaces (e.g., "Bollinger Bands")
+      // The configKey format is: "IndicatorName_{json}"
+      const lastJsonStart = configKey.lastIndexOf('_{');
+      const indicatorName = lastJsonStart > 0 ? configKey.substring(0, lastJsonStart) : configKey.split('_')[0];
       
       try {
         let indicatorValue: any;
         
-        switch (indicatorName.toLowerCase()) {
+        switch (indicatorName.toLowerCase().replace(/\s+/g, '')) {
           case 'sma':
             const period = parseInt(params.period || '14');
             const smaSource = params.source || 'close';
@@ -783,11 +786,14 @@ class StrategyEvaluator {
   }
 
   private getIndicatorValue(type: string, indicator?: string, params?: Record<string, any>, valueType?: string): number {
-    if (type === 'PRICE') {
+    // Normalize type to uppercase for compatibility
+    const normalizedType = type?.toUpperCase();
+    
+    if (normalizedType === 'PRICE') {
       return this.indicators.get(`PRICE_${indicator}`) || 0;
     }
     
-    if (type === 'INDICATOR' && indicator && params) {
+    if (normalizedType === 'INDICATOR' && indicator && params) {
       const configKey = `${indicator}_${JSON.stringify(params)}`;
       const indicatorResult = this.indicators.get(configKey);
       
@@ -814,15 +820,37 @@ class StrategyEvaluator {
   private evaluateCondition(condition: string, leftValue: number, rightValue: number): boolean {
     logDebug(`[Condition] Evaluating: ${leftValue} ${condition} ${rightValue}`);
     
-    switch (condition) {
-      case 'GREATER_THAN': return leftValue > rightValue;
-      case 'LESS_THAN': return leftValue < rightValue;
-      case 'EQUAL': return Math.abs(leftValue - rightValue) < 0.0001;
-      case 'GREATER_THAN_OR_EQUAL': return leftValue >= rightValue;
-      case 'LESS_THAN_OR_EQUAL': return leftValue <= rightValue;
-      case 'CROSSES_ABOVE': return leftValue > rightValue;
-      case 'CROSSES_BELOW': return leftValue < rightValue;
-      default: return false;
+    // Normalize condition for compatibility (support both formats)
+    const normalizedCondition = condition?.toUpperCase().replace(/\s+/g, '_');
+    
+    switch (normalizedCondition) {
+      case 'GREATER_THAN':
+      case '>':
+        return leftValue > rightValue;
+      case 'LESS_THAN':
+      case '<':
+        return leftValue < rightValue;
+      case 'EQUAL':
+      case 'EQUALS':
+      case '==':
+      case '=':
+        return Math.abs(leftValue - rightValue) < 0.0001;
+      case 'NOT_EQUALS':
+      case '!=':
+        return Math.abs(leftValue - rightValue) >= 0.0001;
+      case 'GREATER_THAN_OR_EQUAL':
+      case '>=':
+        return leftValue >= rightValue;
+      case 'LESS_THAN_OR_EQUAL':
+      case '<=':
+        return leftValue <= rightValue;
+      case 'CROSSES_ABOVE':
+        return leftValue > rightValue;
+      case 'CROSSES_BELOW':
+        return leftValue < rightValue;
+      default:
+        logWarn(`[Condition] Unknown condition: ${condition}`);
+        return false;
     }
   }
 
@@ -836,7 +864,9 @@ class StrategyEvaluator {
     const results = group.trading_rules.map((rule, index) => {
       // Get left side value
       let leftValue: number;
-      if (rule.left_type === 'VALUE') {
+      const normalizedLeftType = rule.left_type?.toUpperCase();
+      
+      if (normalizedLeftType === 'VALUE') {
         leftValue = parseFloat(rule.left_value || '0');
       } else {
         leftValue = this.getIndicatorValue(rule.left_type, rule.left_indicator, rule.left_parameters, rule.left_value_type);
@@ -844,14 +874,16 @@ class StrategyEvaluator {
       
       // Get right side value
       let rightValue: number;
-      if (rule.right_type === 'VALUE') {
+      const normalizedRightType = rule.right_type?.toUpperCase();
+      
+      if (normalizedRightType === 'VALUE') {
         rightValue = parseFloat(rule.right_value || '0');
       } else {
         rightValue = this.getIndicatorValue(rule.right_type, rule.right_indicator, rule.right_parameters, rule.right_value_type);
       }
       
       const result = this.evaluateCondition(rule.condition, leftValue, rightValue);
-      logDebug(`[RuleGroup] Rule ${index + 1}: ${leftValue} ${rule.condition} ${rightValue} = ${result}`);
+      logDebug(`[RuleGroup] Rule ${index + 1}: ${rule.left_indicator || rule.left_value}(${leftValue.toFixed(4)}) ${rule.condition} ${rule.right_indicator || rule.right_value}(${rightValue.toFixed(4)}) = ${result}`);
       
       return result;
     });
@@ -1426,8 +1458,13 @@ Deno.serve(async (req) => {
                       next_evaluation_due: nextEvalTime.toISOString(),
                       evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
                     }, { onConflict: 'strategy_id' })
-                    .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
-                    .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+                    .then(({ error }) => {
+                      if (error) {
+                        logWarn(`⚠️ Failed to update evaluation record: ${error.message}`);
+                      } else {
+                        logDebug(`📝 Updated evaluation record for ${strategy.name}`);
+                      }
+                    });
                   
                   evaluatedStrategyIds.push(strategy.id);
                   
@@ -1457,8 +1494,13 @@ Deno.serve(async (req) => {
                       next_evaluation_due: nextEvalTime.toISOString(),
                       evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
                     }, { onConflict: 'strategy_id' })
-                    .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
-                    .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+                    .then(({ error }) => {
+                      if (error) {
+                        logWarn(`⚠️ Failed to update evaluation record: ${error.message}`);
+                      } else {
+                        logDebug(`📝 Updated evaluation record for ${strategy.name}`);
+                      }
+                    });
                   
                   evaluatedStrategyIds.push(strategy.id);
                   
@@ -1490,7 +1532,11 @@ Deno.serve(async (req) => {
                       next_evaluation_due: nextEvalTime.toISOString(),
                       evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
                     }, { onConflict: 'strategy_id' })
-                    .catch(err => logWarn(`⚠️ Failed to update evaluation record in finally: ${err.message}`));
+                    .then(({ error }) => {
+                      if (error) {
+                        logWarn(`⚠️ Failed to update evaluation record in finally: ${error.message}`);
+                      }
+                    });
                 }
               }
             });
@@ -1605,12 +1651,43 @@ Deno.serve(async (req) => {
             // Send notifications immediately
             await notificationService.sendNotifications(signal, strategy);
             
+            // Auto-execute trade on Alpaca (if configured)
+            try {
+              const alpacaResponse = await fetch(
+                `${Deno.env.get('SUPABASE_URL')}/functions/v1/alpaca-auto-trade`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    signal_id: signal.id,
+                    strategy_id: strategy.id,
+                  }),
+                }
+              );
+              
+              if (alpacaResponse.ok) {
+                const alpacaResult = await alpacaResponse.json();
+                if (alpacaResult.success) {
+                  logInfo(`🤖 Alpaca trade executed: ${alpacaResult.message}`);
+                } else {
+                  logDebug(`⏭️ Alpaca trade skipped: ${alpacaResult.message}`);
+                }
+              } else {
+                logWarn(`⚠️ Alpaca auto-trade call failed: ${alpacaResponse.statusText}`);
+              }
+            } catch (alpacaError) {
+              logWarn(`⚠️ Error calling Alpaca auto-trade: ${alpacaError.message}`);
+            }
+            
             // 更新策略评估记录
             const nextEvalTime = TimeframeEvaluationManager.calculateNextEvaluationTime(
               strategy.timeframe,
               new Date()
             );
-            await supabase
+            const { error: updateError } = await supabase
               .from('strategy_evaluations')
               .upsert({
                 strategy_id: strategy.id,
@@ -1618,9 +1695,13 @@ Deno.serve(async (req) => {
                 last_evaluated_at: new Date().toISOString(),
                 next_evaluation_due: nextEvalTime.toISOString(),
                 evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
-              }, { onConflict: 'strategy_id' })
-              .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
-              .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+              }, { onConflict: 'strategy_id' });
+            
+            if (updateError) {
+              logWarn(`⚠️ Failed to update evaluation record: ${updateError.message}`);
+            } else {
+              logDebug(`📝 Updated evaluation record for ${strategy.name}`);
+            }
             
             evaluatedStrategyIds.push(strategy.id);
             
@@ -1640,7 +1721,7 @@ Deno.serve(async (req) => {
               strategy.timeframe,
               new Date()
             );
-            await supabase
+            const { error: updateError2 } = await supabase
               .from('strategy_evaluations')
               .upsert({
                 strategy_id: strategy.id,
@@ -1648,9 +1729,13 @@ Deno.serve(async (req) => {
                 last_evaluated_at: new Date().toISOString(),
                 next_evaluation_due: nextEvalTime.toISOString(),
                 evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
-              }, { onConflict: 'strategy_id' })
-              .then(() => logDebug(`📝 Updated evaluation record for ${strategy.name}`))
-              .catch(err => logWarn(`⚠️ Failed to update evaluation record: ${err.message}`));
+              }, { onConflict: 'strategy_id' });
+            
+            if (updateError2) {
+              logWarn(`⚠️ Failed to update evaluation record: ${updateError2.message}`);
+            } else {
+              logDebug(`📝 Updated evaluation record for ${strategy.name}`);
+            }
             
             evaluatedStrategyIds.push(strategy.id);
           }
@@ -1678,7 +1763,11 @@ Deno.serve(async (req) => {
                 next_evaluation_due: nextEvalTime.toISOString(),
                 evaluation_count: (evaluationMap.get(strategy.id)?.evaluation_count || 0) + 1
               }, { onConflict: 'strategy_id' })
-              .catch(err => logWarn(`⚠️ Failed to update evaluation record in finally: ${err.message}`));
+              .then(({ error }) => {
+                if (error) {
+                  logWarn(`⚠️ Failed to update evaluation record in finally: ${error.message}`);
+                }
+              });
           }
         }
       }

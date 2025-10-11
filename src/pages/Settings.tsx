@@ -4,10 +4,11 @@ import { Navbar } from "@/components/Navbar";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { AccountSettings } from "@/components/settings/AccountSettings";
 import { TradingSettings } from "@/components/settings/TradingSettings";
+import { LiveTradingSettings } from "@/components/settings/LiveTradingSettings";
 import { ContactUs } from "@/components/settings/ContactUs";
 import { Discounts } from "@/components/settings/Discounts";
 
-type SettingsTab = "account" | "trading" | "contact" | "discounts";
+type SettingsTab = "account" | "trading" | "live-trading" | "contact" | "discounts";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
@@ -24,6 +25,7 @@ export default function Settings() {
           <div className="mt-10 min-h-[600px]">
             {activeTab === "account" && <AccountSettings />}
             {activeTab === "trading" && <TradingSettings />}
+            {activeTab === "live-trading" && <LiveTradingSettings />}
             {activeTab === "discounts" && <Discounts />}
             {activeTab === "contact" && <ContactUs />}
           </div>

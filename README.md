@@ -1,5 +1,41 @@
 # Welcome to your Lovable project
 
+## 🔥 **紧急修复** - Edge Function致命Bug (2025年10月10日)
+
+### ⚠️ **必须立即部署！**
+
+发现并修复了导致Edge Function崩溃的两个关键Bug：
+1. **Promise链错误** - `supabase.from(...).upsert(...).catch is not a function` ⚠️ 致命
+2. **指标识别失败** - `Unknown indicator: Bollinger Bands` ⚠️ 严重
+
+**立即部署修复：**
+```powershell
+# 方法1: PowerShell脚本（如果已安装Supabase CLI）
+.\deploy-monitor-fix.ps1
+
+# 方法2: 使用Supabase Dashboard（推荐 - 无需CLI）
+# 详细步骤请查看 CRITICAL_BUG_FIX.md
+```
+
+📄 **完整修复说明**：[CRITICAL_BUG_FIX.md](./CRITICAL_BUG_FIX.md)
+
+---
+
+## ⚠️ 之前的更新 (2025年10月10日)
+
+**信号数据计算逻辑已修复！**
+
+之前的系统使用随机数模拟信号生成，现已修复为真实的技术指标计算。详细信息请查看：
+- 📄 [信号数据计算修复说明](./SIGNAL_CALCULATION_FIX.md)
+
+**关键改进：**
+- ✅ 真实调用 TAAPI API 计算25个技术指标
+- ✅ 正确使用 FMP API 的实时价格和成交量数据
+- ✅ 完整实现规则评估逻辑（AND/OR/AT_LEAST N）
+- ✅ 支持所有条件类型（>, <, >=, <=, ==, !=, 穿越等）
+
+---
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/8cf29a9b-3abe-448d-955a-8ba6975986c3
@@ -516,3 +552,189 @@ A: 系统会在恢复后的下一次运行中检测到该策略已经过期（cu
 - 每小时检测：~63次 (5个×12次 + 3个×1次)
 - 每天检测：~1,536次 (5个×288次 + 3个×24次 + 2个×1次)
 - **性能提升：约 89% 减少！**
+
+---
+
+## 🚀 Alpaca 实时交易集成 (PRO 功能)
+
+### 功能概述
+
+本系统现已支持与 Alpaca 券商集成，让 PRO 用户可以将交易策略产生的信号**自动执行到真实的交易账户**。
+
+**核心功能：**
+- ✅ 安全存储 Alpaca API 密钥（加密存储）
+- ✅ 支持纸交易（Paper Trading）和真实交易
+- ✅ 自动测试连接和验证 API 密钥
+- ✅ 实时查看账户信息和持仓
+- ✅ 策略信号自动执行交易
+- ✅ 完整的交易历史记录
+- ✅ 订单状态实时跟踪
+
+---
+
+### 使用指南
+
+#### 步骤 1：获取 Alpaca API 密钥
+
+1. 访问 [Alpaca Markets](https://alpaca.markets) 注册账号
+2. 登录后进入 Dashboard
+3. 在左侧菜单选择 **"API Keys"**
+4. 点击 **"Generate New Key"** 创建新的 API 密钥
+5. 保存 **API Key** 和 **Secret Key**（Secret Key 只显示一次）
+
+**建议：** 初次使用请选择 **Paper Trading（纸交易）** 模式进行测试，避免实际资金风险。
+
+#### 步骤 2：配置 Alpaca 集成
+
+1. 登录系统后，点击右上角头像进入 **Settings（设置）**
+2. 选择 **"Live Trading"** 标签页
+3. 输入你的 Alpaca API Key 和 API Secret
+4. 选择交易模式：
+   - **Paper Trading（推荐）**：使用模拟账户测试，无实际资金风险
+   - **Live Trading**：使用真实资金交易，请谨慎！
+5. 点击 **"Save Configuration"** 保存配置
+
+#### 步骤 3：测试连接
+
+1. 保存配置后，点击 **"Test Connection"** 按钮
+2. 系统会验证你的 API 密钥是否有效
+3. 验证成功后会显示你的账户信息：
+   - 账户总资产（Account Value）
+   - 可用购买力（Buying Power）
+   - 验证状态
+
+#### 步骤 4：激活自动交易
+
+1. 确认连接测试成功后，打开右上角的 **开关（Switch）**
+2. 系统会显示 "Live trading is active"
+3. 从现在开始，你的策略产生交易信号时会自动执行到 Alpaca
+
+#### 步骤 5：查看交易历史
+
+- 访问 `/alpaca-trades` 页面查看所有交易记录
+- 支持按状态筛选：
+  - **Filled**：已成交
+  - **Submitted**：已提交
+  - **Pending**：等待中
+  - **Cancelled**：已取消
+  - **Failed**：失败
+- 可以查看每笔交易的详细信息：成交价格、数量、时间等
+
+---
+
+### 工作原理
+
+1. **信号生成**：你的策略根据设定的规则评估市场数据
+2. **条件满足**：当策略条件满足时，系统自动生成交易信号
+3. **自动执行**：如果你开启了 Alpaca 集成，系统会立即调用 Alpaca API 下单
+4. **记录保存**：所有交易记录都会保存到数据库，方便追踪和分析
+
+**流程图：**
+```
+策略评估 → 生成信号 → 检查 Alpaca 配置 → 自动下单 → 记录交易历史
+```
+
+---
+
+### 交易执行逻辑
+
+#### Entry 信号（入场）
+- 系统会执行 **买入（BUY）** 订单
+- 数量根据策略设定的仓位管理计算
+- 使用市价单（Market Order）确保快速成交
+
+#### Exit 信号（出场）
+- 系统会执行 **卖出（SELL）** 订单
+- 自动查询当前持仓并卖出全部数量
+- 如果没有持仓，则跳过该信号
+
+---
+
+### 安全性说明
+
+1. **加密存储**：所有 API 密钥都加密存储在数据库中
+2. **权限隔离**：每个用户只能访问自己的配置和交易记录
+3. **PRO 限制**：只有 PRO 和 Premium 用户可以使用此功能
+4. **服务端验证**：所有交易请求都经过服务端验证和授权
+
+---
+
+### 常见问题（FAQ）
+
+**Q: Alpaca 集成是免费的吗？**  
+A: Alpaca 集成是 **PRO 专属功能**，需要升级到 PRO 或 Premium 订阅才能使用。Alpaca 本身的账户注册和纸交易是免费的。
+
+**Q: Paper Trading 和 Live Trading 有什么区别？**  
+A: 
+- **Paper Trading（纸交易）**：使用 Alpaca 提供的模拟环境，不涉及真实资金，用于测试策略
+- **Live Trading（实盘交易）**：使用真实资金进行交易，所有盈亏都是真实的
+
+**Q: 如何确保不会意外执行真实交易？**  
+A: 
+1. 使用 Paper Trading 模式时，系统连接的是 Alpaca 的模拟服务器
+2. 即使误操作，也只会在模拟环境执行
+3. 只有明确选择 Live Trading 才会连接真实交易服务器
+
+**Q: 我可以随时停止自动交易吗？**  
+A: 可以。在 Settings > Live Trading 页面关闭开关即可立即停止自动交易。已提交的订单需要手动到 Alpaca 取消。
+
+**Q: 交易失败了怎么办？**  
+A: 
+- 所有失败的交易都会记录在交易历史中，包含失败原因
+- 常见失败原因：资金不足、股票代码错误、市场休市等
+- 检查交易历史页面的错误信息进行排查
+
+**Q: 支持哪些订单类型？**  
+A: 目前系统使用 **市价单（Market Order）** 确保快速成交。未来版本会支持限价单、止损单等更多类型。
+
+**Q: 如何删除 Alpaca 配置？**  
+A: 在 Settings > Live Trading 页面点击 "Delete" 按钮，确认后即可删除配置。删除后不会影响历史交易记录。
+
+**Q: Alpaca 支持哪些市场？**  
+A: Alpaca 主要支持美国股票市场（NYSE、NASDAQ 等）以及部分加密货币。具体支持的资产请查看 [Alpaca 官方文档](https://alpaca.markets/docs/)。
+
+---
+
+### 相关文件和数据库
+
+**前端组件：**
+- `src/components/settings/LiveTradingSettings.tsx` - Live Trading 设置页面
+- `src/pages/AlpacaTrades.tsx` - 交易历史页面
+- `src/services/alpacaService.ts` - Alpaca 服务封装
+
+**Edge Functions：**
+- `supabase/functions/alpaca-execute-trade/index.ts` - Alpaca 交易执行函数（手动调用）
+- `supabase/functions/alpaca-auto-trade/index.ts` - 自动交易处理函数（系统调用）
+
+**数据库表：**
+- `alpaca_configurations` - 存储用户的 Alpaca API 配置
+- `alpaca_trade_executions` - 记录所有交易执行历史
+
+**数据库迁移：**
+- `supabase/migrations/20251012000000_create_alpaca_integration.sql`
+
+---
+
+### 技术支持
+
+如有任何问题或建议，请通过以下方式联系：
+- Settings > Contact Us 页面提交反馈
+- 查看交易历史页面的错误信息进行故障排查
+- 访问 [Alpaca 官方文档](https://alpaca.markets/docs/) 了解更多 API 信息
+
+---
+
+### 免责声明
+
+⚠️ **重要提示：**
+- 交易有风险，投资需谨慎
+- 本系统提供的是技术工具，不构成投资建议
+- 使用 Live Trading 功能前，请确保你充分理解策略逻辑和风险
+- 强烈建议在 Paper Trading 模式下充分测试后再切换到 Live Trading
+- 开发团队不对任何交易损失承担责任
+
+**PRO 用户特别提醒：**
+- 请定期检查交易历史，确保交易符合预期
+- 建议设置合理的仓位管理和风险控制
+- 避免在市场波动剧烈时激活自动交易
+- 保护好你的 API 密钥，不要分享给他人

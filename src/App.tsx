@@ -32,6 +32,7 @@ import Recommendation from "@/pages/Recommendation";
 import RecommendationDetail from "@/pages/RecommendationDetail";
 import PublicRecommendation from "@/pages/PublicRecommendation";
 import PublicStrategy from "@/pages/PublicStrategy";
+import AlpacaTrades from "@/pages/AlpacaTrades";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,7 @@ function App() {
           <Route path="/manual-strategy" element={<ProtectedRoute><ManualStrategy /></ProtectedRoute>} />
           <Route path="/ai-strategy" element={<ProtectedRoute><AIStrategy /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/alpaca-trades" element={<ProtectedRoute><AlpacaTrades /></ProtectedRoute>} />
           <Route path="/strategy-preview" element={<ProtectedRoute><StrategyPreview /></ProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
